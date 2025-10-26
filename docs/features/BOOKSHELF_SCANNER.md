@@ -516,3 +516,14 @@ See [GitHub Issue #16](https://github.com/jukasdrj/books-tracker-v1/issues/16) f
 - Improved error states
 - Enhanced accessibility labels
 - Progress indicators during upload/analysis
+
+---
+
+## Related Documentation
+
+- **Product Requirements:** `docs/product/Bookshelf-Scanner-PRD.md` - Problem statement, user stories, success metrics
+- **Workflow Diagrams:** `docs/workflows/bookshelf-scanner-workflow.md` - Visual flows (user journey, batch mode, WebSocket progress)
+- **Batch Scanning:** `docs/features/BATCH_BOOKSHELF_SCANNING.md` - Multi-photo scanning
+- **Review Queue:** `docs/features/REVIEW_QUEUE.md` - Low-confidence detection handling
+- **WebSocket Architecture:** `docs/WEBSOCKET_ARCHITECTURE.md` - Real-time progress implementation
+- **Backend Code:** `cloudflare-workers/api-worker/src/services/ai-scanner.js` - Gemini integration

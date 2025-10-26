@@ -511,3 +511,14 @@ See [GitHub Issue #27](https://github.com/jukasdrj/books-tracker-v1/issues/27) f
 - Partial import recovery
 - Custom column mapping UI
 - Export enriched library back to CSV
+
+---
+
+## Related Documentation
+
+- **Product Requirements:** `docs/product/CSV-Import-PRD.md` - Problem statement, user personas, KPIs
+- **Workflow Diagrams:** `docs/workflows/csv-import-workflow.md` - Visual flows (import wizard, duplicate detection, enrichment)
+- **Title Normalization Tests:** `BooksTrackerPackage/Tests/.../StringTitleNormalizationTests.swift` - Algorithm verification
+- **Enrichment Workflow:** `docs/workflows/enrichment-workflow.md` - Background metadata fetching
+- **SyncCoordinator:** `docs/architecture/SyncCoordinator-Architecture.md` - Job orchestration pattern
+- **Backend Code:** `cloudflare-workers/api-worker/src/handlers/search.js` - Enrichment API

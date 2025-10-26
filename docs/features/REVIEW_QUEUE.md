@@ -324,10 +324,11 @@ Verify `DetectedBook.confidence < 0.60` for low-confidence books.
 
 ## Related Documentation
 
-- **Bookshelf Scanner:** `docs/features/BOOKSHELF_SCANNER.md`
-- **SwiftData Guide:** `docs/CONCURRENCY_GUIDE.md`
-- **iOS 26 HIG:** CLAUDE.md "iOS 26 Liquid Glass Design System"
-- **API Contracts:** `docs/API.md` (Gemini 2.5 Flash integration)
+- **Product Requirements:** `docs/product/Review-Queue-PRD.md` - User stories, acceptance criteria, success metrics
+- **Workflow Diagrams:** `docs/workflows/bookshelf-scanner-workflow.md` - Review Queue integration (confidence routing section)
+- **Bookshelf Scanner:** `docs/features/BOOKSHELF_SCANNER.md` - AI detection system
+- **iOS 26 HIG:** `CLAUDE.md` - iOS 26 Liquid Glass Design System compliance
+- **Image Cleanup:** `ImageCleanupService.swift` - Automatic temp file management
 
 ---
 
