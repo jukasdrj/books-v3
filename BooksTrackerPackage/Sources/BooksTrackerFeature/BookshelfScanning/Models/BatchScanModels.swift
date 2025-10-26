@@ -1,5 +1,8 @@
 import Foundation
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - Captured Photo
 
@@ -7,17 +10,21 @@ import SwiftUI
 @MainActor
 public struct CapturedPhoto: Identifiable {
     public let id: UUID
+    #if canImport(UIKit)
     public let image: UIImage
+    #endif
     public let timestamp: Date
 
     /// Maximum photos allowed per batch
     public static let maxPhotosPerBatch = 5
 
+    #if canImport(UIKit)
     public init(image: UIImage) {
         self.id = UUID()
         self.image = image
         self.timestamp = Date()
     }
+    #endif
 }
 
 // MARK: - Photo Status
@@ -37,7 +44,7 @@ public struct PhotoProgress: Identifiable, Sendable {
     public let index: Int
     public var status: PhotoStatus
     public var progress: Double?
-    public var booksFound: [DetectedBook]?
+    public var booksFound: [AIDetectedBook]?
     public var error: String?
 
     public var id: Int { index }
@@ -51,6 +58,7 @@ public struct PhotoProgress: Identifiable, Sendable {
 // MARK: - Batch Progress
 
 /// Overall progress for a batch scan job
+@available(iOS 26.0, macOS 14.0, *)
 @Observable
 @MainActor
 public final class BatchProgress {
@@ -73,7 +81,7 @@ public final class BatchProgress {
     public func updatePhoto(
         index: Int,
         status: PhotoStatus,
-        booksFound: [DetectedBook]? = nil,
+        booksFound: [AIDetectedBook]? = nil,
         error: String? = nil
     ) {
         guard index < photos.count else { return }
@@ -236,7 +244,7 @@ public enum BatchWebSocketMessage: Codable {
 // MARK: - AIDetectedBook
 
 /// AI-detected book from backend (for batch complete message)
-public struct AIDetectedBook: Codable {
+public struct AIDetectedBook: Codable, Sendable {
     public let title: String
     public let author: String?
     public let isbn: String?

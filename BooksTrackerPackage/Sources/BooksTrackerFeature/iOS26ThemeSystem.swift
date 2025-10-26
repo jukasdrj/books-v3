@@ -582,10 +582,10 @@ struct ThemePreviewCard: View {
 // MARK: - Theme Card Button Style
 
 /// Custom button style for theme cards with spring animations
-@available(iOS 26.0, *)
+@available(iOS 26.0, macOS 10.15, *)
 struct ThemeCardButtonStyle: ButtonStyle {
     let isSelected: Bool
-    
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.95 : (isSelected ? 1.02 : 1.0))
