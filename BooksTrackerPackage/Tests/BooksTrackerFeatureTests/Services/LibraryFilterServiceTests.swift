@@ -17,7 +17,7 @@ struct LibraryFilterServiceTests {
         let work2 = Work(title: "Test Book 2", authors: [])
 
         // Add work1 to library, leave work2 out
-        let entry = UserLibraryEntry(work: work1, status: .toRead)
+        let entry = UserLibraryEntry(work: work1, readingStatus: .toRead)
         work1.userLibraryEntries = [entry]
 
         modelContext.insert(work1)
@@ -55,9 +55,9 @@ struct LibraryFilterServiceTests {
         let modelContext = createTestModelContext()
 
         // Create diverse authors
-        let author1 = Author(name: "Author 1", gender: .female, region: .asia)
-        let author2 = Author(name: "Author 2", gender: .male, region: .europe)
-        let author3 = Author(name: "Author 3", gender: .nonBinary, region: .africa)
+        let author1 = Author(name: "Author 1", gender: .female, culturalRegion: .asia)
+        let author2 = Author(name: "Author 2", gender: .male, culturalRegion: .europe)
+        let author3 = Author(name: "Author 3", gender: .nonBinary, culturalRegion: .africa)
 
         let work1 = Work(title: "Book 1", authors: [author1])
         let work2 = Work(title: "Book 2", authors: [author2])
