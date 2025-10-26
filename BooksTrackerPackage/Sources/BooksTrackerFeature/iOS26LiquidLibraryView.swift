@@ -40,11 +40,7 @@ public struct iOS26LiquidLibraryView: View {
     // Computed property to get only works in user's library
     // CRITICAL: Safe access after library reset - UserLibraryEntry might be deleted but Work still exists during CloudKit sync
     private var libraryWorks: [Work] {
-        allWorks.filter { work in
-            // Try to access userEntry safely - if it's been deleted, SwiftData will throw/return nil
-            guard let entries = work.userLibraryEntries else { return false }
-            return !entries.isEmpty
-        }
+        filterService.filterLibraryWorks(from: allWorks)
     }
     
     // ✅ FIX 2: Simplified state management
@@ -61,6 +57,7 @@ public struct iOS26LiquidLibraryView: View {
     @State private var cachedFilteredWorks: [Work] = []
     @State private var cachedDiversityScore: Double = 0.0
     @State private var lastSearchText = ""
+    @State private var filterService = LibraryFilterService()
 
     @Namespace private var layoutTransition
     @State private var scrollPosition = ScrollPosition()
@@ -386,22 +383,19 @@ public struct iOS26LiquidLibraryView: View {
     // MARK: - Performance Optimizations
 
     private func updateFilteredWorks() {
-        // ✅ FIX 5: Cached filtering and diversity calculation
+        // ✅ FIX 5: Cached filtering and diversity calculation using LibraryFilterService
         let filtered: [Work]
 
         if searchText.isEmpty {
             filtered = Array(libraryWorks)
         } else {
-            filtered = libraryWorks.filter { work in
-                work.title.localizedCaseInsensitiveContains(searchText) ||
-                work.authorNames.localizedCaseInsensitiveContains(searchText)
-            }
+            filtered = filterService.searchWorks(libraryWorks, searchText: searchText)
         }
 
         // Only update if actually changed
         if filtered.map(\.id) != cachedFilteredWorks.map(\.id) {
             cachedFilteredWorks = filtered
-            cachedDiversityScore = calculateDiverseAuthors(for: filtered)
+            cachedDiversityScore = filterService.calculateDiversityScore(for: filtered)
         }
     }
 
@@ -412,17 +406,6 @@ public struct iOS26LiquidLibraryView: View {
         if let allWorks = try? modelContext.fetch(descriptor) {
             reviewQueueCount = allWorks.filter { $0.reviewStatus == .needsReview }.count
         }
-    }
-
-    private func calculateDiverseAuthors(for works: [Work]) -> Double {
-        let allAuthors = works.compactMap(\.authors).flatMap { $0 }
-        guard !allAuthors.isEmpty else { return 0.0 }
-
-        let diverseCount = allAuthors.filter { author in
-            author.representsMarginalizedVoices() || author.representsIndigenousVoices()
-        }.count
-
-        return Double(diverseCount) / Double(allAuthors.count)
     }
 
     private func adaptiveColumns(for size: CGSize) -> [GridItem] {
