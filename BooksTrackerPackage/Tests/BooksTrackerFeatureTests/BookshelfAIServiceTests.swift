@@ -15,7 +15,7 @@ func testProcessViaWebSocketSuccess() async throws {
     let result = try await service.processViaWebSocket(
         image: mockImage,
         jobId: jobId,
-        provider: .gemini,
+        provider: .geminiFlash,
         progressHandler: { progress, status in
             print("Progress: \(Int(progress * 100))% - \(status)")
         }
@@ -36,7 +36,7 @@ func testProcessViaWebSocketConnectionFailure() async {
         try await service.processViaWebSocket(
             image: mockImage,
             jobId: invalidJobId,
-            provider: .gemini,
+            provider: .geminiFlash,
             progressHandler: { _, _ in }
         )
     }

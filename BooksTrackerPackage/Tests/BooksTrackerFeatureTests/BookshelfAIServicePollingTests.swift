@@ -12,7 +12,7 @@ func testProcessViaPollingSuccess() async throws {
     let result = try await service.processViaPolling(
         image: mockImage,
         jobId: jobId,
-        provider: .gemini,
+        provider: .geminiFlash,
         progressHandler: { progress, status in
             print("Polling progress: \(Int(progress * 100))% - \(status)")
         }
@@ -35,7 +35,7 @@ func testProcessViaPollingInterval() async throws {
     _ = try await service.processViaPolling(
         image: mockImage,
         jobId: jobId,
-        provider: .gemini,
+        provider: .geminiFlash,
         progressHandler: { progress, status in
             pollCount += 1
             print("Poll #\(pollCount) at \(Date().timeIntervalSince(startTime))s")
