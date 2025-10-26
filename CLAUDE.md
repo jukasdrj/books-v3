@@ -6,7 +6,18 @@ Personal book tracking iOS app with cultural diversity insights. SwiftUI, SwiftD
 
 **🎉 NOW ON APP STORE!** Bundle ID: `Z67H8Y8DW.com.oooefam.booksV3`
 
+**📚 DOCUMENTATION HUB:** See `docs/README.md` for complete documentation navigation (PRDs, workflows, feature guides)
+
 ## Quick Start
+
+ast-grep (sg) is available and SHALL be prioritized for syntax-aware searches --lang swift
+Example usage for Swift (conceptual):
+To find all public methods in a Swift file:
+Code
+
+ast-grep --lang swift --pattern 'public func $METHOD($$$) { $$$ }' your_swift_file.swift
+
+This command uses the --lang swift flag to specify the language and a pattern to match public function declarations, where $METHOD captures the function name and $$$ represents arbitrary arguments and function body content.
 
 **Note:** Implementation plans tracked in [GitHub Issues](https://github.com/users/jukasdrj/projects/2).
 
@@ -33,7 +44,7 @@ See **[MCP_SETUP.md](MCP_SETUP.md)** for XcodeBuildMCP configuration.
 ```bash
 cd cloudflare-workers
 npm run deploy           # Deploy all workers
-wrangler tail --format pretty  # Real-time logs
+npx wrangler tail --format pretty  # Real-time logs
 ```
 
 ## Architecture
@@ -173,7 +184,7 @@ api-worker/
 
 ## Development Standards
 
-### Swift 6 Concurrency
+### Swift 6.2 Concurrency
 
 **Actor Isolation:**
 - `@MainActor` - UI components, SwiftUI views
@@ -311,15 +322,10 @@ public class CSVImportService {
 
 ## Debugging
 
-### iOS
-```javascript
-launch_app_logs_sim({ simulatorUuid: "UUID", bundleId: "com.bookstrack.BooksTracker" })
-describe_ui({ simulatorUuid: "UUID" })
-```
 
 ### Backend
 ```bash
-wrangler tail books-api-proxy --search "provider"
+npx wrangler tail books-api-proxy --search "provider"
 curl "https://books-api-proxy.jukasdrj.workers.dev/health"
 ```
 
@@ -356,20 +362,90 @@ Text("Publisher").foregroundColor(.tertiary)
 
 **Rule:** `themeStore.primaryColor` for brand, `.secondary`/`.tertiary` for metadata.
 
+## Code Search Tools
+
+### AST-Grep (Syntax-Aware Search) - Primary Tool
+
+**ast-grep (sg)** is available and SHALL be prioritized for all Swift code searches over ripgrep/grep.
+
+**Why AST-Grep?**
+- **Syntax-aware:** Understands Swift structure (classes, methods, properties)
+- **Accurate matching:** No false positives from strings/comments
+- **Refactoring-safe:** Matches code structure, not text patterns
+
+**Common Use Cases:**
+
+```bash
+# Find all public methods
+ast-grep --lang swift --pattern 'public func $METHOD($$$) { $$$ }' .
+
+# Find all @MainActor classes
+ast-grep --lang swift --pattern '@MainActor class $NAME { $$$ }' .
+
+# Find all SwiftData @Model classes
+ast-grep --lang swift --pattern '@Model public class $NAME { $$$ }' .
+
+# Find all Task.sleep calls (check for Timer.publish violations)
+ast-grep --lang swift --pattern 'Task.sleep(for: $DURATION)' .
+
+# Find all force unwraps (!)
+ast-grep --lang swift --pattern '$VAR!' .
+
+# Find all @Observable classes
+ast-grep --lang swift --pattern '@Observable class $NAME { $$$ }' .
+```
+
+**Pattern Syntax:**
+- `$VAR` - Matches single identifier (variable/function name)
+- `$$$` - Matches multiple parameters/arguments
+- `{ $$$ }` - Matches any block contents
+
+**When to use ripgrep instead:**
+- Searching across multiple languages (Markdown, TypeScript, etc.)
+- Simple text search in non-code files
+- Debugging logs/error messages
+
+**Rule:** For Swift code queries, ALWAYS use `ast-grep` unless user explicitly requests `grep`/`ripgrep`.
+
 ## Documentation
 
+**📚 Complete Documentation Hub:** `docs/README.md` - Navigation guide for all doc types
+
 ```
-📄 CLAUDE.md                 ← This file (quick reference)
+📄 CLAUDE.md                 ← This file (quick reference <500 lines)
 📄 MCP_SETUP.md             ← XcodeBuildMCP workflows
 📄 CHANGELOG.md             ← Victory stories + debugging sagas
-📁 docs/features/           ← Deep dives (BOOKSHELF_SCANNER, BATCH_BOOKSHELF_SCANNING, CSV_IMPORT, REVIEW_QUEUE)
-📁 cloudflare-workers/      ← SERVICE_BINDING_ARCHITECTURE.md (RPC + deployment)
+
+📁 docs/
+  ├── README.md             ← **START HERE** - Documentation navigation & learning paths
+  ├── product/              ← PRDs (problem statements, user stories, success metrics)
+  ├── workflows/            ← Mermaid diagrams (visual flows for all features)
+  ├── features/             ← Technical deep-dives (implementation, patterns, lessons)
+  ├── architecture/         ← System design & architectural decisions
+  └── guides/               ← How-to guides & best practices
+
+📁 cloudflare-workers/      ← Backend: SERVICE_BINDING_ARCHITECTURE.md
 📁 .claude/commands/        ← Slash commands (/gogo, /build, /test, /sim)
 ```
+
+**Documentation Types:**
+- **PRDs** (`docs/product/`) - WHY features exist, WHO they're for, WHAT success looks like
+- **Workflows** (`docs/workflows/`) - HOW features work (Mermaid visual diagrams)
+- **Feature Docs** (`docs/features/`) - IMPLEMENTATION details (code patterns, APIs, testing)
+- **CLAUDE.md** - Quick reference for active development (this file)
+- **GitHub Issues** - Active tasks & roadmap
+
+**Learning Path:**
+1. New to project? → Read `docs/README.md` then scan `docs/workflows/` (visual overview)
+2. Planning feature? → Create PRD from `docs/product/PRD-Template.md`
+3. Implementing? → Study `docs/features/` + workflow diagrams
+4. Need quick answer? → Check CLAUDE.md (this file)
 
 **Philosophy:**
 - CLAUDE.md: Current standards (<500 lines, quick reference)
 - docs/features/: Deep dives with architecture + lessons
+- docs/workflows/: Visual Mermaid diagrams for quick comprehension
+- docs/product/: Product requirements (problem → solution mapping)
 - CHANGELOG.md: Historical victories
 - GitHub Issues: Active tasks
 
@@ -393,5 +469,5 @@ entry.status = .read; entry.completionDate = Date()
 
 **Build Status:** ✅ Zero warnings, zero errors
 **HIG Compliance:** 100% iOS 26 standards
-**Swift 6:** Full concurrency compliance
+**Swift 6.2:** Full concurrency compliance
 **Accessibility:** WCAG AA compliant contrast
