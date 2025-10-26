@@ -186,6 +186,7 @@ public actor VisionProcessingActor {
 
     // MARK: - Metadata Parsing
 
+    #if canImport(UIKit)
     /// Parse book metadata (ISBN, title, author) from OCR text
     private func parseBookMetadata(
         from text: String,
@@ -285,6 +286,7 @@ public actor VisionProcessingActor {
 
         return nil
     }
+    #endif
 
     // MARK: - Image Processing Utilities
 
