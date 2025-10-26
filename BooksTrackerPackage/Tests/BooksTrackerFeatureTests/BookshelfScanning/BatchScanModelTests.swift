@@ -7,7 +7,7 @@ struct BatchScanModelTests {
 
     @Test("CapturedPhoto stores image and metadata")
     func capturedPhotoCreation() {
-        let image = createTestImage()
+        let image = createBatchScanTestImage()
         let photo = CapturedPhoto(image: image)
 
         #expect(photo.id != UUID())
@@ -69,7 +69,7 @@ struct BatchScanModelTests {
         var photos: [CapturedPhoto] = []
 
         for _ in 0..<5 {
-            photos.append(CapturedPhoto(image: createTestImage()))
+            photos.append(CapturedPhoto(image: createBatchScanTestImage()))
         }
 
         #expect(photos.count == 5)
@@ -138,6 +138,6 @@ struct BatchScanModelTests {
 
 // MARK: - Helpers
 
-func createTestImage() -> UIImage {
+private func createBatchScanTestImage() -> UIImage {
     UIImage(systemName: "book")!
 }

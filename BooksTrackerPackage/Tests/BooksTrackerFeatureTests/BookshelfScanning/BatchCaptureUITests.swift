@@ -9,7 +9,7 @@ struct BatchCaptureUITests {
     @Test("Shows submit and take more buttons after capture")
     func postCaptureButtons() async {
         let model = BatchCaptureModel()
-        let image = createTestImage()
+        let image = createBatchCaptureTestImage()
 
         model.addPhoto(image)
 
@@ -21,7 +21,7 @@ struct BatchCaptureUITests {
     func takeMoreFlow() async {
         let model = BatchCaptureModel()
 
-        model.addPhoto(createTestImage())
+        model.addPhoto(createBatchCaptureTestImage())
         model.handleTakeMore()
 
         #expect(model.showingPostCaptureOptions == false)
@@ -34,13 +34,13 @@ struct BatchCaptureUITests {
 
         // Add 5 photos
         for _ in 0..<5 {
-            model.addPhoto(createTestImage())
+            model.addPhoto(createBatchCaptureTestImage())
         }
 
         #expect(model.capturedPhotos.count == 5)
 
         // Attempt to add 6th
-        model.addPhoto(createTestImage())
+        model.addPhoto(createBatchCaptureTestImage())
 
         #expect(model.capturedPhotos.count == 5) // Still 5
     }
@@ -49,8 +49,8 @@ struct BatchCaptureUITests {
     func submitBatch() async {
         let model = BatchCaptureModel()
 
-        model.addPhoto(createTestImage())
-        model.addPhoto(createTestImage())
+        model.addPhoto(createBatchCaptureTestImage())
+        model.addPhoto(createBatchCaptureTestImage())
 
         await model.submitBatch()
 
@@ -62,9 +62,9 @@ struct BatchCaptureUITests {
     func deletePhoto() async {
         let model = BatchCaptureModel()
 
-        model.addPhoto(createTestImage())
-        let photo2 = model.addPhoto(createTestImage())
-        model.addPhoto(createTestImage())
+        model.addPhoto(createBatchCaptureTestImage())
+        let photo2 = model.addPhoto(createBatchCaptureTestImage())
+        model.addPhoto(createBatchCaptureTestImage())
 
         model.deletePhoto(photo2)
 
@@ -79,13 +79,13 @@ struct BatchCaptureUITests {
 
         // Add 4 photos
         for _ in 0..<4 {
-            model.addPhoto(createTestImage())
+            model.addPhoto(createBatchCaptureTestImage())
         }
 
         #expect(model.canAddMore == true)
 
         // Add 5th photo
-        model.addPhoto(createTestImage())
+        model.addPhoto(createBatchCaptureTestImage())
 
         #expect(model.canAddMore == false)
     }
@@ -94,8 +94,8 @@ struct BatchCaptureUITests {
     func cancelBatch() async throws {
         let model = BatchCaptureModel()
 
-        model.addPhoto(createTestImage())
-        model.addPhoto(createTestImage())
+        model.addPhoto(createBatchCaptureTestImage())
+        model.addPhoto(createBatchCaptureTestImage())
 
         // Initiate batch submission (will fail in test due to network)
         // This is okay - we just need to set up the progress state
@@ -119,6 +119,6 @@ struct BatchCaptureUITests {
 
 /// Creates a test image (system SF Symbol)
 @MainActor
-func createTestImage() -> UIImage {
+private func createBatchCaptureTestImage() -> UIImage {
     UIImage(systemName: "book.fill")!
 }

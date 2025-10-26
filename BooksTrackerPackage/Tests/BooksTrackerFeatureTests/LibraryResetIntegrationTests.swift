@@ -8,19 +8,19 @@ struct LibraryResetIntegrationTests {
     @Test("Settings reset to defaults after library reset", .disabled("AIProviderSettings class no longer exists - test needs update"))
     func testSettingsResetToDefaults() async throws {
         // GIVEN: AIProviderSettings and FeatureFlags with non-default values
-        let aiSettings = AIProviderSettings.shared
+        // let aiSettings = AIProviderSettings.shared
         let featureFlags = FeatureFlags.shared
 
         // Change to non-default values
-        aiSettings.selectedProvider = .cloudflare
+        // aiSettings.selectedProvider = .cloudflare
         featureFlags.enableTabBarMinimize = false
 
         // WHEN: Reset methods are called
-        aiSettings.resetToDefaults()
+        // aiSettings.resetToDefaults()
         featureFlags.resetToDefaults()
 
         // THEN: Settings are restored to defaults
-        #expect(aiSettings.selectedProvider == .gemini)
+        // #expect(aiSettings.selectedProvider == .gemini)
         #expect(featureFlags.enableTabBarMinimize == true)
     }
 
