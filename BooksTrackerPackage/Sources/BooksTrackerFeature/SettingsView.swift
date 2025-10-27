@@ -393,20 +393,14 @@ public struct SettingsView: View {
                 // 6. Save changes to SwiftData
                 try modelContext.save()
 
-                // 7. CRITICAL: Give CloudKit time to process deletions (if on device)
-                // Without this, CloudKit might restore from iCloud before processing local deletes
-                // CloudKit sync is asynchronous - 3s gives time for local deletes to propagate to cloud
-                // The UI will automatically refresh via SwiftData queries after this delay
-                try await Task.sleep(for: .milliseconds(3000))
-
-                // 8. Trigger UI refresh by posting notification
-                // This causes views with @Query to refetch and show empty state
+                // 7. Immediately trigger UI refresh by posting notification
+                // Views will clear cached state and refetch (now empty)
                 NotificationCenter.default.post(name: .libraryWasReset, object: nil)
 
-                // 9. Clear search history from UserDefaults
+                // 8. Clear search history from UserDefaults
                 UserDefaults.standard.removeObject(forKey: "RecentBookSearches")
 
-                // 10. Reset app-level settings to default values
+                // 9. Reset app-level settings to default values
                 featureFlags.resetToDefaults()
 
                 // Success haptic feedback
