@@ -118,6 +118,10 @@ public struct InsightsView: View {
     // MARK: - Data Loading
 
     private func loadStatistics() async {
+        #if DEBUG
+        let startTime = Date()
+        #endif
+
         isLoading = true
         errorMessage = nil
 
@@ -129,6 +133,11 @@ public struct InsightsView: View {
             readingStats = try ReadingStats.calculate(from: modelContext, period: selectedPeriod)
 
             isLoading = false
+
+            #if DEBUG
+            let duration = Date().timeIntervalSince(startTime)
+            print("📊 Insights calculation took \(String(format: "%.2f", duration * 1000))ms")
+            #endif
         } catch {
             errorMessage = "Failed to calculate statistics: \(error.localizedDescription)"
             isLoading = false

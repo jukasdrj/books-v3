@@ -139,10 +139,43 @@ public struct DiversityStats: Sendable {
         public let color: Color
     }
 
+    // MARK: - Caching
+
+    private static var cachedStats: DiversityStats?
+    private static var cacheTimestamp: Date?
+    private static let cacheValidityDuration: TimeInterval = 60 // 1 minute
+
+    /// Calculate diversity statistics with caching
+    /// Cache is valid for 1 minute to avoid redundant calculations
+    public static func calculate(from context: ModelContext, ignoreCache: Bool = false) throws -> DiversityStats {
+        // Check cache validity
+        if !ignoreCache,
+           let cached = cachedStats,
+           let timestamp = cacheTimestamp,
+           Date().timeIntervalSince(timestamp) < cacheValidityDuration {
+            return cached
+        }
+
+        // Calculate fresh stats
+        let stats = try calculateFresh(from: context)
+
+        // Update cache
+        cachedStats = stats
+        cacheTimestamp = Date()
+
+        return stats
+    }
+
+    /// Invalidate cache when library changes
+    public static func invalidateCache() {
+        cachedStats = nil
+        cacheTimestamp = nil
+    }
+
     // MARK: - Calculation
 
     /// Calculate diversity statistics from SwiftData context
-    public static func calculate(from context: ModelContext) throws -> DiversityStats {
+    private static func calculateFresh(from context: ModelContext) throws -> DiversityStats {
         // Fetch all authors
         let authorDescriptor = FetchDescriptor<Author>()
         let authors = try context.fetch(authorDescriptor)
