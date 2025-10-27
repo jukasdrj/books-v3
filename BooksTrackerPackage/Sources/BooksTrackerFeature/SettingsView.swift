@@ -45,6 +45,7 @@ public struct SettingsView: View {
 
     @State private var showingResetConfirmation = false
     @State private var showingCSVImporter = false
+    @State private var showingGeminiCSVImporter = false
     @State private var showingCloudKitHelp = false
     @State private var showingAcknowledgements = false
 
@@ -109,6 +110,25 @@ public struct SettingsView: View {
                             .frame(width: 28)
 
                         Text("Import from CSV")
+                    }
+                }
+
+                Button {
+                    showingGeminiCSVImporter = true
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "brain.head.profile")
+                            .foregroundStyle(themeStore.primaryColor)
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("AI-Powered CSV Import (Beta)")
+                                .font(.body)
+
+                            Text("Gemini automatically parses your CSV files")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
 
@@ -282,6 +302,11 @@ public struct SettingsView: View {
         .background(backgroundView.ignoresSafeArea())
         .sheet(isPresented: $showingCSVImporter) {
             CSVImportFlowView()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showingGeminiCSVImporter) {
+            GeminiCSVImportView()
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
