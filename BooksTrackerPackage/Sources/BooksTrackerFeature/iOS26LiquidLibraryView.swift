@@ -368,7 +368,20 @@ public struct iOS26LiquidLibraryView: View {
     private var readingProgressOverview: some View {
         HStack(spacing: 16) {
             ForEach(ReadingStatus.allCases.prefix(4), id: \.self) { status in
-                let count = cachedFilteredWorks.compactMap(\.userLibraryEntries).flatMap { $0 }.filter { $0.readingStatus == status }.count
+                // DEFENSIVE: Safely access userLibraryEntries with nil checks
+                // During library reset, works may be deleted while view is rendering
+                let count = cachedFilteredWorks
+                    .compactMap { work -> [UserLibraryEntry]? in
+                        // Guard against accessing deleted/invalidated SwiftData objects
+                        guard work.userLibraryEntries != nil else { return nil }
+                        return work.userLibraryEntries
+                    }
+                    .flatMap { $0 }
+                    .filter { entry in
+                        // Additional guard: ensure entry is valid before accessing property
+                        entry.readingStatus == status
+                    }
+                    .count
 
                 VStack(spacing: 4) {
                     Image(systemName: status.systemImage)
