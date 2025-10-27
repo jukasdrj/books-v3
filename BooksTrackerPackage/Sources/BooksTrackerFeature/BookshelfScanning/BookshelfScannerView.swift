@@ -24,6 +24,7 @@ public struct BookshelfScannerView: View {
     @State private var showCamera = false
     @State private var photosPickerItem: PhotosPickerItem?
     @State private var batchModeEnabled = false
+    @State private var showingErrorAlert = false
 
     public init() {}
 
@@ -104,12 +105,15 @@ public struct BookshelfScannerView: View {
                 }
             }
 
-            .alert("Scan Failed", isPresented: .constant(scanModel.isError), presenting: scanModel.errorMessage) { _ in
+            .alert("Scan Failed", isPresented: $showingErrorAlert, presenting: scanModel.errorMessage) { _ in
                 Button("OK", role: .cancel) {
                     scanModel.scanState = .idle
                 }
             } message: { errorMessage in
                 Text(errorMessage)
+            }
+            .onChange(of: scanModel.isError) { oldValue, newValue in
+                showingErrorAlert = newValue
             }
         }
     }
