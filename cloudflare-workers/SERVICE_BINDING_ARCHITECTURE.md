@@ -70,7 +70,8 @@ api-worker/
 ### Book Search
 - `GET /search/title?q={query}` - General book search (6h cache)
 - `GET /search/isbn?isbn={isbn}` - ISBN lookup (7-day cache)
-- `POST /search/advanced` - Multi-field search (title + author + ISBN)
+- `GET /search/advanced?title={title}&author={author}` - Multi-field search (primary method, HTTP cacheable)
+- `POST /search/advanced` - Multi-field search (legacy support, accepts JSON body)
 
 ### Background Jobs
 - `POST /api/enrichment/start` - Batch book enrichment with WebSocket progress
