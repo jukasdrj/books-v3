@@ -1,5 +1,22 @@
 import Foundation
 
+/// WebSocket-specific errors
+enum WebSocketError: Error, LocalizedError {
+    case notConnected
+    case encodingFailed
+    case decodingFailed
+    case connectionFailed(Error)
+
+    var errorDescription: String? {
+        switch self {
+        case .notConnected: return "WebSocket not connected"
+        case .encodingFailed: return "Failed to encode message"
+        case .decodingFailed: return "Failed to decode message"
+        case .connectionFailed(let error): return "Connection failed: \(error.localizedDescription)"
+        }
+    }
+}
+
 /// Connection token proving WebSocket is ready for job binding
 /// Issued after initial handshake, before jobId configuration
 public struct ConnectionToken: Sendable {
@@ -102,9 +119,8 @@ public final class WebSocketProgressManager: ObservableObject {
 
         print("🔌 WebSocket configured for job: \(jobId)")
 
-        // Signal to server that WebSocket is ready
-        // This tells server it's safe to start processing
-        try await signalWebSocketReady(jobId: jobId)
+        // NOTE: Ready signal is now sent explicitly via sendReadySignal()
+        // This gives caller control over when to signal readiness to server
     }
 
     /// Set progress handler for already-connected WebSocket
@@ -189,13 +205,36 @@ public final class WebSocketProgressManager: ObservableObject {
         print("✅ WebSocket connection verified after \(attempts) attempts")
     }
 
-    /// Signal to server that WebSocket is ready (DEPRECATED - not needed in monolith)
-    /// The unified api-worker doesn't require a separate ready signal.
-    /// WebSocket connection is sufficient to start processing.
-    private func signalWebSocketReady(jobId: String) async throws {
-        // In the monolith architecture, the WebSocket connection itself signals readiness
-        // No separate HTTP endpoint needed - this method is a no-op but kept for compatibility
-        print("✅ WebSocket ready for job: \(jobId) (no separate signal needed in monolith)")
+    /// Send ready signal to server via WebSocket message
+    /// This prevents race condition where server processes before client is listening
+    /// Server waits for this signal before starting background processing
+    ///
+    /// - Throws: WebSocketError if connection not established or encoding fails
+    @MainActor
+    public func sendReadySignal() async throws {
+        guard let webSocketTask = webSocketTask else {
+            throw WebSocketError.notConnected
+        }
+
+        // Create ready message
+        let readyMessage: [String: Any] = [
+            "type": "ready",
+            "timestamp": Date().timeIntervalSince1970 * 1000 // Unix timestamp in ms
+        ]
+
+        guard let messageData = try? JSONSerialization.data(withJSONObject: readyMessage),
+              let messageString = String(data: messageData, encoding: .utf8) else {
+            throw WebSocketError.encodingFailed
+        }
+
+        // Send ready signal to server
+        let message = URLSessionWebSocketTask.Message.string(messageString)
+        try await webSocketTask.send(message)
+
+        print("✅ Sent ready signal to server")
+
+        // Wait for ready_ack (optional, for confirmation)
+        // The server will send { "type": "ready_ack", "timestamp": ... }
     }
 
     /// Start receiving WebSocket messages

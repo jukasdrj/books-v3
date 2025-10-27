@@ -159,7 +159,11 @@ actor BookshelfAIService {
         do {
             _ = try await wsManager.establishConnection(jobId: jobId)
             try await wsManager.configureForJob(jobId: jobId)
-            print("✅ WebSocket connected for job \(jobId)")
+
+            // NEW: Send ready signal to server
+            try await wsManager.sendReadySignal()
+
+            print("✅ WebSocket connected and ready signal sent for job \(jobId)")
         } catch {
             throw .networkError(error)
         }
