@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
+import UIKit
 
 // MARK: - Gemini CSV Import View
 
@@ -151,20 +152,40 @@ public struct GeminiCSVImportView: View {
         VStack(spacing: 20) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 64))
-                .foregroundColor(.green)
+                .foregroundStyle(.green)
 
-            Text("Import Complete!")
+            Text("Import Complete")
                 .font(.title2)
                 .fontWeight(.semibold)
 
-            Text("\(books.count) books imported")
-                .font(.body)
-                .foregroundColor(.secondary)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("✅ Successfully imported: \(books.count) books")
+                if !errors.isEmpty {
+                    Text("⚠️ Errors: \(errors.count) books")
+                        .foregroundColor(.orange)
+                }
+            }
+            .font(.body)
 
             if !errors.isEmpty {
-                Text("\(errors.count) books failed")
-                    .font(.caption)
-                    .foregroundColor(.orange)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(errors, id: \.title) { error in
+                            HStack {
+                                Text(error.title)
+                                    .font(.caption)
+                                Spacer()
+                                Text(error.error)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .frame(maxHeight: 200)
             }
 
             Button {
@@ -173,15 +194,14 @@ public struct GeminiCSVImportView: View {
                     dismiss()
                 }
             } label: {
-                Label("Add to Library", systemImage: "books.vertical.fill")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .padding()
+                Text("Add to Library")
+                    .fontWeight(.semibold)
                     .frame(maxWidth: .infinity)
+                    .padding()
                     .background(themeStore.primaryColor)
-                    .cornerRadius(12)
+                    .foregroundColor(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
             }
-            .padding(.horizontal, 40)
         }
     }
 
@@ -329,9 +349,91 @@ public struct GeminiCSVImportView: View {
     }
 
     private func saveBooks(_ books: [GeminiCSVImportJob.ParsedBook]) async {
-        // TODO: Implement saving logic (Task 11)
-        // For now, just placeholder
-        print("Would save \(books.count) books to library")
+        guard !books.isEmpty else {
+            print("⚠️ No books to save")
+            return
+        }
+
+        print("📚 Saving \(books.count) books to library...")
+        var savedCount = 0
+        var skippedCount = 0
+
+        for book in books {
+            // Check for duplicate by title + author (case-insensitive)
+            // Note: SwiftData predicates don't support lowercased(), so we fetch all and filter in-memory
+            let titleLower = book.title.lowercased()
+            let authorLower = book.author.lowercased()
+
+            let descriptor = FetchDescriptor<Work>()
+            let allWorks = (try? modelContext.fetch(descriptor)) ?? []
+
+            let isDuplicate = allWorks.contains { work in
+                let workTitleLower = work.title.lowercased()
+                let workAuthorLower = work.authorNames.lowercased()
+                return workTitleLower == titleLower &&
+                       (workAuthorLower.contains(authorLower) || authorLower.contains(workAuthorLower))
+            }
+
+            if isDuplicate {
+                print("⏭️ Skipping duplicate: \(book.title)")
+                skippedCount += 1
+                continue
+            }
+
+            // Create Author
+            let author = Author(name: book.author)
+            modelContext.insert(author)
+
+            // Create Work
+            let work = Work(
+                title: book.title,
+                authors: [author],
+                originalLanguage: "Unknown",  // Gemini doesn't provide this
+                firstPublicationYear: book.publicationYear
+            )
+            modelContext.insert(work)
+
+            // Create Edition if we have ISBN or publisher
+            if book.isbn != nil || book.publisher != nil || book.publicationYear != nil || book.coverUrl != nil {
+                let edition = Edition(
+                    isbn: book.isbn,
+                    publisher: book.publisher,
+                    publicationDate: book.publicationYear.map { "\($0)" },
+                    pageCount: nil,
+                    format: .paperback  // Default format (Gemini doesn't detect this from CSV)
+                )
+
+                // Set cover URL if available
+                if let coverUrl = book.coverUrl {
+                    edition.coverImageURL = coverUrl
+                }
+
+                modelContext.insert(edition)
+                work.editions = [edition]
+            }
+
+            savedCount += 1
+        }
+
+        // Save to SwiftData
+        do {
+            try modelContext.save()
+            print("✅ Saved \(savedCount) books (\(skippedCount) skipped as duplicates)")
+
+            // Haptic feedback
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+
+        } catch {
+            print("❌ Failed to save books: \(error)")
+
+            // Error haptic
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.error)
+
+            // Update UI with error
+            importStatus = .failed("Failed to save: \(error.localizedDescription)")
+        }
     }
 
     // MARK: - WebSocket Message Types
