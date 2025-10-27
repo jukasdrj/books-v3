@@ -87,6 +87,15 @@ public struct iOS26LiquidLibraryView: View {
                 isEnriching = false
                 pendingEnrichmentCount = 0
             }
+            .onReceive(NotificationCenter.default.publisher(for: .libraryWasReset)) { _ in
+                // CRITICAL: Immediately clear all cached state to prevent stale references
+                cachedFilteredWorks = []
+                cachedDiversityScore = 0.0
+                pendingEnrichmentCount = 0
+                reviewQueueCount = 0
+                isEnriching = false
+                print("✅ Library view: Cleared cache after library reset")
+            }
             .navigationTitle("My Library")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
