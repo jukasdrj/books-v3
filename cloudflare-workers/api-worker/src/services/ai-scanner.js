@@ -58,7 +58,22 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
       scanResult = await scanImageWithGemini(imageData, env);
       console.log('[AI Scanner] Gemini processing complete');
 
-      // Extract model name from provider metadata for completion response
+      /**
+       * Extract model name from AI provider metadata for completion response.
+       *
+       * DEFENSIVE PROGRAMMING: Fallback to 'unknown' if metadata is incomplete.
+       * This prevents runtime errors in the following scenarios:
+       * 1. Future AI providers may have different metadata structures
+       * 2. Gemini API response structure could change in future versions
+       * 3. Network issues could result in partial/corrupted responses
+       *
+       * Without this fallback, missing metadata would cause:
+       * - "providerParam is not defined" error at completion stage
+       * - Premature WebSocket closure (code 1001 instead of clean 1000)
+       * - iOS client receiving "Scan failed" despite successful AI processing
+       *
+       * @see ai-scanner-metadata.test.js for test coverage of this fallback
+       */
       modelUsed = scanResult.metadata?.model || 'unknown';
       console.log(`[AI Scanner] Model used: ${modelUsed}`);
     } catch (aiError) {

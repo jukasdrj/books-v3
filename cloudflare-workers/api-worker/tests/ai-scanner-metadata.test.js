@@ -9,6 +9,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { processBookshelfScan } from '../src/services/ai-scanner.js';
+import * as geminiProvider from '../src/providers/gemini-provider.js';
 
 describe('AI Scanner Metadata', () => {
   let mockEnv;
@@ -87,5 +88,59 @@ describe('AI Scanner Metadata', () => {
     expect(completionUpdate.result).toBeDefined();
     expect(completionUpdate.result.metadata).toBeDefined();
     expect(completionUpdate.result.metadata.modelUsed).toBe('gemini-2.0-flash-exp');
+  });
+
+  it('should handle missing model metadata gracefully', async () => {
+    // Spy on scanImageWithGemini to return incomplete metadata
+    // This simulates future AI providers or API changes that omit the model field
+    const scanSpy = vi.spyOn(geminiProvider, 'scanImageWithGemini').mockResolvedValue({
+      books: [{
+        title: 'Test Book',
+        author: 'Test Author',
+        isbn: '9780743273565',
+        confidence: 0.85,
+        boundingBox: { x1: 0.1, y1: 0.2, x2: 0.3, y2: 0.4 }
+      }],
+      suggestions: [],
+      metadata: {
+        provider: 'gemini',
+        // model field is intentionally missing to test fallback!
+        timestamp: new Date().toISOString(),
+        processingTimeMs: 25000
+      }
+    });
+
+    // Mock enrichment API
+    global.fetch = vi.fn(async () => {
+      return new Response(JSON.stringify({
+        items: [{
+          isbn: '9780743273565',
+          title: 'Test Book',
+          authors: [{ name: 'Test Author' }]
+        }],
+        provider: 'openlibrary'
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+
+    const imageData = new ArrayBuffer(1024);
+    const mockRequest = { headers: new Map() };
+    const jobId = 'test-job-456';
+
+    await processBookshelfScan(jobId, imageData, mockRequest, mockEnv, mockDoStub);
+
+    // Find completion update (progress === 1.0)
+    const completionUpdate = progressUpdates.find(u => u.progress === 1.0);
+
+    expect(completionUpdate).toBeDefined();
+    expect(completionUpdate.result).toBeDefined();
+    expect(completionUpdate.result.metadata).toBeDefined();
+    // Should fall back to 'unknown' when model metadata is missing
+    expect(completionUpdate.result.metadata.modelUsed).toBe('unknown');
+
+    // Verify the spy was called
+    expect(scanSpy).toHaveBeenCalledOnce();
+
+    // Restore the original implementation
+    scanSpy.mockRestore();
   });
 });
