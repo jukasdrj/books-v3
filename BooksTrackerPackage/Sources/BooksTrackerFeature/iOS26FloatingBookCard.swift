@@ -14,7 +14,7 @@ struct iOS26FloatingBookCard: View {
 
     // Computed property for safe matched geometry ID
     private var matchedGeometryID: String {
-        uniqueID ?? work.id.description
+        uniqueID ?? "\(work.id)"
     }
 
     // Current user's library entry for this work
@@ -357,7 +357,7 @@ struct OptimizedFloatingBookCard: View {
 
     // Computed property for safe matched geometry ID
     private var matchedGeometryID: String {
-        uniqueID ?? work.id.description
+        uniqueID ?? "\(work.id)"
     }
 
     // ✅ FIX: Cached computed properties to avoid repeated calculations
