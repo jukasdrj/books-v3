@@ -1,7 +1,58 @@
 // src/utils/csv-validator.js
 
-const MAX_ROWS = 10000;
+export const MAX_ROWS = 10000;
+const SAMPLE_VALIDATION_ROWS = 10;
 
+/**
+ * Counts columns in a CSV line, respecting quoted fields and escaped quotes.
+ * Handles commas inside quotes and CSV-spec-compliant escaped quotes ("") correctly.
+ *
+ * @param {string} line - CSV line to count columns in
+ * @returns {number} Number of columns in the line
+ */
+function countColumns(line) {
+  let count = 1;
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    const nextChar = line[i + 1];
+
+    if (char === '"') {
+      // Check for escaped quote ("") per RFC 4180
+      if (inQuotes && nextChar === '"') {
+        i++; // Skip next quote
+        continue;
+      }
+      inQuotes = !inQuotes;
+    }
+    if (char === ',' && !inQuotes) {
+      count++;
+    }
+  }
+
+  return count;
+}
+
+/**
+ * Validates CSV structure before expensive Gemini API call.
+ * Performs quick checks to reject malformed files early.
+ *
+ * Validation checks:
+ * - Non-empty file
+ * - At least header + 1 data row
+ * - Maximum 10,000 rows
+ * - At least 2 columns
+ * - No unclosed quotes
+ * - Consistent column count (sampled from first 10 rows)
+ *
+ * @param {string} csvText - Raw CSV content to validate
+ * @returns {{ valid: boolean, error?: string, rowCount?: number, columnCount?: number }}
+ *   - valid: true if CSV passes all checks
+ *   - error: Error message if validation fails
+ *   - rowCount: Number of data rows (excluding header) if valid
+ *   - columnCount: Number of columns if valid
+ */
 export function validateCSV(csvText) {
   // Check for empty input
   if (!csvText || csvText.trim().length === 0) {
@@ -31,7 +82,7 @@ export function validateCSV(csvText) {
 
   // Validate header exists
   const header = lines[0];
-  const columnCount = header.split(',').length;
+  const columnCount = countColumns(header);
 
   if (columnCount < 2) {
     return {
@@ -52,10 +103,10 @@ export function validateCSV(csvText) {
     };
   }
 
-  // Sample check: validate first 10 rows have consistent column count
-  const sampleSize = Math.min(10, lines.length - 1);
+  // Sample check: validate first N rows have consistent column count
+  const sampleSize = Math.min(SAMPLE_VALIDATION_ROWS, lines.length - 1);
   for (let i = 1; i <= sampleSize; i++) {
-    const cols = lines[i].split(',').length;
+    const cols = countColumns(lines[i]);
     if (cols !== columnCount) {
       return {
         valid: false,

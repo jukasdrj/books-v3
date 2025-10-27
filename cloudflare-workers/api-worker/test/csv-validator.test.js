@@ -37,4 +37,18 @@ describe('CSV Validator', () => {
     expect(result.valid).toBe(false);
     expect(result.error).toContain('10000');
   });
+
+  test('validates CSV with quoted commas', () => {
+    const csv = 'Title,Author\n"Book, The","Smith, John"\n"Another, Book","Doe, Jane"';
+    const result = validateCSV(csv);
+    expect(result.valid).toBe(true);
+    expect(result.columnCount).toBe(2);
+  });
+
+  test('handles escaped quotes correctly (RFC 4180)', () => {
+    const csv = 'Title,Author\n"Book with ""quoted"" word","Smith, John"';
+    const result = validateCSV(csv);
+    expect(result.valid).toBe(true);
+    expect(result.columnCount).toBe(2);
+  });
 });
