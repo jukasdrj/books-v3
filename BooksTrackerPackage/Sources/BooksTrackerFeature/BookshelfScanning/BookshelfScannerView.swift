@@ -291,18 +291,30 @@ public struct BookshelfScannerView: View {
         VStack(spacing: 12) {
             // Primary action button (camera opens automatically, no manual analyze button needed)
             if scanModel.scanState == .processing {
-                HStack {
-                    ProgressView()
-                        .tint(.white)
-                    Text("Uploading and analyzing...")
-                        .fontWeight(.semibold)
-                }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background {
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(themeStore.primaryColor.gradient)
+                VStack(spacing: 8) {
+                    HStack {
+                        ProgressView()
+                            .tint(.white)
+                        Text("Analyzing bookshelf...")
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background {
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(themeStore.primaryColor.gradient)
+                    }
+
+                    // User guidance: Keep app open
+                    HStack(spacing: 6) {
+                        Image(systemName: "info.circle.fill")
+                            .font(.caption)
+                        Text("Keep app open during analysis (25-40s)")
+                            .font(.caption)
+                    }
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("Keep app open during analysis, typically takes 25 to 40 seconds")
                 }
 
             } else if scanModel.scanState == .completed {
@@ -457,6 +469,11 @@ class BookshelfScanModel {
         currentStage = "Initializing..."
         let startTime = Date()
 
+        // CRITICAL: Prevent device from sleeping during scan (25-40s AI processing)
+        // iOS will kill the app if it enters background while WebSocket is waiting
+        UIApplication.shared.isIdleTimerDisabled = true
+        print("🔒 Idle timer disabled - device won't sleep during scan")
+
         // Save original image first for correction UI
         self.lastSavedImagePath = saveOriginalImage(image)
 
@@ -493,8 +510,16 @@ class BookshelfScanModel {
             currentStage = "Complete!"
             scanState = .completed
 
+            // Re-enable idle timer on success
+            UIApplication.shared.isIdleTimerDisabled = false
+            print("🔓 Idle timer re-enabled")
+
         } catch {
             scanState = .error(error.localizedDescription)
+
+            // CRITICAL: Re-enable idle timer on error (prevent battery drain)
+            UIApplication.shared.isIdleTimerDisabled = false
+            print("🔓 Idle timer re-enabled (error case)")
         }
     }
 }

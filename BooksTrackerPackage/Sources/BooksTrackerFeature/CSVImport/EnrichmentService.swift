@@ -145,7 +145,7 @@ public final class EnrichmentService {
         // Create a response with transformed results for compatibility
         return EnrichmentSearchResponseFlat(
             items: transformedResults,
-            totalItems: apiResponse.totalItems
+            totalItems: apiResponse.totalItems ?? transformedResults.count  // Fallback to actual count if missing
         )
     }
 
@@ -322,10 +322,11 @@ public struct EnrichmentStatistics: Sendable {
 
 private struct EnrichmentSearchResponse: Codable {
     let items: [VolumeItem]
-    let totalItems: Int
+    let totalItems: Int?  // Optional: Backend doesn't always include this field
     let query: String?
     let provider: String?
     let cached: Bool?
+    let success: Bool?  // Backend includes success flag
 }
 
 private struct VolumeItem: Codable {

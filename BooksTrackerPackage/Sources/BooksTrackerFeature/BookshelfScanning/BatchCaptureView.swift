@@ -3,6 +3,7 @@ import Observation
 import PhotosUI
 
 #if os(iOS)
+import UIKit
 
 // MARK: - Batch Capture Model
 
@@ -60,6 +61,11 @@ public final class BatchCaptureModel {
 
         isSubmitting = true
 
+        // CRITICAL: Prevent device from sleeping during batch processing
+        // Batch scans can take 2-5 minutes for 5 photos (25-40s per photo)
+        UIApplication.shared.isIdleTimerDisabled = true
+        print("🔒 Idle timer disabled - device won't sleep during batch scan")
+
         let jobId = UUID().uuidString
         let progress = BatchProgress(jobId: jobId, totalPhotos: capturedPhotos.count)
         self.batchProgress = progress
@@ -73,7 +79,14 @@ public final class BatchCaptureModel {
 
             // Connect WebSocket for progress updates
             let handler = BatchWebSocketHandler(jobId: jobId) { [weak self] updatedProgress in
-                self?.batchProgress = updatedProgress
+                guard let self = self else { return }
+                self.batchProgress = updatedProgress
+
+                // Re-enable idle timer when batch completes
+                if updatedProgress.isComplete {
+                    UIApplication.shared.isIdleTimerDisabled = false
+                    print("🔓 Idle timer re-enabled (batch complete)")
+                }
             }
             self.wsHandler = handler
 
@@ -83,6 +96,9 @@ public final class BatchCaptureModel {
                     try await handler.connect()
                 } catch {
                     print("[BatchCapture] WebSocket connection failed: \(error)")
+                    // Re-enable idle timer on connection failure
+                    UIApplication.shared.isIdleTimerDisabled = false
+                    print("🔓 Idle timer re-enabled (connection error)")
                 }
             }
 
@@ -92,6 +108,11 @@ public final class BatchCaptureModel {
         } catch {
             print("[BatchCapture] Batch submission failed: \(error)")
             isSubmitting = false
+
+            // CRITICAL: Re-enable idle timer on error
+            UIApplication.shared.isIdleTimerDisabled = false
+            print("🔓 Idle timer re-enabled (submission error)")
+
             // TODO: Show error alert to user
         }
     }

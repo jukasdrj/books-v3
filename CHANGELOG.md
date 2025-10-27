@@ -6,6 +6,118 @@ All notable changes, achievements, and debugging victories for this project.
 
 ## [Unreleased]
 
+---
+
+## 🎉 Version 3.0.1 - The "Don't Kill Me iOS!" Release (October 27, 2025)
+
+**Two critical fixes that had us debugging like detectives! 🔍**
+
+```
+┌─────────────────────────────────────┐
+│  📱 → 📸 → 😴 → 💀 → 😱           │
+│  BEFORE: Scan → Sleep → SIGKILL   │
+│                                     │
+│  📱 → 📸 → 🔒 → ✅ → 🎉           │
+│  AFTER: Scan → Stay Awake → Win!  │
+└─────────────────────────────────────┘
+```
+
+### Fixed 🐛 - Signal 9 Crash During Bookshelf Scans (October 27, 2025)
+
+**"From SIGKILL to success - iOS won't murder us anymore!"** ⚡
+
+Fixed critical crash where iOS was forcibly terminating the app (Signal 9) when users locked their phone during bookshelf AI processing.
+
+**The Investigation Journey:**
+
+We followed systematic debugging to trace this beast:
+
+1. **Phase 1: Root Cause Analysis** 🔬
+   - Signal 9 = OS-level SIGKILL (not a code crash!)
+   - All operations successful: Image saved → WebSocket connected → Compressed (4.5MB) → Uploaded ✅
+   - Process killed **immediately after upload** during AI processing wait (25-40s for Gemini)
+   - User workflow: Capture photo → Upload completes → Lock phone → **SIGKILL** 💀
+   - No `beginBackgroundTask()` anywhere in codebase (whoops!)
+   - LaunchServices errors were red herrings (benign system noise)
+
+2. **Phase 2: Pattern Analysis** 📚
+   - Research showed: WebSocket connections **CANNOT** persist in background on iOS
+   - `beginBackgroundTask()` only gives ~30s (risky for 25-40s operations)
+   - Background URLSession only supports upload/download, NOT WebSockets
+   - Polling infrastructure removed in monolith refactor (no fallback available)
+   - **Working pattern**: Disable idle timer during long foreground operations (GPS navigation, video recording use this!)
+
+3. **Phase 3: Hypothesis** 💡
+   - iOS suspends app when screen locks → WebSocket disconnects → SIGKILL
+   - **Solution**: Prevent device sleep by disabling idle timer during scans
+   - Why? Simplest fix, best UX (real-time progress), aligns with WebSocket-first design
+
+4. **Phase 4: Implementation** 🛠️
+   - Set `UIApplication.shared.isIdleTimerDisabled = true` when scan starts
+   - Reset to `false` on completion/error (prevent battery drain)
+   - Added "Keep app open during analysis (25-40s)" UI indicator
+   - Applied to both single scans AND batch scans (2-5 minutes for 5 photos!)
+
+**Files Modified:**
+- `BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/BookshelfScannerView.swift:454-512` - Idle timer management for single scans
+- `BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/BookshelfScannerView.swift:293-318` - User guidance UI
+- `BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/BatchCaptureView.swift:59-118` - Batch scan idle timer
+
+**Impact:**
+- ✅ Users can lock phone during scan without crash
+- ✅ Device stays awake during AI processing (25-40s single, 2-5min batch)
+- ✅ Idle timer properly reset on completion/error (no battery drain)
+- ✅ Clear UI indicator guides users
+
+**Test Scenarios:**
+1. Capture photo → Lock device immediately → Wait 40s → Unlock → ✅ Results shown
+2. Batch mode: 5 photos → Submit → Lock device → Wait 3min → Unlock → ✅ All processed
+3. Simulate network error mid-scan → ✅ Idle timer re-enabled, device can sleep
+
+---
+
+### Fixed 🐛 - Background Enrichment Decoder Crash (October 27, 2025)
+
+**"Schema mismatch strikes back! (But we won)"** 🎯
+
+Fixed silent failure where background enrichment crashed with `keyNotFound` errors, preventing book metadata (covers, ISBNs, publishers) from being saved after scans.
+
+**The Problem:**
+
+```json
+// Backend Response (what we got)
+{"success": true, "provider": "google", "items": [...]}
+
+// iOS Decoder (what we expected)
+{"totalItems": 1, "items": [...]}  // ❌ totalItems missing!
+```
+
+**The Symptoms:**
+- All 12 books from scan queued for enrichment
+- API returning **valid data** with covers, ISBNs, publishers, etc.
+- Decoder crashed: `keyNotFound(CodingKeys(stringValue: "totalItems", intValue: nil))`
+- Result: Books stayed in "pending" state with NO metadata, NO covers, nothing! 😭
+
+**The Fix:**
+- Made `totalItems` optional in `EnrichmentSearchResponse` struct
+- Added `success` field to match backend schema
+- Added fallback: `totalItems ?? transformedResults.count`
+
+**Files Modified:**
+- `BooksTrackerPackage/Sources/BooksTrackerFeature/CSVImport/EnrichmentService.swift:325` - Made totalItems optional
+- `BooksTrackerPackage/Sources/BooksTrackerFeature/CSVImport/EnrichmentService.swift:329` - Added success field
+- `BooksTrackerPackage/Sources/BooksTrackerFeature/CSVImport/EnrichmentService.swift:148` - Added fallback logic
+
+**Impact:**
+- ✅ Background enrichment now completes successfully
+- ✅ Book cards show cover images after scan
+- ✅ Metadata (publisher, year, ISBN, page count) saved correctly
+- ✅ No more `keyNotFound` decoder crashes
+
+---
+
+## [Earlier Releases]
+
 ### Fixed
 
 - **[CRITICAL]** Fixed fatal crash after bookshelf scan when adding books to library. App was capturing temporary SwiftData persistent identifiers before saving to persistent store, then passing invalidated IDs to background enrichment queue. Now captures IDs AFTER `modelContext.save()` completes. (ScanResultsView.swift:553)

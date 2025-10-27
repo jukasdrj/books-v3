@@ -283,6 +283,55 @@ Button("Got it") {
 - Processed via Gemini 2.5 Flash API
 - Results cached temporarily for enrichment
 
+## Critical iOS Background Behavior ⚠️
+
+**IMPORTANT: Idle Timer Management**
+
+iOS bookshelf scans take 25-40 seconds (Gemini AI processing). **The device MUST stay awake** or iOS will kill the app with Signal 9 (SIGKILL).
+
+**Implementation (v3.0.1):**
+```swift
+// BookshelfScanModel.processImage()
+func processImage(_ image: UIImage) async {
+    // Disable idle timer to prevent device sleep during AI processing
+    UIApplication.shared.isIdleTimerDisabled = true
+    print("🔒 Idle timer disabled - device won't sleep during scan")
+
+    do {
+        let (books, suggestions) = try await BookshelfAIService.shared.processBookshelfImageWithWebSocket(image) { ... }
+
+        // Re-enable on success
+        UIApplication.shared.isIdleTimerDisabled = false
+    } catch {
+        // CRITICAL: Re-enable on error (prevent battery drain)
+        UIApplication.shared.isIdleTimerDisabled = false
+    }
+}
+```
+
+**Why This Matters:**
+- WebSocket connections **cannot persist in background** on iOS
+- `beginBackgroundTask()` only gives ~30s (risky for 25-40s operations)
+- Background URLSession only supports upload/download, NOT WebSockets
+- User workflow: Capture photo → Lock phone → **iOS kills app at ~30s**
+
+**Solution: Disable Idle Timer**
+- Pattern used by GPS navigation, video recording
+- Device stays awake during foreground AI processing
+- Properly reset on completion/error to prevent battery drain
+- User sees "Keep app open during analysis (25-40s)" message
+
+**Batch Scans:**
+- Same pattern applied to `BatchCaptureModel.submitBatch()`
+- Can take 2-5 minutes for 5 photos (25-40s each)
+- Idle timer re-enabled when `BatchProgress.isComplete == true`
+
+**Files:**
+- `BookshelfScannerView.swift:460-511` - Single scan idle timer
+- `BatchCaptureView.swift:64-114` - Batch scan idle timer
+
+---
+
 ## Testing
 
 **Test Images:**
@@ -290,11 +339,17 @@ Button("Got it") {
 - Clear shelf images should produce no suggestions
 - Low-light images trigger `lighting_issues` suggestion
 
+**Critical Test Scenarios (v3.0.1):**
+1. **Signal 9 Prevention:** Capture photo → Lock device immediately → Wait 40s → Unlock → ✅ Results shown
+2. **Batch Stability:** 5 photos → Submit → Lock device → Wait 3min → Unlock → ✅ All processed
+3. **Error Recovery:** Start scan → Airplane mode mid-scan → ✅ Idle timer re-enabled
+
 **Quality Checks:**
 - Swift 6.1 concurrency compliance: Zero warnings
 - Actor isolation correctness: All boundaries checked
 - Sendable conformance: Data types properly marked
 - Real device testing: iPhone 17 Pro (iOS 26.0.1)
+- **Idle timer lifecycle:** Verified re-enabled on all exit paths
 
 ## Common Patterns
 
