@@ -12,6 +12,9 @@ export class ProgressWebSocketDO extends DurableObject {
     this.storage = state.storage; // Durable Object storage for cancellation state
     this.webSocket = null;
     this.jobId = null;
+    this.isReady = false; // NEW: Track if client sent ready signal
+    this.readyPromise = null; // NEW: Promise to await ready signal
+    this.readyResolver = null; // NEW: Resolver for ready promise
   }
 
   /**
@@ -58,11 +61,41 @@ export class ProgressWebSocketDO extends DurableObject {
     // Accept connection
     this.webSocket.accept();
 
-    console.log(`[${this.jobId}] WebSocket connection accepted`);
+    // Initialize ready promise
+    this.readyPromise = new Promise((resolve) => {
+      this.readyResolver = resolve;
+    });
+
+    console.log(`[${this.jobId}] WebSocket connection accepted, waiting for ready signal`);
 
     // Setup event handlers
     this.webSocket.addEventListener('message', (event) => {
       console.log(`[${this.jobId}] Received message:`, event.data);
+
+      // Parse incoming message
+      try {
+        const msg = JSON.parse(event.data);
+
+        // Handle ready signal
+        if (msg.type === 'ready') {
+          console.log(`[${this.jobId}] ✅ Client ready signal received`);
+          this.isReady = true;
+
+          // Resolve the ready promise to unblock processing
+          if (this.readyResolver) {
+            this.readyResolver();
+            this.readyResolver = null; // Prevent multiple resolves
+          }
+
+          // Send acknowledgment back to client
+          this.webSocket.send(JSON.stringify({
+            type: 'ready_ack',
+            timestamp: Date.now()
+          }));
+        }
+      } catch (error) {
+        console.error(`[${this.jobId}] Failed to parse message:`, error);
+      }
     });
 
     this.webSocket.addEventListener('close', (event) => {
@@ -124,6 +157,43 @@ export class ProgressWebSocketDO extends DurableObject {
       console.error(`[${this.jobId}] Failed to send message:`, error);
       throw error;
     }
+  }
+
+  /**
+   * RPC Method: Wait for client to send ready signal
+   * Called by background processing before starting work
+   *
+   * @param {number} timeoutMs - Maximum time to wait (default 5000ms)
+   * @returns {Promise<{success: boolean, timedOut?: boolean}>}
+   */
+  async waitForReady(timeoutMs = 5000) {
+    console.log(`[${this.jobId}] waitForReady called (timeout: ${timeoutMs}ms)`);
+
+    // If already ready, return immediately
+    if (this.isReady) {
+      console.log(`[${this.jobId}] Client already ready`);
+      return { success: true };
+    }
+
+    // Race between ready signal and timeout
+    const timeoutPromise = new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ success: false, timedOut: true });
+      }, timeoutMs);
+    });
+
+    const readyResult = await Promise.race([
+      this.readyPromise.then(() => ({ success: true })),
+      timeoutPromise
+    ]);
+
+    if (readyResult.timedOut) {
+      console.warn(`[${this.jobId}] ⚠️ Ready timeout after ${timeoutMs}ms`);
+    } else {
+      console.log(`[${this.jobId}] ✅ Ready signal received`);
+    }
+
+    return readyResult;
   }
 
   /**
