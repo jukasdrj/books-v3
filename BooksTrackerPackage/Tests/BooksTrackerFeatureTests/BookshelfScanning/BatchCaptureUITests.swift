@@ -63,7 +63,7 @@ struct BatchCaptureUITests {
         let model = BatchCaptureModel()
 
         model.addPhoto(createBatchCaptureTestImage())
-        let photo2 = model.addPhoto(createBatchCaptureTestImage())
+        let photo2 = model.addPhoto(createBatchCaptureTestImage())!
         model.addPhoto(createBatchCaptureTestImage())
 
         model.deletePhoto(photo2)
