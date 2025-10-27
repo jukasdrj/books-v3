@@ -88,6 +88,7 @@ struct BookshelfAIServiceWebSocketTests {
 
     // MARK: - Helper Methods
 
+    @MainActor
     private func createMockImage() -> UIImage {
         // Create a simple 1x1 test image
         let size = CGSize(width: 1, height: 1)

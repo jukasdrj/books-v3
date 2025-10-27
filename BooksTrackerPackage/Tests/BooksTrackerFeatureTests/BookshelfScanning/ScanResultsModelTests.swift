@@ -79,4 +79,56 @@ struct ScanResultsModelTests {
             #expect(fetchedWork != nil)
         }
     }
+
+    @Test("Full bookshelf scan workflow completes without crash")
+    func testFullBookshelfScanWorkflow() async throws {
+        // Arrange: Create mock scan result
+        let detectedBooks = [
+            DetectedBook(
+                isbn: "9780062073488",
+                title: "Murder on the Orient Express",
+                author: "Agatha Christie",
+                confidence: 0.95,
+                boundingBox: CGRect(x: 0, y: 0, width: 0.1, height: 0.3),
+                rawText: "Murder on the Orient Express",
+                status: .confirmed
+            ),
+            DetectedBook(
+                isbn: "9780141439518",
+                title: "Pride and Prejudice",
+                author: "Jane Austen",
+                confidence: 0.88,
+                boundingBox: CGRect(x: 0.1, y: 0, width: 0.1, height: 0.3),
+                rawText: "Pride and Prejudice",
+                status: .confirmed
+            )
+        ]
+
+        let scanResult = ScanResult(
+            detectedBooks: detectedBooks,
+            totalProcessingTime: 2.5
+        )
+
+        // Act: Create model and add books to library
+        let resultsModel = ScanResultsModel(scanResult: scanResult)
+        await resultsModel.addAllToLibrary(modelContext: modelContext)
+
+        // Assert: Works should be saved
+        let descriptor = FetchDescriptor<Work>()
+        let works = try modelContext.fetch(descriptor)
+
+        #expect(works.count == 2)
+        #expect(works.contains { $0.title == "Murder on the Orient Express" })
+        #expect(works.contains { $0.title == "Pride and Prejudice" })
+
+        // Assert: Should not crash when enrichment queue processes IDs
+        let queuedIDs = EnrichmentQueue.shared.getAllPending()
+        #expect(queuedIDs.count == 2)
+
+        // Verify IDs are valid (can be fetched)
+        for workID in queuedIDs {
+            let fetchedWork = modelContext.model(for: workID) as? Work
+            #expect(fetchedWork != nil)
+        }
+    }
 }

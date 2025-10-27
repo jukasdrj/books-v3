@@ -11,6 +11,7 @@ import UIKit
 struct BatchUploadTests {
 
     @Test("Compresses images before upload")
+    @MainActor
     func imageCompression() async throws {
         let service = await BookshelfAIService.shared
         let largeImage = createLargeTestImage() // 5MB+
@@ -22,6 +23,7 @@ struct BatchUploadTests {
     }
 
     @Test("Creates batch request payload")
+    @MainActor
     func batchRequestCreation() async throws {
         let service = await BookshelfAIService.shared
 
@@ -43,6 +45,7 @@ struct BatchUploadTests {
     }
 
     @Test("Submits batch to backend", .disabled("Requires live backend"))
+    @MainActor
     func batchSubmission() async throws {
         let service = await BookshelfAIService.shared
 

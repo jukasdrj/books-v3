@@ -43,6 +43,7 @@ func testProcessViaWebSocketConnectionFailure() async {
 }
 
 @Test("processBookshelfImageWithWebSocket falls back to polling on WebSocket failure", .disabled("Requires live backend with WebSocket disabled"))
+@MainActor
 func testWebSocketFallbackToPolling() async throws {
     let mockImage = UIImage(systemName: "book")!
 
@@ -68,6 +69,7 @@ func testWebSocketFallbackToPolling() async throws {
 }
 
 @Test("processBookshelfImageWithWebSocket uses WebSocket when available", .disabled("Requires live backend"))
+@MainActor
 func testWebSocketPreferred() async throws {
     let mockImage = UIImage(systemName: "book")!
 

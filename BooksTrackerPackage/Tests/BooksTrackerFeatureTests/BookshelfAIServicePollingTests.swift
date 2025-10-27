@@ -23,6 +23,7 @@ func testProcessViaPollingSuccess() async throws {
 }
 
 @Test("processViaPolling polls every 2 seconds", .disabled("Requires live backend"))
+@MainActor
 func testProcessViaPollingInterval() async throws {
     let mockImage = UIImage(systemName: "book")!
     let jobId = UUID().uuidString
