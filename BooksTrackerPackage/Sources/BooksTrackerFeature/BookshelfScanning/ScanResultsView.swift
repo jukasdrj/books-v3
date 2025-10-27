@@ -591,11 +591,10 @@ class ScanResultsModel {
                 EnrichmentQueue.shared.enqueueBatch(addedWorkIDs)
                 print("📚 Queued \(addedWorkIDs.count) books from scan for background enrichment")
 
-                // Start processing immediately in background (no-op progress handler)
-                Task(priority: .utility) {
-                    EnrichmentQueue.shared.startProcessing(in: modelContext) { _, _, _ in
-                        // Silent background processing - progress shown via EnrichmentProgressBanner
-                    }
+                // Start processing immediately (EnrichmentQueue.startProcessing creates its own Task)
+                // Don't wrap in Task - causes actor isolation violation (Swift 6.2)
+                EnrichmentQueue.shared.startProcessing(in: modelContext) { _, _, _ in
+                    // Silent background processing - progress shown via EnrichmentProgressBanner
                 }
             }
 
