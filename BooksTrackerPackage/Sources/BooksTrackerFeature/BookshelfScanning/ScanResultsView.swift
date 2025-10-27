@@ -591,10 +591,13 @@ class ScanResultsModel {
                 EnrichmentQueue.shared.enqueueBatch(addedWorkIDs)
                 print("📚 Queued \(addedWorkIDs.count) books from scan for background enrichment")
 
-                // Start processing immediately (EnrichmentQueue.startProcessing creates its own Task)
-                // Don't wrap in Task - causes actor isolation violation (Swift 6.2)
-                EnrichmentQueue.shared.startProcessing(in: modelContext) { _, _, _ in
-                    // Silent background processing - progress shown via EnrichmentProgressBanner
+                // Delay enrichment to allow SwiftData to fully persist newly created works
+                // Swift 6.2: Use Task.sleep instead of DispatchQueue.asyncAfter for better actor isolation
+                Task {
+                    try? await Task.sleep(for: .milliseconds(500))
+                    EnrichmentQueue.shared.startProcessing(in: modelContext) { _, _, _ in
+                        // Silent background processing - progress shown via EnrichmentProgressBanner
+                    }
                 }
             }
 
