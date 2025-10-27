@@ -76,6 +76,17 @@ export class ProgressWebSocketDO extends DurableObject {
       try {
         const msg = JSON.parse(event.data);
 
+        // Validate message structure
+        if (!msg || typeof msg !== 'object') {
+          console.warn(`[${this.jobId}] Invalid message structure: not an object`);
+          return;
+        }
+
+        if (!msg.type || typeof msg.type !== 'string') {
+          console.warn(`[${this.jobId}] Invalid message structure: missing or invalid 'type' field`, msg);
+          return;
+        }
+
         // Handle ready signal
         if (msg.type === 'ready') {
           console.log(`[${this.jobId}] ✅ Client ready signal received`);
@@ -92,6 +103,8 @@ export class ProgressWebSocketDO extends DurableObject {
             type: 'ready_ack',
             timestamp: Date.now()
           }));
+        } else {
+          console.log(`[${this.jobId}] Unknown message type: ${msg.type}`);
         }
       } catch (error) {
         console.error(`[${this.jobId}] Failed to parse message:`, error);
@@ -164,7 +177,7 @@ export class ProgressWebSocketDO extends DurableObject {
    * Called by background processing before starting work
    *
    * @param {number} timeoutMs - Maximum time to wait (default 5000ms)
-   * @returns {Promise<{success: boolean, timedOut?: boolean}>}
+   * @returns {Promise<{success: boolean, timedOut?: boolean, disconnected?: boolean}>}
    */
   async waitForReady(timeoutMs = 5000) {
     console.log(`[${this.jobId}] waitForReady called (timeout: ${timeoutMs}ms)`);
@@ -175,20 +188,39 @@ export class ProgressWebSocketDO extends DurableObject {
       return { success: true };
     }
 
-    // Race between ready signal and timeout
+    // Check if WebSocket is null/closed before waiting
+    if (!this.webSocket) {
+      console.warn(`[${this.jobId}] ⚠️ WebSocket is null, cannot wait for ready`);
+      return { success: false, disconnected: true };
+    }
+
+    // Race between ready signal, timeout, and disconnection
     const timeoutPromise = new Promise((resolve) => {
       setTimeout(() => {
         resolve({ success: false, timedOut: true });
       }, timeoutMs);
     });
 
+    // Poll for WebSocket closure
+    const disconnectPromise = new Promise((resolve) => {
+      const checkInterval = setInterval(() => {
+        if (!this.webSocket) {
+          clearInterval(checkInterval);
+          resolve({ success: false, disconnected: true });
+        }
+      }, 100); // Check every 100ms
+    });
+
     const readyResult = await Promise.race([
       this.readyPromise.then(() => ({ success: true })),
-      timeoutPromise
+      timeoutPromise,
+      disconnectPromise
     ]);
 
     if (readyResult.timedOut) {
       console.warn(`[${this.jobId}] ⚠️ Ready timeout after ${timeoutMs}ms`);
+    } else if (readyResult.disconnected) {
+      console.warn(`[${this.jobId}] ⚠️ WebSocket disconnected while waiting for ready`);
     } else {
       console.log(`[${this.jobId}] ✅ Ready signal received`);
     }
