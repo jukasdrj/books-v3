@@ -88,7 +88,10 @@ public final class Work {
         subjectTags: [String] = []
     ) {
         self.title = title
-        self.authors = authors.isEmpty ? nil : authors
+        // CRITICAL FIX: Never create relationship arrays in init with temporary IDs
+        // Relationships MUST be set AFTER the Work is inserted into ModelContext
+        // This prevents SwiftData from creating futures with temporary identifiers
+        self.authors = nil
         self.originalLanguage = originalLanguage
         self.firstPublicationYear = firstPublicationYear
         self.subjectTags = subjectTags

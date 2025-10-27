@@ -373,8 +373,13 @@ public struct WorkDiscoveryView: View {
             let work = createWorkFromSearchResult()
             let edition = createEditionFromSearchResult(work: work)
 
-            // Save to SwiftData context
+            // ✅ CORRECT: Insert Work FIRST (no authors yet)
             modelContext.insert(work)
+
+            // ✅ CORRECT: Link authors AFTER work is inserted
+            linkAuthorsToWork(work)
+
+            // Save edition to SwiftData context
             if let edition = edition {
                 modelContext.insert(edition)
             }
@@ -449,7 +454,26 @@ public struct WorkDiscoveryView: View {
     }
 
     private func createWorkFromSearchResult() -> Work {
-        // Create authors first
+        // ✅ CORRECT: Create Work without authors first
+        let work = Work(
+            title: searchResult.work.title,
+            authors: [],  // ✅ Empty array initially
+            originalLanguage: searchResult.work.originalLanguage,
+            firstPublicationYear: searchResult.work.firstPublicationYear,
+            subjectTags: searchResult.work.subjectTags
+        )
+
+        // Set external identifiers (safe - no relationships)
+        work.openLibraryID = searchResult.work.openLibraryID
+        work.isbndbID = searchResult.work.isbndbID
+        work.googleBooksVolumeID = searchResult.work.googleBooksVolumeID
+        work.isbndbQuality = searchResult.work.isbndbQuality
+
+        return work
+    }
+
+    private func linkAuthorsToWork(_ work: Work) {
+        // Create authors
         let authors = searchResult.authors.map { apiAuthor in
             Author(
                 name: apiAuthor.name,
@@ -458,22 +482,11 @@ public struct WorkDiscoveryView: View {
             )
         }
 
-        // Create work with proper relationships
-        let work = Work(
-            title: searchResult.work.title,
-            authors: authors,
-            originalLanguage: searchResult.work.originalLanguage,
-            firstPublicationYear: searchResult.work.firstPublicationYear,
-            subjectTags: searchResult.work.subjectTags
-        )
+        // Insert all authors first
+        authors.forEach { modelContext.insert($0) }
 
-        // Set external identifiers
-        work.openLibraryID = searchResult.work.openLibraryID
-        work.isbndbID = searchResult.work.isbndbID
-        work.googleBooksVolumeID = searchResult.work.googleBooksVolumeID
-        work.isbndbQuality = searchResult.work.isbndbQuality
-
-        return work
+        // Now safe to link (all have permanent IDs)
+        work.authors = authors
     }
 
     private func createEditionFromSearchResult(work: Work) -> Edition? {
@@ -543,37 +556,5 @@ private struct DetailRow: View {
 }
 
 // MARK: - Preview
-
-@available(iOS 26.0, *)
-#Preview("Work Discovery View") {
-    // Create a mock search result for preview
-    let mockWork = Work(
-        title: "The Martian",
-        authors: [Author(name: "Andy Weir", gender: .male, culturalRegion: .northAmerica)],
-        originalLanguage: "English",
-        firstPublicationYear: 2011,
-        subjectTags: ["Science Fiction", "Mars", "Survival"]
-    )
-
-    let mockEdition = Edition(
-        isbn: "9780553418026",
-        publisher: "Crown Publishing",
-        publicationDate: "2014-02-11",
-        pageCount: 369,
-        format: .paperback,
-        coverImageURL: "https://example.com/cover.jpg",
-        work: mockWork
-    )
-
-    let mockSearchResult = SearchResult(
-        work: mockWork,
-        editions: [mockEdition],
-        authors: [Author(name: "Andy Weir", gender: .male, culturalRegion: .northAmerica)],
-        relevanceScore: 1.0,
-        provider: "google"
-    )
-
-    WorkDiscoveryView(searchResult: mockSearchResult)
-        .modelContainer(for: [Work.self, Edition.self, Author.self, UserLibraryEntry.self])
-        .environment(iOS26ThemeStore())
-}
+// NOTE: Preview removed due to Swift 6 type inference issues with optional relationships
+// The WorkDiscoveryView can be tested directly in the main app or via unit tests

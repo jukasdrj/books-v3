@@ -533,11 +533,10 @@ class ScanResultsModel {
         var addedWorks: [Work] = []
 
         for detectedBook in confirmedBooks {
-            // Create Work and Edition from detected metadata
-            let authors = detectedBook.author.map { [Author(name: $0)] } ?? []
+            // 1. Create Work FIRST (no relationships yet)
             let work = Work(
                 title: detectedBook.title ?? "Unknown Title",
-                authors: authors,
+                authors: [],  // ✅ Empty array - set relationships AFTER insert
                 originalLanguage: "English",
                 firstPublicationYear: nil
             )
@@ -549,10 +548,18 @@ class ScanResultsModel {
             work.originalImagePath = detectedBook.originalImagePath
             work.boundingBox = detectedBook.boundingBox
 
+            // 2. INSERT Work IMMEDIATELY (gets permanent ID)
             modelContext.insert(work)
             addedWorks.append(work)
 
-            // Create edition if ISBN available
+            // 3. Create and insert Author BEFORE setting relationship
+            if let authorName = detectedBook.author {
+                let author = Author(name: authorName)
+                modelContext.insert(author)  // ✅ Insert BEFORE relating
+                work.authors = [author]      // ✅ Safe - both have permanent IDs
+            }
+
+            // 4. Create edition if ISBN available
             if let isbn = detectedBook.isbn {
                 let edition = Edition(
                     isbn: isbn,
@@ -560,9 +567,13 @@ class ScanResultsModel {
                     publicationDate: nil,
                     pageCount: nil,
                     format: .paperback,
-                    work: work
+                    work: nil  // ✅ Don't set work in constructor
                 )
-                modelContext.insert(edition)
+                modelContext.insert(edition)  // ✅ Insert BEFORE relating
+
+                // ✅ Safe - both have permanent IDs
+                edition.work = work
+                work.editions = [edition]
 
                 // Create library entry (owned)
                 let libraryEntry = UserLibraryEntry.createOwnedEntry(

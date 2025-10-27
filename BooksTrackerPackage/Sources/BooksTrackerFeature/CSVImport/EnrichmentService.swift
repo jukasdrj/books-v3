@@ -242,9 +242,14 @@ public final class EnrichmentService {
                 pageCount: searchResult.pageCount,
                 format: .paperback,
                 coverImageURL: searchResult.coverImage,
-                work: work
+                work: nil  // ✅ Don't set in constructor
             )
-            modelContext.insert(newEdition)
+            modelContext.insert(newEdition)  // ✅ Get permanent ID FIRST
+
+            // NOW set bidirectional relationship (both have permanent IDs)
+            newEdition.work = work
+            // Note: work.editions is computed or automatically managed by SwiftData
+
             edition = newEdition
         }
 

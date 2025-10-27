@@ -394,18 +394,21 @@ public struct GeminiCSVImportView: View {
                 continue
             }
 
-            // Create Author
+            // Create Author FIRST and insert
             let author = Author(name: book.author)
             modelContext.insert(author)
 
-            // Create Work
+            // Create Work with empty authors, then insert, then set relationship
             let work = Work(
                 title: book.title,
-                authors: [author],
+                authors: [],  // ✅ Empty - set after insert
                 originalLanguage: "Unknown",  // Gemini doesn't provide this
                 firstPublicationYear: book.publicationYear
             )
-            modelContext.insert(work)
+            modelContext.insert(work)  // ✅ Get permanent ID
+
+            // NOW set relationship (both have permanent IDs)
+            work.authors = [author]
 
             // Create Edition if we have ISBN or publisher
             if book.isbn != nil || book.publisher != nil || book.publicationYear != nil || book.coverUrl != nil {

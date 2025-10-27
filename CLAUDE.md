@@ -67,6 +67,24 @@ UserLibraryEntry many:1 Edition
 - All relationships optional
 - Predicates can't filter on to-many (filter in-memory)
 
+**🚨 CRITICAL: Insert-Before-Relate Lifecycle**
+```swift
+// ❌ WRONG: Crash with "temporary identifier"
+let work = Work(title: "...", authors: [author], ...)
+modelContext.insert(work)
+
+// ✅ CORRECT: Insert BEFORE setting relationships
+let work = Work(title: "...", authors: [], ...)
+modelContext.insert(work)  // Gets permanent ID
+
+let author = Author(name: "...")
+modelContext.insert(author)  // Gets permanent ID
+
+work.authors = [author]  // Safe - both have permanent IDs
+```
+
+**Rule:** ALWAYS call `modelContext.insert()` IMMEDIATELY after creating a new model, BEFORE setting any relationships. SwiftData cannot create relationship futures with temporary IDs.
+
 ### State Management - No ViewModels!
 
 **Pattern: @Observable models + @State**
