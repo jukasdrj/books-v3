@@ -7,9 +7,15 @@ import SwiftData
 struct iOS26FloatingBookCard: View {
     let work: Work
     let namespace: Namespace.ID
+    let uniqueID: String?  // Optional unique ID for matched geometry (uses work.id if nil)
 
     @State private var showingQuickActions = false
     @Environment(\.iOS26ThemeStore) private var themeStore
+
+    // Computed property for safe matched geometry ID
+    private var matchedGeometryID: String {
+        uniqueID ?? work.id.description
+    }
 
     // Current user's library entry for this work
     private var userEntry: UserLibraryEntry? {
@@ -25,11 +31,11 @@ struct iOS26FloatingBookCard: View {
         VStack(spacing: 10) {
             // FLOATING COVER IMAGE (Main V1.0 Requirement)
             floatingCoverImage
-                .glassEffectID("cover-\(work.id)", in: namespace)
+                .glassEffectID("cover-\(matchedGeometryID)", in: namespace)
 
             // SMALL INFO CARD BELOW (V1.0 Requirement)
             smallInfoCard
-                .glassEffectID("info-\(work.id)", in: namespace)
+                .glassEffectID("info-\(matchedGeometryID)", in: namespace)
         }
         // ✅ FIX: Removed .contentShape(Rectangle()) to allow NavigationLink taps through
         .contextMenu {
@@ -344,22 +350,28 @@ struct iOS26FloatingBookCard: View {
 struct OptimizedFloatingBookCard: View {
     let work: Work
     let namespace: Namespace.ID
-    
+    let uniqueID: String?  // Optional unique ID for matched geometry (uses work.id if nil)
+
     @State private var showingQuickActions = false
     @Environment(\.iOS26ThemeStore) private var themeStore
-    
+
+    // Computed property for safe matched geometry ID
+    private var matchedGeometryID: String {
+        uniqueID ?? work.id.description
+    }
+
     // ✅ FIX: Cached computed properties to avoid repeated calculations
     @State private var cachedUserEntry: UserLibraryEntry?
     @State private var cachedPrimaryEdition: Edition?
     @State private var cachedCoverURL: URL?
-    
+
     var body: some View {
         VStack(spacing: 10) {
             optimizedCoverImage
-                .glassEffectID("cover-\(work.id)", in: namespace)
+                .glassEffectID("cover-\(matchedGeometryID)", in: namespace)
 
             smallInfoCard
-                .glassEffectID("info-\(work.id)", in: namespace)
+                .glassEffectID("info-\(matchedGeometryID)", in: namespace)
         }
         // ✅ FIX: Removed .contentShape(Rectangle()) to allow NavigationLink taps through
         .contextMenu {

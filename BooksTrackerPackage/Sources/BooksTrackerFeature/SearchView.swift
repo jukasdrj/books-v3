@@ -431,7 +431,8 @@ public struct SearchView: View {
                     } label: {
                         iOS26FloatingBookCard(
                             work: book.work,
-                            namespace: searchTransition
+                            namespace: searchTransition,
+                            uniqueID: book.id.uuidString
                         )
                     }
                     .buttonStyle(.plain)

@@ -1,7 +1,10 @@
 import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
+
+#if canImport(UIKit)
 import UIKit
+#endif
 
 // MARK: - Gemini CSV Import View
 
