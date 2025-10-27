@@ -15,7 +15,7 @@ struct ReadingStatsTests {
 
         // Create test data
         let work = Work(title: "Test Book")
-        let edition = Edition(work: work, pageCount: 300)
+        let edition = Edition(pageCount: 300, work: work)
 
         let entry1 = UserLibraryEntry.createOwnedEntry(for: work, edition: edition, status: .read)
         entry1.dateCompleted = Date() // Today (within "Last 30 Days")
@@ -41,7 +41,7 @@ struct ReadingStatsTests {
         let context = container.mainContext
 
         let work = Work(title: "Reading Now")
-        let edition = Edition(work: work, pageCount: 400)
+        let edition = Edition(pageCount: 400, work: work)
 
         let entry = UserLibraryEntry.createOwnedEntry(for: work, edition: edition, status: .reading)
         entry.dateStarted = Calendar.current.date(byAdding: .day, value: -10, to: Date())

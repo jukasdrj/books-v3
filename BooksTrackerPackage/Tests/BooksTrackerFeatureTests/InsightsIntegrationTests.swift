@@ -39,9 +39,9 @@ struct InsightsIntegrationTests {
         context.insert(work2)
         context.insert(work3)
 
-        let edition1 = Edition(work: work1, pageCount: 768)
-        let edition2 = Edition(work: work2, pageCount: 340)
-        let edition3 = Edition(work: work3, pageCount: 321)
+        let edition1 = Edition(pageCount: 768, work: work1)
+        let edition2 = Edition(pageCount: 340, work: work2)
+        let edition3 = Edition(pageCount: 321, work: work3)
 
         let entry1 = UserLibraryEntry.createOwnedEntry(for: work1, edition: edition1, status: .read)
         entry1.dateCompleted = Date()
