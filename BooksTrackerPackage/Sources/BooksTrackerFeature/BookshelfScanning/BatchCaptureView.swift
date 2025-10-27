@@ -66,7 +66,7 @@ public final class BatchCaptureModel {
 
         do {
             // Submit batch to backend
-            let service = await BookshelfAIService.shared
+            let service = BookshelfAIService.shared
             let response = try await service.submitBatch(jobId: jobId, photos: capturedPhotos)
 
             print("[BatchCapture] Batch submitted: \(response.jobId), \(response.totalPhotos) photos")
