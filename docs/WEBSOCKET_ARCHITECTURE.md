@@ -231,6 +231,27 @@ interface ProgressData {
 }
 ```
 
+### Ready Handshake Messages
+
+**Client → Server (Ready Signal):**
+```json
+{
+  "type": "ready",
+  "timestamp": 1697654321000
+}
+```
+
+**Server → Client (Acknowledgment):**
+```json
+{
+  "type": "ready_ack",
+  "timestamp": 1697654321050
+}
+```
+
+**Purpose:** Prevents race condition where server sends progress before client listens.
+**Sequence:** Client sends after WebSocket connection, server waits before processing.
+
 ## Performance Comparison
 
 ### Polling vs WebSocket Metrics
