@@ -6,6 +6,48 @@ All notable changes, achievements, and debugging victories for this project.
 
 ## [Unreleased]
 
+### Fixed 🐛 - Bookshelf Scanner providerParam Error (October 27, 2025)
+
+**"From crash to completion!"** ✅
+
+Fixed critical runtime error causing all bookshelf scans to fail at the completion stage with "providerParam is not defined" despite successful AI processing and enrichment.
+
+**The Problem:**
+1. Gemini AI successfully processed bookshelf images and detected books
+2. Enrichment completed successfully with OpenLibrary metadata
+3. At completion stage (100%), server attempted to send final WebSocket message
+4. Line 137 in `ai-scanner.js` referenced undefined variable `providerParam`
+5. JavaScript threw ReferenceError, triggering error handler
+6. WebSocket closed prematurely (code 1001) instead of clean close (1000)
+7. iOS client received "Scan failed" status instead of "Scan complete"
+
+**The Fix:**
+- Extract model name from `scanResult.metadata.model` after Gemini processing
+- Replace undefined `providerParam` with valid `modelUsed` variable
+- Add defensive fallback to `'unknown'` if metadata is incomplete
+- Add comprehensive JSDoc explaining defensive programming approach
+
+**Files Modified:**
+- `cloudflare-workers/api-worker/src/services/ai-scanner.js` - Extract model metadata, add defensive fallback
+- `cloudflare-workers/api-worker/tests/ai-scanner-metadata.test.js` - Test coverage for metadata extraction and fallback
+- `docs/features/BOOKSHELF_SCANNER.md` - Document completion metadata structure
+
+**Impact:**
+- Bookshelf scans now complete successfully end-to-end
+- WebSocket closes cleanly with code 1000
+- iOS client receives "Scan complete" with full metadata
+- Completion metadata includes `modelUsed: "gemini-2.0-flash-exp"`
+- Defensive programming prevents future regressions if AI provider metadata changes
+
+**Test Results:**
+- 75/75 tests passing (no regressions)
+- New tests validate metadata extraction and missing metadata fallback
+- Production deployment successful (Version ID: bfa2ffe5-0a90-4771-838a-8fb9543c5560)
+
+**See:** `docs/plans/2025-10-27-fix-providerParam-websocket-error.md` for implementation details.
+
+---
+
 ### Fixed 🐛 - Build Warnings (October 27, 2025)
 
 **"Clean builds, clean code!"** ✅
