@@ -108,3 +108,4 @@ docs/archive/*.md
 !docs/archive/serena-memories/
 cloudflare-workers/*_SUMMARY.md
 cloudflare-workers/*_REPORT.md
+.worktrees/
