@@ -64,7 +64,7 @@ struct RelationshipCascadeTests {
 
         // Create Work and Edition
         let work = Work(title: "Test Book", authors: [])
-        let edition = Edition(isbn: "1234567890", format: "Hardcover", work: work)
+        let edition = Edition(isbn: "1234567890", format: .hardcover, work: work)
         work.editions = [edition]
 
         context.insert(work)
@@ -88,7 +88,7 @@ struct RelationshipCascadeTests {
         // Create complex relationship graph
         let author = Author(name: "Author", gender: .unknown, culturalRegion: nil)
         let work = Work(title: "Book", authors: [author])
-        let edition = Edition(isbn: "123", format: "Paperback", work: work)
+        let edition = Edition(isbn: "123", format: .paperback, work: work)
         let entry = UserLibraryEntry(work: work, readingStatus: .read)
 
         entry.edition = edition
