@@ -971,8 +971,8 @@ struct PressedButtonStyle: ButtonStyle {
         firstPublicationYear: 1884
     )
 
-    return VStack {
-        iOS26FloatingBookCard(work: sampleWork, namespace: Namespace().wrappedValue)
+    VStack {
+        iOS26FloatingBookCard(work: sampleWork, namespace: Namespace().wrappedValue, uniqueID: nil)
             .frame(width: 160)
 
         Spacer()
