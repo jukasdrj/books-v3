@@ -53,9 +53,14 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
     console.log(`[AI Scanner] Job ${jobId} - Using Gemini 2.0 Flash`);
 
     let scanResult;
+    let modelUsed = 'unknown'; // Default fallback
     try {
       scanResult = await scanImageWithGemini(imageData, env);
       console.log('[AI Scanner] Gemini processing complete');
+
+      // Extract model name from provider metadata for completion response
+      modelUsed = scanResult.metadata?.model || 'unknown';
+      console.log(`[AI Scanner] Model used: ${modelUsed}`);
     } catch (aiError) {
       console.error('[AI Scanner] Gemini processing failed:', aiError.message);
       throw aiError;
@@ -134,7 +139,7 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
           processingTime,
           enrichedCount: enrichedBooks.filter(b => b.enrichment?.status === 'success').length,
           timestamp: new Date().toISOString(),
-          modelUsed: providerParam  // Include model in metadata
+          modelUsed: modelUsed  // Model name from AI provider (gemini-2.0-flash-exp)
         }
       }
     });
