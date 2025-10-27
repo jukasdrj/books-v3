@@ -6,6 +6,12 @@ All notable changes, achievements, and debugging victories for this project.
 
 ## [Unreleased]
 
+### Fixed
+
+- **[CRITICAL]** Fixed fatal crash after bookshelf scan when adding books to library. App was capturing temporary SwiftData persistent identifiers before saving to persistent store, then passing invalidated IDs to background enrichment queue. Now captures IDs AFTER `modelContext.save()` completes. (ScanResultsView.swift:553)
+
+---
+
 ### Fixed 🐛 - Bookshelf Scanner providerParam Error (October 27, 2025)
 
 **"From crash to completion!"** ✅
