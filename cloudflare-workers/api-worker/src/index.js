@@ -218,7 +218,21 @@ export default {
         const doId = env.PROGRESS_WEBSOCKET_DO.idFromName(jobId);
         const doStub = env.PROGRESS_WEBSOCKET_DO.get(doId);
 
-        // Start AI scan in background (direct function call, NO RPC!)
+        // CRITICAL: Wait for WebSocket ready signal before processing
+        // This prevents race condition where we send updates before client connects
+        console.log(`[API] Waiting for WebSocket ready signal for job ${jobId}`);
+
+        const readyResult = await doStub.waitForReady(5000); // 5 second timeout
+
+        if (readyResult.timedOut || readyResult.disconnected) {
+          const reason = readyResult.timedOut ? 'timeout' : 'WebSocket not connected';
+          console.warn(`[API] WebSocket ready ${reason} for job ${jobId}, proceeding anyway (client may miss early updates)`);
+          // Continue processing - client might be using polling fallback
+        } else {
+          console.log(`[API] ✅ WebSocket ready for job ${jobId}, starting processing`);
+        }
+
+        // Start AI scan in background (NOW guaranteed WebSocket is listening)
         ctx.waitUntil(aiScanner.processBookshelfScan(jobId, imageData, request, env, doStub));
 
         // Define stages metadata for iOS client (used for progress estimation)
@@ -236,6 +250,7 @@ export default {
         return new Response(JSON.stringify({
           jobId,
           status: 'started',
+          websocketReady: readyResult.success, // NEW: Indicates if WebSocket is ready
           message: 'AI scan started. Connect to /ws/progress?jobId=' + jobId + ' for real-time updates.',
           stages,
           estimatedRange
