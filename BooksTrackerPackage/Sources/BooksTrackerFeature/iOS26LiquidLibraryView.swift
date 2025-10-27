@@ -245,7 +245,7 @@ public struct iOS26LiquidLibraryView: View {
         ], spacing: 16) {
             ForEach(cachedFilteredWorks, id: \.id) { work in
                 NavigationLink(value: work) {
-                    OptimizedFloatingBookCard(work: work, namespace: layoutTransition)
+                    OptimizedFloatingBookCard(work: work, namespace: layoutTransition, uniqueID: nil)
                 }
                 .buttonStyle(.plain) // ✅ FIX: Changed from BookCardButtonStyle() to allow NavigationLink taps
                 .id(work.id) // ✅ Explicit ID for view recycling
@@ -698,7 +698,8 @@ public struct UltraOptimizedLibraryView: View {
                 NavigationLink(value: work) {
                     OptimizedFloatingBookCard(
                         work: work,
-                        namespace: layoutTransition
+                        namespace: layoutTransition,
+                        uniqueID: nil
                     )
                     .performanceMonitor("BookCard-\(work.title)")
                 }

@@ -156,7 +156,9 @@ public struct SearchView: View {
                     }
                 }
                 .sheet(isPresented: $showingScanner) {
-                    ModernBarcodeScannerView { isbn in
+                    print("🔍 DEBUG: Sheet is presenting ModernBarcodeScannerView")
+                    return ModernBarcodeScannerView { isbn in
+                        print("🔍 DEBUG: ISBN scanned: \(isbn.normalizedValue)")
                         // Handle scanned ISBN - set scope to ISBN
                         searchScope = .isbn
                         searchModel.searchByISBN(isbn.normalizedValue)
@@ -241,7 +243,11 @@ public struct SearchView: View {
     // HIG: Clear, accessible toolbar actions
 
     private var barcodeButton: some View {
-        Button(action: { showingScanner = true }) {
+        Button(action: {
+            print("🔍 DEBUG: Barcode button tapped")
+            showingScanner = true
+            print("🔍 DEBUG: showingScanner set to \(showingScanner)")
+        }) {
             Image(systemName: "barcode.viewfinder")
                 .font(.title2)
                 .foregroundColor(themeStore.primaryColor)

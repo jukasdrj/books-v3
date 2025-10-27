@@ -120,9 +120,12 @@ struct ModernBarcodeScannerView: View {
             #endif
         }
         .onAppear {
+            print("🔍 DEBUG: ModernBarcodeScannerView appeared")
+            print("🔍 DEBUG: Permission status: \(permissionStatus.rawValue)")
             checkCameraPermission()
         }
         .onDisappear {
+            print("🔍 DEBUG: ModernBarcodeScannerView disappeared")
             cleanup()
         }
         .alert("Camera Permission Required", isPresented: $showingPermissionAlert) {
@@ -264,14 +267,18 @@ struct ModernBarcodeScannerView: View {
     // MARK: - Actions
 
     private func checkCameraPermission() {
+        print("🔍 DEBUG: checkCameraPermission() called")
         Task { @CameraSessionActor in
             let status = CameraManager.cameraPermissionStatus
+            print("🔍 DEBUG: Camera permission status: \(status.rawValue)")
             await MainActor.run {
                 permissionStatus = status
             }
 
             if status == .notDetermined {
+                print("🔍 DEBUG: Requesting camera permission...")
                 let granted = await CameraManager.requestCameraPermission()
+                print("🔍 DEBUG: Camera permission granted: \(granted)")
                 await MainActor.run {
                     permissionStatus = granted ? .authorized : .denied
                     if !granted {
@@ -279,6 +286,7 @@ struct ModernBarcodeScannerView: View {
                     }
                 }
             } else if status == .denied || status == .restricted {
+                print("🔍 DEBUG: Camera permission denied or restricted")
                 await MainActor.run {
                     showingPermissionAlert = true
                 }

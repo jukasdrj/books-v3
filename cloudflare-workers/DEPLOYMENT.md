@@ -415,7 +415,7 @@ api-worker/
 
 ### Documentation
 
-- **Architecture:** `cloudflare-workers/SERVICE_BINDING_ARCHITECTURE.md`
+- **Architecture:** `cloudflare-workers/MONOLITH_ARCHITECTURE.md`
 - **AI Scanner:** `docs/features/BOOKSHELF_SCANNER.md`
 - **CSV Import:** `docs/features/CSV_IMPORT.md`
 - **Main Guide:** `CLAUDE.md`

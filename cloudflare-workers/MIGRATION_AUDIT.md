@@ -379,7 +379,7 @@ curl https://external-apis-worker.jukasdrj.workers.dev/health
 
 **Status:** All workers deployed and responding ✅
 
-### Current Deployment Order (from SERVICE_BINDING_ARCHITECTURE.md)
+### Current Deployment Order (from MONOLITH_ARCHITECTURE.md)
 
 ```bash
 # 1. Leaf workers (no dependencies)

@@ -175,7 +175,7 @@ api-worker/
 
 **Rule:** All background jobs report via WebSocket. No polling. All services communicate via direct function calls.
 
-**See:** `cloudflare-workers/SERVICE_BINDING_ARCHITECTURE.md` for monolith architecture details. Previous distributed architecture archived in `cloudflare-workers/_archived/`.
+**See:** `cloudflare-workers/MONOLITH_ARCHITECTURE.md` for monolith architecture details. Previous distributed architecture archived in `cloudflare-workers/_archived/`.
 
 ### Navigation Structure
 
@@ -456,7 +456,7 @@ ast-grep --lang swift --pattern '@Observable class $NAME { $$$ }' .
   ├── architecture/         ← System design & architectural decisions
   └── guides/               ← How-to guides & best practices
 
-📁 cloudflare-workers/      ← Backend: SERVICE_BINDING_ARCHITECTURE.md
+📁 cloudflare-workers/      ← Backend: MONOLITH_ARCHITECTURE.md
 📁 .claude/commands/        ← Slash commands (/gogo, /build, /test, /sim)
 ```
 
