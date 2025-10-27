@@ -13,18 +13,25 @@ public struct InsightsView: View {
     @State private var selectedPeriod: TimePeriod = .thisYear
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var scrollPosition = ScrollPosition()
 
     public init() {}
 
     public var body: some View {
         NavigationStack {
-            Group {
-                if isLoading {
-                    loadingView
-                } else if let error = errorMessage {
-                    errorView(error)
-                } else {
-                    contentView
+            ZStack {
+                // Add themed background gradient for visual consistency
+                themeStore.backgroundGradient
+                    .ignoresSafeArea()
+
+                Group {
+                    if isLoading {
+                        loadingView
+                    } else if let error = errorMessage {
+                        errorView(error)
+                    } else {
+                        contentView
+                    }
                 }
             }
             .navigationTitle("Insights")
@@ -42,7 +49,7 @@ public struct InsightsView: View {
 
     private var contentView: some View {
         ScrollView {
-            VStack(spacing: 20) {
+            VStack(spacing: 24) {
                 // Hero stats card
                 if let diversity = diversityStats {
                     HeroStatsCard(stats: diversity.heroStats) { stat in
@@ -61,6 +68,8 @@ public struct InsightsView: View {
             }
             .padding()
         }
+        .scrollEdgeEffectStyle(.soft, for: [.top, .bottom])
+        .scrollPosition($scrollPosition)
     }
 
     private var diversitySection: some View {
@@ -94,6 +103,7 @@ public struct InsightsView: View {
         VStack(spacing: 16) {
             ProgressView()
                 .scaleEffect(1.5)
+                .tint(themeStore.primaryColor)
 
             Text("Calculating diversity insights...")
                 .font(.body)

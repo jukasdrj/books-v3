@@ -39,7 +39,7 @@ public struct GeminiCSVImportJob: Codable, Sendable {
     public let errors: [ImportError]
     public let successRate: String
 
-    public struct ParsedBook: Codable, Sendable {
+    public struct ParsedBook: Codable, Sendable, Equatable {
         public let title: String
         public let author: String
         public let isbn: String?
@@ -49,7 +49,7 @@ public struct GeminiCSVImportJob: Codable, Sendable {
         public let enrichmentError: String?
     }
 
-    public struct ImportError: Codable, Sendable {
+    public struct ImportError: Codable, Sendable, Equatable {
         public let title: String
         public let error: String
     }

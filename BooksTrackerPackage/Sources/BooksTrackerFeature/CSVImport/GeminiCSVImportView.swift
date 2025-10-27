@@ -23,7 +23,7 @@ public struct GeminiCSVImportView: View {
 
     public init() {}
 
-    public enum ImportStatus {
+    public enum ImportStatus: Equatable {
         case idle
         case uploading
         case processing(progress: Double, message: String)

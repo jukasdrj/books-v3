@@ -38,6 +38,22 @@ struct iOS26FluidGridSystem<Item: Identifiable, Content: View>: View {
             }
             .animation(.smooth(duration: 0.6), value: adaptiveColumns(for: geometry.size).count)
         }
+        .frame(height: estimatedHeight(for: items.count))
+    }
+
+    // MARK: - Height Estimation
+
+    /// Estimates grid height based on item count and column configuration
+    /// Prevents GeometryReader collapse in ScrollView contexts
+    private func estimatedHeight(for itemCount: Int) -> CGFloat {
+        guard itemCount > 0 else { return 0 }
+
+        // Estimate based on typical book card height (~250pt) + spacing
+        let estimatedCardHeight: CGFloat = 250
+        let columnCount = max(columns.count, 2)  // Default to 2 columns minimum
+        let rowCount = ceil(Double(itemCount) / Double(columnCount))
+
+        return CGFloat(rowCount) * (estimatedCardHeight + spacing) - spacing
     }
 
     // MARK: - Adaptive Column Logic

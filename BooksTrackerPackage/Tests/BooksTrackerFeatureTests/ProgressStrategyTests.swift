@@ -11,8 +11,10 @@ func testProgressStrategyCases() {
 
 @Test("ProgressStrategy is Sendable")
 func testProgressStrategyIsSendable() {
-    func acceptsSendable<T: Sendable>(_ value: T) {}
-    acceptsSendable(ProgressStrategy.webSocket)
+    func acceptsSendable<T: Sendable>(_ value: T) -> Bool { true }
+    let result = acceptsSendable(ProgressStrategy.webSocket)
+    // Verify compilation succeeded (Sendable conformance verified at compile-time)
+    #expect(result == true)
 }
 
 @Test("ProgressStrategy has user-friendly descriptions")

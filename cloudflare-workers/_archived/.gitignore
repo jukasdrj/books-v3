@@ -1,6 +1,0 @@
-# These workers are archived and should not be deployed
-# Kept for historical reference only
-
-# Track only these documentation files
-!.gitignore
-!README.md

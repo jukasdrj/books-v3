@@ -188,7 +188,18 @@ actor BookshelfAIService {
 
         // STEP 4: Listen for progress updates
         let result: Result<([DetectedBook], [SuggestionViewModel]), BookshelfAIError> = await withCheckedContinuation { continuation in
+            // Track if continuation has been resumed to prevent double-resume
+            var continuationResumed = false
+
             Task { @MainActor in
+                // Set disconnection handler to resume continuation if WebSocket drops
+                wsManager.setDisconnectionHandler { error in
+                    guard !continuationResumed else { return }
+                    continuationResumed = true
+                    print("⚠️ WebSocket disconnected unexpectedly, resuming continuation with error")
+                    continuation.resume(returning: .failure(.networkError(error)))
+                }
+
                 wsManager.setProgressHandler { jobProgress in
                     // Skip keep-alive pings
                     guard jobProgress.keepAlive != true else {
@@ -200,6 +211,9 @@ actor BookshelfAIService {
 
                     // Check for completion
                     if jobProgress.currentStatus.lowercased().contains("complete") {
+                        guard !continuationResumed else { return }
+                        continuationResumed = true
+
                         // Result is now embedded in WebSocket message!
                         if let scanResult = jobProgress.scanResult {
                             print("✅ Scan complete with \(scanResult.totalDetected) books (\(scanResult.approved) approved, \(scanResult.needsReview) review)")
@@ -216,6 +230,7 @@ actor BookshelfAIService {
                             continuation.resume(returning: .success((detectedBooks, suggestions)))
                         } else {
                             // Fallback: try polling (shouldn't happen with new backend)
+                            // Note: Already checked continuationResumed above, so safe to resume here
                             print("⚠️ Scan complete but no result in WebSocket message, attempting fallback...")
                             Task {
                                 do {
@@ -239,8 +254,11 @@ actor BookshelfAIService {
                         }
                     }
 
-                    // Check for error
-                    if jobProgress.currentStatus.lowercased().contains("error") {
+                    // Check for error or failure
+                    let status = jobProgress.currentStatus.lowercased()
+                    if status.contains("error") || status.contains("fail") {
+                        guard !continuationResumed else { return }
+                        continuationResumed = true
                         wsManager.disconnect()
                         continuation.resume(returning: .failure(.serverError(500, "Job failed: \(jobProgress.currentStatus)")))
                     }

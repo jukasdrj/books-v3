@@ -1,5 +1,6 @@
 import SwiftUI
 import Observation
+import PhotosUI
 
 #if os(iOS)
 
@@ -30,6 +31,20 @@ public final class BatchCaptureModel {
         capturedPhotos.append(photo)
         showingPostCaptureOptions = true
         showingCamera = false
+        return photo
+    }
+
+    /// Add photo silently (for library import - no UI state changes)
+    /// Use this when importing multiple photos to avoid UI conflicts
+    @discardableResult
+    public func addPhotoQuietly(_ image: UIImage) -> CapturedPhoto? {
+        guard capturedPhotos.count < CapturedPhoto.maxPhotosPerBatch else {
+            print("Cannot add more than \(CapturedPhoto.maxPhotosPerBatch) photos")
+            return nil
+        }
+
+        let photo = CapturedPhoto(image: image)
+        capturedPhotos.append(photo)
         return photo
     }
 
@@ -139,6 +154,7 @@ public struct BatchCaptureView: View {
     @Environment(\.iOS26ThemeStore) private var themeStore
 
     @State private var model = BatchCaptureModel()
+    @State private var photosPickerItems: [PhotosPickerItem] = []
 
     public init() {}
 
@@ -171,6 +187,20 @@ public struct BatchCaptureView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button("Cancel") { dismiss() }
+            }
+
+            ToolbarItem(placement: .navigationBarTrailing) {
+                PhotosPicker(selection: $photosPickerItems,
+                           maxSelectionCount: CapturedPhoto.maxPhotosPerBatch,
+                           matching: .images) {
+                    Label("Import Photos", systemImage: "photo.on.rectangle")
+                }
+                .disabled(model.isSubmitting)
+            }
+        }
+        .onChange(of: photosPickerItems) { oldValue, newValue in
+            Task {
+                await loadSelectedPhotos(newValue)
             }
         }
     }
@@ -346,6 +376,37 @@ public struct BatchCaptureView: View {
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .padding()
+    }
+
+    // MARK: - Photo Loading
+
+    /// Load selected photos from PhotosPicker and add to batch
+    private func loadSelectedPhotos(_ items: [PhotosPickerItem]) async {
+        // Load all photos quietly (no UI state changes per-photo)
+        for item in items {
+            // Check if we've hit the limit
+            guard model.capturedPhotos.count < CapturedPhoto.maxPhotosPerBatch else {
+                print("[BatchCapture] Reached max photo limit, skipping remaining selections")
+                break
+            }
+
+            // Load image data
+            if let data = try? await item.loadTransferable(type: Data.self),
+               let image = UIImage(data: data) {
+                // Add to batch silently
+                model.addPhotoQuietly(image)
+                print("[BatchCapture] Loaded photo from library (\(model.capturedPhotos.count)/\(CapturedPhoto.maxPhotosPerBatch))")
+            }
+        }
+
+        // Update UI state once after all photos loaded
+        if !model.capturedPhotos.isEmpty {
+            model.showingPostCaptureOptions = true
+            model.showingCamera = false
+        }
+
+        // Clear picker selection after loading
+        photosPickerItems = []
     }
 }
 

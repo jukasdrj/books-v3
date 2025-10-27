@@ -1,6 +1,6 @@
 # Copilot Custom Instructions
 
-- This repository uses Swift 6.1+ and SwiftUI for iOS 26.0+ apps. All code should follow modern Swift and SwiftUI best practices.
+- This repository uses Swift 6.2+ and SwiftUI for iOS 26.0+ apps. All code should follow modern Swift and SwiftUI best practices.
 - This is an iOS project NOT a pure Swift Package or macOS project. It utlises a local Swift Package which is wrapped in an Xcode project. This makes it easier for agents to work on the project.
 - Use the Model-View (MV) pattern with native SwiftUI state management (`@State`, `@Observable`, `@Environment`, `@Binding`). Do not use ViewModels or MVVM.
 - All concurrency must use Swift Concurrency (async/await, actors, @MainActor). Do not use GCD or completion handlers.

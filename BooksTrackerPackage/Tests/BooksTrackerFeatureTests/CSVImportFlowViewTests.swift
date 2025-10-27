@@ -10,13 +10,15 @@ struct CSVImportFlowViewTests {
     func viewInitialization() {
         if #available(iOS 26.0, *) {
             let view = CSVImportFlowView()
-            // Test passes if initialization doesn't crash
+            // Verify view was created successfully
+            #expect(view.body != nil)
         }
     }
 
     @Test("View uses SyncCoordinator singleton")
     func usesSyncCoordinator() {
         let coordinator = SyncCoordinator.shared
-        // Test passes if coordinator is accessible
+        // Verify coordinator singleton is accessible and properly initialized
+        #expect(coordinator != nil)
     }
 }

@@ -46,6 +46,7 @@ public final class WebSocketProgressManager: ObservableObject {
     private var webSocketTask: URLSessionWebSocketTask?
     private var receiveTask: Task<Void, Never>?
     private var progressHandler: ((JobProgress) -> Void)?
+    private var disconnectionHandler: ((Error) -> Void)?
     private var boundJobId: String?
 
     // Backend configuration
@@ -131,6 +132,14 @@ public final class WebSocketProgressManager: ObservableObject {
         self.progressHandler = handler
     }
 
+    /// Set disconnection handler to be notified when WebSocket connection drops
+    /// Used to resume continuations when network errors occur
+    ///
+    /// - Parameter handler: Callback for disconnection events (called on MainActor)
+    public func setDisconnectionHandler(_ handler: @escaping (Error) -> Void) {
+        self.disconnectionHandler = handler
+    }
+
     /// Connect to WebSocket for a specific job (backward compatible)
     /// This is now equivalent to: establishConnection(jobId) + configureForJob(jobId)
     ///
@@ -164,6 +173,7 @@ public final class WebSocketProgressManager: ObservableObject {
 
         isConnected = false
         progressHandler = nil
+        disconnectionHandler = nil
         boundJobId = nil
 
         print("🔌 WebSocket disconnected")
@@ -247,6 +257,10 @@ public final class WebSocketProgressManager: ObservableObject {
                 } catch {
                     print("⚠️ WebSocket receive error: \(error)")
                     self.lastError = error
+
+                    // Notify continuation before disconnecting
+                    disconnectionHandler?(error)
+
                     self.disconnect()
                     break
                 }
