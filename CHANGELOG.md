@@ -40,6 +40,69 @@ Server now waits for iOS client "ready" signal before processing bookshelf scans
 
 ---
 
+### Removed 🧹 - Legacy CSV Import System (October 27, 2025)
+
+**"One import to rule them all!"** 🎯
+
+Completed removal of deprecated manual column mapping CSV import system. Gemini AI-powered import is now the sole CSV import method, providing zero-configuration experience with superior accuracy.
+
+**What Was Removed:**
+- Manual column mapping UI (CSVImportFlowView, CSVImportSupportingViews, CSVImportView)
+- Manual CSV parsing logic (CSVParsingActor)
+- Legacy import progress UI (BackgroundImportBanner)
+- Live Activity components (ImportActivityAttributes, ImportLiveActivityView)
+- Legacy import orchestration (SyncCoordinator.startCSVImport)
+- CSVImportService (broken after actor removal, no active callers)
+- 4 test suites for legacy import functionality
+- 2 documentation files (IMPORT_LIVE_ACTIVITY_GUIDE.md, VISUAL_DESIGN_SPECS.md)
+
+**Production Features Preserved:**
+- ✅ EnrichmentQueue.swift (used by manual enrichment, auto-enrichment, Gemini import)
+- ✅ EnrichmentService.swift (core enrichment logic for all features)
+- ✅ GeminiCSVImportView.swift (production Gemini import UI)
+- ✅ GeminiCSVImportService.swift (production Gemini import service)
+
+**Migration Path:**
+- Users: Use "AI-Powered CSV Import (Recommended)" in Settings → Library Management
+- Developers: See `docs/features/GEMINI_CSV_IMPORT.md` for current import architecture
+- Historical Reference: See `docs/archive/features-removed/CSV_IMPORT.md` for legacy docs
+
+**Impact:**
+- 📉 **Code Reduction:** ~15,000 lines of code removed (9 source files + 4 test files)
+- 🎨 **UX Simplification:** Single import button in Settings (no more "Legacy" vs "Recommended" choice)
+- 🧹 **Maintenance:** Eliminated dual-import maintenance burden
+- ⚡ **Build Quality:** Zero warnings introduced, all tests pass (excluding pre-existing Swift 6 issue)
+
+**Commits:**
+- `b6180e8` - refactor: remove legacy CSV import UI from Settings (Task 1)
+- `48699f5` - refactor: remove legacy CSV import orchestration (Task 2)
+- `88697b8` - refactor: delete legacy CSV import UI files (Task 3)
+- `262a4d4` - refactor: delete CSV parsing actor and Live Activity components (Task 4)
+- `dfaec7c` - docs: remove legacy CSV import documentation (Task 5)
+- `79d88c5` - test: remove legacy CSV import test files (Task 6)
+- `622172b` - refactor: remove unused CSVImportService (Task 7)
+- `7ab1d15` - docs: add verification report for legacy CSV removal (Task 9)
+
+**Documentation:**
+- Updated: `CLAUDE.md` (marked legacy import as removed)
+- Archived: `docs/features/CSV_IMPORT.md` → `docs/archive/features-removed/CSV_IMPORT.md`
+- Completed: `docs/deprecations/2025-Q2-LEGACY-CSV-REMOVAL.md` (success criteria met)
+- Verification: `docs/verification/2025-10-27-legacy-csv-removal-verification.md`
+
+**Known Tech Debt:**
+- CSVImport directory could be reorganized (tracked separately)
+  - EnrichmentQueue/Service are feature-agnostic (not CSV-specific)
+  - Consider moving to dedicated Enrichment/ directory in future sprint
+  - Low priority - current structure functional
+
+**Deprecation Timeline:**
+- ✅ **v3.1.0 (January 2025):** Legacy import deprecated, Gemini promoted
+- ✅ **v3.3.0 (October 2025):** Legacy import removed (this entry)
+
+**See:** `docs/plans/2025-10-27-legacy-csv-import-removal.md` for complete implementation plan.
+
+---
+
 ## [3.1.0] - 2025-01-27
 
 ### ✨ Features
