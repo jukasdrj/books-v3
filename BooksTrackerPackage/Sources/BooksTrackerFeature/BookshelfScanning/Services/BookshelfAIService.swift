@@ -229,28 +229,10 @@ actor BookshelfAIService {
 
                             continuation.resume(returning: .success((detectedBooks, suggestions)))
                         } else {
-                            // Fallback: try polling (shouldn't happen with new backend)
-                            // Note: Already checked continuationResumed above, so safe to resume here
-                            print("⚠️ Scan complete but no result in WebSocket message, attempting fallback...")
-                            Task {
-                                do {
-                                    let finalStatus = try await self.pollJobStatus(jobId: jobId)
-
-                                    if let response = finalStatus.result {
-                                        wsManager.disconnect()
-
-                                        let detectedBooks = response.books.compactMap { aiBook in
-                                            self.convertToDetectedBook(aiBook)
-                                        }
-                                        let suggestions = SuggestionGenerator.generateSuggestions(from: response)
-
-                                        continuation.resume(returning: .success((detectedBooks, suggestions)))
-                                    }
-                                } catch {
-                                    wsManager.disconnect()
-                                    continuation.resume(returning: .failure(.networkError(error)))
-                                }
-                            }
+                            // No scan result in final WebSocket message - this is a backend error
+                            print("❌ Scan complete but no result in WebSocket message (backend error)")
+                            wsManager.disconnect()
+                            continuation.resume(returning: .failure(.serverError(500, "Scan completed without result data")))
                         }
                     }
 
@@ -310,36 +292,13 @@ actor BookshelfAIService {
 
             return result
 
-        } catch let error as BookshelfAIError {
-            // WebSocket failed - fall back to HTTP polling
-            print("⚠️ WebSocket failed: \(error)")
-            print("📊 Falling back to HTTP polling for job \(jobId)")
+        } catch {
+            // WebSocket failed - no fallback available (polling removed in monolith refactor)
+            print("❌ WebSocket scan failed: \(error)")
+            print("[Analytics] bookshelf_scan_failed - provider: \(provider.rawValue), scan_id: \(jobId), error: \(error)")
 
-            // Notify user of fallback
-            await MainActor.run {
-                progressHandler(0.0, "Connecting (using fallback)...")
-            }
-
-            do {
-                let result = try await processViaPolling(
-                    image: image,
-                    jobId: jobId,
-                    provider: provider,
-                    progressHandler: progressHandler
-                )
-
-                print("✅ Polling fallback completed successfully")
-                print("[Analytics] bookshelf_scan_completed - provider: \(provider.rawValue), books_detected: \(result.0.count), scan_id: \(jobId), success: true, strategy: polling_fallback")
-
-                return result
-
-            } catch let pollingError as BookshelfAIError {
-                // Both strategies failed
-                print("❌ Both WebSocket and polling failed")
-                print("[Analytics] bookshelf_scan_failed - provider: \(provider.rawValue), scan_id: \(jobId), websocket_error: \(error), polling_error: \(pollingError)")
-
-                throw pollingError
-            }
+            // Propagate error to caller
+            throw error
         }
     }
 
@@ -481,10 +440,28 @@ actor BookshelfAIService {
         // Generate raw text
         let rawText = "\(bookPayload.title) by \(bookPayload.author)"
 
+        // Map format string to EditionFormat enum
+        let format: EditionFormat? = {
+            guard let formatString = bookPayload.format?.lowercased() else { return nil }
+            switch formatString {
+            case "hardcover":
+                return .hardcover
+            case "paperback":
+                return .paperback
+            case "mass-market":
+                return .massMarket
+            case "unknown":
+                return nil  // Unknown format = nil
+            default:
+                return nil
+            }
+        }()
+
         return DetectedBook(
             isbn: bookPayload.isbn,
             title: bookPayload.title,
             author: bookPayload.author,
+            format: format,  // NEW: Format from Gemini
             confidence: bookPayload.confidence,
             boundingBox: boundingBox,
             rawText: rawText,
