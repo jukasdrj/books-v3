@@ -570,6 +570,47 @@ let response = try await uploadImage(imageData, jobId: jobId)
 - ⏱️ Timeout rate: < 1% (network issues)
 - 🔋 Battery impact: Negligible (one extra WebSocket message)
 
+## Completion Metadata
+
+When the scan completes successfully (progress === 1.0), the final WebSocket message includes detailed metadata:
+
+```json
+{
+  "progress": 1.0,
+  "processedItems": 3,
+  "totalItems": 3,
+  "currentStatus": "Scan complete",
+  "jobId": "6AEBDC6E-1F9B-4D20-BE59-84AF61AF8264",
+  "result": {
+    "totalDetected": 3,
+    "approved": 2,
+    "needsReview": 1,
+    "books": [...],
+    "metadata": {
+      "processingTime": 42350,
+      "enrichedCount": 3,
+      "timestamp": "2025-10-27T10:30:45.123Z",
+      "modelUsed": "gemini-2.0-flash-exp"
+    }
+  }
+}
+```
+
+**Fields:**
+- `processingTime`: Total milliseconds from image upload to completion
+- `enrichedCount`: Number of books successfully enriched with OpenLibrary metadata
+- `timestamp`: ISO 8601 completion timestamp
+- `modelUsed`: AI model name (always "gemini-2.0-flash-exp" in current version)
+
+**iOS Usage:**
+
+```swift
+if let metadata = result.metadata {
+    print("Scan completed in \(metadata.processingTime)ms using \(metadata.modelUsed)")
+    print("Enriched \(metadata.enrichedCount)/\(result.totalDetected) books")
+}
+```
+
 ## Future Enhancements
 
 See [GitHub Issue #16](https://github.com/jukasdrj/books-tracker-v1/issues/16) for planned iOS 26 HIG enhancements:
