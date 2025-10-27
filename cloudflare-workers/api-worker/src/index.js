@@ -305,10 +305,15 @@ export default {
       const maxResults = parseInt(url.searchParams.get('maxResults') || '20');
       const result = await bookSearch.searchByTitle(query, { maxResults }, env, ctx);
 
+      // Extract cache headers from result
+      const cacheHeaders = result._cacheHeaders || {};
+      delete result._cacheHeaders; // Don't expose internal field to client
+
       return new Response(JSON.stringify(result), {
         headers: {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
+          'Access-Control-Allow-Origin': '*',
+          ...cacheHeaders
         }
       });
     }
@@ -326,10 +331,15 @@ export default {
       const maxResults = parseInt(url.searchParams.get('maxResults') || '1');
       const result = await bookSearch.searchByISBN(isbn, { maxResults }, env, ctx);
 
+      // Extract cache headers from result
+      const cacheHeaders = result._cacheHeaders || {};
+      delete result._cacheHeaders; // Don't expose internal field to client
+
       return new Response(JSON.stringify(result), {
         headers: {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
+          'Access-Control-Allow-Origin': '*',
+          ...cacheHeaders
         }
       });
     }
