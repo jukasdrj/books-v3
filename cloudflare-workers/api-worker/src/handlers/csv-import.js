@@ -3,6 +3,7 @@ import { validateCSV } from '../utils/csv-validator.js';
 import { buildCSVParserPrompt, PROMPT_VERSION } from '../prompts/csv-parser-prompt.js';
 import { generateCSVCacheKey, generateISBNCacheKey } from '../utils/cache-keys.js';
 import { enrichBooksParallel } from '../services/parallel-enrichment.js';
+import { parseCSVWithGemini } from '../providers/gemini-csv-provider.js';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -155,7 +156,7 @@ export async function processCSVImport(csvFile, jobId, doStub, env) {
 }
 
 /**
- * Call Gemini API to parse CSV (placeholder - implemented in Task 6)
+ * Call Gemini API to parse CSV
  *
  * @param {string} csvText - Raw CSV content
  * @param {string} prompt - Gemini prompt with few-shot examples
@@ -163,8 +164,12 @@ export async function processCSVImport(csvFile, jobId, doStub, env) {
  * @returns {Promise<Array<Object>>} Parsed book data
  */
 async function callGemini(csvText, prompt, env) {
-  // Placeholder - will implement in Task 6 (Gemini Provider Module)
-  throw new Error('Gemini integration not implemented');
+  const apiKey = env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY not configured');
+  }
+
+  return await parseCSVWithGemini(csvText, prompt, apiKey);
 }
 
 /**
