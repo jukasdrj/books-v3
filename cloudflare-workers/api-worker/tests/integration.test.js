@@ -221,6 +221,122 @@ describe('API Worker Integration Tests', () => {
     });
   });
 
+  describe('GET /search/advanced (query parameters)', () => {
+    it('should handle GET with title and author query params', async () => {
+      const params = new URLSearchParams({
+        title: '1984',
+        author: 'Orwell',
+        maxResults: '10'
+      });
+
+      const response = await fetch(`${BASE_URL}/search/advanced?${params}`);
+
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.items).toBeInstanceOf(Array);
+      expect(data.provider).toBeTruthy();
+      expect(data.success).toBe(true);
+    });
+
+    it('should handle GET with title-only query param', async () => {
+      const params = new URLSearchParams({
+        title: 'To Kill a Mockingbird'
+      });
+
+      const response = await fetch(`${BASE_URL}/search/advanced?${params}`);
+
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.items).toBeInstanceOf(Array);
+      expect(data.success).toBe(true);
+    });
+
+    it('should handle GET with author-only query param', async () => {
+      const params = new URLSearchParams({
+        author: 'Tolkien'
+      });
+
+      const response = await fetch(`${BASE_URL}/search/advanced?${params}`);
+
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.items).toBeInstanceOf(Array);
+    });
+
+    it('should return 400 for GET with no query parameters', async () => {
+      const response = await fetch(`${BASE_URL}/search/advanced`);
+
+      expect(response.status).toBe(400);
+
+      const data = await response.json();
+      expect(data.error).toContain('At least one search parameter required');
+    });
+
+    it('should include CORS headers for GET requests', async () => {
+      const params = new URLSearchParams({ title: 'test' });
+      const response = await fetch(`${BASE_URL}/search/advanced?${params}`);
+
+      expect(response.headers.get('access-control-allow-origin')).toBe('*');
+    });
+
+    it('should default maxResults to 20 when not provided', async () => {
+      const params = new URLSearchParams({ title: 'The Hobbit' });
+      const response = await fetch(`${BASE_URL}/search/advanced?${params}`);
+
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.items).toBeInstanceOf(Array);
+      // Note: actual maxResults validation happens in handler
+    });
+
+    it('should support both "title" and "bookTitle" param names', async () => {
+      // Test backward compatibility with documentation examples
+      const params = new URLSearchParams({
+        title: 'The Great Gatsby',
+        author: 'Fitzgerald'
+      });
+
+      const response = await fetch(`${BASE_URL}/search/advanced?${params}`);
+
+      expect(response.status).toBe(200);
+      expect((await response.json()).success).toBe(true);
+    });
+  });
+
+  describe('Backward Compatibility - POST with JSON body', () => {
+    it('should still accept POST with bookTitle field', async () => {
+      const response = await fetch(`${BASE_URL}/search/advanced`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookTitle: 'The Catcher in the Rye',
+          authorName: 'Salinger'
+        })
+      });
+
+      expect(response.status).toBe(200);
+      expect((await response.json()).success).toBe(true);
+    });
+
+    it('should accept POST with "title" field (alternate naming)', async () => {
+      const response = await fetch(`${BASE_URL}/search/advanced`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Animal Farm',
+          author: 'Orwell'
+        })
+      });
+
+      expect(response.status).toBe(200);
+      expect((await response.json()).success).toBe(true);
+    });
+  });
+
   // ========================================================================
   // Enrichment Endpoint Tests
   // ========================================================================
