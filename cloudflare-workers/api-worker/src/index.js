@@ -702,7 +702,8 @@ export default {
         endpoints: [
           'GET /search/title?q={query}&maxResults={n} - Title search with caching (6h TTL)',
           'GET /search/isbn?isbn={isbn}&maxResults={n} - ISBN search with caching (7 day TTL)',
-          'POST /search/advanced - Advanced search (body: {bookTitle, authorName, maxResults})',
+          'GET /search/advanced?title={title}&author={author} - Advanced search (primary method, 6h cache)',
+          'POST /search/advanced - Advanced search (legacy support, JSON body)',
           'POST /api/enrichment/start - Start batch enrichment job',
           'POST /api/enrichment/cancel - Cancel in-flight enrichment job (body: {jobId})',
           'POST /api/scan-bookshelf?jobId={id} - AI bookshelf scanner (upload image with Content-Type: image/*)',
