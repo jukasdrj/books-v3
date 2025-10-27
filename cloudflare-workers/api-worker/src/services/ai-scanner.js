@@ -24,6 +24,12 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
   try {
     console.log(`[AI Scanner] Starting scan for job ${jobId}, image size: ${imageData.byteLength} bytes`);
 
+    // NEW: Check if WebSocket is ready (should have been done in index.js, but double-check)
+    const elapsedMs = Date.now() - startTime;
+    if (elapsedMs > 6000) {
+      console.warn(`[AI Scanner] Job ${jobId} started ${elapsedMs}ms after request - possible ready timeout`);
+    }
+
     // Stage 1: Image quality analysis (10% progress)
     await doStub.pushProgress({
       progress: 0.1,

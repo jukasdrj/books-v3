@@ -227,6 +227,10 @@ export default {
         if (readyResult.timedOut || readyResult.disconnected) {
           const reason = readyResult.timedOut ? 'timeout' : 'WebSocket not connected';
           console.warn(`[API] WebSocket ready ${reason} for job ${jobId}, proceeding anyway (client may miss early updates)`);
+
+          // NEW: Log analytics event
+          console.log(`[Analytics] websocket_ready_timeout - job_id: ${jobId}, reason: ${reason}, client_ip: ${request.headers.get('CF-Connecting-IP')}`);
+
           // Continue processing - client might be using polling fallback
         } else {
           console.log(`[API] ✅ WebSocket ready for job ${jobId}, starting processing`);
