@@ -155,23 +155,23 @@ public struct SearchView: View {
                         performScopedSearch(query: searchModel.searchText, scope: newValue)
                     }
                 }
-                .sheet(isPresented: $showingScanner) {
-                    print("🔍 DEBUG: Sheet is presenting ModernBarcodeScannerView")
-                    return ModernBarcodeScannerView { isbn in
-                        print("🔍 DEBUG: ISBN scanned: \(isbn.normalizedValue)")
-                        // Handle scanned ISBN - set scope to ISBN
-                        searchScope = .isbn
-                        searchModel.searchByISBN(isbn.normalizedValue)
-                        #if DEBUG
-                        updatePerformanceText()
-                        #endif
-                    }
-                }
-                .sheet(isPresented: $showingAdvancedSearch) {
-                    AdvancedSearchView { criteria in
-                        handleAdvancedSearch(criteria)
-                    }
-                }
+        }
+        .sheet(isPresented: $showingScanner) {
+            print("🔍 DEBUG: Sheet is presenting ModernBarcodeScannerView")
+            return ModernBarcodeScannerView { isbn in
+                print("🔍 DEBUG: ISBN scanned: \(isbn.normalizedValue)")
+                // Handle scanned ISBN - set scope to ISBN
+                searchScope = .isbn
+                searchModel.searchByISBN(isbn.normalizedValue)
+                #if DEBUG
+                updatePerformanceText()
+                #endif
+            }
+        }
+        .sheet(isPresented: $showingAdvancedSearch) {
+            AdvancedSearchView { criteria in
+                handleAdvancedSearch(criteria)
+            }
         }
     }
 

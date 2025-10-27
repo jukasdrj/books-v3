@@ -285,10 +285,30 @@ struct ModernBarcodeScannerView: View {
                         showingPermissionAlert = true
                     }
                 }
+
+                // ✅ FIX: Initialize camera manager if permission was just granted
+                if granted {
+                    print("🔍 DEBUG: Initializing camera manager after permission grant...")
+                    let manager = CameraManager()
+                    await MainActor.run {
+                        cameraManager = manager
+                        print("🔍 DEBUG: Camera manager initialized successfully")
+                    }
+                }
             } else if status == .denied || status == .restricted {
                 print("🔍 DEBUG: Camera permission denied or restricted")
                 await MainActor.run {
                     showingPermissionAlert = true
+                }
+            }
+
+            // ✅ FIX: Initialize camera manager immediately after permission check
+            if status == .authorized {
+                print("🔍 DEBUG: Initializing camera manager...")
+                let manager = CameraManager()
+                await MainActor.run {
+                    cameraManager = manager
+                    print("🔍 DEBUG: Camera manager initialized successfully")
                 }
             }
         }
@@ -309,25 +329,16 @@ struct ModernBarcodeScannerView: View {
             scanFeedback = .scanning
         }
 
-        // Create camera manager once if not already created
-        if cameraManager == nil {
-            // FIX: Directly initialize CameraManager without explicit actor wrapper
-            // Swift concurrency runtime handles actor initialization correctly
-            // This prevents deadlock between @CameraSessionActor and MainActor
-            let manager = CameraManager()
-
-            await MainActor.run {
-                cameraManager = manager
-            }
-        }
-
-        // Use the existing camera manager instance
+        // Use the camera manager initialized in checkCameraPermission()
         guard let manager = cameraManager else {
+            print("🔍 DEBUG: Camera manager is nil in handleISBNDetectionStream")
             await MainActor.run {
                 handleCameraError(.deviceUnavailable)
             }
             return
         }
+
+        print("🔍 DEBUG: Starting ISBN detection with camera manager")
 
         // Create detection service
         let detectionService = await Task { @CameraSessionActor in
