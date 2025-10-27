@@ -7,7 +7,7 @@ public struct HeroStatsCard: View {
     let stats: [DiversityStats.HeroStat]
     let onTap: (DiversityStats.HeroStat) -> Void
 
-    @Environment(iOS26ThemeStore.self) private var themeStore
+    @Environment(\.iOS26ThemeStore) private var themeStore
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -80,8 +80,6 @@ private struct StatButton: View {
 // MARK: - Preview
 
 #Preview("Hero Stats Card") {
-    @Previewable @State var themeStore = iOS26ThemeStore()
-
     let sampleStats: [DiversityStats.HeroStat] = [
         .init(title: "Cultural Regions", value: "8 of 11 represented", systemImage: "globe", color: .blue),
         .init(title: "Gender Representation", value: "62% Female, 35% Male", systemImage: "person.2", color: .purple),
@@ -89,11 +87,11 @@ private struct StatButton: View {
         .init(title: "Languages Read", value: "12 languages", systemImage: "text.bubble", color: .green)
     ]
 
-    return ScrollView {
+    ScrollView {
         HeroStatsCard(stats: sampleStats) { stat in
             print("Tapped: \(stat.title)")
         }
         .padding()
     }
-    .environment(themeStore)
+    .iOS26ThemeStore(iOS26ThemeStore())
 }

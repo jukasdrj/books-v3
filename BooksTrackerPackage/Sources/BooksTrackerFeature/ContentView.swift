@@ -308,30 +308,8 @@ enum MainTab: String, CaseIterable {
 
 // MARK: - Placeholder Views
 
-struct InsightsView: View {
-    @Environment(\.iOS26ThemeStore) private var themeStore
-
-    var body: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "chart.bar")
-                .font(.system(size: 48, weight: .ultraLight))
-                .foregroundStyle(.secondary)
-
-            Text("Reading Insights")
-                .font(.title2)
-                .fontWeight(.semibold)
-
-            Text("Track your reading progress and discover patterns in your literary journey")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-        }
-        .navigationTitle("Insights")
-    }
-}
-
 // SettingsView now implemented in SettingsView.swift
+// InsightsView now implemented in Insights/InsightsView.swift
 
 // MARK: - Enrichment Banner (No Live Activity Required!)
 

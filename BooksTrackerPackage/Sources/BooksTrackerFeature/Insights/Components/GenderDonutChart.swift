@@ -9,7 +9,7 @@ public struct GenderDonutChart: View {
     let totalAuthors: Int
     let onGenderTap: (AuthorGender) -> Void
 
-    @Environment(iOS26ThemeStore.self) private var themeStore
+    @Environment(\.iOS26ThemeStore) private var themeStore
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -118,19 +118,17 @@ public struct GenderDonutChart: View {
 // MARK: - Preview
 
 #Preview("Gender Donut Chart") {
-    @Previewable @State var themeStore = iOS26ThemeStore()
-
     let sampleStats: [DiversityStats.GenderStat] = [
         .init(gender: .female, count: 62, total: 100),
         .init(gender: .male, count: 35, total: 100),
         .init(gender: .nonBinary, count: 3, total: 100)
     ]
 
-    return ScrollView {
+    ScrollView {
         GenderDonutChart(stats: sampleStats, totalAuthors: 100) { gender in
             print("Tapped gender: \(gender.displayName)")
         }
         .padding()
     }
-    .environment(themeStore)
+    .iOS26ThemeStore(iOS26ThemeStore())
 }

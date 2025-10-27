@@ -7,7 +7,7 @@ public struct LanguageTagCloud: View {
     let stats: [DiversityStats.LanguageStat]
     let onLanguageTap: (String) -> Void
 
-    @Environment(iOS26ThemeStore.self) private var themeStore
+    @Environment(\.iOS26ThemeStore) private var themeStore
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -105,8 +105,6 @@ private struct LanguageTag: View {
 // MARK: - Preview
 
 #Preview("Language Tag Cloud") {
-    @Previewable @State var themeStore = iOS26ThemeStore()
-
     let sampleStats: [DiversityStats.LanguageStat] = [
         .init(language: "English", count: 45),
         .init(language: "Spanish", count: 18),
@@ -120,11 +118,11 @@ private struct LanguageTag: View {
         .init(language: "Russian", count: 1)
     ]
 
-    return ScrollView {
+    ScrollView {
         LanguageTagCloud(stats: sampleStats) { language in
             print("Tapped language: \(language)")
         }
         .padding()
     }
-    .environment(themeStore)
+    .iOS26ThemeStore(iOS26ThemeStore())
 }

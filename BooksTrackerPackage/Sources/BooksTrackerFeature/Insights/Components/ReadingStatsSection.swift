@@ -6,7 +6,7 @@ public struct ReadingStatsSection: View {
     let stats: ReadingStats
     @Binding var selectedPeriod: TimePeriod
 
-    @Environment(iOS26ThemeStore.self) private var themeStore
+    @Environment(\.iOS26ThemeStore) private var themeStore
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -100,26 +100,31 @@ private struct StatCardView: View {
 // MARK: - Preview
 
 #Preview("Reading Stats Section") {
-    @Previewable @State var themeStore = iOS26ThemeStore()
-    @Previewable @State var selectedPeriod: TimePeriod = .thisYear
+    PreviewContainer()
+        .iOS26ThemeStore(iOS26ThemeStore())
+}
 
-    // Mock stats
-    let mockStats = ReadingStats(
-        pagesRead: 12456,
-        booksCompleted: 42,
-        booksInProgress: 3,
-        averageReadingPace: 47.0,
-        fastestReadingPace: 120.0,
-        diversityScore: 7.8,
-        regionsRepresented: 8,
-        marginalizedVoicesPercentage: 45.0,
-        period: .thisYear,
-        comparisonToPreviousPeriod: 23.0
-    )
+@MainActor
+private struct PreviewContainer: View {
+    @State private var selectedPeriod: TimePeriod = .thisYear
 
-    return ScrollView {
-        ReadingStatsSection(stats: mockStats, selectedPeriod: $selectedPeriod)
-            .padding()
+    var body: some View {
+        let mockStats = ReadingStats(
+            pagesRead: 12456,
+            booksCompleted: 42,
+            booksInProgress: 3,
+            averageReadingPace: 47.0,
+            fastestReadingPace: 120.0,
+            diversityScore: 7.8,
+            regionsRepresented: 8,
+            marginalizedVoicesPercentage: 45.0,
+            period: .thisYear,
+            comparisonToPreviousPeriod: 23.0
+        )
+
+        ScrollView {
+            ReadingStatsSection(stats: mockStats, selectedPeriod: $selectedPeriod)
+                .padding()
+        }
     }
-    .environment(themeStore)
 }

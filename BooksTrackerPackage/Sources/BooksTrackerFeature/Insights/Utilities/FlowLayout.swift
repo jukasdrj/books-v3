@@ -2,7 +2,6 @@ import SwiftUI
 
 /// Custom layout that arranges views in a flowing grid (like tags)
 /// Views wrap to next line when they exceed container width
-@MainActor
 public struct FlowLayout: Layout {
     var spacing: CGFloat = 8
 

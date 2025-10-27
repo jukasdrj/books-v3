@@ -8,7 +8,7 @@ public struct CulturalRegionsChart: View {
     let stats: [DiversityStats.RegionStat]
     let onRegionTap: (CulturalRegion) -> Void
 
-    @Environment(iOS26ThemeStore.self) private var themeStore
+    @Environment(\.iOS26ThemeStore) private var themeStore
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -94,8 +94,6 @@ public struct CulturalRegionsChart: View {
 // MARK: - Preview
 
 #Preview("Cultural Regions Chart") {
-    @Previewable @State var themeStore = iOS26ThemeStore()
-
     let sampleStats: [DiversityStats.RegionStat] = [
         .init(region: .northAmerica, count: 45, total: 100),
         .init(region: .europe, count: 30, total: 100),
@@ -105,11 +103,11 @@ public struct CulturalRegionsChart: View {
         .init(region: .southAmerica, count: 2, total: 100)
     ]
 
-    return ScrollView {
+    ScrollView {
         CulturalRegionsChart(stats: sampleStats) { region in
             print("Tapped region: \(region.displayName)")
         }
         .padding()
     }
-    .environment(themeStore)
+    .iOS26ThemeStore(iOS26ThemeStore())
 }
