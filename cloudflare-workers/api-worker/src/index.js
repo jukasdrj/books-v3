@@ -334,22 +334,53 @@ export default {
       });
     }
 
-    // POST /search/advanced - Advanced multi-field search
-    if (url.pathname === '/search/advanced' && request.method === 'POST') {
+    // GET/POST /search/advanced - Advanced multi-field search
+    // GET is primary (aligns with /search/title, /search/isbn, enables HTTP caching)
+    // POST supported for backward compatibility
+    if (url.pathname === '/search/advanced') {
       try {
-        const searchParams = await request.json();
-        const { bookTitle, authorName } = searchParams;
+        let bookTitle, authorName, maxResults;
 
+        if (request.method === 'GET') {
+          // Query parameters (iOS enrichment, documentation examples, REST standard)
+          // Support both "title" and "bookTitle" for flexibility
+          bookTitle = url.searchParams.get('title') || url.searchParams.get('bookTitle');
+          authorName = url.searchParams.get('author') || url.searchParams.get('authorName');
+          maxResults = parseInt(url.searchParams.get('maxResults') || '20', 10);
+
+        } else if (request.method === 'POST') {
+          // JSON body (legacy support for existing clients)
+          const searchParams = await request.json();
+          // Support both naming conventions: "title"/"bookTitle", "author"/"authorName"
+          bookTitle = searchParams.title || searchParams.bookTitle;
+          authorName = searchParams.author || searchParams.authorName;
+          maxResults = searchParams.maxResults || 20;
+
+        } else {
+          // Only GET and POST allowed
+          return new Response(JSON.stringify({
+            error: 'Method not allowed',
+            message: 'Use GET with query parameters or POST with JSON body'
+          }), {
+            status: 405,
+            headers: {
+              'Content-Type': 'application/json',
+              'Allow': 'GET, POST'
+            }
+          });
+        }
+
+        // Validate that at least one search parameter is provided
         if (!bookTitle && !authorName) {
           return new Response(JSON.stringify({
-            error: 'At least one search parameter required (bookTitle or authorName)'
+            error: 'At least one search parameter required (title or author)'
           }), {
             status: 400,
             headers: { 'Content-Type': 'application/json' }
           });
         }
 
-        const maxResults = searchParams.maxResults || 20;
+        // Call handler (works with both GET and POST)
         const result = await handleAdvancedSearch(
           { bookTitle, authorName },
           { maxResults },
@@ -359,7 +390,9 @@ export default {
         return new Response(JSON.stringify(result), {
           headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
+            'Access-Control-Allow-Origin': '*',
+            // Add cache header for GET requests (like /search/title)
+            ...(request.method === 'GET' && { 'Cache-Control': 'public, max-age=21600' }) // 6h cache
           }
         });
 
