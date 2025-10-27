@@ -3,6 +3,7 @@ import UIKit
 @testable import BooksTrackerFeature
 
 @Suite("Batch Scan Models")
+@MainActor
 struct BatchScanModelTests {
 
     @Test("CapturedPhoto stores image and metadata")
@@ -41,19 +42,15 @@ struct BatchScanModelTests {
     func accumulateBooks() {
         let progress = BatchProgress(jobId: "test-123", totalPhotos: 2)
 
-        let book1 = DetectedBook(
+        let book1 = AIDetectedBook(
             title: "Book 1",
             author: "Author 1",
-            confidence: 0.9,
-            boundingBox: CGRect(x: 0, y: 0, width: 100, height: 100),
-            rawText: "Book 1"
+            confidence: 0.9
         )
-        let book2 = DetectedBook(
+        let book2 = AIDetectedBook(
             title: "Book 2",
             author: "Author 2",
-            confidence: 0.8,
-            boundingBox: CGRect(x: 0, y: 0, width: 100, height: 100),
-            rawText: "Book 2"
+            confidence: 0.8
         )
 
         progress.updatePhoto(index: 0, status: .complete, booksFound: [book1])

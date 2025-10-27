@@ -132,11 +132,11 @@ public final class BatchProgress {
 // MARK: - Batch Request
 
 /// Request payload for batch scan endpoint
-public struct BatchScanRequest: Codable {
+public struct BatchScanRequest: Codable, Sendable {
     public let jobId: String
     public let images: [ImageData]
 
-    public struct ImageData: Codable {
+    public struct ImageData: Codable, Sendable {
         public let index: Int
         public let data: String // Base64 encoded
 
