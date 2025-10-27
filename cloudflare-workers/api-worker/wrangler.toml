@@ -114,7 +114,7 @@ head_sampling_rate = 1.0
 
 # Resource limits (from books-api-proxy and bookshelf-ai-worker)
 [limits]
-cpu_ms = 30000
+cpu_ms = 180000  # 3 minutes - increased from 30s to handle large enrichment batches
 memory_mb = 256
 
 # Placement (from books-api-proxy and bookshelf-ai-worker)

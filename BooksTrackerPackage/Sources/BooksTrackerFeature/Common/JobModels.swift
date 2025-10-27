@@ -86,6 +86,7 @@ public struct ScanResultPayload: Codable, Sendable, Equatable {
         public let title: String
         public let author: String
         public let isbn: String?
+        public let format: String?  // Format from Gemini: "hardcover", "paperback", "mass-market", "unknown"
         public let confidence: Double
         public let boundingBox: BoundingBoxPayload
         public let enrichment: EnrichmentPayload?

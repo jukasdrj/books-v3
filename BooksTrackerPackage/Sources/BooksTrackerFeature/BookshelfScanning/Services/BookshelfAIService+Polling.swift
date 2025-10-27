@@ -48,8 +48,6 @@ extension BookshelfAIService {
                 throw BookshelfAIError.serverError(500, "Upload failed")
             }
             print("✅ Image uploaded with jobId: \(jobId) (polling mode)")
-        } catch let bookshelfError as BookshelfAIError {
-            throw bookshelfError
         } catch {
             throw .networkError(error)
         }
@@ -93,8 +91,6 @@ extension BookshelfAIService {
                 // Wait 2 seconds before next poll
                 try await Task.sleep(for: .seconds(2))
 
-            } catch let bookshelfError as BookshelfAIError {
-                throw bookshelfError
             } catch {
                 throw .networkError(error)
             }

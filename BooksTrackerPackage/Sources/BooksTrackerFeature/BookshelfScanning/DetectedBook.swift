@@ -19,6 +19,9 @@ public struct DetectedBook: Identifiable, Sendable {
     /// Detected author name(s)
     public var author: String?
 
+    /// Detected book format (hardcover, paperback, mass-market, or nil if unknown)
+    public var format: EditionFormat?
+
     /// Confidence score from Vision API (0.0 - 1.0)
     public var confidence: Double
 
@@ -48,6 +51,7 @@ public struct DetectedBook: Identifiable, Sendable {
         isbn: String? = nil,
         title: String? = nil,
         author: String? = nil,
+        format: EditionFormat? = nil,
         confidence: Double,
         boundingBox: CGRect,
         rawText: String,
@@ -57,6 +61,7 @@ public struct DetectedBook: Identifiable, Sendable {
         self.isbn = isbn
         self.title = title
         self.author = author
+        self.format = format
         self.confidence = confidence
         self.boundingBox = boundingBox
         self.rawText = rawText

@@ -1,4 +1,17 @@
-# CSV Import & Enrichment System
+# CSV Import & Enrichment System (REMOVED)
+
+**Status:** ❌ Removed in v3.3.0 (October 2025)
+**Replacement:** Gemini AI-powered CSV import (see `docs/features/GEMINI_CSV_IMPORT.md`)
+**Archived:** For historical reference only
+
+**Removal Details:**
+- Date: October 27, 2025
+- Commits: b6180e8, 48699f5, 88697b8, 262a4d4, dfaec7c, 79d88c5, 622172b
+- Reason: Replaced by superior Gemini AI import with zero configuration
+
+---
+
+# Original Documentation (Legacy Manual Column Mapping System)
 
 **Status:** ✅ Production (Build 45+)
 **Performance:** 100 books/min, <200MB memory (1500+ books)

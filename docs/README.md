@@ -135,7 +135,8 @@ docs/
 **Available Feature Docs:**
 - `BOOKSHELF_SCANNER.md` - AI camera scanner (Build 46+)
 - `BATCH_BOOKSHELF_SCANNING.md` - Multi-photo scanning
-- `CSV_IMPORT.md` - Bulk import system (Build 45+)
+- `GEMINI_CSV_IMPORT.md` - AI-powered CSV import (v3.1.0+)
+- ~~`CSV_IMPORT.md`~~ - Legacy manual import (removed v3.3.0, see `archive/features-removed/`)
 - `REVIEW_QUEUE.md` - Human-in-the-loop corrections
 - `WEBSOCKET_FALLBACK_ARCHITECTURE.md` - Real-time progress tracking
 - `DIVERSITY_INSIGHTS.md` - Cultural diversity visualizations and reading statistics

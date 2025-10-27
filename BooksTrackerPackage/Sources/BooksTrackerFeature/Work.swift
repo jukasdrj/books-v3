@@ -155,10 +155,105 @@ public final class Work {
         return userEntry?.readingStatus == .wishlist
     }
 
-    /// Get the primary edition (usually most recent or preferred)
+    /// Get the primary edition (best quality for display)
+    /// Respects user's cover selection strategy from Settings
+    /// Prioritizes: 1) User's owned edition, 2) Strategy-based selection (auto/recent/hardcover/manual)
     var primaryEdition: Edition? {
-        // Return user's selected edition first, then most recent
-        return userEntry?.edition ?? availableEditions.first
+        // User's owned edition always takes priority
+        if let userEdition = userEntry?.edition {
+            return userEdition
+        }
+
+        guard let editions = editions, !editions.isEmpty else { return nil }
+
+        // Apply user's preferred selection strategy
+        let strategy = FeatureFlags.shared.coverSelectionStrategy
+
+        switch strategy {
+        case .auto:
+            // Quality-based scoring (original algorithm)
+            let scored = editions.map { edition in
+                (edition: edition, score: qualityScore(for: edition))
+            }
+            return scored.max(by: { $0.score < $1.score })?.edition
+
+        case .recent:
+            // Most recently published edition
+            return editions.max { edition1, edition2 in
+                let year1 = yearFromPublicationDate(edition1.publicationDate)
+                let year2 = yearFromPublicationDate(edition2.publicationDate)
+                return year1 < year2
+            }
+
+        case .hardcover:
+            // Prefer hardcover, fallback to quality scoring
+            if let hardcoverEdition = editions.first(where: { $0.format == .hardcover }) {
+                return hardcoverEdition
+            }
+            // Fallback to auto selection if no hardcover
+            let scored = editions.map { edition in
+                (edition: edition, score: qualityScore(for: edition))
+            }
+            return scored.max(by: { $0.score < $1.score })?.edition
+
+        case .manual:
+            // Manual selection - return first edition as placeholder
+            // TODO: Implement UI for manual edition selection per work
+            return editions.first
+        }
+    }
+
+    /// Extract year from publication date string
+    private func yearFromPublicationDate(_ dateString: String?) -> Int {
+        guard let dateString = dateString,
+              let year = Int(dateString.prefix(4)) else {
+            return 0  // Default for unparseable dates
+        }
+        return year
+    }
+
+    /// Calculate quality score for an edition (higher = better for display)
+    /// Scoring factors:
+    /// - Cover image availability: +10 (most important)
+    /// - Format preference: +3 hardcover, +2 paperback, +1 ebook
+    /// - Publication recency: +1 per year since 2000
+    /// - Data quality: +5 if ISBNDB quality > 80
+    private func qualityScore(for edition: Edition) -> Int {
+        var score = 0
+
+        // Cover image availability (+10 points)
+        // Can't display what doesn't exist!
+        if let coverURL = edition.coverImageURL, !coverURL.isEmpty {
+            score += 10
+        }
+
+        // Format preference (+3 for hardcover, +2 for paperback, +1 for ebook)
+        // Hardcovers typically have better cover art
+        switch edition.format {
+        case .hardcover:
+            score += 3
+        case .paperback:
+            score += 2
+        case .ebook:
+            score += 1
+        default:
+            break
+        }
+
+        // Publication recency (+1 per year since 2000)
+        // Prefer modern covers over vintage (unless vintage is only option with cover)
+        if let yearString = edition.publicationDate?.prefix(4),
+           let year = Int(yearString) {
+            score += max(0, year - 2000)
+        }
+
+        // Data quality from ISBNDB (+5 if high quality)
+        // Higher quality = more complete metadata = better enrichment
+        if edition.isbndbQuality > 80 {
+            score += 5
+        }
+
+        return score
     }
 
     /// Add an author to this work

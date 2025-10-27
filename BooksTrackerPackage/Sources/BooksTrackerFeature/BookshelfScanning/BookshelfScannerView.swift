@@ -489,8 +489,6 @@ class BookshelfScanModel {
             currentStage = "Complete!"
             scanState = .completed
 
-        } catch let error as BookshelfAIError {
-            scanState = .error(error.localizedDescription)
         } catch {
             scanState = .error(error.localizedDescription)
         }

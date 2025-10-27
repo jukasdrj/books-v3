@@ -311,7 +311,7 @@ public class CSVImportService {
 - Automatic deduplication by ISBN
 - Cancel mid-batch with partial results
 
-**Gemini CSV Import (Recommended):** AI-powered parsing with zero configuration
+**Gemini CSV Import:** AI-powered parsing with zero configuration
 - Gemini 2.0 Flash API for intelligent CSV parsing
 - No column mapping needed (auto-detects title, author, ISBN)
 - Two-stage pipeline: Parse (5-50%) → Enrich (50-100%)
@@ -319,15 +319,15 @@ public class CSVImportService {
 - 10MB file size limit, RFC 4180 compliant
 - Versioned caching with SHA-256 content hashing
 - Parallel enrichment (10 concurrent requests)
-- Settings → Library Management → "AI-Powered CSV Import (Recommended)"
+- Settings → Library Management → "AI-Powered CSV Import"
 - Test file: `docs/testImages/goodreads_library_export.csv`
 - **Status:** ✅ Production ready (v3.1.0)
+- See `docs/features/GEMINI_CSV_IMPORT.md` for documentation
 
-**Legacy CSV Import (Deprecated):** Manual column mapping system
-- **Deprecation:** v3.1.0 (January 2025)
-- **Removal:** v3.3.0 (Q2 2025)
-- Use Gemini import instead for zero-config experience
-- See `docs/features/CSV_IMPORT.md` for legacy documentation
+**Legacy CSV Import:** Removed in v3.3.0 (October 2025)
+- Manual column mapping system discontinued
+- Replaced by Gemini AI-powered import (zero config)
+- Archived documentation: `docs/archive/features-removed/CSV_IMPORT.md`
 
 **Review Queue:** See `docs/features/REVIEW_QUEUE.md`
 - Human-in-the-loop for low-confidence AI detections

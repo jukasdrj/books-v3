@@ -23,6 +23,7 @@ public struct CorrectionView: View {
 
     @State private var editedTitle: String
     @State private var editedAuthor: String
+    @State private var selectedFormat: EditionFormat
     @State private var croppedImage: UIImage?
     @State private var isSaving = false
     @FocusState private var focusedField: Field?
@@ -34,6 +35,10 @@ public struct CorrectionView: View {
         // Initialize edit fields with current values
         _editedTitle = State(initialValue: work.title)
         _editedAuthor = State(initialValue: work.authorNames)
+
+        // Initialize format from work's primary edition, or default to hardcover
+        let initialFormat = work.primaryEdition?.format ?? .hardcover
+        _selectedFormat = State(initialValue: initialFormat)
     }
 
     private enum Field {
@@ -132,6 +137,32 @@ public struct CorrectionView: View {
                     }
                     .focused($focusedField, equals: .author)
             }
+
+            // Format picker (Hardcover / Paperback / Digital)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Format")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                Picker("Format", selection: $selectedFormat) {
+                    HStack {
+                        Image(systemName: "book.closed.fill")
+                        Text("Hardcover")
+                    }.tag(EditionFormat.hardcover)
+
+                    HStack {
+                        Image(systemName: "book.closed")
+                        Text("Paperback")
+                    }.tag(EditionFormat.paperback)
+
+                    HStack {
+                        Image(systemName: "ipad")
+                        Text("Digital")
+                    }.tag(EditionFormat.ebook)
+                }
+                .pickerStyle(.segmented)
+                .padding(.vertical, 4)
+            }
         }
     }
 
@@ -187,10 +218,13 @@ public struct CorrectionView: View {
 
     // MARK: - Logic
 
-    /// Whether the user made any changes to title/author
+    /// Whether the user made any changes to title/author/format
     private var hasChanges: Bool {
-        editedTitle.trimmingCharacters(in: .whitespacesAndNewlines) != work.title ||
-        editedAuthor.trimmingCharacters(in: .whitespacesAndNewlines) != work.authorNames
+        let titleChanged = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines) != work.title
+        let authorChanged = editedAuthor.trimmingCharacters(in: .whitespacesAndNewlines) != work.authorNames
+        let formatChanged = selectedFormat != (work.primaryEdition?.format ?? .hardcover)
+
+        return titleChanged || authorChanged || formatChanged
     }
 
     /// Load and crop the spine image from the original bookshelf photo
@@ -250,6 +284,7 @@ public struct CorrectionView: View {
         // Track changes for analytics
         let hadTitleChange = trimmedTitle != work.title
         let hadAuthorChange = trimmedAuthor != work.authorNames
+        let hadFormatChange = selectedFormat != (work.primaryEdition?.format ?? .hardcover)
 
         // Update work if changes were made
         if hasChanges {
@@ -266,13 +301,31 @@ public struct CorrectionView: View {
                 work.authors = [author]
             }
 
+            // Update or create edition with selected format
+            if let primaryEdition = work.primaryEdition {
+                // Update existing edition's format
+                primaryEdition.format = selectedFormat
+            } else {
+                // Create new edition with selected format
+                let edition = Edition(
+                    isbn: nil,
+                    publisher: nil,
+                    publicationDate: nil,
+                    pageCount: nil,
+                    format: selectedFormat
+                )
+                modelContext.insert(edition)
+                work.editions = [edition]
+            }
+
             // Mark as user-edited
             work.reviewStatus = .userEdited
 
             // Analytics: Track correction saved
             logAnalyticsEvent("review_queue_correction_saved", properties: [
                 "had_title_change": hadTitleChange,
-                "had_author_change": hadAuthorChange
+                "had_author_change": hadAuthorChange,
+                "had_format_change": hadFormatChange
             ])
         } else {
             // No changes - mark as verified

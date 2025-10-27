@@ -50,11 +50,12 @@ export async function scanImageWithGemini(imageData, env) {
                 contents: [{
                     parts: [
                         {
-                            text: `Analyze this bookshelf image and extract all visible book titles and authors. Return a JSON array with this exact format:
+                            text: `Analyze this bookshelf image and extract all visible book titles, authors, and physical format. Return a JSON array with this exact format:
 [
   {
     "title": "Book Title",
     "author": "Author Name",
+    "format": "hardcover",
     "confidence": 0.95,
     "boundingBox": {
       "x1": 0.1,
@@ -68,6 +69,11 @@ export async function scanImageWithGemini(imageData, env) {
 Guidelines:
 - confidence: 0.0-1.0 (how certain you are about the text)
 - boundingBox: normalized coordinates (0.0-1.0) for the book spine
+- format: Detect physical format based on visual cues:
+  * "hardcover": Rigid spine, usually larger, cloth/embossed texture, square corners
+  * "paperback": Flexible spine, glossy cover, rounded spine edge
+  * "mass-market": Very small paperback (~4x7 inches), pocket-sized
+  * "unknown": Cannot determine from image
 - Only include books where you can read at least the title
 - Skip decorative items, bookends, or non-book objects`
                         },
@@ -143,6 +149,7 @@ Guidelines:
         title: book.title || '',
         author: book.author || '',
         isbn: book.isbn || null,  // Gemini rarely detects ISBNs, but include field
+        format: book.format || 'unknown',  // NEW: Format detection (hardcover, paperback, mass-market, unknown)
         confidence: Math.max(0, Math.min(1, parseFloat(book.confidence) || 0.5)),
         boundingBox: {
             x1: Math.max(0, Math.min(1, parseFloat(book.boundingBox?.x1) || 0)),

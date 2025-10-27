@@ -313,6 +313,7 @@ public final class WebSocketProgressManager: ObservableObject {
                                 title: book.title,
                                 author: book.author,
                                 isbn: book.isbn,
+                                format: book.format,  // NEW: Format from Gemini
                                 confidence: book.confidence,
                                 boundingBox: ScanResultPayload.BookPayload.BoundingBoxPayload(
                                     x1: book.boundingBox.x1,
@@ -393,6 +394,7 @@ struct ScanResultData: Codable, Sendable {
         let title: String
         let author: String
         let isbn: String?
+        let format: String?  // Format detected by Gemini: "hardcover", "paperback", "mass-market", "unknown"
         let confidence: Double
         let boundingBox: BoundingBox
         let enrichment: Enrichment?

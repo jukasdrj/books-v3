@@ -8,6 +8,7 @@
 
 import { handleAdvancedSearch } from '../handlers/search-handlers.js';
 import { scanImageWithGemini } from '../providers/gemini-provider.js';
+import { enrichBooksParallel } from './parallel-enrichment.js';
 
 /**
  * Process bookshelf image scan with AI vision
@@ -75,19 +76,17 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
     });
 
     // Stage 3: Enrichment (70% → 100% progress)
-    // CRITICAL: Direct function call instead of RPC!
-    const enrichedBooks = [];
-    for (let i = 0; i < detectedBooks.length; i++) {
-      const book = detectedBooks[i];
-
-      try {
+    // OPTIMIZED: Parallel enrichment with 10 concurrent requests
+    const enrichedBooks = await enrichBooksParallel(
+      detectedBooks,
+      async (book) => {
         // Direct function call - NO RPC, no circular dependency!
         const searchResults = await handleAdvancedSearch({
           bookTitle: book.title,
           authorName: book.author
         }, { maxResults: 1 }, env);
 
-        enrichedBooks.push({
+        return {
           ...book,
           enrichment: {
             status: searchResults.items?.length > 0 ? 'success' : 'not_found',
@@ -95,28 +94,22 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
             provider: searchResults.provider || 'unknown',
             cachedResult: searchResults.cached || false
           }
-        });
-
-        const progress = 0.7 + (0.25 * (i + 1) / detectedBooks.length);
+        };
+      },
+      async (completed, total, title, hasError) => {
+        const progress = 0.7 + (0.25 * completed / total);
         await doStub.pushProgress({
           progress,
           processedItems: 2,
           totalItems: 3,
-          currentStatus: `Enriched ${i + 1}/${detectedBooks.length} books`,
+          currentStatus: hasError
+            ? `Enriched ${completed}/${total} books (${title} failed)`
+            : `Enriched ${completed}/${total} books`,
           jobId
         });
-
-      } catch (error) {
-        console.error(`[AI Scanner] Enrichment failed for "${book.title}":`, error);
-        enrichedBooks.push({
-          ...book,
-          enrichment: {
-            status: 'error',
-            error: error.message
-          }
-        });
-      }
-    }
+      },
+      10 // 10 concurrent requests (matches CSV import concurrency)
+    );
 
     // Separate high/low confidence results
     const threshold = parseFloat(env.CONFIDENCE_THRESHOLD || '0.6');
