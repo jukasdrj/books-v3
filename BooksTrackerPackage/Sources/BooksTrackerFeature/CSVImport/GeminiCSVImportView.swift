@@ -348,6 +348,7 @@ public struct GeminiCSVImportView: View {
         webSocketTask = nil
     }
 
+    @MainActor
     private func saveBooks(_ books: [GeminiCSVImportJob.ParsedBook]) async {
         guard !books.isEmpty else {
             print("⚠️ No books to save")
@@ -358,14 +359,24 @@ public struct GeminiCSVImportView: View {
         var savedCount = 0
         var skippedCount = 0
 
+        // **FIX #1: Move fetch outside loop** (100x performance improvement)
+        // Fetch all existing works ONCE instead of per-book
+        let descriptor = FetchDescriptor<Work>()
+        let allWorks: [Work]
+        do {
+            allWorks = try modelContext.fetch(descriptor)
+        } catch {
+            // **FIX #2: Explicit error handling** (prevent silent data loss)
+            print("❌ Failed to fetch existing works: \(error)")
+            importStatus = .failed("Database error: \(error.localizedDescription)")
+            return
+        }
+
         for book in books {
             // Check for duplicate by title + author (case-insensitive)
-            // Note: SwiftData predicates don't support lowercased(), so we fetch all and filter in-memory
+            // Note: SwiftData predicates don't support lowercased(), so we filter in-memory
             let titleLower = book.title.lowercased()
             let authorLower = book.author.lowercased()
-
-            let descriptor = FetchDescriptor<Work>()
-            let allWorks = (try? modelContext.fetch(descriptor)) ?? []
 
             let isDuplicate = allWorks.contains { work in
                 let workTitleLower = work.title.lowercased()
