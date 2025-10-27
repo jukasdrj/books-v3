@@ -38,6 +38,47 @@ Server now waits for iOS client "ready" signal before processing bookshelf scans
 
 **See:** `docs/plans/2025-10-26-websocket-race-condition-fix.md` for complete implementation details.
 
+---
+
+## [3.1.0] - 2025-01-27
+
+### ✨ Features
+
+**Gemini CSV Import - Production Ready**
+- Completed save-to-SwiftData functionality
+- Duplicate detection by title + author
+- Automatic cover URL integration from enrichment
+- Haptic feedback for success/error states
+- Statistics display in completion screen
+
+**Legacy CSV Import Deprecation**
+- Marked legacy CSV import as deprecated
+- Added deprecation badges in Settings UI
+- Promoted AI-powered import to primary option
+- Added migration guide for users
+- Scheduled removal for Q2 2025 (v3.3.0)
+
+### 📚 Documentation
+
+- Comprehensive Gemini CSV import feature guide
+- Legacy CSV removal timeline and plan
+- Updated CLAUDE.md with feature status
+- Architecture diagrams for two-phase pipeline
+
+### 🔧 Technical Improvements
+
+- Reduced future maintenance burden (~15K LOC to be removed)
+- Simplified user experience (zero config vs manual mapping)
+- Better user guidance with deprecation notices
+
+### 🧹 Code Quality
+
+- Clear migration path for deprecated features
+- Success criteria for safe removal
+- Analytics tracking for feature adoption
+
+---
+
 ### Changed - 4-Tab Layout Optimization per iOS 26 HIG (October 24, 2025) ⚡
 
 **"Five tabs? That's one too many!"** 🎯
