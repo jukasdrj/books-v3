@@ -138,6 +138,7 @@ docs/
 - `CSV_IMPORT.md` - Bulk import system (Build 45+)
 - `REVIEW_QUEUE.md` - Human-in-the-loop corrections
 - `WEBSOCKET_FALLBACK_ARCHITECTURE.md` - Real-time progress tracking
+- `DIVERSITY_INSIGHTS.md` - Cultural diversity visualizations and reading statistics
 
 ---
 
