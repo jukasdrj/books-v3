@@ -126,6 +126,7 @@ struct BookDetailView: View {
 - `POST /api/enrichment/start` - Batch enrichment with WebSocket progress
 - `POST /api/scan-bookshelf?jobId={uuid}` - AI bookshelf scan with Gemini 2.0 Flash
 - `POST /api/scan-bookshelf/batch` - Batch scan (max 5 photos, parallel upload → sequential processing)
+- `POST /api/import/csv-gemini` - AI-powered CSV import with Gemini parsing (Beta)
 - `GET /ws/progress?jobId={uuid}` - WebSocket progress (unified for ALL jobs)
 
 **AI Provider (Gemini Only):**
@@ -314,6 +315,17 @@ public class CSVImportService {
 - 100 books/min, <200MB memory
 - Auto-detects Goodreads/LibraryThing/StoryGraph
 - 90%+ enrichment success (title normalization!)
+
+**Gemini CSV Import (Beta):** AI-powered parsing with zero configuration
+- Gemini 2.0 Flash API for intelligent CSV parsing
+- No column mapping needed (auto-detects title, author, ISBN)
+- Two-stage pipeline: Parse (5-50%) → Enrich (50-100%)
+- Real-time WebSocket progress tracking
+- 10MB file size limit, RFC 4180 compliant
+- Versioned caching with SHA-256 content hashing
+- Parallel enrichment (10 concurrent requests)
+- Settings → Library Management → "AI-Powered CSV Import (Beta)"
+- Test file: `docs/testImages/sample-books.csv`
 
 **Review Queue:** See `docs/features/REVIEW_QUEUE.md`
 - Human-in-the-loop for low-confidence AI detections
