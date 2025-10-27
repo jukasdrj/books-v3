@@ -6,6 +6,32 @@ All notable changes, achievements, and debugging victories for this project.
 
 ## [Unreleased]
 
+### Fixed 🐛 - Build Warnings (October 27, 2025)
+
+**"Clean builds, clean code!"** ✅
+
+Eliminated all 6 Swift 6.1 compiler warnings to achieve zero-warnings build status.
+
+**What Was Fixed:**
+- Removed unnecessary `await` for `BookshelfAIService.shared` property access (synchronous actor property)
+- Removed deprecated polling fallback logic (`pollJobStatus()`, `processViaPolling()`) following WebSocket-only architecture migration
+- Fixed redundant type checks in catch blocks with Swift 6.1 typed throws (`async throws(BookshelfAIError)`)
+
+**Files Modified:**
+- `BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/BatchCaptureView.swift`
+- `BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Services/BookshelfAIService.swift`
+- `BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/BookshelfScannerView.swift`
+
+**Impact:**
+- Project now builds with zero warnings
+- Cleaner console output during development
+- Improved code maintainability
+- Full compliance with Swift 6.1 concurrency best practices
+
+**See:** `docs/plans/2025-10-27-resolve-build-warnings.md` for implementation details.
+
+---
+
 ### Fixed 🐛 - WebSocket Race Condition (#2) (October 26, 2025)
 
 **"Finally! No more lost progress updates!"** 🎉
