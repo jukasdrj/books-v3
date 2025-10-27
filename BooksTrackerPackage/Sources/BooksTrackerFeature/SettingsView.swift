@@ -44,7 +44,6 @@ public struct SettingsView: View {
     // MARK: - State Management
 
     @State private var showingResetConfirmation = false
-    @State private var showingCSVImporter = false
     @State private var showingGeminiCSVImporter = false
     @State private var showingCloudKitHelp = false
     @State private var showingAcknowledgements = false
@@ -143,37 +142,6 @@ public struct SettingsView: View {
                             }
 
                             Text("Gemini automatically parses your CSV files")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-
-                // Legacy import SECOND (deprecated)
-                Button {
-                    showingCSVImporter = true
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: "square.and.arrow.down")
-                            .foregroundStyle(.orange)  // Orange = deprecated
-                            .frame(width: 28)
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text("Import from CSV (Legacy)")
-                                    .font(.body)
-
-                                Text("DEPRECATED")
-                                    .font(.caption2)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(.orange)
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                            }
-
-                            Text("Manual column mapping • Use AI import instead")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -348,11 +316,6 @@ public struct SettingsView: View {
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
         .background(backgroundView.ignoresSafeArea())
-        .sheet(isPresented: $showingCSVImporter) {
-            CSVImportFlowView()
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-        }
         .sheet(isPresented: $showingGeminiCSVImporter) {
             GeminiCSVImportView()
                 .presentationDetents([.large])
