@@ -530,7 +530,7 @@ class ScanResultsModel {
         isAdding = true
 
         let confirmedBooks = detectedBooks.filter { $0.status == .confirmed }
-        var addedWorkIDs: [PersistentIdentifier] = []
+        var addedWorks: [Work] = []
 
         for detectedBook in confirmedBooks {
             // Create Work and Edition from detected metadata
@@ -550,7 +550,7 @@ class ScanResultsModel {
             work.boundingBox = detectedBook.boundingBox
 
             modelContext.insert(work)
-            addedWorkIDs.append(work.persistentModelID)
+            addedWorks.append(work)
 
             // Create edition if ISBN available
             if let isbn = detectedBook.isbn {
@@ -579,9 +579,12 @@ class ScanResultsModel {
             }
         }
 
-        // Save context
+        // Save context FIRST to convert temporary IDs to permanent IDs
         do {
             try modelContext.save()
+
+            // Capture permanent IDs AFTER save
+            let addedWorkIDs = addedWorks.map { $0.persistentModelID }
 
             // Enqueue works for background enrichment
             if !addedWorkIDs.isEmpty {
