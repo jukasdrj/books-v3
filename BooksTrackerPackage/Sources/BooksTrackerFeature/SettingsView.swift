@@ -92,27 +92,33 @@ public struct SettingsView: View {
                 }
                 .tint(themeStore.primaryColor)
 
+                NavigationLink {
+                    CoverSelectionView()
+                } label: {
+                    HStack {
+                        Image(systemName: "books.vertical.fill")
+                            .foregroundStyle(themeStore.primaryColor)
+                            .frame(width: 28)
+
+                        Text("Cover Selection")
+
+                        Spacer()
+
+                        Text(featureFlags.coverSelectionStrategy.displayName)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
             } header: {
                 Text("Appearance")
             } footer: {
-                Text("Customize your reading experience with themes and appearance settings.")
+                Text("Customize your reading experience with themes and appearance settings. Cover selection controls which edition is displayed when a book has multiple formats.")
             }
 
             // MARK: - Library Management Section
 
             Section {
-                Button {
-                    showingCSVImporter = true
-                } label: {
-                    HStack {
-                        Image(systemName: "square.and.arrow.down")
-                            .foregroundStyle(themeStore.primaryColor)
-                            .frame(width: 28)
-
-                        Text("Import from CSV")
-                    }
-                }
-
+                // Gemini import FIRST (promoted)
                 Button {
                     showingGeminiCSVImporter = true
                 } label: {
@@ -122,10 +128,52 @@ public struct SettingsView: View {
                             .frame(width: 28)
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("AI-Powered CSV Import (Beta)")
-                                .font(.body)
+                            HStack {
+                                Text("AI-Powered CSV Import")
+                                    .font(.body)
+
+                                Text("RECOMMENDED")
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(themeStore.primaryColor)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                            }
 
                             Text("Gemini automatically parses your CSV files")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                // Legacy import SECOND (deprecated)
+                Button {
+                    showingCSVImporter = true
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "square.and.arrow.down")
+                            .foregroundStyle(.orange)  // Orange = deprecated
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text("Import from CSV (Legacy)")
+                                    .font(.body)
+
+                                Text("DEPRECATED")
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(.orange)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                            }
+
+                            Text("Manual column mapping • Use AI import instead")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -508,6 +556,54 @@ enum CloudKitStatus {
         case .unknown:
             return .secondary
         }
+    }
+}
+
+// MARK: - Cover Selection View
+
+@available(iOS 26.0, *)
+struct CoverSelectionView: View {
+    @Environment(\.iOS26ThemeStore) private var themeStore
+    @Environment(FeatureFlags.self) private var featureFlags
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(CoverSelectionStrategy.allCases, id: \.self) { strategy in
+                    Button {
+                        featureFlags.coverSelectionStrategy = strategy
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(strategy.displayName)
+                                    .font(.body)
+                                    .foregroundStyle(.primary)
+
+                                Text(strategy.description)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            if featureFlags.coverSelectionStrategy == strategy {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(themeStore.primaryColor)
+                                    .font(.body.weight(.semibold))
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            } footer: {
+                Text("Choose how BooksTrack selects which edition cover to display when a book has multiple formats. This affects cover images throughout the app.")
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle("Cover Selection")
+        .navigationBarTitleDisplayMode(.inline)
+        .background(themeStore.backgroundGradient.ignoresSafeArea())
     }
 }
 

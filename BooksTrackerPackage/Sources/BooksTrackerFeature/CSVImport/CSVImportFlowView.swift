@@ -3,8 +3,15 @@ import SwiftData
 import UniformTypeIdentifiers
 
 // MARK: - CSV Import Flow View
-/// Main orchestrator view for the CSV import workflow
-@available(iOS 26.0, *)
+/// Legacy CSV Import with manual column mapping
+///
+/// @deprecated This import method is deprecated in favor of GeminiCSVImportView.
+/// The Gemini-powered import requires zero configuration and provides automatic
+/// column detection. This view is maintained for backward compatibility only.
+///
+/// **Removal Timeline:** Q2 2025
+/// **Migration Path:** Use GeminiCSVImportView instead
+@available(iOS, introduced: 26.0, deprecated: 26.0, message: "Use GeminiCSVImportView for AI-powered import with zero configuration")
 @MainActor
 public struct CSVImportFlowView: View {
     @Environment(\.modelContext) private var modelContext
@@ -19,42 +26,74 @@ public struct CSVImportFlowView: View {
     @State private var columnMappings: [CSVParsingActor.ColumnMapping] = []
     @State private var duplicateStrategy: CSVImportService.DuplicateStrategy = .smart
     @State private var errorMessage: String?
+    @State private var showMigrationSheet = false
 
     public init() {}
 
     public var body: some View {
         NavigationStack {
-            ZStack {
-                // iOS 26 Liquid Glass background
-                themeStore.backgroundGradient
-                    .ignoresSafeArea()
+            VStack(spacing: 0) {
+                // Deprecation banner
+                HStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
 
-                Group {
-                    if let jobId = currentJobId,
-                       let status = coordinator.getJobStatus(for: jobId) {
-                        // Job is running - show progress
-                        jobProgressView(for: jobId, status: status)
-                    } else if let parsedData = parsedCSVData {
-                        // CSV parsed - show column mapping
-                        ColumnMappingView(
-                            headers: parsedData.headers,
-                            rows: parsedData.rows,
-                            onMappingsConfirmed: { mappings in
-                                columnMappings = mappings
-                                Task { await startImport() }
-                            },
-                            onCancel: { parsedCSVData = nil },
-                            themeStore: themeStore
-                        )
-                    } else {
-                        // Idle state - show file picker
-                        FileSelectionView(
-                            showingFilePicker: $showingFilePicker,
-                            themeStore: themeStore
-                        )
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Legacy Import Method")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+
+                        Text("Consider using AI-Powered Import for automatic column detection")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    Button {
+                        showMigrationSheet = true
+                    } label: {
+                        Text("Learn More")
+                            .font(.caption)
+                            .fontWeight(.semibold)
                     }
                 }
-                .animation(.smooth(duration: 0.3), value: currentJobId != nil)
+                .padding()
+                .background(.orange.opacity(0.1))
+
+                // Main content
+                ZStack {
+                    // iOS 26 Liquid Glass background
+                    themeStore.backgroundGradient
+                        .ignoresSafeArea()
+
+                    Group {
+                        if let jobId = currentJobId,
+                           let status = coordinator.getJobStatus(for: jobId) {
+                            // Job is running - show progress
+                            jobProgressView(for: jobId, status: status)
+                        } else if let parsedData = parsedCSVData {
+                            // CSV parsed - show column mapping
+                            ColumnMappingView(
+                                headers: parsedData.headers,
+                                rows: parsedData.rows,
+                                onMappingsConfirmed: { mappings in
+                                    columnMappings = mappings
+                                    Task { await startImport() }
+                                },
+                                onCancel: { parsedCSVData = nil },
+                                themeStore: themeStore
+                            )
+                        } else {
+                            // Idle state - show file picker
+                            FileSelectionView(
+                                showingFilePicker: $showingFilePicker,
+                                themeStore: themeStore
+                            )
+                        }
+                    }
+                    .animation(.smooth(duration: 0.3), value: currentJobId != nil)
+                }
             }
             .navigationTitle("Import Books")
             #if canImport(UIKit)
@@ -78,10 +117,193 @@ public struct CSVImportFlowView: View {
             } message: {
                 Text(errorMessage ?? "")
             }
+            .sheet(isPresented: $showMigrationSheet) {
+                MigrationGuideView()
+            }
             .onDisappear {
                 if let jobId = currentJobId {
                     coordinator.cancelJob(jobId)
                 }
+            }
+        }
+    }
+
+    // MARK: - Migration Guide View
+
+    private struct MigrationGuideView: View {
+        @Environment(\.dismiss) private var dismiss
+        @Environment(\.iOS26ThemeStore) private var themeStore
+
+        var body: some View {
+            NavigationStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        // Header
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "brain.head.profile")
+                                    .font(.largeTitle)
+                                    .foregroundColor(themeStore.primaryColor)
+
+                                Spacer()
+                            }
+
+                            Text("AI-Powered CSV Import")
+                                .font(.title)
+                                .fontWeight(.bold)
+
+                            Text("Zero configuration, intelligent parsing")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                        // Benefits
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Why Switch?")
+                                .font(.headline)
+
+                            BenefitRow(
+                                icon: "wand.and.stars",
+                                title: "Automatic Detection",
+                                description: "Gemini AI automatically identifies book data in your CSV—no manual column mapping needed"
+                            )
+
+                            BenefitRow(
+                                icon: "bolt.fill",
+                                title: "Faster Import",
+                                description: "Smart parallel processing with real-time WebSocket progress updates"
+                            )
+
+                            BenefitRow(
+                                icon: "checkmark.shield.fill",
+                                title: "Better Accuracy",
+                                description: "AI understands context and handles inconsistent data formats automatically"
+                            )
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                        // Comparison
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Comparison")
+                                .font(.headline)
+
+                            ComparisonRow(
+                                feature: "Column Mapping",
+                                legacy: "Manual",
+                                gemini: "Automatic"
+                            )
+
+                            ComparisonRow(
+                                feature: "Setup Time",
+                                legacy: "2-5 minutes",
+                                gemini: "0 seconds"
+                            )
+
+                            ComparisonRow(
+                                feature: "Progress Updates",
+                                legacy: "Polling",
+                                gemini: "Real-time WebSocket"
+                            )
+
+                            ComparisonRow(
+                                feature: "User Effort",
+                                legacy: "High",
+                                gemini: "Low"
+                            )
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                        // Note
+                        HStack(spacing: 12) {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundColor(.blue)
+
+                            Text("This legacy import will be removed in Q2 2025. Your data is safe—both methods save to the same library.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                        .background(.blue.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .padding()
+                }
+                .navigationTitle("Migration Guide")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") {
+                            dismiss()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Supporting Views
+
+    private struct BenefitRow: View {
+        let icon: String
+        let title: String
+        let description: String
+
+        var body: some View {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundColor(.green)
+                    .frame(width: 24)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+
+                    Text(description)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+
+    private struct ComparisonRow: View {
+        let feature: String
+        let legacy: String
+        let gemini: String
+
+        var body: some View {
+            HStack {
+                Text(feature)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .frame(width: 100, alignment: .leading)
+
+                Spacer()
+
+                Text(legacy)
+                    .font(.caption)
+                    .foregroundColor(.orange)
+                    .frame(width: 80, alignment: .trailing)
+
+                Image(systemName: "arrow.right")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .frame(width: 20)
+
+                Text(gemini)
+                    .font(.caption)
+                    .foregroundColor(.green)
+                    .fontWeight(.semibold)
+                    .frame(width: 80, alignment: .leading)
             }
         }
     }
