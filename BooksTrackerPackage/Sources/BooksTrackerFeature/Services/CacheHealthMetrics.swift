@@ -31,7 +31,9 @@ public final class CacheHealthMetrics {
         if let cacheStatus = headers["X-Cache-Status"] {
             if cacheStatus == "HIT" {
                 cacheHits += 1
-            } else if cacheStatus == "MISS" {
+            } else {
+                // Treat any non-HIT status (e.g., MISS, STALE, EXPIRED, BYPASS, REVALIDATED) as a miss
+                // This provides a more realistic cache hit rate for observability
                 cacheMisses += 1
             }
 
