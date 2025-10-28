@@ -24,11 +24,11 @@ public final class CacheHealthMetrics {
 
     /// Update metrics from HTTP response headers
     /// - Parameters:
-    ///   - headers: HTTPURLResponse.allHeaderFields dictionary
+    ///   - headers: HTTPURLResponse headers dictionary (String: String)
     ///   - responseTime: Request duration in milliseconds
-    public func update(from headers: [AnyHashable: Any], responseTime: TimeInterval) {
+    public func update(from headers: [String: String], responseTime: TimeInterval) {
         // Cache status
-        if let cacheStatus = headers["X-Cache-Status"] as? String {
+        if let cacheStatus = headers["X-Cache-Status"] {
             if cacheStatus == "HIT" {
                 cacheHits += 1
             } else if cacheStatus == "MISS" {
@@ -40,13 +40,13 @@ public final class CacheHealthMetrics {
         }
 
         // Cache age
-        if let ageString = headers["X-Cache-Age"] as? String,
+        if let ageString = headers["X-Cache-Age"],
            let age = TimeInterval(ageString) {
             lastCacheAge = age
         }
 
         // Image quality → availability (simplified mapping)
-        if let imageQuality = headers["X-Image-Quality"] as? String {
+        if let imageQuality = headers["X-Image-Quality"] {
             switch imageQuality {
             case "high": imageAvailability = 1.0
             case "medium": imageAvailability = 0.75
@@ -57,7 +57,7 @@ public final class CacheHealthMetrics {
         }
 
         // Data completeness
-        if let completenessString = headers["X-Data-Completeness"] as? String,
+        if let completenessString = headers["X-Data-Completeness"],
            let completeness = Double(completenessString) {
             dataCompleteness = completeness / 100.0 // Convert percentage to 0-1
         }
