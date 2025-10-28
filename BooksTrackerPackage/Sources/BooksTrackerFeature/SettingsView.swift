@@ -311,6 +311,33 @@ public struct SettingsView: View {
             } header: {
                 Text("About")
             }
+
+            // MARK: - Debug Section
+
+            Section {
+                NavigationLink {
+                    CacheHealthDebugView()
+                } label: {
+                    HStack {
+                        Image(systemName: "speedometer")
+                            .foregroundStyle(themeStore.primaryColor)
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Cache Health")
+                                .font(.body)
+
+                            Text("View backend cache performance metrics")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            } header: {
+                Text("Debug")
+            } footer: {
+                Text("Developer tools for monitoring cache performance and API health.")
+            }
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Settings")
