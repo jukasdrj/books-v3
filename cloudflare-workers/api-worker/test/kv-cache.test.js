@@ -26,4 +26,49 @@ describe('KVCacheService', () => {
     const result = await service.get('search:title:q=nonexistent', 'title');
     expect(result).toBeNull();
   });
+
+  test('assessDataQuality returns 1.0 for complete data', () => {
+    const data = {
+      items: [
+        {
+          volumeInfo: {
+            industryIdentifiers: [{ type: 'ISBN_13', identifier: '123' }],
+            imageLinks: { thumbnail: 'http://example.com/cover.jpg' },
+            description: 'A'.repeat(150) // 150 chars
+          }
+        }
+      ]
+    };
+
+    const quality = service.assessDataQuality(data);
+    expect(quality).toBe(1.0); // Has ISBN (0.4) + cover (0.4) + description (0.2)
+  });
+
+  test('assessDataQuality returns 0.4 for ISBN-only data', () => {
+    const data = {
+      items: [
+        {
+          volumeInfo: {
+            industryIdentifiers: [{ type: 'ISBN_13', identifier: '123' }]
+            // No cover, no description
+          }
+        }
+      ]
+    };
+
+    const quality = service.assessDataQuality(data);
+    expect(quality).toBe(0.4); // Only ISBN (0.4)
+  });
+
+  test('adjustTTLByQuality doubles TTL for high quality (>0.8)', () => {
+    const baseTTL = 3600; // 1 hour
+    const adjusted = service.adjustTTLByQuality(baseTTL, 0.9);
+    expect(adjusted).toBe(7200); // 2x for quality > 0.8
+  });
+
+  test('adjustTTLByQuality halves TTL for low quality (<0.4)', () => {
+    const baseTTL = 3600; // 1 hour
+    const adjusted = service.adjustTTLByQuality(baseTTL, 0.3);
+    expect(adjusted).toBe(1800); // 0.5x for quality < 0.4
+  });
 });

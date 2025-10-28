@@ -44,4 +44,40 @@ export class KVCacheService {
 
     return null;
   }
+
+  /**
+   * Assess data quality for smart TTL adjustment
+   * @param {Object} data - Response data with items array
+   * @returns {number} Quality score 0.0 to 1.0
+   */
+  assessDataQuality(data) {
+    const items = data.items || [];
+    if (items.length === 0) return 0;
+
+    let score = 0;
+    for (const item of items) {
+      const volumeInfo = item.volumeInfo;
+      const hasISBN = volumeInfo?.industryIdentifiers?.length > 0;
+      const hasCover = volumeInfo?.imageLinks?.thumbnail;
+      const hasDescription = volumeInfo?.description?.length > 100;
+
+      if (hasISBN) score += 0.4;
+      if (hasCover) score += 0.4;
+      if (hasDescription) score += 0.2;
+    }
+
+    return score / items.length; // Average quality across all items
+  }
+
+  /**
+   * Adjust TTL based on data quality
+   * @param {number} baseTTL - Base TTL in seconds
+   * @param {number} quality - Quality score 0.0 to 1.0
+   * @returns {number} Adjusted TTL in seconds
+   */
+  adjustTTLByQuality(baseTTL, quality) {
+    if (quality > 0.8) return baseTTL * 2;      // High quality → 2x TTL
+    if (quality < 0.4) return baseTTL * 0.5;    // Low quality → 0.5x TTL
+    return baseTTL; // Medium quality → unchanged
+  }
 }
