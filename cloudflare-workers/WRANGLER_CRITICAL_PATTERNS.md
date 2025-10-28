@@ -1,6 +1,10 @@
 # 🚨 CRITICAL: Wrangler.toml Structure Patterns
 
-**MEMORIZE THESE PATTERNS** - Critical knowledge for CloudFlare Workers configuration
+**NOTE:** BooksTrack now uses a monolith architecture (single api-worker). Service binding patterns below are for historical reference and future multi-worker architectures.
+
+**CURRENT ARCHITECTURE:** See `MONOLITH_ARCHITECTURE.md` for the consolidated api-worker configuration.
+
+**MEMORIZE THESE PATTERNS** - Critical knowledge for Cloudflare Workers configuration
 
 ---
 

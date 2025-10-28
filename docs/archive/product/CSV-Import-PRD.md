@@ -1,11 +1,22 @@
 # CSV Import & Enrichment - Product Requirements Document
 
-**Status:** ✅ Shipped (Build 45+)
+**Status:** 🗄️ ARCHIVED - Feature Removed (v3.3.0, October 2025)
+**Replaced By:** Gemini CSV Import (see `Gemini-CSV-Import-PRD.md`)
 **Owner:** Product Team
 **Engineering Lead:** iOS Development Team
 **Design Lead:** iOS 26 HIG Compliance
 **Target Release:** Build 45 (October 2025)
-**Last Updated:** October 25, 2025
+**Archived:** January 27, 2025
+
+---
+
+## ⚠️ ARCHIVAL NOTICE
+
+This PRD documents the **legacy manual CSV import feature** that required users to manually map columns. This feature was **removed in v3.3.0 (October 2025)** and replaced by the AI-powered **Gemini CSV Import** feature, which provides zero-configuration automatic column detection.
+
+**See:** `docs/product/Gemini-CSV-Import-PRD.md` for the current implementation.
+
+**Reason for Archival:** Manual column mapping was tedious and error-prone. Gemini 2.0 Flash API now handles CSV parsing automatically with 95%+ accuracy.
 
 ---
 

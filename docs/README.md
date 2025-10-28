@@ -62,7 +62,13 @@ docs/
 
 **Available PRDs:**
 - `PRD-Template.md` - Reusable template for new features
-- `Bookshelf-Scanner-PRD.md` - Sample PRD (shipped feature)
+- `Bookshelf-Scanner-PRD.md` - AI-powered bookshelf scanning (v Build 46+)
+- `Review-Queue-PRD.md` - Human-in-the-loop corrections (Build 49+)
+- `Gemini-CSV-Import-PRD.md` - Zero-config AI CSV import (v3.1.0+)
+- `Diversity-Insights-PRD.md` - Cultural diversity analytics (v3.1.0+)
+
+**Archived PRDs:**
+- `archive/product/CSV-Import-PRD.md` - Legacy manual CSV import (removed v3.3.0)
 
 **To Create a New PRD:**
 1. Copy `PRD-Template.md`
