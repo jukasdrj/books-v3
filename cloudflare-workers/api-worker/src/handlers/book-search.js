@@ -27,10 +27,22 @@ export async function searchByTitle(title, options, env, ctx) {
   const cachedResult = await getCached(cacheKey, env);
   if (cachedResult) {
     const { data, cacheMetadata } = cachedResult;
+    const headers = generateCacheHeaders(true, cacheMetadata.age, cacheMetadata.ttl, data.items);
+
+    // Write cache metrics to Analytics Engine
+    ctx.waitUntil(writeCacheMetrics(env, {
+      endpoint: '/search/title',
+      cacheHit: true,
+      responseTime: 0, // Cache hits are instant
+      imageQuality: headers['X-Image-Quality'],
+      dataCompleteness: parseInt(headers['X-Data-Completeness']),
+      itemCount: data.items?.length || 0
+    }));
+
     return {
       ...data,
       cached: true,
-      _cacheHeaders: generateCacheHeaders(true, cacheMetadata.age, cacheMetadata.ttl, data.items)
+      _cacheHeaders: headers
     };
   }
 
@@ -85,6 +97,16 @@ export async function searchByTitle(title, options, env, ctx) {
     const ttl = 6 * 60 * 60; // 21600 seconds
     ctx.waitUntil(setCached(cacheKey, responseData, ttl, env));
 
+    // Write cache metrics to Analytics Engine
+    ctx.waitUntil(writeCacheMetrics(env, {
+      endpoint: '/search/title',
+      cacheHit: false,
+      responseTime: Date.now() - startTime,
+      imageQuality: responseData._cacheHeaders['X-Image-Quality'],
+      dataCompleteness: parseInt(responseData._cacheHeaders['X-Data-Completeness']),
+      itemCount: dedupedItems.length
+    }));
+
     return responseData;
   } catch (error) {
     console.error(`Title search failed for "${title}":`, error);
@@ -114,10 +136,22 @@ export async function searchByISBN(isbn, options, env, ctx) {
   const cachedResult = await getCached(cacheKey, env);
   if (cachedResult) {
     const { data, cacheMetadata } = cachedResult;
+    const headers = generateCacheHeaders(true, cacheMetadata.age, cacheMetadata.ttl, data.items);
+
+    // Write cache metrics to Analytics Engine
+    ctx.waitUntil(writeCacheMetrics(env, {
+      endpoint: '/search/isbn',
+      cacheHit: true,
+      responseTime: 0, // Cache hits are instant
+      imageQuality: headers['X-Image-Quality'],
+      dataCompleteness: parseInt(headers['X-Data-Completeness']),
+      itemCount: data.items?.length || 0
+    }));
+
     return {
       ...data,
       cached: true,
-      _cacheHeaders: generateCacheHeaders(true, cacheMetadata.age, cacheMetadata.ttl, data.items)
+      _cacheHeaders: headers
     };
   }
 
@@ -170,6 +204,16 @@ export async function searchByISBN(isbn, options, env, ctx) {
     // Cache for 7 days (ISBN data is stable)
     const ttl = 7 * 24 * 60 * 60; // 604800 seconds
     ctx.waitUntil(setCached(cacheKey, responseData, ttl, env));
+
+    // Write cache metrics to Analytics Engine
+    ctx.waitUntil(writeCacheMetrics(env, {
+      endpoint: '/search/isbn',
+      cacheHit: false,
+      responseTime: Date.now() - startTime,
+      imageQuality: responseData._cacheHeaders['X-Image-Quality'],
+      dataCompleteness: parseInt(responseData._cacheHeaders['X-Data-Completeness']),
+      itemCount: dedupedItems.length
+    }));
 
     return responseData;
   } catch (error) {
@@ -367,4 +411,35 @@ function calculateDataCompleteness(items) {
   }
 
   return Math.round((completeCount / items.length) * 100);
+}
+
+/**
+ * Write cache metrics to Analytics Engine
+ * @param {Object} env - Worker environment bindings
+ * @param {Object} metrics - Metrics to write
+ */
+async function writeCacheMetrics(env, metrics) {
+  if (!env.CACHE_ANALYTICS) {
+    console.warn('CACHE_ANALYTICS binding not available');
+    return;
+  }
+
+  try {
+    await env.CACHE_ANALYTICS.writeDataPoint({
+      blobs: [
+        metrics.endpoint,
+        metrics.imageQuality
+      ],
+      doubles: [
+        metrics.responseTime,
+        metrics.dataCompleteness,
+        metrics.itemCount
+      ],
+      indexes: [
+        metrics.cacheHit ? 'HIT' : 'MISS'
+      ]
+    });
+  } catch (error) {
+    console.error('Failed to write cache metrics:', error);
+  }
 }
