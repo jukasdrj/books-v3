@@ -255,6 +255,126 @@ export class ProgressWebSocketDO extends DurableObject {
   }
 
   /**
+   * RPC Method: Update progress for batch enrichment and CSV import
+   * Called by background processors to send progress updates to iOS client
+   *
+   * @param {number} progress - Progress value (0.0 to 1.0)
+   * @param {string} status - Human-readable status message
+   * @param {boolean} keepAlive - If true, this is a keep-alive ping (optional)
+   * @returns {Promise<{success: boolean}>}
+   */
+  async updateProgress(progress, status, keepAlive = false) {
+    console.log(`[${this.jobId}] updateProgress called`, { progress, status, keepAlive });
+
+    if (!this.webSocket) {
+      console.warn(`[${this.jobId}] No WebSocket connection available`);
+      return { success: false };
+    }
+
+    const message = {
+      type: 'progress',
+      jobId: this.jobId,
+      timestamp: Date.now(),
+      data: {
+        progress,
+        status,
+        keepAlive
+      }
+    };
+
+    try {
+      this.webSocket.send(JSON.stringify(message));
+      console.log(`[${this.jobId}] Progress update sent:`, { progress, status });
+      return { success: true };
+    } catch (error) {
+      console.error(`[${this.jobId}] Failed to send progress:`, error);
+      return { success: false };
+    }
+  }
+
+  /**
+   * RPC Method: Complete job successfully
+   * Called by background processors when job finishes successfully
+   *
+   * @param {Object} data - Result data (books, errors, successRate, etc.)
+   * @returns {Promise<{success: boolean}>}
+   */
+  async complete(data) {
+    console.log(`[${this.jobId}] complete called`, { data });
+
+    if (!this.webSocket) {
+      console.warn(`[${this.jobId}] No WebSocket connection available`);
+      return { success: false };
+    }
+
+    const message = {
+      type: 'complete',
+      jobId: this.jobId,
+      timestamp: Date.now(),
+      data
+    };
+
+    try {
+      this.webSocket.send(JSON.stringify(message));
+      console.log(`[${this.jobId}] Completion message sent`);
+
+      // Close connection after completion
+      setTimeout(() => {
+        if (this.webSocket) {
+          this.webSocket.close(1000, 'Job completed');
+          this.cleanup();
+        }
+      }, 1000); // 1 second delay to ensure message is delivered
+
+      return { success: true };
+    } catch (error) {
+      console.error(`[${this.jobId}] Failed to send completion:`, error);
+      return { success: false };
+    }
+  }
+
+  /**
+   * RPC Method: Fail job with error
+   * Called by background processors when job encounters an error
+   *
+   * @param {Object} errorData - Error details (error, suggestion, fallbackAvailable, etc.)
+   * @returns {Promise<{success: boolean}>}
+   */
+  async fail(errorData) {
+    console.log(`[${this.jobId}] fail called`, { errorData });
+
+    if (!this.webSocket) {
+      console.warn(`[${this.jobId}] No WebSocket connection available`);
+      return { success: false };
+    }
+
+    const message = {
+      type: 'error',
+      jobId: this.jobId,
+      timestamp: Date.now(),
+      data: errorData
+    };
+
+    try {
+      this.webSocket.send(JSON.stringify(message));
+      console.log(`[${this.jobId}] Error message sent`);
+
+      // Close connection after error
+      setTimeout(() => {
+        if (this.webSocket) {
+          this.webSocket.close(1000, 'Job failed');
+          this.cleanup();
+        }
+      }, 1000); // 1 second delay to ensure message is delivered
+
+      return { success: true };
+    } catch (error) {
+      console.error(`[${this.jobId}] Failed to send error:`, error);
+      return { success: false };
+    }
+  }
+
+  /**
    * RPC Method: Close WebSocket connection
    */
   async closeConnection(reason = 'Job completed') {
