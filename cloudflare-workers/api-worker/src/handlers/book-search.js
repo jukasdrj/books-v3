@@ -141,11 +141,18 @@ export async function searchByISBN(isbn, options, env, ctx) {
   const { maxResults = 1 } = options;
   const cacheKey = generateCacheKey('search:isbn', { isbn });
 
-  // Try cache first
-  const cachedResult = await getCached(cacheKey, env);
-  if (cachedResult) {
-    const { data, cacheMetadata } = cachedResult;
-    const headers = generateCacheHeaders(true, cacheMetadata.age, cacheMetadata.ttl, data.items);
+  // Try UnifiedCache first (Edge → KV tiers)
+  const cache = new UnifiedCacheService(env, ctx);
+  const cachedResult = await cache.get(cacheKey, 'isbn', { query: isbn, maxResults });
+
+  if (cachedResult && cachedResult.data) {
+    const { data, source } = cachedResult;
+    const headers = generateCacheHeaders(
+      true,
+      cachedResult.age || 0,
+      cachedResult.ttl || 0,
+      data.items
+    );
 
     // Write cache metrics to Analytics Engine
     ctx.waitUntil(writeCacheMetrics(env, {
@@ -160,6 +167,7 @@ export async function searchByISBN(isbn, options, env, ctx) {
     return {
       ...data,
       cached: true,
+      cacheSource: source, // NEW: Include cache source (EDGE or KV)
       _cacheHeaders: headers
     };
   }
