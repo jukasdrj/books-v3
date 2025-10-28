@@ -191,9 +191,7 @@ struct iOS26AdaptiveBookCard: View {
                     .lineLimit(1)
 
                 if let year = work.firstPublicationYear {
-                    Text("\(year)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    BookMetadataRow(icon: "calendar", text: "\(year)", style: .secondary)
                 }
 
                 HStack {
@@ -256,9 +254,7 @@ struct iOS26AdaptiveBookCard: View {
 
                 HStack(spacing: 12) {
                     if let year = work.firstPublicationYear {
-                        Label("\(year)", systemImage: "calendar")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        BookMetadataRow(icon: "calendar", text: "\(year)", style: .secondary)
                     }
 
                     if let edition = primaryEdition {
