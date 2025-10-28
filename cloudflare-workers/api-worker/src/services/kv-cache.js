@@ -20,4 +20,28 @@ export class KVCacheService {
       enrichment: 90 * 24 * 60 * 60 // 90 days
     };
   }
+
+  /**
+   * Get cached data from KV
+   * @param {string} cacheKey - Cache key
+   * @param {string} endpoint - Endpoint type ('title', 'isbn', 'author')
+   * @returns {Promise<Object|null>} Cached data with metadata or null
+   */
+  async get(cacheKey, endpoint) {
+    try {
+      const result = await getCached(cacheKey, this.env);
+      if (result) {
+        return {
+          data: result.data,
+          source: 'KV',
+          age: result.cacheMetadata.age,
+          latency: '30-50ms'
+        };
+      }
+    } catch (error) {
+      console.error(`KV cache get failed for ${cacheKey}:`, error);
+    }
+
+    return null;
+  }
 }

@@ -21,4 +21,9 @@ describe('KVCacheService', () => {
     expect(service.ttls.isbn).toBe(30 * 24 * 60 * 60); // 30d
     expect(service.ttls.author).toBe(7 * 24 * 60 * 60); // 7d
   });
+
+  test('get returns null on cache miss', async () => {
+    const result = await service.get('search:title:q=nonexistent', 'title');
+    expect(result).toBeNull();
+  });
 });
