@@ -361,6 +361,7 @@ public struct GeminiCSVImportView: View {
         print("📚 Saving \(books.count) books to library...")
         var savedCount = 0
         var skippedCount = 0
+        var savedWorkIDs: [PersistentIdentifier] = []
 
         // **FIX #1: Move fetch outside loop** (100x performance improvement)
         // Fetch all existing works ONCE instead of per-book
@@ -410,23 +411,22 @@ public struct GeminiCSVImportView: View {
             // NOW set relationship (both have permanent IDs)
             work.authors = [author]
 
-            // Create Edition if we have ISBN or publisher
-            if book.isbn != nil || book.publisher != nil || book.publicationYear != nil || book.coverUrl != nil {
+            // Track work ID for enrichment
+            savedWorkIDs.append(work.persistentModelID)
+
+            // Create Edition ONLY if we have ISBN from Gemini
+            if let isbn = book.isbn {
                 let edition = Edition(
-                    isbn: book.isbn,
+                    isbn: isbn,
                     publisher: book.publisher,
                     publicationDate: book.publicationYear.map { "\($0)" },
                     pageCount: nil,
-                    format: .paperback  // Default format (Gemini doesn't detect this from CSV)
+                    format: .paperback,
+                    coverImageURL: nil  // No cover yet - enrichment will add it
                 )
 
-                // Set cover URL if available
-                if let coverUrl = book.coverUrl {
-                    edition.coverImageURL = coverUrl
-                }
-
                 modelContext.insert(edition)
-                work.editions = [edition]
+                edition.work = work
             }
 
             savedCount += 1
@@ -436,6 +436,17 @@ public struct GeminiCSVImportView: View {
         do {
             try modelContext.save()
             print("✅ Saved \(savedCount) books (\(skippedCount) skipped as duplicates)")
+
+            // Enqueue all saved works for background enrichment
+            if !savedWorkIDs.isEmpty {
+                print("📚 Enqueueing \(savedWorkIDs.count) books for enrichment")
+                EnrichmentQueue.shared.enqueueBatch(savedWorkIDs)
+
+                // Start enrichment processing in background
+                EnrichmentQueue.shared.startProcessing(in: modelContext) { completed, total, currentTitle in
+                    print("📚 Enriching (\(completed)/\(total)): \(currentTitle)")
+                }
+            }
 
             // Haptic feedback
             let generator = UINotificationFeedbackGenerator()
