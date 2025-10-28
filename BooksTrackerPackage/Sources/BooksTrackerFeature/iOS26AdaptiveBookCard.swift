@@ -150,7 +150,13 @@ struct iOS26AdaptiveBookCard: View {
                     .font(.subheadline.bold())
                     .lineLimit(2)
 
-                NavigationLink(value: AuthorSearchDestination(authorName: work.primaryAuthorName)) {
+                Button {
+                    NotificationCenter.default.post(
+                        name: .searchForAuthor,
+                        object: nil,
+                        userInfo: ["authorName": work.primaryAuthorName]
+                    )
+                } label: {
                     HStack(spacing: 4) {
                         Text(work.authorNames)
                             .font(.caption)
@@ -194,7 +200,13 @@ struct iOS26AdaptiveBookCard: View {
                     .font(.headline.bold())
                     .lineLimit(2)
 
-                NavigationLink(value: AuthorSearchDestination(authorName: work.primaryAuthorName)) {
+                Button {
+                    NotificationCenter.default.post(
+                        name: .searchForAuthor,
+                        object: nil,
+                        userInfo: ["authorName": work.primaryAuthorName]
+                    )
+                } label: {
                     HStack(spacing: 4) {
                         Text(work.authorNames)
                             .font(.subheadline)
@@ -269,7 +281,13 @@ struct iOS26AdaptiveBookCard: View {
                     .font(.title3.bold())
                     .lineLimit(3)
 
-                NavigationLink(value: AuthorSearchDestination(authorName: work.primaryAuthorName)) {
+                Button {
+                    NotificationCenter.default.post(
+                        name: .searchForAuthor,
+                        object: nil,
+                        userInfo: ["authorName": work.primaryAuthorName]
+                    )
+                } label: {
                     HStack(spacing: 4) {
                         Text(work.authorNames)
                             .font(.body)
@@ -587,12 +605,6 @@ enum StatusIndicatorStyle {
     case standard
     case detailed
     case premium
-}
-
-// MARK: - Navigation Destinations
-
-struct AuthorSearchDestination: Hashable {
-    let authorName: String
 }
 
 // MARK: - Preview

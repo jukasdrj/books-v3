@@ -244,6 +244,11 @@ public struct ContentView: View {
                 handle(notification)
             }
         }
+        Task { @MainActor in
+            for await notification in NotificationCenter.default.notifications(named: .searchForAuthor) {
+                handle(notification)
+            }
+        }
     }
 
     @MainActor
@@ -272,6 +277,19 @@ public struct ContentView: View {
         case .enrichmentCompleted:
             isEnriching = false
 
+        case .searchForAuthor:
+            if let authorName = notification.userInfo?["authorName"] as? String {
+                selectedTab = .search
+                // Post another notification that SearchView will listen to
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    NotificationCenter.default.post(
+                        name: .performAuthorSearch,
+                        object: nil,
+                        userInfo: ["authorName": authorName]
+                    )
+                }
+            }
+
         default:
             break
         }
@@ -286,6 +304,8 @@ extension Notification.Name {
     static let enrichmentProgress = Notification.Name("EnrichmentProgress")
     static let enrichmentCompleted = Notification.Name("EnrichmentCompleted")
     static let libraryWasReset = Notification.Name("LibraryWasReset")
+    static let searchForAuthor = Notification.Name("SearchForAuthor")
+    static let performAuthorSearch = Notification.Name("PerformAuthorSearch")
 }
 
 // MARK: - Tab Navigation

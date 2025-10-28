@@ -145,6 +145,16 @@ public struct SearchView: View {
                 .task {
                     await loadInitialData()
                 }
+                .task {
+                    // Listen for author search notifications
+                    for await notification in NotificationCenter.default.notifications(named: .performAuthorSearch) {
+                        if let authorName = notification.userInfo?["authorName"] as? String {
+                            searchModel.searchText = authorName
+                            searchScope = .author
+                            performScopedSearch(query: authorName, scope: .author)
+                        }
+                    }
+                }
                 // onChange for search text with scope filtering
                 .onChange(of: searchModel.searchText) { oldValue, newValue in
                     performScopedSearch(query: newValue, scope: searchScope)
