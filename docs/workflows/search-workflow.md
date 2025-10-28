@@ -134,7 +134,7 @@ sequenceDiagram
 | **SearchView** | UI rendering, user input | `SearchView.swift` |
 | **SearchModel** | State management (@Observable) | `SearchModel.swift:1129` |
 | **SearchViewState** | Enum-based state representation | `SearchModel.swift:18-31` |
-| **EnrichmentAPIClient** | HTTP requests to Cloudflare Worker | `EnrichmentAPIClient.swift` |
+| **BookSearchAPIService** | HTTP requests to Cloudflare Worker | `Services/BookSearchAPIService.swift` |
 | **ModernBarcodeScannerView** | ISBN camera scanner | `ModernBarcodeScannerView.swift` |
 
 ---
@@ -175,10 +175,11 @@ flowchart LR
 
 ## Related Documentation
 
-- **API Reference:** `cloudflare-workers/api-worker/src/handlers/search.js`
-- **Backend Architecture:** `cloudflare-workers/SERVICE_BINDING_ARCHITECTURE.md`
+- **API Reference:** `cloudflare-workers/api-worker/src/handlers/book-search.js`
+- **Backend Architecture:** `cloudflare-workers/MONOLITH_ARCHITECTURE.md`
 - **State Management:** `CLAUDE.md` - @Observable Pattern
 - **Barcode Scanner:** `docs/features/BOOKSHELF_SCANNER.md` (camera permissions)
+- **Cache Health:** `docs/features/CACHE_HEALTH_MONITORING.md` (new - Oct 2025)
 
 ---
 

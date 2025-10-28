@@ -384,11 +384,13 @@ flowchart TD
 
 ## Related Documentation
 
-- **Feature Documentation:** `docs/features/CSV_IMPORT.md`
+- **Gemini CSV Import:** `docs/features/GEMINI_CSV_IMPORT.md`
+- **Bookshelf Scanner:** `docs/features/BOOKSHELF_SCANNER.md`
 - **Title Normalization:** `BooksTrackerPackage/Sources/.../String+TitleNormalization.swift`
 - **WebSocket Architecture:** `docs/WEBSOCKET_ARCHITECTURE.md`
 - **Backend Enrichment:** `cloudflare-workers/api-worker/src/services/enrichment.js`
 - **Job Cancellation:** `CLAUDE.md` - Library Reset section
+- **Legacy CSV Import (Archived):** `docs/archive/features-removed/CSV_IMPORT.md`
 
 ---
 

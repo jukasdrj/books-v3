@@ -1,77 +1,60 @@
 # CSV Import Workflow
 
-**Feature:** Bulk Library Import from CSV Exports
-**Supported Formats:** Goodreads, LibraryThing, StoryGraph
-**Performance:** 100 books/min, <200MB memory (1500+ books)
+**Feature:** AI-Powered CSV Import (Gemini)
+**Status:** ✅ Production (v3.1.0+)
+**Supported Formats:** Any CSV with title/author/ISBN (auto-detected by Gemini)
+**Performance:** Backend-processed with real-time WebSocket progress
 **Last Updated:** October 2025
+
+**⚠️ Note:** This doc describes the **current Gemini AI-powered import**. Legacy manual CSV import was deprecated in v3.3.0 (October 2025) and archived to `docs/archive/features-removed/CSV_IMPORT.md`.
 
 ---
 
-## User Journey Flow
+## User Journey Flow (Gemini AI Import)
 
 ```mermaid
 flowchart TD
-    Start([User Opens Settings]) --> TapImport[Tap 'Import CSV Library']
+    Start([User Opens Settings]) --> TapImport[Tap 'AI-Powered CSV Import']
 
     TapImport --> ShowPicker[System file picker appears]
 
     ShowPicker --> UserSelect{User Action}
-    UserSelect -->|Select CSV| ValidateFile[Validate file extension]
+    UserSelect -->|Select CSV| ValidateFile[Validate file < 10MB]
     UserSelect -->|Cancel| End([Exit Flow])
 
-    ValidateFile --> ExtensionCheck{.csv extension?}
-    ExtensionCheck -->|No| ShowError[Alert: 'Invalid file type']
-    ExtensionCheck -->|Yes| ReadFile[Read file contents]
+    ValidateFile --> SizeCheck{File ≤ 10MB?}
+    SizeCheck -->|No| ShowError[Alert: 'File too large']
+    SizeCheck -->|Yes| ReadFile[Read CSV contents]
 
     ShowError --> End
 
-    ReadFile --> DetectFormat[Auto-detect column mappings]
-    DetectFormat --> FormatFound{Format Recognized?}
+    ReadFile --> UploadStart[Upload CSV to backend]
+    UploadStart --> ShowUploading[Show uploading spinner]
 
-    FormatFound -->|Goodreads| ShowPreview[Show Goodreads preview]
-    FormatFound -->|LibraryThing| ShowPreview
-    FormatFound -->|StoryGraph| ShowPreview
-    FormatFound -->|Unknown| ShowManualMap[Show manual mapping UI]
+    ShowUploading --> BackendParse[Backend: Gemini parses CSV]
 
-    ShowManualMap --> UserMaps[User maps columns]
-    UserMaps --> ShowPreview
+    BackendParse --> ConnectWS[Connect WebSocket for progress]
 
-    ShowPreview --> ChooseStrategy{Duplicate Strategy?}
+    ConnectWS --> ParsePhase[Phase 1: Gemini Parsing - 5-50%]
+    ParsePhase --> ParseComplete{Gemini Success?}
 
-    ChooseStrategy -->|Smart Replace| SetSmart[strategy = .smart]
-    ChooseStrategy -->|Skip Duplicates| SetSkip[strategy = .skipDuplicates]
-    ChooseStrategy -->|Replace All| SetReplace[strategy = .replaceAll]
+    ParseComplete -->|Success| EnrichPhase[Phase 2: Enrichment - 50-100%]
+    ParseComplete -->|Failed| ShowError2[Show Gemini parse error]
 
-    SetSmart --> StartImport[Tap 'Import']
-    SetSkip --> StartImport
-    SetReplace --> StartImport
+    EnrichPhase --> ProcessBooks[Process each parsed book]
 
-    StartImport --> ParseCSV[CSVParsingActor parses rows]
-    ParseCSV --> BatchInsert[Batch SwiftData insertion - 50 rows/batch]
+    ProcessBooks --> NextBook{More books?}
+    NextBook -->|Yes| EnrichBook[Enrich metadata via /search]
+    NextBook -->|No| Complete
 
-    BatchInsert --> DuplicateCheck{Check duplicates}
+    EnrichBook --> InsertWork[Insert Work + Edition + UserLibraryEntry]
+    InsertWork --> UpdateProgress[WebSocket: Update progress %]
+    UpdateProgress --> ProcessBooks
 
-    DuplicateCheck -->|Title + Author Match| HandleDupe{Strategy?}
-    DuplicateCheck -->|No Match| CreateNew[Create new Work]
+    Complete --> ShowSummary[Display import summary]
+    ShowSummary --> End2([Import Complete])
 
-    HandleDupe -->|Smart| UpdateMetadata[Update existing work metadata]
-    HandleDupe -->|Skip| SkipRow[Skip row, increment counter]
-    HandleDupe -->|Replace| DeleteOld[Delete old, create new]
-
-    UpdateMetadata --> NextRow{More rows?}
-    SkipRow --> NextRow
-    CreateNew --> QueueEnrichment[Add to enrichment queue]
-    DeleteOld --> CreateNew
-
-    QueueEnrichment --> NextRow
-
-    NextRow -->|Yes| BatchInsert
-    NextRow -->|No| ShowSummary[Display import summary]
-
-    ShowSummary --> StartEnrichment[EnrichmentQueue.shared.processQueue]
-    StartEnrichment --> ShowBanner[Display EnrichmentProgressBanner]
-
-    ShowBanner --> Complete([Import Complete])
+    ShowError2 --> End
 ```
 
 ---
@@ -274,17 +257,14 @@ flowchart LR
 
 ---
 
-## Key Components
+## Key Components (Gemini CSV Import)
 
 | Component | Responsibility | File |
 |-----------|---------------|------|
-| **CSVImportFlowView** | Multi-step import wizard UI | `CSVImportFlowView.swift` |
-| **CSVParsingActor** | High-performance CSV parsing | `CSVParsingActor.swift` (@globalActor) |
-| **CSVImportService** | SwiftData import orchestration | `CSVImportService.swift` |
-| **EnrichmentService** | API metadata enrichment | `EnrichmentService.swift` |
-| **EnrichmentQueue** | Background enrichment queue | `EnrichmentQueue.swift` (@MainActor) |
-| **String+TitleNormalization** | Title normalization algorithm | `String+TitleNormalization.swift` |
-| **EnrichmentProgressBanner** | Real-time progress UI | `EnrichmentProgressBanner.swift` |
+| **GeminiCSVImportView** | Upload + progress UI | `CSVImport/GeminiCSVImportView.swift` |
+| **GeminiCSVImportService** | Backend API client | `CSVImport/GeminiCSVImportService.swift` |
+| **api-worker** | Gemini parsing + enrichment | `cloudflare-workers/api-worker/src/handlers/gemini-csv-import.js` |
+| **ProgressWebSocketDO** | Real-time progress updates | `cloudflare-workers/api-worker/src/durable-objects/ProgressWebSocketDO.js` |
 
 ---
 
@@ -333,10 +313,10 @@ flowchart TD
 
 ## Related Documentation
 
-- **Feature Documentation:** `docs/features/CSV_IMPORT.md`
-- **Title Normalization Tests:** `BooksTrackerPackage/Tests/.../StringTitleNormalizationTests.swift`
-- **SyncCoordinator:** `docs/architecture/SyncCoordinator-Architecture.md`
-- **Enrichment API:** `cloudflare-workers/api-worker/src/handlers/search.js`
+- **Feature Documentation:** `docs/features/GEMINI_CSV_IMPORT.md`
+- **Legacy CSV Import (Archived):** `docs/archive/features-removed/CSV_IMPORT.md`
+- **WebSocket Progress:** `docs/workflows/enrichment-workflow.md` (shared pattern)
+- **Backend Handler:** `cloudflare-workers/api-worker/src/handlers/gemini-csv-import.js`
 
 ---
 
