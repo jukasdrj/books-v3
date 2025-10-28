@@ -154,6 +154,14 @@ public struct SearchView: View {
                         performScopedSearch(query: authorName, scope: .author)
                     }
                 }
+                .onChange(of: searchCoordinator.pendingAuthorSearch) { oldValue, newValue in
+                    // Handle pending search when set while tab is already visible
+                    if let authorName = searchCoordinator.consumePendingAuthorSearch() {
+                        searchModel.searchText = authorName
+                        searchScope = .author
+                        performScopedSearch(query: authorName, scope: .author)
+                    }
+                }
                 // onChange for search text with scope filtering
                 .onChange(of: searchModel.searchText) { oldValue, newValue in
                     performScopedSearch(query: newValue, scope: searchScope)
