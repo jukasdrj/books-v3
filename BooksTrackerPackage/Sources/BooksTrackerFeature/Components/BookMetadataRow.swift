@@ -36,11 +36,11 @@ public struct BookMetadataRow: View {
 }
 
 /// Metadata display style with semantic color mapping
-public enum MetadataStyle: Sendable {
+public enum MetadataStyle {
     case secondary
     case tertiary
 
-    public var color: Color {
+    var color: Color {
         switch self {
         case .secondary: return .secondary
         case .tertiary: return Color(uiColor: .tertiaryLabel)
