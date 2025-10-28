@@ -1,8 +1,7 @@
 // src/handlers/csv-import.js
 import { validateCSV } from '../utils/csv-validator.js';
 import { buildCSVParserPrompt, PROMPT_VERSION } from '../prompts/csv-parser-prompt.js';
-import { generateCSVCacheKey, generateISBNCacheKey } from '../utils/cache-keys.js';
-import { enrichBooksParallel } from '../services/parallel-enrichment.js';
+import { generateCSVCacheKey } from '../utils/cache-keys.js';
 import { parseCSVWithGemini } from '../providers/gemini-csv-provider.js';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -49,10 +48,12 @@ export async function handleCSVImport(request, env) {
 }
 
 /**
- * Background processor for CSV import (two-stage: parse → enrich)
+ * Background processor for CSV import (two-stage: parse → validate)
  *
  * Stage 1 (5-50%): Gemini parses CSV into structured book data
- * Stage 2 (50-100%): Parallel enrichment with external APIs
+ * Stage 2 (50-100%): Validate parsed books (title and author required)
+ *
+ * Note: Enrichment now happens on iOS via EnrichmentQueue
  *
  * @param {File} csvFile - CSV file from FormData
  * @param {string} jobId - Unique job identifier
@@ -110,40 +111,29 @@ export async function processCSVImport(csvFile, jobId, doStub, env) {
       }
     }
 
-    await doStub.updateProgress(0.5, `Parsed ${parsedBooks.length} books. Starting enrichment...`);
+    // Stage 2: Validation (50-100%)
+    await doStub.updateProgress(0.5, `Parsed ${parsedBooks.length} books. Validating...`);
 
-    // Stage 2: Parallel Enrichment (50-100%)
-    const enrichedBooks = await enrichBooksParallel(
-      parsedBooks,
-      async (book) => {
-        // Check ISBN cache first
-        if (book.isbn) {
-          const cacheKey = generateISBNCacheKey(book.isbn);
-          const cachedData = await env.CACHE_KV.get(cacheKey, 'json');
-          if (cachedData?.coverUrl) {
-            return { ...book, ...cachedData };
-          }
-        }
+    // Validate parsed books (title and author required)
+    const validBooks = parsedBooks.filter(book => {
+      if (!book.title || !book.author) {
+        return false;
+      }
+      return true;
+    });
 
-        // Enrich via external APIs (placeholder - actual implementation varies)
-        return await enrichBook(book, env);
-      },
-      async (completed, total, title, hasError) => {
-        const progress = 0.5 + (completed / total) * 0.5;
-        const status = hasError
-          ? `Enriching (${completed}/${total}): ${title} [failed]`
-          : `Enriching (${completed}/${total}): ${title}`;
-        await doStub.updateProgress(progress, status);
-      },
-      10 // Concurrency limit
-    );
+    await doStub.updateProgress(0.75, `Validated ${validBooks.length}/${parsedBooks.length} books`);
 
-    // Complete
-    const errors = enrichedBooks.filter(b => b.enrichmentError);
+    // Complete immediately (no enrichment)
+    const invalidCount = parsedBooks.length - validBooks.length;
+    const errors = invalidCount > 0
+      ? [{ title: 'Validation', error: `${invalidCount} books missing title or author` }]
+      : [];
+
     await doStub.complete({
-      books: enrichedBooks,
-      errors: errors.map(e => ({ title: e.title, error: e.enrichmentError })),
-      successRate: `${enrichedBooks.length - errors.length}/${enrichedBooks.length}`
+      books: validBooks,
+      errors: errors,
+      successRate: `${validBooks.length}/${parsedBooks.length}`
     });
 
   } catch (error) {
@@ -172,15 +162,3 @@ async function callGemini(csvText, prompt, env) {
   return await parseCSVWithGemini(csvText, prompt, apiKey);
 }
 
-/**
- * Enrich single book with external APIs (placeholder)
- *
- * @param {Object} book - Book data from Gemini (title, author, isbn)
- * @param {Object} env - Worker environment bindings
- * @returns {Promise<Object>} Enriched book with coverUrl, publisher, etc.
- */
-async function enrichBook(book, env) {
-  // Placeholder - actual implementation would call external-apis service
-  // For now, return book as-is (enrichment will be added later)
-  return book;
-}
