@@ -19,4 +19,45 @@ export class UnifiedCacheService {
     this.env = env;
     this.ctx = ctx;
   }
+
+  /**
+   * Get data from cache tiers (Edge → KV → API)
+   * @param {string} cacheKey - Cache key
+   * @param {string} endpoint - Endpoint type ('title', 'isbn', 'author')
+   * @param {Object} options - Query options (query, maxResults, etc.)
+   * @returns {Promise<Object>} Cached or fresh data with metadata
+   */
+  async get(cacheKey, endpoint, options = {}) {
+    const startTime = Date.now();
+
+    // Tier 1: Edge Cache (fastest, 80% hit rate)
+    const edgeResult = await this.edgeCache.get(cacheKey);
+    if (edgeResult) {
+      this.logMetrics('edge_hit', cacheKey, Date.now() - startTime);
+      return edgeResult;
+    }
+
+    // TODO: Add KV tier and API fallback
+    return { data: null, source: 'MISS', latency: Date.now() - startTime };
+  }
+
+  /**
+   * Log cache metrics to Analytics Engine
+   * @param {string} event - Event type (edge_hit, kv_hit, api_miss)
+   * @param {string} cacheKey - Cache key
+   * @param {number} latency - Latency in milliseconds
+   */
+  logMetrics(event, cacheKey, latency) {
+    if (!this.env.CACHE_ANALYTICS) return;
+
+    try {
+      this.env.CACHE_ANALYTICS.writeDataPoint({
+        blobs: [event, cacheKey],
+        doubles: [latency],
+        indexes: [event]
+      });
+    } catch (error) {
+      console.error('Failed to log cache metrics:', error);
+    }
+  }
 }
