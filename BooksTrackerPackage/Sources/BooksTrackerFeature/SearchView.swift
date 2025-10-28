@@ -62,6 +62,7 @@ import UIKit
 public struct SearchView: View {
     @Environment(\.iOS26ThemeStore) private var themeStore
     @Environment(\.modelContext) private var modelContext
+    @Environment(SearchCoordinator.self) private var searchCoordinator
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     // MARK: - State Management
@@ -145,14 +146,12 @@ public struct SearchView: View {
                 .task {
                     await loadInitialData()
                 }
-                .task {
-                    // Listen for author search notifications
-                    for await notification in NotificationCenter.default.notifications(named: .performAuthorSearch) {
-                        if let authorName = notification.userInfo?["authorName"] as? String {
-                            searchModel.searchText = authorName
-                            searchScope = .author
-                            performScopedSearch(query: authorName, scope: .author)
-                        }
+                .onAppear {
+                    // Handle pending author search after tab becomes visible
+                    if let authorName = searchCoordinator.consumePendingAuthorSearch() {
+                        searchModel.searchText = authorName
+                        searchScope = .author
+                        performScopedSearch(query: authorName, scope: .author)
                     }
                 }
                 // onChange for search text with scope filtering

@@ -8,6 +8,7 @@ public struct ContentView: View {
     @Environment(\.accessibilityVoiceOverEnabled) var voiceOverEnabled
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @State private var selectedTab: MainTab = .library
+    @State private var searchCoordinator = SearchCoordinator()
 
     // Enrichment progress tracking (no Live Activity required!)
     @State private var isEnriching = false
@@ -29,6 +30,7 @@ public struct ContentView: View {
                 // Search Tab
                 NavigationStack {
                     SearchView()
+                        .environment(searchCoordinator)
                 }
                 .tabItem {
                     Label("Search", systemImage: selectedTab == .search ? "magnifyingglass.circle.fill" : "magnifyingglass")
@@ -280,14 +282,8 @@ public struct ContentView: View {
         case .searchForAuthor:
             if let authorName = notification.userInfo?["authorName"] as? String {
                 selectedTab = .search
-                // Post another notification that SearchView will listen to
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    NotificationCenter.default.post(
-                        name: .performAuthorSearch,
-                        object: nil,
-                        userInfo: ["authorName": authorName]
-                    )
-                }
+                searchCoordinator.setPendingAuthorSearch(authorName)
+                // SearchView will observe the coordinator and trigger search when tab becomes visible
             }
 
         default:
@@ -305,7 +301,6 @@ extension Notification.Name {
     static let enrichmentCompleted = Notification.Name("EnrichmentCompleted")
     static let libraryWasReset = Notification.Name("LibraryWasReset")
     static let searchForAuthor = Notification.Name("SearchForAuthor")
-    static let performAuthorSearch = Notification.Name("PerformAuthorSearch")
 }
 
 // MARK: - Tab Navigation
