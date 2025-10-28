@@ -21,16 +21,18 @@ public struct BookMetadataRow: View {
             .accessibilityLabel(accessibilityText)
     }
 
-    private var accessibilityText: String {
+    internal var accessibilityText: String {
         switch icon {
         case "calendar":
             return "Year Published: \(text)"
-        case "person.2":
+        case "person":
+            return "Author: \(text)"
+        case "building.2":
             return "Publisher: \(text)"
         case "book.pages":
             return "Pages: \(text)"
         default:
-            return text
+            return "Info: \(text)"
         }
     }
 }

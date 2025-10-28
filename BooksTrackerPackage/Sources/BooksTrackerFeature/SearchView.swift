@@ -62,6 +62,7 @@ import UIKit
 public struct SearchView: View {
     @Environment(\.iOS26ThemeStore) private var themeStore
     @Environment(\.modelContext) private var modelContext
+    @Environment(SearchCoordinator.self) private var searchCoordinator
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     // MARK: - State Management
@@ -145,15 +146,13 @@ public struct SearchView: View {
                 .task {
                     await loadInitialData()
                 }
-                .task {
-                    // Listen for author search notifications
-                    for await notification in NotificationCenter.default.notifications(named: .performAuthorSearch) {
-                        if let authorName = notification.userInfo?["authorName"] as? String {
-                            searchModel.searchText = authorName
-                            searchScope = .author
-                            performScopedSearch(query: authorName, scope: .author)
-                        }
-                    }
+                .onAppear {
+                    // Handle pending author search after tab becomes visible
+                    handlePendingAuthorSearch()
+                }
+                .onChange(of: searchCoordinator.pendingAuthorSearch) {
+                    // Handle pending search when set while tab is already visible
+                    handlePendingAuthorSearch()
                 }
                 // onChange for search text with scope filtering
                 .onChange(of: searchModel.searchText) { oldValue, newValue in
@@ -874,6 +873,16 @@ public struct SearchView: View {
 
         // Call backend advanced search endpoint
         searchModel.advancedSearch(criteria: criteria)
+    }
+
+    /// Handle pending author search from cross-tab navigation
+    /// Called by both .onAppear (after tab switch) and .onChange (when already visible)
+    private func handlePendingAuthorSearch() {
+        if let authorName = searchCoordinator.consumePendingAuthorSearch() {
+            searchModel.searchText = authorName
+            searchScope = .author
+            performScopedSearch(query: authorName, scope: .author)
+        }
     }
 
     /// HIG: Pagination support
