@@ -37,7 +37,19 @@ export class UnifiedCacheService {
       return edgeResult;
     }
 
-    // TODO: Add KV tier and API fallback
+    // Tier 2: KV Cache (fast, 15% hit rate)
+    const kvResult = await this.kvCache.get(cacheKey, endpoint);
+    if (kvResult) {
+      // Populate edge cache for next request (async, non-blocking)
+      this.ctx.waitUntil(
+        this.edgeCache.set(cacheKey, kvResult.data, 6 * 60 * 60) // 6h edge TTL
+      );
+
+      this.logMetrics('kv_hit', cacheKey, Date.now() - startTime);
+      return kvResult;
+    }
+
+    // TODO: Add external API fallback
     return { data: null, source: 'MISS', latency: Date.now() - startTime };
   }
 
