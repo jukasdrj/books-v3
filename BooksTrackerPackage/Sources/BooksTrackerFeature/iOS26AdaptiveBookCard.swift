@@ -207,6 +207,10 @@ struct iOS26AdaptiveBookCard: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+
+                if !work.subjectTags.isEmpty {
+                    GenreTagView(genres: work.subjectTags, maxVisible: 2)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -262,6 +266,10 @@ struct iOS26AdaptiveBookCard: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                }
+
+                if !work.subjectTags.isEmpty {
+                    GenreTagView(genres: work.subjectTags, maxVisible: 2)
                 }
 
                 if let userEntry = userEntry {
