@@ -80,4 +80,27 @@ export class KVCacheService {
     if (quality < 0.4) return baseTTL * 0.5;    // Low quality → 0.5x TTL
     return baseTTL; // Medium quality → unchanged
   }
+
+  /**
+   * Store data in KV with smart TTL adjustment
+   * @param {string} cacheKey - Cache key
+   * @param {Object} data - Data to cache
+   * @param {string} endpoint - Endpoint type ('title', 'isbn', 'author')
+   * @param {Object} options - Optional overrides
+   * @returns {Promise<void>}
+   */
+  async set(cacheKey, data, endpoint, options = {}) {
+    try {
+      const baseTTL = options.ttl || this.ttls[endpoint] || this.ttls.title;
+
+      // Smart TTL adjustment based on data quality
+      const quality = this.assessDataQuality(data);
+      const adjustedTTL = this.adjustTTLByQuality(baseTTL, quality);
+
+      await setCached(cacheKey, data, adjustedTTL, this.env);
+    } catch (error) {
+      console.error(`KV cache set failed for ${cacheKey}:`, error);
+      // Don't throw - cache failures shouldn't break user requests
+    }
+  }
 }

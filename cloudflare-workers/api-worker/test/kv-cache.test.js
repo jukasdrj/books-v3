@@ -1,5 +1,5 @@
 // test/kv-cache.test.js
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { KVCacheService } from '../src/services/kv-cache.js';
 
 describe('KVCacheService', () => {
@@ -70,5 +70,31 @@ describe('KVCacheService', () => {
     const baseTTL = 3600; // 1 hour
     const adjusted = service.adjustTTLByQuality(baseTTL, 0.3);
     expect(adjusted).toBe(1800); // 0.5x for quality < 0.4
+  });
+
+  test('set uses smart TTL for high-quality data', async () => {
+    const cacheKey = 'search:title:q=test';
+    const highQualityData = {
+      items: [
+        {
+          volumeInfo: {
+            industryIdentifiers: [{ type: 'ISBN_13', identifier: '123' }],
+            imageLinks: { thumbnail: 'http://example.com/cover.jpg' },
+            description: 'A'.repeat(150)
+          }
+        }
+      ]
+    };
+
+    // Mock setCached to capture TTL
+    let capturedTTL;
+    mockEnv.CACHE.put = vi.fn(async (key, value, options) => {
+      capturedTTL = options.expirationTtl;
+    });
+
+    await service.set(cacheKey, highQualityData, 'title');
+
+    // Base TTL for title is 24h (86400s), high quality doubles it
+    expect(capturedTTL).toBe(86400 * 2); // 48 hours
   });
 });
