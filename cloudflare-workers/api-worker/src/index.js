@@ -6,6 +6,7 @@ import * as bookSearch from './handlers/book-search.js';
 import { handleAdvancedSearch } from './handlers/search-handlers.js';
 import { handleBatchScan } from './handlers/batch-scan-handler.js';
 import { handleCSVImport } from './handlers/csv-import.js';
+import { handleBatchEnrichment } from './handlers/batch-enrichment.js';
 
 // Export the Durable Object class for Cloudflare Workers runtime
 export { ProgressWebSocketDO };
@@ -183,6 +184,11 @@ export default {
     // POST /api/import/csv-gemini - Gemini-powered CSV import with WebSocket progress
     if (url.pathname === '/api/import/csv-gemini' && request.method === 'POST') {
       return handleCSVImport(request, { ...env, ctx });
+    }
+
+    // Batch enrichment endpoint (POST /api/enrichment/batch)
+    if (url.pathname === '/api/enrichment/batch' && request.method === 'POST') {
+      return handleBatchEnrichment(request, env);
     }
 
     // POST /api/scan-bookshelf - AI bookshelf scanner with WebSocket progress
