@@ -6,6 +6,27 @@ All notable changes, achievements, and debugging victories for this project.
 
 ## [Unreleased]
 
+### Documentation 📚 - PRD Updates (January 27, 2025)
+
+**Comprehensive PRD refresh to match current codebase**
+
+**New PRDs Created:**
+- `docs/product/Gemini-CSV-Import-PRD.md` - Zero-config AI CSV import (v3.1.0+)
+- `docs/product/Diversity-Insights-PRD.md` - Cultural diversity analytics (v3.1.0+)
+
+**Archived:**
+- `docs/archive/product/CSV-Import-PRD.md` - Legacy manual CSV import (removed v3.3.0, replaced by Gemini AI)
+
+**Updated:**
+- `docs/README.md` - Added new PRD references in Available PRDs section
+- All PRDs now accurately reflect shipped features vs outdated documentation
+
+**PRD Coverage Status:**
+- ✅ Bookshelf Scanner PRD (Build 46+) - Current
+- ✅ Review Queue PRD (Build 49+) - Current
+- ✅ Gemini CSV Import PRD (v3.1.0+) - **NEW**
+- ✅ Diversity Insights PRD (v3.1.0+) - **NEW**
+
 ---
 
 ## 🎉 Version 3.0.1 - The "Don't Kill Me iOS!" Release (October 27, 2025)

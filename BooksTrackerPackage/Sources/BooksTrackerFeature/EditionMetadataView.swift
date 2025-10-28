@@ -71,18 +71,18 @@ struct EditionMetadataView: View {
                 }
             }
 
-            // Publisher Info
-            if !edition.publisherInfo.isEmpty {
-                Text(edition.publisherInfo)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            // Publisher and Year
+            if let publisher = edition.publisher, !publisher.isEmpty {
+                BookMetadataRow(icon: "building.2", text: publisher, style: .secondary)
+            }
+
+            if let year = edition.publicationDate?.prefix(4) {
+                BookMetadataRow(icon: "calendar", text: String(year), style: .secondary)
             }
 
             // Page Count
-            if let pageCountString = edition.pageCountString {
-                Text(pageCountString)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            if let pageCount = edition.pageCount, pageCount > 0 {
+                BookMetadataRow(icon: "book.pages", text: "\(pageCount) pages", style: .tertiary)
             }
 
             // Edition Format
@@ -93,6 +93,18 @@ struct EditionMetadataView: View {
                 Text(edition.format.displayName)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+
+            // Genres
+            if !work.subjectTags.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Genres")
+                        .font(.caption.bold())
+                        .foregroundStyle(.primary)
+
+                    GenreTagView(genres: work.subjectTags, maxVisible: 5)
+                }
+                .padding(.top, 4)
             }
         }
     }

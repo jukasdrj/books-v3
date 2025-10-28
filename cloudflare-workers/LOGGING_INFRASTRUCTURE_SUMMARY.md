@@ -2,11 +2,11 @@
 
 ## 📋 Overview
 
-Comprehensive logging and monitoring infrastructure for the BooksTracker Cloudflare Workers ecosystem, designed to identify performance bottlenecks, optimize cache efficiency, and debug specific issues like the Stephen King cache miss problem.
+Comprehensive logging and monitoring infrastructure for the BooksTracker Cloudflare Worker (monolith architecture), designed to identify performance bottlenecks, optimize cache efficiency, and debug production issues.
 
-**Status:** ✅ Phase A & B Complete (October 23, 2025)
-- **Phase A:** DEBUG logging enabled across all 6 workers
-- **Phase B:** StructuredLogger integrated in 5 workers with Analytics Engine
+**Status:** ✅ Complete (October 23, 2025) - Consolidated into api-worker monolith
+- **Current:** DEBUG logging enabled in api-worker
+- **Analytics Engine:** Integrated for performance metrics
 
 ## 🎯 Key Objectives
 
@@ -16,15 +16,15 @@ Comprehensive logging and monitoring infrastructure for the BooksTracker Cloudfl
 - **Performance Monitoring**: Real-time tracking of cache hit rates, response times, errors (Phase B 🔄)
 - **Cost Optimization**: Monitor API usage and caching efficiency for maximum ROI
 
-## ✅ Phase B Complete (October 23, 2025)
+## ✅ Monolith Architecture (October 23, 2025)
 
-**StructuredLogger Integration:**
-- `books-api-proxy`: ✅ Performance timing, logger initialized
-- `bookshelf-ai-worker`: ✅ AI processing metrics, provider health
-- `enrichment-worker`: ✅ Batch enrichment timing
-- `external-apis-worker`: ✅ Google Books API health monitoring
-- `personal-library-cache-warmer`: ✅ Cron job performance tracking
-- `progress-websocket-durable-object`: Skipped (Durable Object, different pattern)
+**Consolidated into api-worker:**
+All logging and analytics previously distributed across 5 workers is now unified in the single api-worker monolith:
+- Performance timing (search, enrichment, AI scanning)
+- AI processing metrics and provider health
+- Batch enrichment timing
+- External API health monitoring (Google Books, OpenLibrary, ISBNdb)
+- WebSocket Durable Object integrated
 
 **Analytics Engine Flowing:**
 ```bash
@@ -37,15 +37,15 @@ Comprehensive logging and monitoring infrastructure for the BooksTracker Cloudfl
 - 🌐 `PROVIDER [worker-name] ✅ SUCCESS google_books/search: 456ms` - Provider health
 - 📊 `CACHE [worker-name] ✅ HIT get key (12ms, 4096b)` - Cache operations (future)
 
-## ✅ Phase A Complete (October 23, 2025)
+## ✅ Configuration (Current)
 
-**DEBUG Logging Enabled:**
-- `books-api-proxy`: LOG_LEVEL = "DEBUG", rate limit tracking enabled
-- `bookshelf-ai-worker`: LOG_LEVEL = "DEBUG"
-- `enrichment-worker`: LOG_LEVEL = "DEBUG"
-- `external-apis-worker`: LOG_LEVEL = "DEBUG"
-- `personal-library-cache-warmer`: LOG_LEVEL = "DEBUG"
-- `progress-websocket-durable-object`: LOG_LEVEL = "DEBUG" (already set)
+**api-worker Logging Settings:**
+- `LOG_LEVEL = "DEBUG"` - Maximum verbosity for production debugging
+- `STRUCTURED_LOGGING = "true"` - Consistent log format across all services
+- `ENABLE_PERFORMANCE_LOGGING = "true"` - Track response times
+- `ENABLE_CACHE_ANALYTICS = "true"` - Monitor cache hit/miss rates
+- `ENABLE_PROVIDER_METRICS = "true"` - Track external API health
+- `ENABLE_RATE_LIMIT_TRACKING = "true"` - Monitor rate limiting behavior
 
 **Logpush to R2:**
 Configure manually in Cloudflare Dashboard (Analytics & Logs > Logpush):

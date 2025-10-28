@@ -4,27 +4,53 @@
  */
 
 /**
- * Get cached data from KV store
+ * Get cached data from KV store with metadata
  * @param {string} key - Cache key
  * @param {Object} env - Worker environment bindings
- * @returns {Promise<Object|null>} Cached data or null if not found
+ * @returns {Promise<Object|null>} Cached data with metadata or null if not found
  */
 export async function getCached(key, env) {
   try {
     const cached = await env.CACHE.get(key, 'json');
     if (cached) {
       console.log(`Cache HIT: ${key}`);
-      return cached;
+
+      // Handle both old format (direct data) and new format (with metadata)
+      if (cached.data && cached.cachedAt) {
+        // New format with metadata
+        const age = Math.floor((Date.now() - cached.cachedAt) / 1000); // Age in seconds
+        const ttl = cached.ttl || 0;
+
+        return {
+          data: cached.data,
+          cacheMetadata: {
+            hit: true,
+            age: age,
+            ttl: ttl
+          }
+        };
+      } else {
+        // Old format (direct data) - backward compatibility
+        return {
+          data: cached,
+          cacheMetadata: {
+            hit: true,
+            age: 0,
+            ttl: 0
+          }
+        };
+      }
     }
   } catch (error) {
     console.error('Cache read error:', error);
   }
+
   console.log(`Cache MISS: ${key}`);
   return null;
 }
 
 /**
- * Set cached data in KV store with TTL
+ * Set cached data in KV store with TTL and metadata
  * @param {string} key - Cache key
  * @param {Object} value - Data to cache
  * @param {number} ttl - Time to live in seconds
@@ -33,7 +59,13 @@ export async function getCached(key, env) {
  */
 export async function setCached(key, value, ttl, env) {
   try {
-    await env.CACHE.put(key, JSON.stringify(value), {
+    const cachedWithMeta = {
+      data: value,
+      cachedAt: Date.now(),  // Timestamp for age calculation
+      ttl: ttl                // Original TTL for headers
+    };
+
+    await env.CACHE.put(key, JSON.stringify(cachedWithMeta), {
       expirationTtl: ttl
     });
     console.log(`Cache SET: ${key} (TTL: ${ttl}s)`);

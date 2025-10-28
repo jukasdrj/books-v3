@@ -43,6 +43,7 @@ public actor BookSearchAPIService {
             throw SearchError.invalidURL
         }
 
+        let startTime = Date()
         let (data, response): (Data, URLResponse)
         do {
             (data, response) = try await urlSession.data(from: url)
@@ -58,10 +59,15 @@ public actor BookSearchAPIService {
             throw SearchError.httpError(httpResponse.statusCode)
         }
 
+        let responseTime = Date().timeIntervalSince(startTime) * 1000 // Convert to milliseconds
+
         // Extract performance headers
         let cacheStatus = httpResponse.allHeaderFields["X-Cache"] as? String ?? "MISS"
         let provider = httpResponse.allHeaderFields["X-Provider"] as? String ?? "unknown"
         let cacheHitRate = calculateCacheHitRate(from: cacheStatus)
+
+        // Update cache health metrics (actor-isolated call)
+        await updateCacheMetrics(headers: httpResponse.allHeaderFields, responseTime: responseTime)
 
         // Parse response based on format
         let apiResponse: APISearchResponse
@@ -171,6 +177,7 @@ public actor BookSearchAPIService {
             throw SearchError.invalidURL
         }
 
+        let startTime = Date()
         let (data, response): (Data, URLResponse)
         do {
             (data, response) = try await urlSession.data(from: url)
@@ -186,10 +193,15 @@ public actor BookSearchAPIService {
             throw SearchError.httpError(httpResponse.statusCode)
         }
 
+        let responseTime = Date().timeIntervalSince(startTime) * 1000 // Convert to milliseconds
+
         // Extract performance headers
         let cacheStatus = httpResponse.allHeaderFields["X-Cache"] as? String ?? "MISS"
         let provider = httpResponse.allHeaderFields["X-Provider"] as? String ?? "advanced-search"
         let cacheHitRate = calculateCacheHitRate(from: cacheStatus)
+
+        // Update cache health metrics (actor-isolated call)
+        await updateCacheMetrics(headers: httpResponse.allHeaderFields, responseTime: responseTime)
 
         // Parse response
         let apiResponse: APISearchResponse
@@ -253,6 +265,24 @@ public actor BookSearchAPIService {
             return 1.0
         } else {
             return 0.0
+        }
+    }
+
+    /// Update cache health metrics from HTTP response headers
+    /// - Parameters:
+    ///   - headers: HTTP response headers dictionary
+    ///   - responseTime: Request duration in milliseconds
+    private func updateCacheMetrics(headers: [AnyHashable: Any], responseTime: TimeInterval) async {
+        // Extract values from headers dictionary before crossing actor boundary
+        // to avoid Swift 6 data race warnings
+        let headersCopy: [String: String] = headers.reduce(into: [:]) { result, pair in
+            if let key = pair.key as? String, let value = pair.value as? String {
+                result[key] = value
+            }
+        }
+
+        await MainActor.run {
+            CacheHealthMetrics.shared.update(from: headersCopy, responseTime: responseTime)
         }
     }
 

@@ -154,7 +154,7 @@ struct BookDetailView: View {
 - Accuracy: High (0.7-0.95 confidence scores)
 - Optimized for ISBN detection and small text on book spines
 
-**Note:** Cloudflare Workers AI models (Llama, LLaVA, UForm) removed due to small context windows (128K-8K tokens) that couldn't handle typical bookshelf images. See `cloudflare-workers/GEMINI_OPTIMIZATION.md` and [GitHub Issue #134](https://github.com/jukasdrj/books-tracker-v1/issues/134) for details.
+**Note:** Cloudflare Workers AI models (Llama, LLaVA, UForm) removed due to small context windows (128K-8K tokens) that couldn't handle typical bookshelf images. See [GitHub Issue #134](https://github.com/jukasdrj/books-tracker-v1/issues/134) for details.
 
 **Architecture:**
 - Single monolith worker with direct function calls (no RPC service bindings)
