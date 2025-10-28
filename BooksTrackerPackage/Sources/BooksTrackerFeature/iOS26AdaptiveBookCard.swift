@@ -150,25 +150,7 @@ struct iOS26AdaptiveBookCard: View {
                     .font(.subheadline.bold())
                     .lineLimit(2)
 
-                Button {
-                    NotificationCenter.default.post(
-                        name: .searchForAuthor,
-                        object: nil,
-                        userInfo: ["authorName": work.primaryAuthorName]
-                    )
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(work.authorNames)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-
-                        Image(systemName: "chevron.forward")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-                .buttonStyle(.plain)
+                authorNavigationButton(font: .caption, lineLimit: 1)
 
                 if let userEntry = userEntry {
                     statusIndicator(for: userEntry.readingStatus, style: .standard)
@@ -200,25 +182,7 @@ struct iOS26AdaptiveBookCard: View {
                     .font(.headline.bold())
                     .lineLimit(2)
 
-                Button {
-                    NotificationCenter.default.post(
-                        name: .searchForAuthor,
-                        object: nil,
-                        userInfo: ["authorName": work.primaryAuthorName]
-                    )
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(work.authorNames)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-
-                        Image(systemName: "chevron.forward")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-                .buttonStyle(.plain)
+                authorNavigationButton(font: .subheadline, lineLimit: 1)
 
                 if let year = work.firstPublicationYear {
                     BookMetadataRow(icon: "calendar", text: "\(year)", style: .secondary)
@@ -281,25 +245,7 @@ struct iOS26AdaptiveBookCard: View {
                     .font(.title3.bold())
                     .lineLimit(3)
 
-                Button {
-                    NotificationCenter.default.post(
-                        name: .searchForAuthor,
-                        object: nil,
-                        userInfo: ["authorName": work.primaryAuthorName]
-                    )
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(work.authorNames)
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-
-                        Image(systemName: "chevron.forward")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-                .buttonStyle(.plain)
+                authorNavigationButton(font: .body, lineLimit: 2)
 
                 HStack(spacing: 12) {
                     if let year = work.firstPublicationYear {
@@ -437,6 +383,33 @@ struct iOS26AdaptiveBookCard: View {
             .progressViewStyle(LinearProgressViewStyle(tint: .white))
             .scaleEffect(y: 1.5)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 3))
+    }
+
+    /// Reusable author navigation button with consistent behavior
+    /// - Parameters:
+    ///   - font: Text font for author name
+    ///   - lineLimit: Max lines for author name
+    @ViewBuilder
+    private func authorNavigationButton(font: Font, lineLimit: Int) -> some View {
+        Button {
+            NotificationCenter.default.post(
+                name: .searchForAuthor,
+                object: nil,
+                userInfo: ["authorName": work.primaryAuthorName]
+            )
+        } label: {
+            HStack(spacing: 4) {
+                Text(work.authorNames)
+                    .font(font)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(lineLimit)
+
+                Image(systemName: "chevron.forward")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Status Indicators
