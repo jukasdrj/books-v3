@@ -1,0 +1,49 @@
+
+> api-worker@1.0.0 deploy
+> wrangler deploy
+
+
+ ⛅️ wrangler 4.45.0 (update available 4.45.1)
+─────────────────────────────────────────────
+Total Upload: 129.10 KiB / gzip: 27.11 KiB
+Worker Startup Time: 11 ms
+Your Worker has access to the following bindings:
+Binding                                                                                      Resource                      
+env.PROGRESS_WEBSOCKET_DO (ProgressWebSocketDO)                                              Durable Object                
+env.CACHE (b9cade63b6db48fd80c109a013f38fdb)                                                 KV Namespace                  
+env.KV_CACHE (b9cade63b6db48fd80c109a013f38fdb)                                              KV Namespace                  
+env.API_CACHE_COLD (personal-library-data)                                                   R2 Bucket                     
+env.LIBRARY_DATA (personal-library-data)                                                     R2 Bucket                     
+env.BOOKSHELF_IMAGES (bookshelf-images)                                                      R2 Bucket                     
+env.GOOGLE_BOOKS_API_KEY (b0562ac16fde468c8af12717a6c88400/Google_books_hardoooe)            Secrets Store Secret          
+env.ISBNDB_API_KEY (b0562ac16fde468c8af12717a6c88400/ISBNDB_API_KEY)                         Secrets Store Secret          
+env.GEMINI_API_KEY (b0562ac16fde468c8af12717a6c88400/google_aistudio_key)                    Secrets Store Secret          
+env.PERFORMANCE_ANALYTICS (books_api_performance)                                            Analytics Engine Dataset      
+env.CACHE_ANALYTICS (books_api_cache_metrics)                                                Analytics Engine Dataset      
+env.PROVIDER_ANALYTICS (books_api_provider_performance)                                      Analytics Engine Dataset      
+env.AI_ANALYTICS (bookshelf_ai_performance)                                                  Analytics Engine Dataset      
+env.AI                                                                                       AI                            
+env.CACHE_HOT_TTL ("7200")                                                                   Environment Variable          
+env.CACHE_COLD_TTL ("1209600")                                                               Environment Variable          
+env.MAX_RESULTS_DEFAULT ("40")                                                               Environment Variable          
+env.RATE_LIMIT_MS ("50")                                                                     Environment Variable          
+env.CONCURRENCY_LIMIT ("10")                                                                 Environment Variable          
+env.AGGRESSIVE_CACHING ("true")                                                              Environment Variable          
+env.LOG_LEVEL ("DEBUG")                                                                      Environment Variable          
+env.ENABLE_PERFORMANCE_LOGGING ("true")                                                      Environment Variable          
+env.ENABLE_CACHE_ANALYTICS ("true")                                                          Environment Variable          
+env.ENABLE_PROVIDER_METRICS ("true")                                                         Environment Variable          
+env.ENABLE_RATE_LIMIT_TRACKING ("true")                                                      Environment Variable          
+env.STRUCTURED_LOGGING ("true")                                                              Environment Variable          
+env.OPENLIBRARY_BASE_URL ("https://openlibrary.org")                                         Environment Variable          
+env.USER_AGENT ("BooksTracker/1.0 (nerd@ooheynerds.com...")                                  Environment Variable          
+env.AI_PROVIDER ("gemini")                                                                   Environment Variable          
+env.MAX_IMAGE_SIZE_MB ("10")                                                                 Environment Variable          
+env.REQUEST_TIMEOUT_MS ("50000")                                                             Environment Variable          
+env.CONFIDENCE_THRESHOLD ("0.7")                                                             Environment Variable          
+env.MAX_SCAN_FILE_SIZE ("10485760")                                                          Environment Variable          
+
+Uploaded api-worker (7.89 sec)
+Deployed api-worker triggers (1.65 sec)
+  https://api-worker.jukasdrj.workers.dev
+Current Version ID: 8b3b4c2e-99b6-474c-91e7-5519253288ed

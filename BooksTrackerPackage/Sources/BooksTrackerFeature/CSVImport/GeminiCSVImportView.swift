@@ -442,9 +442,13 @@ public struct GeminiCSVImportView: View {
                 print("📚 Enqueueing \(savedWorkIDs.count) books for enrichment")
                 EnrichmentQueue.shared.enqueueBatch(savedWorkIDs)
 
-                // Start enrichment processing in background
-                EnrichmentQueue.shared.startProcessing(in: modelContext) { completed, total, currentTitle in
-                    print("📚 Enriching (\(completed)/\(total)): \(currentTitle)")
+                // ✅ Start enrichment DETACHED from MainActor
+                // This prevents blocking the UI while enrichment processes
+                // See docs/guides/ASYNC_PATTERNS.md for detailed explanation
+                Task.detached { @MainActor in
+                    EnrichmentQueue.shared.startProcessing(in: modelContext) { completed, total, currentTitle in
+                        print("📚 Enriching (\(completed)/\(total)): \(currentTitle)")
+                    }
                 }
             }
 
