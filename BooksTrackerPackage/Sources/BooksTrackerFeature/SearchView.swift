@@ -148,19 +148,11 @@ public struct SearchView: View {
                 }
                 .onAppear {
                     // Handle pending author search after tab becomes visible
-                    if let authorName = searchCoordinator.consumePendingAuthorSearch() {
-                        searchModel.searchText = authorName
-                        searchScope = .author
-                        performScopedSearch(query: authorName, scope: .author)
-                    }
+                    handlePendingAuthorSearch()
                 }
-                .onChange(of: searchCoordinator.pendingAuthorSearch) { oldValue, newValue in
+                .onChange(of: searchCoordinator.pendingAuthorSearch) {
                     // Handle pending search when set while tab is already visible
-                    if let authorName = searchCoordinator.consumePendingAuthorSearch() {
-                        searchModel.searchText = authorName
-                        searchScope = .author
-                        performScopedSearch(query: authorName, scope: .author)
-                    }
+                    handlePendingAuthorSearch()
                 }
                 // onChange for search text with scope filtering
                 .onChange(of: searchModel.searchText) { oldValue, newValue in
@@ -881,6 +873,16 @@ public struct SearchView: View {
 
         // Call backend advanced search endpoint
         searchModel.advancedSearch(criteria: criteria)
+    }
+
+    /// Handle pending author search from cross-tab navigation
+    /// Called by both .onAppear (after tab switch) and .onChange (when already visible)
+    private func handlePendingAuthorSearch() {
+        if let authorName = searchCoordinator.consumePendingAuthorSearch() {
+            searchModel.searchText = authorName
+            searchScope = .author
+            performScopedSearch(query: authorName, scope: .author)
+        }
     }
 
     /// HIG: Pagination support
