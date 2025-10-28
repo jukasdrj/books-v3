@@ -188,7 +188,7 @@ export default {
 
     // Batch enrichment endpoint (POST /api/enrichment/batch)
     if (url.pathname === '/api/enrichment/batch' && request.method === 'POST') {
-      return handleBatchEnrichment(request, env);
+      return handleBatchEnrichment(request, { ...env, ctx });
     }
 
     // POST /api/scan-bookshelf - AI bookshelf scanner with WebSocket progress

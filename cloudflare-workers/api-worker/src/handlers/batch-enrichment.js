@@ -53,8 +53,9 @@ async function processBatchEnrichment(books, doStub, env) {
     const enrichedBooks = await enrichBooksParallel(
       books,
       async (book) => {
-        // Enrichment logic here (placeholder for now)
-        // Future: Call external APIs (Google Books, OpenLibrary)
+        // TODO: Implement actual enrichment logic when endpoint is activated
+        // Should call external APIs (Google Books, OpenLibrary) similar to
+        // the enrichment service used by iOS EnrichmentQueue
         return book;
       },
       async (completed, total, title, hasError) => {
