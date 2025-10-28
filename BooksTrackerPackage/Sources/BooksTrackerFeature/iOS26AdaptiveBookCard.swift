@@ -150,10 +150,19 @@ struct iOS26AdaptiveBookCard: View {
                     .font(.subheadline.bold())
                     .lineLimit(2)
 
-                Text(work.authorNames)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                NavigationLink(value: AuthorSearchDestination(authorName: work.primaryAuthorName)) {
+                    HStack(spacing: 4) {
+                        Text(work.authorNames)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+
+                        Image(systemName: "chevron.forward")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .buttonStyle(.plain)
 
                 if let userEntry = userEntry {
                     statusIndicator(for: userEntry.readingStatus, style: .standard)
@@ -185,10 +194,19 @@ struct iOS26AdaptiveBookCard: View {
                     .font(.headline.bold())
                     .lineLimit(2)
 
-                Text(work.authorNames)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                NavigationLink(value: AuthorSearchDestination(authorName: work.primaryAuthorName)) {
+                    HStack(spacing: 4) {
+                        Text(work.authorNames)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+
+                        Image(systemName: "chevron.forward")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .buttonStyle(.plain)
 
                 if let year = work.firstPublicationYear {
                     BookMetadataRow(icon: "calendar", text: "\(year)", style: .secondary)
@@ -251,10 +269,19 @@ struct iOS26AdaptiveBookCard: View {
                     .font(.title3.bold())
                     .lineLimit(3)
 
-                Text(work.authorNames)
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
+                NavigationLink(value: AuthorSearchDestination(authorName: work.primaryAuthorName)) {
+                    HStack(spacing: 4) {
+                        Text(work.authorNames)
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+
+                        Image(systemName: "chevron.forward")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .buttonStyle(.plain)
 
                 HStack(spacing: 12) {
                     if let year = work.firstPublicationYear {
@@ -560,6 +587,12 @@ enum StatusIndicatorStyle {
     case standard
     case detailed
     case premium
+}
+
+// MARK: - Navigation Destinations
+
+struct AuthorSearchDestination: Hashable {
+    let authorName: String
 }
 
 // MARK: - Preview
