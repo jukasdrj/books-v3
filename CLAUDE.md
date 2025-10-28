@@ -332,14 +332,16 @@ public class CSVImportService {
 **Gemini CSV Import:** AI-powered parsing with zero configuration
 - Gemini 2.0 Flash API for intelligent CSV parsing
 - No column mapping needed (auto-detects title, author, ISBN)
-- Two-stage pipeline: Parse (5-50%) → Enrich (50-100%)
-- Real-time WebSocket progress tracking
+- **Unified Enrichment Pipeline:** Books saved with minimal metadata, enriched in background via `EnrichmentQueue`
+  - Parse CSV (5-15s) → Save to SwiftData (<1s) → Background enrichment (1-5min)
+  - Books appear instantly in library (12-17s total vs 60-120s with old inline enrichment)
+  - Consistent behavior across all import sources (CSV, bookshelf scan, manual add)
+- Real-time WebSocket progress tracking (parsing phase only)
 - 10MB file size limit, RFC 4180 compliant
 - Versioned caching with SHA-256 content hashing
-- Parallel enrichment (10 concurrent requests)
 - Settings → Library Management → "AI-Powered CSV Import"
 - Test file: `docs/testImages/goodreads_library_export.csv`
-- **Status:** ✅ Production ready (v3.1.0)
+- **Status:** ✅ Production ready (v3.1.0+)
 - See `docs/features/GEMINI_CSV_IMPORT.md` for documentation
 
 **Legacy CSV Import:** Removed in v3.3.0 (October 2025)
