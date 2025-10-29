@@ -36,32 +36,34 @@ export class EdgeCacheService {
   }
 
   /**
-   * Store data in edge cache with TTL
-   * @param {string} cacheKey - Unique cache identifier
-   * @param {Object} data - Data to cache (must be JSON-serializable)
-   * @param {number} ttl - Time to live in seconds
+   * Set data in Edge Cache
+   * @param {string} cacheKey - Cache key
+   * @param {Object} data - Data to cache
+   * @param {number} ttl - TTL in seconds
    * @returns {Promise<void>}
    */
   async set(cacheKey, data, ttl) {
     try {
       const cache = caches.default;
-      const request = new Request(`https://cache.internal/${cacheKey}`, {
-        method: 'GET'
-      });
+      const url = `https://cache.internal/${cacheKey}`;
 
-      const response = new Response(JSON.stringify(data), {
+      const response = new Response(JSON.stringify({
+        data: data,
+        cachedAt: Date.now(),
+        ttl: ttl,
+        source: 'EDGE'
+      }), {
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': `public, max-age=${ttl}, s-maxage=${ttl}`,
-          'X-Cache-Source': 'edge',
-          'X-Cache-TTL': ttl.toString()
+          'Cache-Control': `public, max-age=${ttl}`
         }
       });
 
-      await cache.put(request, response);
+      await cache.put(url, response);
+      console.log(`Edge cache SET: ${cacheKey}`);
     } catch (error) {
-      console.error(`Edge cache set failed for ${cacheKey}:`, error);
-      // Don't throw - cache failures shouldn't break user requests
+      console.error(`Edge cache set error for ${cacheKey}:`, error);
+      throw error;
     }
   }
 }

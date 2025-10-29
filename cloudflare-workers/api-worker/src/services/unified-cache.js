@@ -69,6 +69,59 @@ export class UnifiedCacheService {
   }
 
   /**
+   * Set data in all cache tiers (Edge → KV → R2 index)
+   * @param {string} cacheKey - Cache key
+   * @param {Object} data - Data to cache
+   * @param {string} endpoint - Endpoint type ('title', 'isbn', 'author')
+   * @param {number} ttl - TTL in seconds (default: 6h)
+   * @returns {Promise<void>}
+   */
+  async set(cacheKey, data, endpoint, ttl = 21600) {
+    const startTime = Date.now();
+
+    try {
+      // Write to all three tiers in parallel
+      await Promise.all([
+        this.edgeCache.set(cacheKey, data, ttl),           // Tier 1: Edge
+        this.kvCache.set(cacheKey, data, endpoint, ttl),   // Tier 2: KV
+        this.createColdIndex(cacheKey, data, endpoint)     // Tier 3: R2 index
+      ]);
+
+      this.logMetrics('cache_set', cacheKey, Date.now() - startTime);
+    } catch (error) {
+      console.error(`Failed to set cache for ${cacheKey}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create R2 cold storage index for future rehydration
+   * @param {string} cacheKey - Original cache key
+   * @param {Object} data - Cached data
+   * @param {string} endpoint - Endpoint type
+   */
+  async createColdIndex(cacheKey, data, endpoint) {
+    try {
+      const indexKey = `cold-index:${cacheKey}`;
+      const indexData = {
+        r2Key: `cold-cache/${new Date().toISOString().split('T')[0]}/${cacheKey}`,
+        createdAt: Date.now(),
+        endpoint: endpoint,
+        size: JSON.stringify(data).length
+      };
+
+      await this.env.CACHE.put(indexKey, JSON.stringify(indexData), {
+        expirationTtl: 90 * 24 * 60 * 60 // 90 days
+      });
+
+      console.log(`Created cold index for ${cacheKey}`);
+    } catch (error) {
+      console.error(`Failed to create cold index for ${cacheKey}:`, error);
+      // Don't throw - cold indexing is optional
+    }
+  }
+
+  /**
    * Rehydrate archived data from R2 to KV and Edge
    *
    * @param {string} cacheKey - Original cache key

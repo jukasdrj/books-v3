@@ -82,25 +82,31 @@ export class KVCacheService {
   }
 
   /**
-   * Store data in KV with smart TTL adjustment
+   * Set data in KV Cache
    * @param {string} cacheKey - Cache key
    * @param {Object} data - Data to cache
-   * @param {string} endpoint - Endpoint type ('title', 'isbn', 'author')
-   * @param {Object} options - Optional overrides
+   * @param {string} endpoint - Endpoint type
+   * @param {number} ttl - TTL in seconds
    * @returns {Promise<void>}
    */
-  async set(cacheKey, data, endpoint, options = {}) {
+  async set(cacheKey, data, endpoint, ttl) {
     try {
-      const baseTTL = options.ttl || this.ttls[endpoint] || this.ttls.title;
+      const cacheData = {
+        data: data,
+        cachedAt: Date.now(),
+        ttl: ttl,
+        endpoint: endpoint,
+        source: 'KV'
+      };
 
-      // Smart TTL adjustment based on data quality
-      const quality = this.assessDataQuality(data);
-      const adjustedTTL = this.adjustTTLByQuality(baseTTL, quality);
+      await this.env.CACHE.put(cacheKey, JSON.stringify(cacheData), {
+        expirationTtl: ttl
+      });
 
-      await setCached(cacheKey, data, adjustedTTL, this.env);
+      console.log(`KV cache SET: ${cacheKey} (TTL: ${ttl}s)`);
     } catch (error) {
-      console.error(`KV cache set failed for ${cacheKey}:`, error);
-      // Don't throw - cache failures shouldn't break user requests
+      console.error(`KV cache set error for ${cacheKey}:`, error);
+      throw error;
     }
   }
 }
