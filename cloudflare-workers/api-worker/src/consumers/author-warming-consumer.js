@@ -1,15 +1,15 @@
-import { searchByTitle } from '../handlers/book-search.js';
-import { searchByAuthor } from '../handlers/author-search.js';
+import { getOpenLibraryAuthorWorks } from '../services/external-apis.js';
 import { generateCacheKey } from '../utils/cache.js';
 import { UnifiedCacheService } from '../services/unified-cache.js';
 
 /**
- * Author Warming Consumer - Processes queued authors with hierarchical warming
+ * Author Warming Consumer - Processes queued authors
  *
- * Flow:
- * 1. Warm author bibliography (searchByAuthor) → Cache author page
- * 2. Extract titles from author's works
- * 3. Warm each title (searchByTitle) → Cache title searches
+ * Strategy: Fetch author works from OpenLibrary and cache them using
+ * UnifiedCacheService to populate all three tiers (Edge, KV, R2).
+ *
+ * Note: Does NOT warm individual title searches (would hit subrequest limits).
+ * Focuses on caching author bibliographies with proper tier distribution.
  *
  * @param {Object} batch - Batch of queue messages
  * @param {Object} env - Worker environment bindings
@@ -35,23 +35,20 @@ export async function processAuthorBatch(batch, env, ctx) {
 
       console.log(`\n=== Warming author: ${author} ===`);
 
-      // 2. STEP 1: Warm author bibliography
-      console.log(`Step 1: Fetching author works for "${author}"...`);
-      const authorResult = await searchByAuthor(author, {
-        limit: 100,
-        offset: 0,
-        sortBy: 'publicationYear'
-      }, env, ctx);
+      // 2. Fetch author's works from OpenLibrary
+      const searchResult = await getOpenLibraryAuthorWorks(author, env);
 
-      if (!authorResult.success || !authorResult.works || authorResult.works.length === 0) {
+      if (!searchResult || !searchResult.success || !searchResult.works) {
         console.warn(`No works found for ${author}, skipping`);
         message.ack();
         continue;
       }
 
-      console.log(`Found ${authorResult.works.length} works for ${author}`);
+      const works = searchResult.works;
+      console.log(`Found ${works.length} works for ${author}`);
 
-      // Cache author search result
+      // 3. Cache author search result using UnifiedCacheService
+      // This populates all three tiers: Edge, KV, and R2 index
       const authorCacheKey = generateCacheKey('search:author', {
         author: author.toLowerCase(),
         limit: 100,
@@ -59,72 +56,95 @@ export async function processAuthorBatch(batch, env, ctx) {
         sortBy: 'publicationYear'
       });
 
-      await unifiedCache.set(authorCacheKey, authorResult, 'author', 21600); // 6h TTL
-      console.log(`✅ Cached author "${author}" (key: ${authorCacheKey})`);
+      await unifiedCache.set(
+        authorCacheKey,
+        {
+          success: true,
+          works: works,
+          author: author,
+          totalWorks: works.length,
+          cached: true,
+          cacheSource: 'warming'
+        },
+        'author',
+        21600 // 6h TTL
+      );
 
-      // 3. STEP 2: Extract titles and warm each one
-      console.log(`Step 2: Warming ${authorResult.works.length} titles...`);
-      let titlesWarmed = 0;
-      let titlesSkipped = 0;
+      console.log(`✅ Cached author "${author}" with ${works.length} works`);
+      console.log(`   Cache key: ${authorCacheKey}`);
+      console.log(`   Tiers populated: Edge (6h), KV (6h), R2 index (90d)`);
 
-      for (const work of authorResult.works) {
+      // 4. Cache individual work titles for basic title searches
+      // Uses minimal data to avoid subrequest limits
+      let titlesCached = 0;
+      for (const work of works) {
+        if (!work.title) continue;
+
         try {
-          if (!work.title) {
-            titlesSkipped++;
-            continue;
-          }
-
-          // Search by title to get full orchestrated data (Google + OpenLibrary)
-          const titleResult = await searchByTitle(work.title, {
+          // Generate title cache key matching search endpoint format
+          const titleCacheKey = generateCacheKey('search:title', {
+            title: work.title.toLowerCase(),
             maxResults: 20
-          }, env, ctx);
+          });
 
-          if (titleResult && titleResult.items && titleResult.items.length > 0) {
-            const titleCacheKey = generateCacheKey('search:title', {
-              title: work.title.toLowerCase(),
-              maxResults: 20
-            });
+          // Cache minimal work data (just OpenLibrary, no Google Books)
+          // This provides SOME cache hits for title searches, though not as rich
+          await unifiedCache.set(
+            titleCacheKey,
+            {
+              kind: 'books#volumes',
+              totalItems: 1,
+              items: [{
+                volumeInfo: {
+                  title: work.title,
+                  authors: [author],
+                  publishedDate: work.first_publish_year?.toString(),
+                  description: work.subtitle || '',
+                  industryIdentifiers: work.isbn ? [{
+                    type: 'ISBN_13',
+                    identifier: work.isbn[0]
+                  }] : []
+                },
+                searchInfo: {
+                  textSnippet: `OpenLibrary work by ${author}`
+                }
+              }],
+              cached: true,
+              cacheSource: 'warming',
+              provider: 'openlibrary-minimal'
+            },
+            'title',
+            21600 // 6h TTL
+          );
 
-            await unifiedCache.set(titleCacheKey, titleResult, 'title', 21600); // 6h TTL
-            titlesWarmed++;
-
-            if (titlesWarmed % 10 === 0) {
-              console.log(`  Progress: ${titlesWarmed}/${authorResult.works.length} titles warmed`);
-            }
-          } else {
-            titlesSkipped++;
-          }
-
-          // Rate limiting: Small delay between title searches
-          await sleep(100); // 100ms between titles
+          titlesCached++;
 
         } catch (titleError) {
-          console.error(`Failed to warm title "${work.title}":`, titleError);
-          titlesSkipped++;
-          // Continue with next title (don't fail entire batch)
+          console.error(`Failed to cache title "${work.title}":`, titleError);
+          // Continue with next title
         }
       }
 
-      console.log(`✅ Warmed ${titlesWarmed} titles for author "${author}" (${titlesSkipped} skipped)`);
+      console.log(`✅ Cached ${titlesCached} individual titles from author's works`);
 
-      // 4. Mark author as processed (90-day TTL)
+      // 5. Mark author as processed (90-day TTL)
       await env.CACHE.put(
         processedKey,
         JSON.stringify({
-          worksCount: authorResult.works.length,
-          titlesWarmed: titlesWarmed,
-          titlesSkipped: titlesSkipped,
+          worksCount: works.length,
+          titlesCached: titlesCached,
           lastWarmed: Date.now(),
-          jobId: jobId
+          jobId: jobId,
+          strategy: 'openlibrary-minimal'
         }),
         { expirationTtl: 90 * 24 * 60 * 60 } // 90 days
       );
 
-      // 5. Analytics
+      // 6. Analytics
       if (env.CACHE_ANALYTICS) {
         await env.CACHE_ANALYTICS.writeDataPoint({
           blobs: ['warming', author, source],
-          doubles: [authorResult.works.length, titlesWarmed, titlesSkipped],
+          doubles: [works.length, titlesCached, 0],
           indexes: ['cache-warming']
         });
       }
@@ -145,12 +165,4 @@ export async function processAuthorBatch(batch, env, ctx) {
       }
     }
   }
-}
-
-/**
- * Sleep utility for rate limiting
- * @param {number} ms - Milliseconds to sleep
- */
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
