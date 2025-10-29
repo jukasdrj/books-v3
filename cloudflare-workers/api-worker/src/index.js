@@ -10,6 +10,7 @@ import { handleCSVImport } from './handlers/csv-import.js';
 import { handleBatchEnrichment } from './handlers/batch-enrichment.js';
 import { processAuthorBatch } from './consumers/author-warming-consumer.js';
 import { handleScheduledArchival } from './handlers/scheduled-archival.js';
+import { handleCacheMetrics } from './handlers/cache-metrics.js';
 
 // Export the Durable Object class for Cloudflare Workers runtime
 export { ProgressWebSocketDO };
@@ -307,6 +308,15 @@ export default {
           headers: { 'Content-Type': 'application/json' }
         });
       }
+    }
+
+    // ========================================================================
+    // Cache Metrics Endpoint (Phase 3)
+    // ========================================================================
+
+    // GET /api/cache/metrics - Cache performance metrics
+    if (url.pathname === '/api/cache/metrics' && request.method === 'GET') {
+      return handleCacheMetrics(request, env);
     }
 
     // ========================================================================
