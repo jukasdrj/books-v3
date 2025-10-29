@@ -45,4 +45,28 @@ describe('UnifiedCacheService - Cold Storage', () => {
 
     expect(result.source).toBe('MISS');
   });
+
+  it('should rehydrate from R2 to KV and Edge', async () => {
+    const mockR2Object = {
+      json: vi.fn().mockResolvedValue({ items: [{ title: 'Book' }] })
+    };
+
+    env.LIBRARY_DATA.get.mockResolvedValue(mockR2Object);
+    cache.kvCache.set = vi.fn();
+    cache.edgeCache.set = vi.fn();
+    env.CACHE.delete = vi.fn();
+
+    const coldIndex = {
+      r2Path: 'cold-cache/2025/10/search:title:q=book.json',
+      archivedAt: Date.now(),
+      originalTTL: 86400
+    };
+
+    await cache.rehydrateFromR2('search:title:q=book', coldIndex, 'title');
+
+    expect(env.LIBRARY_DATA.get).toHaveBeenCalledWith(coldIndex.r2Path);
+    expect(cache.kvCache.set).toHaveBeenCalled();
+    expect(cache.edgeCache.set).toHaveBeenCalled();
+    expect(env.CACHE.delete).toHaveBeenCalledWith('cold-index:search:title:q=book');
+  });
 });
