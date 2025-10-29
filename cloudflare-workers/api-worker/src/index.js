@@ -3,6 +3,7 @@ import * as externalApis from './services/external-apis.js';
 import * as enrichment from './services/enrichment.js';
 import * as aiScanner from './services/ai-scanner.js';
 import * as bookSearch from './handlers/book-search.js';
+import * as authorSearch from './handlers/author-search.js';
 import { handleAdvancedSearch } from './handlers/search-handlers.js';
 import { handleBatchScan } from './handlers/batch-scan-handler.js';
 import { handleCSVImport } from './handlers/csv-import.js';
@@ -346,6 +347,77 @@ export default {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
           ...cacheHeaders
+        }
+      });
+    }
+
+    // GET /search/author - Search books by author with pagination (6h cache)
+    if (url.pathname === '/search/author') {
+      const authorName = url.searchParams.get('q');
+      if (!authorName) {
+        return new Response(JSON.stringify({ error: 'Missing query parameter "q"' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Support both 'limit' (new) and 'maxResults' (iOS compatibility)
+      const limitParam = url.searchParams.get('limit') || url.searchParams.get('maxResults') || '50';
+      const limit = parseInt(limitParam);
+      const offset = parseInt(url.searchParams.get('offset') || '0');
+      const sortBy = url.searchParams.get('sortBy') || 'publicationYear';
+
+      // Validate parameters
+      if (limit < 1 || limit > 100) {
+        return new Response(JSON.stringify({
+          error: 'Invalid limit parameter',
+          message: 'Limit must be between 1 and 100'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (offset < 0) {
+        return new Response(JSON.stringify({
+          error: 'Invalid offset parameter',
+          message: 'Offset must be >= 0'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      const validSortOptions = ['publicationYear', 'publicationYearAsc', 'title', 'popularity'];
+      if (!validSortOptions.includes(sortBy)) {
+        return new Response(JSON.stringify({
+          error: 'Invalid sortBy parameter',
+          message: `sortBy must be one of: ${validSortOptions.join(', ')}`
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      const result = await authorSearch.searchByAuthor(
+        authorName,
+        { limit, offset, sortBy },
+        env,
+        ctx
+      );
+
+      // Extract cache status for headers
+      const cacheStatus = result.cached ? 'HIT' : 'MISS';
+      const cacheSource = result.cacheSource || 'NONE';
+
+      return new Response(JSON.stringify(result), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'public, max-age=21600', // 6h cache
+          'X-Cache': cacheStatus,
+          'X-Cache-Source': cacheSource,
+          'X-Provider': result.provider || 'openlibrary'
         }
       });
     }
@@ -718,6 +790,7 @@ export default {
         endpoints: [
           'GET /search/title?q={query}&maxResults={n} - Title search with caching (6h TTL)',
           'GET /search/isbn?isbn={isbn}&maxResults={n} - ISBN search with caching (7 day TTL)',
+          'GET /search/author?q={author}&limit={n}&offset={n}&sortBy={sort} - Author bibliography (6h TTL)',
           'GET /search/advanced?title={title}&author={author} - Advanced search (primary method, 6h cache)',
           'POST /search/advanced - Advanced search (legacy support, JSON body)',
           'POST /api/enrichment/start - Start batch enrichment job',
