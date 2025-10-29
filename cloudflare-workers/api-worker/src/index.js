@@ -9,6 +9,7 @@ import { handleBatchScan } from './handlers/batch-scan-handler.js';
 import { handleCSVImport } from './handlers/csv-import.js';
 import { handleBatchEnrichment } from './handlers/batch-enrichment.js';
 import { processAuthorBatch } from './consumers/author-warming-consumer.js';
+import { handleScheduledArchival } from './handlers/scheduled-archival.js';
 
 // Export the Durable Object class for Cloudflare Workers runtime
 export { ProgressWebSocketDO };
@@ -841,5 +842,10 @@ export default {
     } else {
       console.error(`Unknown queue: ${batch.queue}`);
     }
+  },
+
+  async scheduled(event, env, ctx) {
+    // Run daily archival process
+    await handleScheduledArchival(env, ctx);
   }
 };
