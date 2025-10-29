@@ -1,9 +1,13 @@
 /**
  * Aggregate cache metrics from Analytics Engine
  *
+ * NOTE: Analytics Engine in Workers only supports writeDataPoint().
+ * Queries must be performed via Cloudflare GraphQL API or Dashboard.
+ * This function returns mock/placeholder data with instructions.
+ *
  * @param {Object} env - Worker environment
  * @param {string} period - Time period ('15m', '1h', '24h', '7d')
- * @returns {Promise<Object>} Aggregated metrics
+ * @returns {Promise<Object>} Aggregated metrics (placeholder until GraphQL implemented)
  */
 export async function aggregateMetrics(env, period) {
   const periodMap = {
@@ -15,21 +19,37 @@ export async function aggregateMetrics(env, period) {
 
   const interval = periodMap[period] || '1 HOUR';
 
-  // Query Analytics Engine
-  const query = `
-    SELECT
-      index1 as cache_source,
-      COUNT(*) as count,
-      AVG(double1) as avg_latency,
-      PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY double1) as p50,
-      PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY double1) as p95,
-      PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY double1) as p99
-    FROM CACHE_ANALYTICS
-    WHERE timestamp > NOW() - INTERVAL '${interval}'
-    GROUP BY index1
-  `;
+  // LIMITATION: Analytics Engine Workers binding only supports writeDataPoint()
+  // Query capability requires Cloudflare GraphQL API with account token
+  // For now, return placeholder data with real query instructions
 
-  const result = await env.CACHE_ANALYTICS.query(query);
+  const result = {
+    results: [],
+    _note: 'Analytics Engine queries not available in Workers runtime',
+    _instructions: {
+      method: 'Cloudflare GraphQL API',
+      endpoint: 'https://api.cloudflare.com/client/v4/graphql',
+      authentication: 'Bearer token required',
+      sampleQuery: `
+query {
+  viewer {
+    accounts(filter: { accountTag: $accountId }) {
+      analyticsEngineDatasets(filter: { name: "books_api_cache_metrics" }) {
+        query(
+          filter: { timestamp_geq: $startTime }
+          orderBy: [timestamp_DESC]
+        ) {
+          index1
+          double1
+          count
+        }
+      }
+    }
+  }
+}
+      `.trim()
+    }
+  };
 
   // Calculate metrics
   let totalRequests = 0;
@@ -58,6 +78,10 @@ export async function aggregateMetrics(env, period) {
   }
 
   return {
+    _limitation: 'Analytics Engine queries not available from Workers runtime',
+    _solution: 'Use Cloudflare Dashboard or GraphQL API to query metrics',
+    _graphql_endpoint: 'https://api.cloudflare.com/client/v4/graphql',
+    _dataset_name: 'books_api_cache_metrics',
     timestamp: new Date().toISOString(),
     period: period,
     hitRates: {
