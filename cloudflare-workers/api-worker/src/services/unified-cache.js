@@ -49,8 +49,35 @@ export class UnifiedCacheService {
       return kvResult;
     }
 
-    // TODO: Add external API fallback
+    // NEW: Tier 2.5: Check Cold Storage Index
+    const coldIndex = await this.env.CACHE.get(`cold-index:${cacheKey}`, 'json');
+    if (coldIndex) {
+      this.logMetrics('cold_check', cacheKey, Date.now() - startTime);
+
+      // Trigger background rehydration (non-blocking)
+      this.ctx.waitUntil(
+        this.rehydrateFromR2(cacheKey, coldIndex, endpoint)
+      );
+
+      // Return null immediately (user gets fresh API data)
+      return { data: null, source: 'COLD', latency: Date.now() - startTime };
+    }
+
+    // Tier 3: API Miss
+    this.logMetrics('api_miss', cacheKey, Date.now() - startTime);
     return { data: null, source: 'MISS', latency: Date.now() - startTime };
+  }
+
+  /**
+   * Rehydrate archived data from R2 to KV and Edge
+   *
+   * @param {string} cacheKey - Original cache key
+   * @param {Object} coldIndex - Cold storage index metadata
+   * @param {string} endpoint - Endpoint type
+   */
+  async rehydrateFromR2(cacheKey, coldIndex, endpoint) {
+    // Placeholder - will be implemented in Task 7
+    console.log(`Rehydration triggered for ${cacheKey}`);
   }
 
   /**
