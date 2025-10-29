@@ -39,7 +39,11 @@ export async function handleWarmingUpload(request, env, ctx) {
 
     // Parse with Gemini
     const prompt = buildCSVParserPrompt();
-    const apiKey = env.GEMINI_API_KEY;
+
+    // Get API key from Secrets Store
+    const apiKey = env.GEMINI_API_KEY?.get
+      ? await env.GEMINI_API_KEY.get()
+      : env.GEMINI_API_KEY;
 
     if (!apiKey) {
       return new Response(JSON.stringify({

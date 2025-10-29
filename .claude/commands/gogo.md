@@ -15,7 +15,7 @@ Execute comprehensive build validation using XcodeBuildMCP for autonomous qualit
 
 2. **Release Build (MCP Autonomous)**
    - Build Release configuration for BooksTracker.xcworkspace
-   - Target: Generic iOS Device (App Store)
+   - Target: iphone 17 pro max
    - Automatically parse and report build errors
    - **FATAL:** Build fails if any warnings are present (including Swift 6 concurrency)
 
@@ -25,16 +25,10 @@ Execute comprehensive build validation using XcodeBuildMCP for autonomous qualit
    - Live Activity: `Z67H8Y8DW.com.oooefam.booksV3.CSVImportLiveActivity`
 
 4. **Version Synchronization Check**
-   - Marketing Version: `3.0.0` (all targets)
-   - Build Number: `44` (all targets)
+   - Marketing Version: `3.0.1` (all targets)
+   - Build Number: `188` (all targets)
    - Source: `Config/Shared.xcconfig`
 
-## Phase 2: Swift Package Testing (MCP)
-
-5. **BooksTrackerPackage Tests**
-   - Run Swift Testing suite via MCP
-   - Test coverage: CSV import, enrichment, search, SwiftData models
-   - Report any test failures with code context
 
 ## Phase 3: Physical Device Validation (MCP)
 

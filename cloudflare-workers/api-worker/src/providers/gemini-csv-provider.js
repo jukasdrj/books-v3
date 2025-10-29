@@ -20,9 +20,10 @@ const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/mo
 export async function parseCSVWithGemini(csvText, prompt, apiKey) {
   const fullPrompt = `${prompt}\n\nCSV Data:\n${csvText}`;
 
-  const response = await fetch(`${GEMINI_API_ENDPOINT}?key=${apiKey}`, {
+  const response = await fetch(GEMINI_API_ENDPOINT, {
     method: 'POST',
     headers: {
+      'x-goog-api-key': apiKey,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({

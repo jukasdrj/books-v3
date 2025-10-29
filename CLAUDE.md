@@ -30,7 +30,7 @@ This command uses the --lang swift flag to specify the language and a pattern to
 
 ### Essential Commands
 
-**🚀 MCP Workflows (Recommended):**
+**🚀 iOS Development (MCP-Powered):**
 ```bash
 /gogo          # App Store validation pipeline
 /build         # Quick build check
@@ -40,11 +40,11 @@ This command uses the --lang swift flag to specify the language and a pattern to
 ```
 See **[MCP_SETUP.md](MCP_SETUP.md)** for XcodeBuildMCP configuration.
 
-**Backend:**
+**☁️ Backend Operations:**
 ```bash
-cd cloudflare-workers
-npm run deploy           # Deploy all workers
-npx wrangler tail --format pretty  # Real-time logs
+/deploy-backend  # Deploy api-worker with validation
+/backend-health  # Health check + diagnostics
+/logs            # Stream Worker logs (real-time)
 ```
 
 ## Architecture
@@ -459,7 +459,7 @@ ast-grep --lang swift --pattern '@Observable class $NAME { $$$ }' .
   └── guides/               ← How-to guides & best practices
 
 📁 cloudflare-workers/      ← Backend: MONOLITH_ARCHITECTURE.md
-📁 .claude/commands/        ← Slash commands (/gogo, /build, /test, /sim)
+📁 .claude/commands/        ← Slash commands (8 total: iOS + backend operations)
 ```
 
 **Documentation Types:**
