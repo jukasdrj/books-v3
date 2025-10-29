@@ -194,6 +194,12 @@ export default {
       return handleWarmingUpload(request, env, ctx);
     }
 
+    // GET /api/warming/dlq - Monitor dead letter queue
+    if (url.pathname === '/api/warming/dlq' && request.method === 'GET') {
+      const { handleDLQMonitor } = await import('./handlers/dlq-monitor.js');
+      return handleDLQMonitor(request, env);
+    }
+
     // Batch enrichment endpoint (POST /api/enrichment/batch)
     if (url.pathname === '/api/enrichment/batch' && request.method === 'POST') {
       return handleBatchEnrichment(request, { ...env, ctx });
