@@ -340,6 +340,24 @@ npx wrangler tail api-worker --format pretty
    - Top warmed authors
    - Processing throughput graphs
 
+## R2 Lifecycle Management (Phase 3)
+
+**Automatic Deletion:**
+Run once to configure:
+```bash
+export CLOUDFLARE_ACCOUNT_ID="your-account-id"
+export CLOUDFLARE_API_TOKEN="your-api-token"
+./scripts/setup-r2-lifecycle.sh
+```
+
+**Manual Purge:**
+```bash
+# Delete all 2024 archives
+npx wrangler r2 object bulk-delete \
+  --bucket personal-library-data \
+  --prefix cold-cache/2024/
+```
+
 ## References
 
 - **Implementation Plan:** `docs/plans/2025-10-28-cache-warming-implementation.md`
@@ -350,5 +368,5 @@ npx wrangler tail api-worker --format pretty
 
 ---
 
-**Last Updated:** October 29, 2025
+**Last Updated:** October 28, 2025
 **Maintained By:** Claude Code + @jukasdrj
