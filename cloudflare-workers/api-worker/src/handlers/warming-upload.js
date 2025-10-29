@@ -63,7 +63,26 @@ export async function handleWarmingUpload(request, env, ctx) {
     const uniqueAuthors = Array.from(authorsSet);
     const jobId = crypto.randomUUID();
 
-    // TODO: Queue authors
+    // Queue each author
+    for (const author of uniqueAuthors) {
+      await env.AUTHOR_WARMING_QUEUE.send({
+        author: author,
+        source: 'csv',
+        depth: 0,
+        queuedAt: new Date().toISOString(),
+        jobId: jobId
+      });
+    }
+
+    // Store job metadata in KV
+    await env.CACHE.put(`warming:job:${jobId}`, JSON.stringify({
+      authorsQueued: uniqueAuthors.length,
+      maxDepth: maxDepth,
+      startedAt: Date.now(),
+      status: 'queued'
+    }), {
+      expirationTtl: 7 * 24 * 60 * 60 // 7 days
+    });
 
     return new Response(JSON.stringify({
       jobId,

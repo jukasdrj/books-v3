@@ -80,4 +80,41 @@ describe('handleWarmingUpload', () => {
     expect(body.authorsQueued).toBe(2); // Author A and Author B
     expect(body.jobId).toMatch(/^[0-9a-f-]{36}$/); // UUID format
   });
+
+  it('should queue each author with metadata', async () => {
+    const messages = [];
+    env.AUTHOR_WARMING_QUEUE.send = async (msg) => {
+      messages.push(msg);
+      return { id: `msg-${messages.length}` };
+    };
+
+    env.GEMINI_API_KEY = 'test-api-key';
+    global.fetch = async () => ({
+      ok: true,
+      json: async () => ({
+        candidates: [{
+          content: {
+            parts: [{
+              text: JSON.stringify([
+                { title: 'Book1', author: 'Author A', isbn: '123' }
+              ])
+            }]
+          }
+        }]
+      })
+    });
+
+    const csvData = btoa('title,author,isbn\nBook1,Author A,123');
+    const request = new Request('https://api.example.com/api/warming/upload', {
+      method: 'POST',
+      body: JSON.stringify({ csv: csvData, maxDepth: 2 })
+    });
+
+    await handleWarmingUpload(request, env, ctx);
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0].author).toBe('Author A');
+    expect(messages[0].depth).toBe(0);
+    expect(messages[0].source).toBe('csv');
+  });
 });
