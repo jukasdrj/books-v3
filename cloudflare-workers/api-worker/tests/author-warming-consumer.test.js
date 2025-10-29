@@ -51,4 +51,35 @@ describe('processAuthorBatch', () => {
       expect.objectContaining({ expirationTtl: 90 * 24 * 60 * 60 })
     );
   });
+
+  it('should search external APIs and cache works', async () => {
+    const mockWorks = [
+      { title: 'American Gods', firstPublicationYear: 2001, openLibraryWorkKey: '/works/OL45804W' },
+      { title: 'Good Omens', firstPublicationYear: 1990, openLibraryWorkKey: '/works/OL45805W' }
+    ];
+
+    // Mock getOpenLibraryAuthorWorks
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        docs: [{ key: '/authors/OL23919A', name: 'Neil Gaiman' }]
+      }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        entries: mockWorks.map(w => ({
+          title: w.title,
+          first_publish_year: w.firstPublicationYear,
+          key: w.openLibraryWorkKey
+        })),
+        size: 2
+      }), { status: 200 }));
+
+    await processAuthorBatch(batch, env, ctx);
+
+    // Verify author marked as processed with work count
+    const processedCall = env.CACHE.put.mock.calls.find(call =>
+      call[0] === 'warming:processed:Neil Gaiman'
+    );
+    expect(processedCall).toBeDefined();
+    const processedData = JSON.parse(processedCall[1]);
+    expect(processedData.worksCount).toBe(2);
+  });
 });

@@ -1,3 +1,5 @@
+import { getOpenLibraryAuthorWorks } from '../services/external-apis.js';
+
 /**
  * Author Warming Consumer - Processes queued authors
  *
@@ -21,15 +23,36 @@ export async function processAuthorBatch(batch, env, ctx) {
         }
       }
 
-      // TODO: Search for author's works
-      // TODO: Cache works
+      // 2. Search external APIs for author's works
+      const searchResult = await getOpenLibraryAuthorWorks(author, env);
+
+      if (!searchResult || !searchResult.success) {
+        console.warn(`No works found for ${author}`);
+        message.ack();
+        continue;
+      }
+
+      const works = searchResult.works || [];
+
+      // 3. Cache each work via KV
+      for (const work of works) {
+        const cacheKey = `search:title:${work.title.toLowerCase()}`;
+        await env.CACHE.put(cacheKey, JSON.stringify({
+          items: [work],
+          cached: true,
+          timestamp: Date.now()
+        }), {
+          expirationTtl: 24 * 60 * 60 // 24h for warmed entries
+        });
+      }
+
       // TODO: Discover co-authors
 
       // 5. Mark as processed
       await env.CACHE.put(
         `warming:processed:${author}`,
         JSON.stringify({
-          worksCount: 0, // Placeholder
+          worksCount: works.length,
           lastWarmed: Date.now(),
           depth: depth
         }),
