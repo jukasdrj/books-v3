@@ -134,6 +134,9 @@ max_retries = 3
 dead_letter_queue = "author-warming-dlq"
 max_concurrency = 5  # Process 5 batches in parallel
 
-# Scheduled tasks (Phase 3 - R2 Cold Storage)
+# Scheduled tasks (Phase 3 - R2 Cold Storage, Phase 4 - Alert Monitoring)
 [triggers]
-crons = ["0 2 * * *"]  # Daily at 2:00 AM UTC
+crons = [
+  "0 2 * * *",      # Daily archival at 2:00 AM UTC
+  "*/15 * * * *"    # Alert checks every 15 minutes
+]

@@ -10,7 +10,9 @@ import { handleCSVImport } from './handlers/csv-import.js';
 import { handleBatchEnrichment } from './handlers/batch-enrichment.js';
 import { processAuthorBatch } from './consumers/author-warming-consumer.js';
 import { handleScheduledArchival } from './handlers/scheduled-archival.js';
+import { handleScheduledAlerts } from './handlers/scheduled-alerts.js';
 import { handleCacheMetrics } from './handlers/cache-metrics.js';
+import { handleMetricsRequest } from './handlers/metrics-handler.js';
 
 // Export the Durable Object class for Cloudflare Workers runtime
 export { ProgressWebSocketDO };
@@ -317,6 +319,11 @@ export default {
     // GET /api/cache/metrics - Cache performance metrics
     if (url.pathname === '/api/cache/metrics' && request.method === 'GET') {
       return handleCacheMetrics(request, env);
+    }
+
+    // GET /metrics - Aggregated metrics with Analytics Engine (Phase 4)
+    if (url.pathname === '/metrics' && request.method === 'GET') {
+      return handleMetricsRequest(request, env, ctx);
     }
 
     // ========================================================================
@@ -855,7 +862,13 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
-    // Run daily archival process
-    await handleScheduledArchival(env, ctx);
+    // Route by cron pattern
+    if (event.cron === '0 2 * * *') {
+      // Daily archival at 2:00 AM UTC
+      await handleScheduledArchival(env, ctx);
+    } else if (event.cron === '*/15 * * * *') {
+      // Alert checks every 15 minutes
+      await handleScheduledAlerts(env, ctx);
+    }
   }
 };
