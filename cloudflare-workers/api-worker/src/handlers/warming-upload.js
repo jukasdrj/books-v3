@@ -1,3 +1,6 @@
+import { parseCSVWithGemini } from '../providers/gemini-csv-provider.js';
+import { buildCSVParserPrompt } from '../prompts/csv-parser-prompt.js';
+
 /**
  * POST /api/warming/upload - Cache warming via CSV upload
  *
@@ -31,10 +34,42 @@ export async function handleWarmingUpload(request, env, ctx) {
       });
     }
 
-    // TODO: Parse CSV and queue authors
+    // Decode CSV
+    const csvText = atob(body.csv);
+
+    // Parse with Gemini
+    const prompt = buildCSVParserPrompt();
+    const apiKey = env.GEMINI_API_KEY;
+
+    if (!apiKey) {
+      return new Response(JSON.stringify({
+        error: 'GEMINI_API_KEY not configured'
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const books = await parseCSVWithGemini(csvText, prompt, apiKey);
+
+    // Extract unique authors
+    const authorsSet = new Set();
+    for (const book of books) {
+      if (book.author) {
+        authorsSet.add(book.author.trim());
+      }
+    }
+
+    const uniqueAuthors = Array.from(authorsSet);
+    const jobId = crypto.randomUUID();
+
+    // TODO: Queue authors
+
     return new Response(JSON.stringify({
-      jobId: 'placeholder',
-      authorsQueued: 0
+      jobId,
+      authorsQueued: uniqueAuthors.length,
+      estimatedWorks: uniqueAuthors.length * 15,
+      estimatedDuration: '2-4 hours'
     }), {
       status: 202,
       headers: { 'Content-Type': 'application/json' }
