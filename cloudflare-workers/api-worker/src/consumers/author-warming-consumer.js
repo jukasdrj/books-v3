@@ -46,7 +46,9 @@ export async function processAuthorBatch(batch, env, ctx) {
         });
       }
 
-      // TODO: Discover co-authors
+      // 4. Co-author discovery skipped (Phase 3 optimization)
+      // OpenLibrary's /authors/{id}/works.json doesn't include co-author data
+      // Would require GET /works/{id}.json per work (expensive)
 
       // 5. Mark as processed
       await env.CACHE.put(

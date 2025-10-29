@@ -82,4 +82,10 @@ describe('processAuthorBatch', () => {
     const processedData = JSON.parse(processedCall[1]);
     expect(processedData.worksCount).toBe(2);
   });
+
 });
+
+// Note: Co-author discovery skipped in initial implementation
+// OpenLibrary's /authors/{id}/works.json endpoint doesn't include co-author data
+// Would require additional API calls per work (GET /works/{id}.json)
+// This optimization can be added in Phase 3 if needed
