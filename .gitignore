@@ -102,10 +102,12 @@ worker-configuration.d.ts
 gha-creds-*.json
 
 # Documentation should live in GitHub Issues, not local MD files
-docs/plans/
 docs/future/
 docs/archive/*.md
 !docs/archive/serena-memories/
 cloudflare-workers/*_SUMMARY.md
 cloudflare-workers/*_REPORT.md
 .worktrees/
+
+# Repomix output (auto-generated, large file)
+repomix-output.xml
