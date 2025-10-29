@@ -65,6 +65,19 @@ export async function processCSVImport(csvFile, jobId, doStub, env) {
     // Read CSV content
     const csvText = await csvFile.text();
 
+    // CRITICAL: Wait for WebSocket ready signal before processing
+    // This prevents race condition where we send updates before client connects
+    console.log(`[CSV Import] Waiting for WebSocket ready signal for job ${jobId}`);
+
+    const readyResult = await doStub.waitForReady(5000); // 5 second timeout
+
+    if (readyResult.timedOut || readyResult.disconnected) {
+      const reason = readyResult.timedOut ? 'timeout' : 'WebSocket not connected';
+      console.warn(`[CSV Import] WebSocket ready ${reason} for job ${jobId}, proceeding anyway (client may miss early updates)`);
+    } else {
+      console.log(`[CSV Import] ✅ WebSocket ready for job ${jobId}, starting processing`);
+    }
+
     // Stage 0: Validation (0-5%)
     await doStub.updateProgress(0.02, 'Validating CSV file...');
 

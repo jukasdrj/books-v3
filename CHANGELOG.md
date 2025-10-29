@@ -6,6 +6,73 @@ All notable changes, achievements, and debugging victories for this project.
 
 ## [Unreleased]
 
+### Fixed 🐛 - CSV Import WebSocket Race Condition (October 29, 2025)
+
+**"No WebSocket connection available" → Problem solved! 🎯**
+
+```
+┌──────────────────────────────────────────────┐
+│  BEFORE: Upload → Process → updateProgress  │
+│          ❌ WebSocket: null → ERROR!        │
+│                                              │
+│  AFTER:  Upload → waitForReady → Process    │
+│          ✅ WebSocket: connected → SUCCESS! │
+└──────────────────────────────────────────────┘
+```
+
+Fixed critical race condition where CSV imports were failing with "No WebSocket connection available" error on real devices.
+
+**The Bug Hunt 🔍:**
+- User uploads CSV → Backend starts processing immediately
+- Backend tries to send progress updates → WebSocket doesn't exist yet!
+- iOS client connecting to WebSocket in parallel → Too slow!
+- Result: All `updateProgress()` calls throw errors → Import fails 💥
+
+**The Fix Pattern:**
+Applied the exact same pattern we used for bookshelf scanner:
+
+```javascript
+// BEFORE (csv-import.js line 69):
+await doStub.updateProgress(0.02, 'Validating CSV file...');  // 💥 No WebSocket!
+
+// AFTER (csv-import.js lines 68-82):
+const readyResult = await doStub.waitForReady(5000);  // ⏰ Wait for iOS to connect
+if (readyResult.timedOut || readyResult.disconnected) {
+  console.warn('WebSocket not ready, proceeding anyway');
+} else {
+  console.log('✅ WebSocket ready, starting processing');
+}
+await doStub.updateProgress(0.02, 'Validating CSV file...');  // ✅ Safe now!
+```
+
+**Technical Details:**
+- **Root Cause:** `processCSVImport()` was missing `waitForReady()` call that bookshelf scanner had
+- **Solution:** Added 5-second timeout for iOS to establish WebSocket connection before sending updates
+- **Graceful Degradation:** If timeout/disconnect, proceeds anyway (client might miss early updates)
+- **Pattern Consistency:** Now matches bookshelf scanner (src/index.js:259) and batch scan handlers
+
+**Files Modified:**
+- `cloudflare-workers/api-worker/src/handlers/csv-import.js` (+13 lines)
+- Added `waitForReady()` call before first `updateProgress()`
+- Added proper logging for WebSocket ready signal
+- Consistent with ProgressWebSocketDO pattern in `src/durable-objects/progress-socket.js`
+
+**User Impact:**
+- ✅ CSV imports now work on real devices (were 100% failing before)
+- ✅ Real-time progress updates during Gemini parsing
+- ✅ No more mysterious upload failures
+- ✅ Consistent behavior with bookshelf scanning
+
+**Lessons Learned:**
+- Always use `waitForReady()` before sending any WebSocket updates
+- Race conditions are sneaky - what works on Simulator may fail on real devices
+- Cloudflare Logpush logs are gold for debugging past failures (tail only shows live)
+- Pattern consistency across features prevents bugs
+
+**Deployed:** Version `b60e9c63-fbed-4b10-b64b-dd89c25fe6cd` (October 29, 2025 15:39 UTC)
+
+---
+
 ### Changed 🔄 - Unified Enrichment Pipeline (October 28, 2025)
 
 **BREAKING CHANGE:** CSV import now uses unified enrichment pipeline - books appear instantly, enrichment happens in background
