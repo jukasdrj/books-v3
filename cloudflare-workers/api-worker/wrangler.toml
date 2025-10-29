@@ -126,10 +126,10 @@ mode = "smart"
 binding = "AUTHOR_WARMING_QUEUE"
 queue = "author-warming-queue"
 
-# Consumer will be enabled in Task 8 after queue handler is implemented
-# [[queues.consumers]]
-# queue = "author-warming-queue"
-# max_batch_size = 10
-# max_batch_timeout = 30
-# max_retries = 3
-# dead_letter_queue = "author-warming-dlq"
+[[queues.consumers]]
+queue = "author-warming-queue"
+max_batch_size = 10
+max_batch_timeout = 30
+max_retries = 3
+dead_letter_queue = "author-warming-dlq"
+max_concurrency = 5  # Process 5 batches in parallel

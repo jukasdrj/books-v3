@@ -8,6 +8,7 @@ import { handleAdvancedSearch } from './handlers/search-handlers.js';
 import { handleBatchScan } from './handlers/batch-scan-handler.js';
 import { handleCSVImport } from './handlers/csv-import.js';
 import { handleBatchEnrichment } from './handlers/batch-enrichment.js';
+import { processAuthorBatch } from './consumers/author-warming-consumer.js';
 
 // Export the Durable Object class for Cloudflare Workers runtime
 export { ProgressWebSocketDO };
@@ -185,6 +186,12 @@ export default {
     // POST /api/import/csv-gemini - Gemini-powered CSV import with WebSocket progress
     if (url.pathname === '/api/import/csv-gemini' && request.method === 'POST') {
       return handleCSVImport(request, { ...env, ctx });
+    }
+
+    // POST /api/warming/upload - Cache warming via CSV upload
+    if (url.pathname === '/api/warming/upload' && request.method === 'POST') {
+      const { handleWarmingUpload } = await import('./handlers/warming-upload.js');
+      return handleWarmingUpload(request, env, ctx);
     }
 
     // Batch enrichment endpoint (POST /api/enrichment/batch)
@@ -819,5 +826,14 @@ export default {
       status: 404,
       headers: { 'Content-Type': 'application/json' }
     });
+  },
+
+  async queue(batch, env, ctx) {
+    // Route queue messages to appropriate consumer
+    if (batch.queue === 'author-warming-queue') {
+      await processAuthorBatch(batch, env, ctx);
+    } else {
+      console.error(`Unknown queue: ${batch.queue}`);
+    }
   }
 };
