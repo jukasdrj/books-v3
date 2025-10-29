@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { selectArchivalCandidates } from '../src/workers/archival-worker.js';
+import { selectArchivalCandidates, archiveCandidates } from '../src/workers/archival-worker.js';
 
 describe('selectArchivalCandidates', () => {
   let env;
@@ -67,5 +67,51 @@ describe('selectArchivalCandidates', () => {
     const candidates = await selectArchivalCandidates(env, accessStats);
 
     expect(candidates).toHaveLength(0); // Excluded because accessCount > 10
+  });
+});
+
+describe('archiveCandidates', () => {
+  let env;
+
+  beforeEach(() => {
+    env = {
+      LIBRARY_DATA: {
+        put: vi.fn().mockResolvedValue(undefined)
+      },
+      CACHE: {
+        put: vi.fn().mockResolvedValue(undefined),
+        delete: vi.fn().mockResolvedValue(undefined)
+      }
+    };
+  });
+
+  it('should archive candidates to R2 and create index', async () => {
+    const candidates = [
+      {
+        key: 'search:title:q=old-book',
+        data: JSON.stringify({ items: [] }),
+        age: 40 * 24 * 60 * 60 * 1000,
+        accessCount: 3
+      }
+    ];
+
+    await archiveCandidates(candidates, env);
+
+    expect(env.LIBRARY_DATA.put).toHaveBeenCalledWith(
+      expect.stringContaining('cold-cache/'),
+      expect.any(String),
+      expect.objectContaining({
+        customMetadata: expect.objectContaining({
+          originalKey: 'search:title:q=old-book'
+        })
+      })
+    );
+
+    expect(env.CACHE.put).toHaveBeenCalledWith(
+      'cold-index:search:title:q=old-book',
+      expect.any(String)
+    );
+
+    expect(env.CACHE.delete).toHaveBeenCalledWith('search:title:q=old-book');
   });
 });
