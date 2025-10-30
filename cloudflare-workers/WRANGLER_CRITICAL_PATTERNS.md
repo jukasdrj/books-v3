@@ -4,6 +4,8 @@
 
 **CURRENT ARCHITECTURE:** See `MONOLITH_ARCHITECTURE.md` for the consolidated api-worker configuration.
 
+**DEPRECATED:** The `personal-library-cache-warmer` worker referenced in examples below was deprecated on October 30, 2025 due to broken RPC bindings. See CHANGELOG.md for details.
+
 **MEMORIZE THESE PATTERNS** - Critical knowledge for Cloudflare Workers configuration
 
 ---

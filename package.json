@@ -17,7 +17,7 @@
     "cloudflare-workers"
   ],
   "devDependencies": {
-    "wrangler": "^4.45.2"
+    "wrangler": "^4.45.3"
   },
   "engines": {
     "node": ">=18.0.0"

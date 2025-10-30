@@ -17,6 +17,6 @@
   "author": "BooksTrack",
   "license": "MIT",
   "devDependencies": {
-    "wrangler": "^4.42.2"
+    "wrangler": "^4.45.3"
   }
 }
