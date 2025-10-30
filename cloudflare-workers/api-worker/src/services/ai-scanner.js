@@ -6,7 +6,7 @@
  * CRITICAL: Uses direct function calls instead of RPC to eliminate circular dependencies!
  */
 
-import { handleAdvancedSearch } from '../handlers/search-handlers.js';
+import { handleSearchAdvanced } from '../handlers/v1/search-advanced.js';
 import { scanImageWithGemini } from '../providers/gemini-provider.js';
 import { enrichBooksParallel } from './parallel-enrichment.js';
 
@@ -101,20 +101,42 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
       detectedBooks,
       async (book) => {
         // Direct function call - NO RPC, no circular dependency!
-        const searchResults = await handleAdvancedSearch({
-          bookTitle: book.title,
-          authorName: book.author
-        }, { maxResults: 1 }, env);
+        // Use v1 canonical handler
+        const apiResponse = await handleSearchAdvanced(
+          book.title || '',
+          book.author || '',
+          env
+        );
 
-        return {
-          ...book,
-          enrichment: {
-            status: searchResults.items?.length > 0 ? 'success' : 'not_found',
-            apiData: searchResults.items?.[0] || null,
-            provider: searchResults.provider || 'unknown',
-            cachedResult: searchResults.cached || false
-          }
-        };
+        // Parse canonical ApiResponse<BookSearchResponse>
+        if (apiResponse.success) {
+          const work = apiResponse.data.works?.[0] || null;
+          const editions = apiResponse.data.works?.[0]?.editions || [];
+          const authors = apiResponse.data.authors || [];
+
+          return {
+            ...book,
+            enrichment: {
+              status: work ? 'success' : 'not_found',
+              work,
+              editions,
+              authors,
+              provider: apiResponse.meta.provider,
+              cachedResult: apiResponse.meta.cached || false
+            }
+          };
+        } else {
+          return {
+            ...book,
+            enrichment: {
+              status: 'error',
+              error: apiResponse.error.message,
+              work: null,
+              editions: [],
+              authors: []
+            }
+          };
+        }
       },
       async (completed, total, title, hasError) => {
         const progress = 0.7 + (0.25 * completed / total);
@@ -139,6 +161,11 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
     const processingTime = Date.now() - startTime;
 
     // Stage 4: Complete (100%)
+    // Extract canonical DTOs from enriched books
+    const works = enrichedBooks.map(b => b.enrichment.work).filter(Boolean);
+    const editions = enrichedBooks.flatMap(b => b.enrichment.editions || []);
+    const authors = enrichedBooks.flatMap(b => b.enrichment.authors || []);
+
     await doStub.pushProgress({
       progress: 1.0,
       processedItems: 3,
@@ -149,7 +176,10 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
         totalDetected: detectedBooks.length,
         approved: approved.length,
         needsReview: review.length,
-        books: enrichedBooks,
+        works,
+        editions,
+        authors,
+        detections: detectedBooks,  // Original AI detection data
         metadata: {
           processingTime,
           enrichedCount: enrichedBooks.filter(b => b.enrichment?.status === 'success').length,
