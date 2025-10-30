@@ -145,7 +145,7 @@ export async function enrichBatch(jobId, workIds, env, doStub) {
       await new Promise(resolve => setTimeout(resolve, 0));
     }
 
-    // Final success update
+    // Final success update - canonical format
     await doStub.pushProgress({
       progress: 1.0,
       processedItems: processedCount,
@@ -158,7 +158,9 @@ export async function enrichBatch(jobId, workIds, env, doStub) {
         totalCount: totalCount,
         enrichedCount: enrichedWorks.length,
         errorCount: errors.length,
-        enrichedWorks: enrichedWorks,
+        works: enrichedWorks.map(item => item.work).filter(Boolean),
+        editions: enrichedWorks.flatMap(item => item.editions || []),
+        authors: enrichedWorks.flatMap(item => item.authors || []),
         errors: errors
       }
     });
@@ -167,7 +169,9 @@ export async function enrichBatch(jobId, workIds, env, doStub) {
       success: true,
       processedCount: processedCount,
       totalCount: totalCount,
-      enrichedWorks: enrichedWorks,
+      works: enrichedWorks.map(item => item.work).filter(Boolean),
+      editions: enrichedWorks.flatMap(item => item.editions || []),
+      authors: enrichedWorks.flatMap(item => item.authors || []),
       errors: errors
     };
 
