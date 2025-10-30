@@ -298,7 +298,8 @@ struct AuthorSearchResultsView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.iOS26ThemeStore) private var themeStore
-    @State private var searchModel = SearchModel()
+    @Environment(\.modelContext) private var modelContext
+    @State private var searchModel: SearchModel?
     @State private var selectedBook: SearchResult?
 
     var body: some View {
@@ -310,17 +311,21 @@ struct AuthorSearchResultsView: View {
 
                 // Content
                 Group {
-                    switch searchModel.viewState {
-                    case .searching:
-                        searchingView
-                    case .results:
-                        resultsView
-                    case .noResults:
-                        noResultsView
-                    case .error:
-                        errorView
-                    default:
-                        searchingView
+                    if let searchModel = searchModel {
+                        switch searchModel.viewState {
+                        case .searching:
+                            searchingView
+                        case .results:
+                            resultsView
+                        case .noResults:
+                            noResultsView
+                        case .error:
+                            errorView
+                        default:
+                            searchingView
+                        }
+                    } else {
+                        ProgressView("Loading...")
                     }
                 }
             }
@@ -338,9 +343,12 @@ struct AuthorSearchResultsView: View {
                 WorkDiscoveryView(searchResult: result)
             }
             .task {
+                // Initialize searchModel with modelContext
+                searchModel = SearchModel(modelContext: modelContext)
+
                 let criteria = AdvancedSearchCriteria()
                 criteria.authorName = author.name
-                searchModel.advancedSearch(criteria: criteria)
+                searchModel?.advancedSearch(criteria: criteria)
             }
         }
     }

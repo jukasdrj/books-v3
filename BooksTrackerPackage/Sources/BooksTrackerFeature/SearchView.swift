@@ -68,10 +68,17 @@ public struct SearchView: View {
     // MARK: - State Management
     // HIG: Use SwiftUI's standard state management patterns
 
-    @State private var searchModel = SearchModel()
+    @State private var searchModel: SearchModel
     @State private var selectedBook: SearchResult?
     @State private var searchScope: SearchScope = .all
     @Namespace private var searchTransition
+
+    public init() {
+        // Initialize with temporary preview context
+        // Will be replaced with actual modelContext in .task
+        let previewContainer = try! ModelContainer(for: Work.self, Edition.self, Author.self, UserLibraryEntry.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        _searchModel = State(initialValue: SearchModel(modelContext: previewContainer.mainContext))
+    }
 
     // iOS 26 Scrolling Enhancements
     @State private var scrollPosition = ScrollPosition()
@@ -897,7 +904,8 @@ public struct SearchView: View {
     }
 
     private func loadInitialData() async {
-        // Handled by SearchModel initialization
+        // Replace preview SearchModel with one using actual modelContext
+        searchModel = SearchModel(modelContext: modelContext)
     }
 
     #if DEBUG
