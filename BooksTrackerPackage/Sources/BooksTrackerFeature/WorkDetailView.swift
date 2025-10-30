@@ -370,7 +370,7 @@ struct AuthorSearchResultsView: View {
     private var resultsView: some View {
         ScrollView {
             LazyVStack(spacing: 16) {
-                ForEach(searchModel.viewState.currentResults) { result in
+                ForEach(searchModel?.viewState.currentResults ?? []) { result in
                     Button {
                         selectedBook = result
                     } label: {
@@ -414,7 +414,7 @@ struct AuthorSearchResultsView: View {
                 .font(.title2.bold())
                 .foregroundStyle(.primary)
 
-            if case .error(let message, _, _, _) = searchModel.viewState {
+            if let searchModel = searchModel, case .error(let message, _, _, _) = searchModel.viewState {
                 Text(message)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
