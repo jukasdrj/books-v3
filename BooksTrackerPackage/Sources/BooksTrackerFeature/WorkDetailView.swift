@@ -426,7 +426,7 @@ struct AuthorSearchResultsView: View {
                 Task {
                     let criteria = AdvancedSearchCriteria()
                     criteria.authorName = author.name
-                    searchModel.advancedSearch(criteria: criteria)
+                    searchModel?.advancedSearch(criteria: criteria)
                 }
             }
             .buttonStyle(.borderedProminent)
