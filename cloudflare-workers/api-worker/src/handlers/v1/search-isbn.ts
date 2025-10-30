@@ -6,8 +6,10 @@
 
 import type { ApiResponse, BookSearchResponse } from '../../types/responses.js';
 import { createSuccessResponse, createErrorResponse } from '../../types/responses.js';
-import { searchGoogleBooksByISBN } from '../../services/external-apis.js';
+import { normalizeGoogleBooksToWork } from '../../services/normalizers/google-books.js';
 import type { WorkDTO, AuthorDTO } from '../../types/canonical.js';
+
+const GOOGLE_BOOKS_USER_AGENT = 'BooksTracker/1.0 (nerd@ooheynerds.com)';
 
 /**
  * Validate ISBN-10 or ISBN-13 format
@@ -52,40 +54,59 @@ export async function handleSearchISBN(
   }
 
   try {
-    // Call existing Google Books ISBN search
-    const result = await searchGoogleBooksByISBN(isbn, env);
+    console.log(`GoogleBooks v1 ISBN search for "${isbn}"`);
 
-    if (!result.success) {
+    // Get API key (handle both secrets store and direct env var)
+    const apiKey = env.GOOGLE_BOOKS_API_KEY?.get
+      ? await env.GOOGLE_BOOKS_API_KEY.get()
+      : env.GOOGLE_BOOKS_API_KEY;
+
+    if (!apiKey) {
       return createErrorResponse(
-        result.error || 'ISBN search failed',
+        'Google Books API key not configured',
+        'INTERNAL_ERROR',
+        undefined,
+        { processingTime: Date.now() - startTime }
+      );
+    }
+
+    // Call Google Books API directly
+    const searchUrl = `https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(isbn)}&key=${apiKey}`;
+
+    const response = await fetch(searchUrl, {
+      headers: {
+        'User-Agent': GOOGLE_BOOKS_USER_AGENT,
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      return createErrorResponse(
+        `Google Books API error: ${response.status} ${response.statusText}`,
         'PROVIDER_ERROR',
         undefined,
         { processingTime: Date.now() - startTime }
       );
     }
 
-    // Convert legacy format to canonical DTOs
-    const works: WorkDTO[] = result.works.map((legacyWork: any) => ({
-      title: legacyWork.title || 'Unknown',
-      subjectTags: legacyWork.subjects || [],
-      firstPublicationYear: legacyWork.firstPublishYear,
-      description: legacyWork.description,
-      originalLanguage: legacyWork.language,
-      synthetic: false,
-      primaryProvider: 'google-books',
-      contributors: ['google-books'],
-      goodreadsWorkIDs: [],
-      amazonASINs: [],
-      librarythingIDs: [],
-      googleBooksVolumeIDs: legacyWork.editions?.map((e: any) => e.googleBooksVolumeId).filter(Boolean) || [],
-      isbndbQuality: 0,
-      reviewStatus: 'verified',
-    }));
+    const data = await response.json();
 
-    const authors: AuthorDTO[] = result.authors?.map((legacyAuthor: any) => ({
-      name: legacyAuthor.name,
+    // Use canonical normalizer with genre normalization
+    const works: WorkDTO[] = (data.items || []).map((item: any) =>
+      normalizeGoogleBooksToWork(item)
+    );
+
+    // Extract unique authors from all works
+    const authorsSet = new Set<string>();
+    data.items?.forEach((item: any) => {
+      const authors = item.volumeInfo?.authors || [];
+      authors.forEach((author: string) => authorsSet.add(author));
+    });
+
+    const authors: AuthorDTO[] = Array.from(authorsSet).map(name => ({
+      name,
       gender: 'Unknown',
-    })) || [];
+    }));
 
     return createSuccessResponse(
       { works, authors },
@@ -96,6 +117,7 @@ export async function handleSearchISBN(
       }
     );
   } catch (error: any) {
+    console.error('Error in v1 ISBN search:', error);
     return createErrorResponse(
       error.message || 'Internal server error',
       'INTERNAL_ERROR',
