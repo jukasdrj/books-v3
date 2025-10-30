@@ -6,6 +6,92 @@ All notable changes, achievements, and debugging victories for this project.
 
 ## [Unreleased]
 
+### Changed 🔄 - Canonical Data Contracts Migration (October 30, 2025)
+
+**Backend + iOS migrated to unified canonical v1 API format 🎯**
+
+```
+┌────────────────────────────────────────────────────┐
+│  BEFORE: Legacy Google Books format per endpoint  │
+│          Different shapes, no type safety          │
+│                                                    │
+│  AFTER:  Canonical WorkDTO/EditionDTO/AuthorDTO   │
+│          TypeScript → Swift type safety            │
+└────────────────────────────────────────────────────┘
+```
+
+Completed full-stack migration to canonical data contracts, establishing a unified API format between backend TypeScript and iOS Swift.
+
+**What Changed:**
+
+**Backend (Cloudflare Workers):**
+- All `/v1/*` search endpoints return canonical `ApiResponse<BookSearchResponse>` envelope
+- Enrichment services migrated to return `{ works: WorkDTO[], editions: EditionDTO[], authors: AuthorDTO[] }`
+- AI scanner WebSocket messages use canonical format
+- Consistent error handling with `DTOApiErrorCode` enum
+- Provenance tracking on all DTOs (primaryProvider, contributors, synthetic flag)
+
+**iOS (Swift):**
+- BookSearchAPIService migrated to `/v1/search/*` endpoints
+- All search scopes (title, author, ISBN, advanced) use canonical parsing
+- EnrichmentService migrated to canonical `/v1/search/advanced` endpoint
+- Added comprehensive test suite: CanonicalAPIResponseTests.swift
+- Removed ~190 lines of legacy Google Books response types
+
+**Implementation Highlights:**
+- ✅ Discriminated union pattern: `.success(data, meta)` vs `.failure(error, meta)`
+- ✅ Type-safe error codes: INVALID_ISBN, INVALID_QUERY, PROVIDER_ERROR, etc.
+- ✅ Multi-provider support: Google Books, OpenLibrary, ISBNdb
+- ✅ Deduplication-ready: `synthetic` flag enables Work deduplication in future phases
+- ✅ Zero build warnings, fully Swift 6.2 compliant
+
+**Technical Details:**
+
+**Backend Changes:**
+- `src/services/enrichment.js`: Migrated to canonical normalizers
+- `src/services/ai-scanner.js`: Parse canonical envelope, extract WorkDTO arrays
+- `src/handlers/v1/*.ts`: All v1 handlers return ApiResponse envelope
+- Backend tests: 18 passing (15 unit + 3 integration)
+
+**iOS Changes:**
+- `BookSearchAPIService.swift`: All scopes → `/v1/*` endpoints (-141 lines legacy types)
+- `EnrichmentService.swift`: Canonical parsing (-50 lines legacy types)
+- `SearchModel.swift`: Added `.apiError` exhaustive switch case
+- `CanonicalAPIResponseTests.swift`: +272 lines comprehensive test coverage
+
+**Deployment:**
+- Backend deployed: Version `fd0716c4-f57e-4fa5-a5eb-858d8db38417`
+- iOS validated on physical device (iPhone 17 Pro)
+- Real device build + install successful
+
+**Benefits:**
+- 🎯 **Type Safety:** Compile-time validation of API contracts
+- 🔍 **Provenance:** Track which provider contributed each piece of data
+- 🧩 **Deduplication-Ready:** Synthetic flag enables future Work consolidation
+- 📊 **Structured Errors:** Consistent error handling across all endpoints
+- 🧪 **Testability:** Canonical DTOs easy to mock and test
+
+**Future Phases:**
+- Phase 3: DTOMapper integration for automatic SwiftData deduplication
+- Phase 3: Legacy endpoint deprecation (deferred 2-4 weeks)
+
+**Files Modified:**
+- Backend: 3 files (enrichment.js, ai-scanner.js, TEST_FIX_PLAN.md)
+- iOS: 3 files (BookSearchAPIService.swift, EnrichmentService.swift, SearchModel.swift)
+- Tests: 1 new file (CanonicalAPIResponseTests.swift)
+- Docs: CLAUDE.md implementation status updated
+
+**Lessons Learned:**
+- Bottom-up migration (backend first, then iOS) creates temporary broken state but enables safe rollback
+- Vitest TypeScript resolution needs explicit config for JS → TS imports (production unaffected)
+- Exhaustive switch statements catch migration errors at compile time
+- Real device validation critical (built/installed successfully)
+
+**Design:** `docs/plans/2025-10-29-canonical-data-contracts-design.md`
+**Implementation:** `docs/plans/2025-10-29-canonical-data-contracts-implementation.md`
+
+---
+
 ### Fixed 🐛 - CSV Import WebSocket Race Condition (October 29, 2025)
 
 **"No WebSocket connection available" → Problem solved! 🎯**
