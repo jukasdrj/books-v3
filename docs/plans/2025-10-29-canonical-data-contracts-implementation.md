@@ -442,6 +442,154 @@ Part of canonical data contracts initiative (Phase 1)"
 
 ---
 
+## Phase 1b: Swift Model Updates (Code Review Follow-up)
+
+### Task 3a: Add Provenance Fields to Work.swift
+
+**Files:**
+- Modify: `BooksTrackerPackage/Sources/BooksTrackerFeature/Work.swift`
+
+**Context:** Code review identified that TypeScript DTOs include provenance fields (`synthetic`, `primaryProvider`, `contributors`) that don't exist in Swift Work model. These fields enable debugging and observability.
+
+**Step 1: Add provenance fields to Work.swift**
+
+Add after line 27 (after `isbndbQuality`):
+
+```swift
+// Provenance tracking for debugging and observability
+var synthetic: Bool = false  // True if Work was inferred from Edition data
+var primaryProvider: String? // Which provider contributed this Work
+var contributors: [String] = [] // All providers that enriched this Work
+```
+
+**Step 2: Update Work initializer**
+
+Modify `init()` to include provenance parameters (optional):
+
+```swift
+public init(
+    title: String,
+    authors: [Author] = [],
+    originalLanguage: String? = nil,
+    firstPublicationYear: Int? = nil,
+    subjectTags: [String] = [],
+    synthetic: Bool = false,
+    primaryProvider: String? = nil
+) {
+    self.title = title
+    self.authors = nil // CRITICAL: Never create relationships in init
+    self.originalLanguage = originalLanguage
+    self.firstPublicationYear = firstPublicationYear
+    self.subjectTags = subjectTags
+    self.synthetic = synthetic
+    self.primaryProvider = primaryProvider
+    self.contributors = []
+    self.dateCreated = Date()
+    self.lastModified = Date()
+}
+```
+
+**Step 3: Verify Swift compiles**
+
+Run: `/build` slash command (uses XcodeBuildMCP)
+Expected: Build succeeds with zero errors
+
+**Step 4: Commit**
+
+```bash
+git add BooksTrackerPackage/Sources/BooksTrackerFeature/Work.swift
+git commit -m "feat(models): add provenance fields to Work model
+
+Adds observability and debugging fields:
+- synthetic: Bool - Marks Works inferred from Edition data
+- primaryProvider: String? - Which API contributed the Work
+- contributors: [String] - All providers that enriched this Work
+
+Matches TypeScript WorkDTO for canonical contracts.
+Code review follow-up from Task 2.
+
+Part of canonical data contracts initiative (Phase 1b)"
+```
+
+---
+
+### Task 3b: Add Provenance Fields to Edition.swift
+
+**Files:**
+- Modify: `BooksTrackerPackage/Sources/BooksTrackerFeature/Edition.swift`
+
+**Context:** Code review identified missing `description` and provenance fields in Swift Edition model that exist in TypeScript EditionDTO.
+
+**Step 1: Add description and provenance fields**
+
+Add after line 32 (after `isbndbQuality`):
+
+```swift
+// Edition-specific description (may differ from Work description)
+var description: String?
+
+// Provenance tracking for debugging and observability
+var primaryProvider: String? // Which provider contributed this Edition
+var contributors: [String] = [] // All providers that enriched this Edition
+```
+
+**Step 2: Update Edition initializer**
+
+Modify `init()` to include new parameters (optional):
+
+```swift
+public init(
+    isbn: String? = nil,
+    publisher: String? = nil,
+    publicationDate: String? = nil,
+    pageCount: Int? = nil,
+    format: EditionFormat = EditionFormat.hardcover,
+    coverImageURL: String? = nil,
+    editionTitle: String? = nil,
+    description: String? = nil,
+    work: Work? = nil,
+    primaryProvider: String? = nil
+) {
+    self.isbn = isbn
+    self.publisher = publisher
+    self.publicationDate = publicationDate
+    self.pageCount = pageCount
+    self.format = format
+    self.coverImageURL = coverImageURL
+    self.editionTitle = editionTitle
+    self.description = description
+    self.work = work
+    self.primaryProvider = primaryProvider
+    self.contributors = []
+    self.dateCreated = Date()
+    self.lastModified = Date()
+}
+```
+
+**Step 3: Verify Swift compiles**
+
+Run: `/build` slash command
+Expected: Build succeeds with zero errors
+
+**Step 4: Commit**
+
+```bash
+git add BooksTrackerPackage/Sources/BooksTrackerFeature/Edition.swift
+git commit -m "feat(models): add description and provenance fields to Edition
+
+Adds observability and metadata fields:
+- description: String? - Edition-specific description
+- primaryProvider: String? - Which API contributed the Edition
+- contributors: [String] - All providers that enriched this Edition
+
+Matches TypeScript EditionDTO for canonical contracts.
+Code review follow-up from Task 2.
+
+Part of canonical data contracts initiative (Phase 1b)"
+```
+
+---
+
 ## Phase 2: Canonical Normalizers
 
 ### Task 4: Create Normalizer for Google Books → WorkDTO
