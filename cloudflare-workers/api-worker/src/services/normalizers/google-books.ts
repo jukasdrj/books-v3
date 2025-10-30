@@ -69,3 +69,24 @@ export function normalizeGoogleBooksToEdition(item: any): EditionDTO {
     isbndbQuality: 0,
   };
 }
+
+/**
+ * Synthesize Work from Edition when Work data is missing
+ * Sets synthetic: true to indicate inferred data
+ */
+export function ensureWorkForEdition(edition: EditionDTO): WorkDTO {
+  return {
+    title: edition.title || 'Unknown',
+    subjectTags: [], // Will be populated by genre normalizer (Phase 3)
+    firstPublicationYear: extractYear(edition.publicationDate),
+    synthetic: true, // KEY: indicates this Work was inferred
+    primaryProvider: edition.primaryProvider,
+    contributors: edition.contributors,
+    goodreadsWorkIDs: [],
+    amazonASINs: edition.amazonASINs,
+    librarythingIDs: edition.librarythingIDs,
+    googleBooksVolumeIDs: edition.googleBooksVolumeIDs,
+    isbndbQuality: edition.isbndbQuality,
+    reviewStatus: 'verified',
+  };
+}
