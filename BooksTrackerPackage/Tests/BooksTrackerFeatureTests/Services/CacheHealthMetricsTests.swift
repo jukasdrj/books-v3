@@ -9,7 +9,10 @@ struct CacheHealthMetricsTests {
     @Test("STALE status counts as cache miss")
     @MainActor
     func staleStatusCountsAsMiss() {
-        let metrics = CacheHealthMetrics()
+        let metrics = CacheHealthMetrics.shared
+
+        // Reset metrics for test isolation
+        metrics.reset()
 
         // 1 HIT + 1 STALE = 50% hit rate
         metrics.update(from: ["X-Cache-Status": "HIT"], responseTime: 100)
@@ -21,7 +24,10 @@ struct CacheHealthMetricsTests {
     @Test("EXPIRED status counts as cache miss")
     @MainActor
     func expiredStatusCountsAsMiss() {
-        let metrics = CacheHealthMetrics()
+        let metrics = CacheHealthMetrics.shared
+
+        // Reset metrics for test isolation
+        metrics.reset()
 
         // 1 HIT + 1 EXPIRED = 50% hit rate
         metrics.update(from: ["X-Cache-Status": "HIT"], responseTime: 100)
@@ -33,7 +39,10 @@ struct CacheHealthMetricsTests {
     @Test("BYPASS status counts as cache miss")
     @MainActor
     func bypassStatusCountsAsMiss() {
-        let metrics = CacheHealthMetrics()
+        let metrics = CacheHealthMetrics.shared
+
+        // Reset metrics for test isolation
+        metrics.reset()
 
         // 2 HIT + 1 BYPASS = 66.67% hit rate
         metrics.update(from: ["X-Cache-Status": "HIT"], responseTime: 80)
@@ -47,7 +56,10 @@ struct CacheHealthMetricsTests {
     @Test("REVALIDATED status counts as cache miss")
     @MainActor
     func revalidatedStatusCountsAsMiss() {
-        let metrics = CacheHealthMetrics()
+        let metrics = CacheHealthMetrics.shared
+
+        // Reset metrics for test isolation
+        metrics.reset()
 
         // 1 HIT + 1 REVALIDATED = 50% hit rate
         metrics.update(from: ["X-Cache-Status": "HIT"], responseTime: 100)
