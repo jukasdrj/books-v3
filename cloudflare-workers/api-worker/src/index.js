@@ -13,6 +13,7 @@ import { handleScheduledArchival } from './handlers/scheduled-archival.js';
 import { handleScheduledAlerts } from './handlers/scheduled-alerts.js';
 import { handleCacheMetrics } from './handlers/cache-metrics.js';
 import { handleMetricsRequest } from './handlers/metrics-handler.js';
+import { handleSearchTitle } from './handlers/v1/search-title.js';
 
 // Export the Durable Object class for Cloudflare Workers runtime
 export { ProgressWebSocketDO };
@@ -327,7 +328,20 @@ export default {
     }
 
     // ========================================================================
-    // Book Search Endpoints
+    // Book Search Endpoints - V1 (Canonical Contracts)
+    // ========================================================================
+
+    // GET /v1/search/title - Search books by title (canonical response)
+    if (url.pathname === '/v1/search/title' && request.method === 'GET') {
+      const query = url.searchParams.get('q');
+      const response = await handleSearchTitle(query, env);
+      return new Response(JSON.stringify(response), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ========================================================================
+    // Book Search Endpoints - Legacy
     // ========================================================================
 
     // GET /search/title - Search books by title with caching (6h TTL)
