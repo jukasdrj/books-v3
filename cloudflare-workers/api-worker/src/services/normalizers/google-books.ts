@@ -37,3 +37,35 @@ export function normalizeGoogleBooksToWork(item: any): WorkDTO {
     reviewStatus: 'verified',
   };
 }
+
+/**
+ * Normalize Google Books volume to EditionDTO
+ */
+export function normalizeGoogleBooksToEdition(item: any): EditionDTO {
+  const volumeInfo = item.volumeInfo || {};
+  const identifiers = volumeInfo.industryIdentifiers || [];
+
+  const isbn13 = identifiers.find((id: any) => id.type === 'ISBN_13')?.identifier;
+  const isbn10 = identifiers.find((id: any) => id.type === 'ISBN_10')?.identifier;
+  const isbns = [isbn13, isbn10].filter(Boolean) as string[];
+
+  return {
+    isbn: isbn13 || isbn10,
+    isbns,
+    title: volumeInfo.title,
+    publisher: volumeInfo.publisher,
+    publicationDate: volumeInfo.publishedDate,
+    pageCount: volumeInfo.pageCount,
+    format: 'Hardcover', // Google Books doesn't provide format
+    coverImageURL: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:'),
+    editionTitle: undefined,
+    editionDescription: volumeInfo.description,
+    language: volumeInfo.language,
+    primaryProvider: 'google-books',
+    contributors: ['google-books'],
+    amazonASINs: [],
+    googleBooksVolumeIDs: [item.id],
+    librarythingIDs: [],
+    isbndbQuality: 0,
+  };
+}

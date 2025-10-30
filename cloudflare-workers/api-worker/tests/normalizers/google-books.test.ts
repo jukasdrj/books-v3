@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeGoogleBooksToWork } from '../../src/services/normalizers/google-books.js';
+import { normalizeGoogleBooksToWork, normalizeGoogleBooksToEdition } from '../../src/services/normalizers/google-books.js';
 
 describe('normalizeGoogleBooksToWork', () => {
   it('should convert Google Books item to WorkDTO', () => {
@@ -42,5 +42,38 @@ describe('normalizeGoogleBooksToWork', () => {
     expect(work.firstPublicationYear).toBeUndefined();
     expect(work.subjectTags).toEqual([]);
     expect(work.description).toBeUndefined();
+  });
+});
+
+describe('normalizeGoogleBooksToEdition', () => {
+  it('should convert Google Books item to EditionDTO', () => {
+    const googleBooksItem = {
+      id: 'beSP5CCpiGUC',
+      volumeInfo: {
+        title: '1984',
+        publisher: 'Penguin',
+        publishedDate: '2021-01-05',
+        pageCount: 328,
+        imageLinks: {
+          thumbnail: 'http://books.google.com/covers/1984.jpg'
+        },
+        industryIdentifiers: [
+          { type: 'ISBN_13', identifier: '9780451524935' },
+          { type: 'ISBN_10', identifier: '0451524934' }
+        ]
+      }
+    };
+
+    const edition = normalizeGoogleBooksToEdition(googleBooksItem);
+
+    expect(edition.isbn).toBe('9780451524935'); // ISBN-13 preferred
+    expect(edition.isbns).toContain('9780451524935');
+    expect(edition.isbns).toContain('0451524934');
+    expect(edition.publisher).toBe('Penguin');
+    expect(edition.publicationDate).toBe('2021-01-05');
+    expect(edition.pageCount).toBe(328);
+    expect(edition.format).toBe('Hardcover'); // default
+    expect(edition.coverImageURL).toBe('https://books.google.com/covers/1984.jpg');
+    expect(edition.primaryProvider).toBe('google-books');
   });
 });
