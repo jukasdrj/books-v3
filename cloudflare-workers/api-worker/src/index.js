@@ -14,6 +14,7 @@ import { handleScheduledAlerts } from './handlers/scheduled-alerts.js';
 import { handleCacheMetrics } from './handlers/cache-metrics.js';
 import { handleMetricsRequest } from './handlers/metrics-handler.js';
 import { handleSearchTitle } from './handlers/v1/search-title.js';
+import { handleSearchISBN } from './handlers/v1/search-isbn.js';
 
 // Export the Durable Object class for Cloudflare Workers runtime
 export { ProgressWebSocketDO };
@@ -335,6 +336,15 @@ export default {
     if (url.pathname === '/v1/search/title' && request.method === 'GET') {
       const query = url.searchParams.get('q');
       const response = await handleSearchTitle(query, env);
+      return new Response(JSON.stringify(response), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // GET /v1/search/isbn - Search books by ISBN (canonical response)
+    if (url.pathname === '/v1/search/isbn' && request.method === 'GET') {
+      const isbn = url.searchParams.get('isbn');
+      const response = await handleSearchISBN(isbn, env);
       return new Response(JSON.stringify(response), {
         headers: { 'Content-Type': 'application/json' },
       });
