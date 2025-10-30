@@ -99,8 +99,6 @@ public struct SearchView: View {
     // Pagination state
     @State private var isLoadingMore = false
 
-    public init() {}
-
     // MARK: - Body
 
     public var body: some View {
