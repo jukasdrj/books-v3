@@ -24,21 +24,26 @@ public actor BookSearchAPIService {
 
         // iOS 26 HIG: Intelligent routing based on query context
         let endpoint: String
+        let urlString: String
+
         switch scope {
         case .all:
             // Smart detection: ISBN → Title search, otherwise use title search
             // Title search handles ISBNs intelligently + provides best coverage
-            endpoint = "/search/title"
+            endpoint = "/v1/search/title"
+            urlString = "\(baseURL)\(endpoint)?q=\(encodedQuery)"
         case .title:
-            endpoint = "/search/title"
+            endpoint = "/v1/search/title"
+            urlString = "\(baseURL)\(endpoint)?q=\(encodedQuery)"
         case .author:
-            endpoint = "/search/author"
+            // Use advanced search with author-only parameter (canonical format)
+            endpoint = "/v1/search/advanced"
+            urlString = "\(baseURL)\(endpoint)?author=\(encodedQuery)"
         case .isbn:
             // Dedicated ISBN endpoint for ISBNdb lookups (7-day cache, most accurate)
-            endpoint = "/search/isbn"
+            endpoint = "/v1/search/isbn"
+            urlString = "\(baseURL)\(endpoint)?isbn=\(encodedQuery)"
         }
-
-        let urlString = "\(baseURL)\(endpoint)?q=\(encodedQuery)&maxResults=\(maxResults)"
         guard let url = URL(string: urlString) else {
             throw SearchError.invalidURL
         }
@@ -69,55 +74,42 @@ public actor BookSearchAPIService {
         // Update cache health metrics (actor-isolated call)
         await updateCacheMetrics(headers: httpResponse.allHeaderFields, responseTime: responseTime)
 
-        // Parse response based on format
-        let apiResponse: APISearchResponse
+        // Parse canonical ApiResponse<BookSearchResponse> envelope
+        let envelope: ApiResponse<BookSearchResponse>
         do {
-            apiResponse = try JSONDecoder().decode(APISearchResponse.self, from: data)
+            envelope = try JSONDecoder().decode(ApiResponse<BookSearchResponse>.self, from: data)
         } catch {
             throw SearchError.decodingError(error)
         }
 
-        // Check if this is an enhanced format response or legacy format
-        let isEnhancedFormat = apiResponse.format == "enhanced_work_edition_v1"
-
         let results: [SearchResult]
 
-        if isEnhancedFormat {
-            // Handle enhanced Work/Edition format
-            results = apiResponse.items.compactMap { bookItem in
-                return convertEnhancedItemToSearchResult(bookItem, provider: provider)
-            }
-        } else {
-            // Handle legacy Google Books format for backward compatibility
-            results = apiResponse.items.map { bookItem in
-                // Create authors first
-                let authors = (bookItem.volumeInfo.authors ?? []).map { authorName in
-                    Author(name: authorName, gender: .unknown, culturalRegion: .international)
-                }
-
-                // Create work with authors properly set
+        switch envelope {
+        case .success(let searchData, let meta):
+            // Map canonical WorkDTOs to SearchResults
+            results = searchData.works.map { workDTO in
+                // TODO: Use DTOMapper.mapToWork() for proper deduplication
+                // For now, create temporary SearchResult
                 let work = Work(
-                    title: bookItem.volumeInfo.title,
-                    authors: authors.isEmpty ? [] : authors, // Pass authors in constructor
-                    originalLanguage: bookItem.volumeInfo.language,
-                    firstPublicationYear: extractYear(from: bookItem.volumeInfo.publishedDate),
-                    subjectTags: bookItem.volumeInfo.categories ?? []
+                    title: workDTO.title,
+                    authors: [],
+                    originalLanguage: workDTO.originalLanguage,
+                    firstPublicationYear: workDTO.firstPublicationYear,
+                    subjectTags: workDTO.subjectTags
                 )
-
-                // Set external identifiers
-                work.googleBooksVolumeID = bookItem.id
-                work.isbndbQuality = 75 // Default quality for Google Books data
-
-                let edition = convertToEdition(from: bookItem, work: work)
+                work.googleBooksVolumeIDs = workDTO.googleBooksVolumeIDs
 
                 return SearchResult(
                     work: work,
-                    editions: [edition],
-                    authors: authors,
+                    editions: [],
+                    authors: [],
                     relevanceScore: 1.0,
-                    provider: provider
+                    provider: meta.provider ?? "unknown"
                 )
             }
+
+        case .failure(let error, _):
+            throw SearchError.apiError(error.message)
         }
 
         return SearchResponse(
@@ -125,7 +117,7 @@ public actor BookSearchAPIService {
             cacheHitRate: cacheHitRate,
             provider: provider,
             responseTime: 0, // Will be calculated by caller
-            totalItems: apiResponse.totalItems
+            totalItems: results.count
         )
     }
 
@@ -150,13 +142,12 @@ public actor BookSearchAPIService {
         var queryItems: [URLQueryItem] = []
 
         if isAuthorOnlySearch, let authorName = author {
-            // Use dedicated author endpoint (better caching, optimized for author bibliography)
-            urlComponents = URLComponents(string: "\(baseURL)/search/author")!
-            queryItems.append(URLQueryItem(name: "q", value: authorName))
-            queryItems.append(URLQueryItem(name: "maxResults", value: "20"))
+            // Use v1 advanced search with author-only parameter
+            urlComponents = URLComponents(string: "\(baseURL)/v1/search/advanced")!
+            queryItems.append(URLQueryItem(name: "author", value: authorName))
         } else {
-            // Use advanced search endpoint for multi-criteria queries
-            urlComponents = URLComponents(string: "\(baseURL)/search/advanced")!
+            // Use v1 advanced search endpoint for multi-criteria queries
+            urlComponents = URLComponents(string: "\(baseURL)/v1/search/advanced")!
 
             if let author = author, !author.isEmpty {
                 queryItems.append(URLQueryItem(name: "author", value: author))
@@ -167,8 +158,6 @@ public actor BookSearchAPIService {
             if let isbn = isbn, !isbn.isEmpty {
                 queryItems.append(URLQueryItem(name: "isbn", value: isbn))
             }
-
-            queryItems.append(URLQueryItem(name: "maxResults", value: "20"))
         }
 
         urlComponents.queryItems = queryItems
@@ -203,50 +192,41 @@ public actor BookSearchAPIService {
         // Update cache health metrics (actor-isolated call)
         await updateCacheMetrics(headers: httpResponse.allHeaderFields, responseTime: responseTime)
 
-        // Parse response
-        let apiResponse: APISearchResponse
+        // Parse canonical ApiResponse<BookSearchResponse> envelope
+        let envelope: ApiResponse<BookSearchResponse>
         do {
-            apiResponse = try JSONDecoder().decode(APISearchResponse.self, from: data)
+            envelope = try JSONDecoder().decode(ApiResponse<BookSearchResponse>.self, from: data)
         } catch {
             throw SearchError.decodingError(error)
         }
 
-        // Check format and convert
-        let isEnhancedFormat = apiResponse.format == "enhanced_work_edition_v1"
-
         let results: [SearchResult]
-        if isEnhancedFormat {
-            results = apiResponse.items.compactMap { bookItem in
-                return convertEnhancedItemToSearchResult(bookItem, provider: provider)
-            }
-        } else {
-            // Legacy format conversion
-            results = apiResponse.items.map { bookItem in
-                let authors = (bookItem.volumeInfo.authors ?? []).map { authorName in
-                    Author(name: authorName, gender: .unknown, culturalRegion: .international)
-                }
 
+        switch envelope {
+        case .success(let searchData, let meta):
+            // Map canonical WorkDTOs to SearchResults
+            results = searchData.works.map { workDTO in
+                // TODO: Use DTOMapper.mapToWork() for proper deduplication
                 let work = Work(
-                    title: bookItem.volumeInfo.title,
-                    authors: authors.isEmpty ? [] : authors,
-                    originalLanguage: bookItem.volumeInfo.language,
-                    firstPublicationYear: extractYear(from: bookItem.volumeInfo.publishedDate),
-                    subjectTags: bookItem.volumeInfo.categories ?? []
+                    title: workDTO.title,
+                    authors: [],
+                    originalLanguage: workDTO.originalLanguage,
+                    firstPublicationYear: workDTO.firstPublicationYear,
+                    subjectTags: workDTO.subjectTags
                 )
-
-                work.googleBooksVolumeID = bookItem.id
-                work.isbndbQuality = 75
-
-                let edition = convertToEdition(from: bookItem, work: work)
+                work.googleBooksVolumeIDs = workDTO.googleBooksVolumeIDs
 
                 return SearchResult(
                     work: work,
-                    editions: [edition],
-                    authors: authors,
+                    editions: [],
+                    authors: [],
                     relevanceScore: 1.0,
-                    provider: provider
+                    provider: meta.provider ?? "unknown"
                 )
             }
+
+        case .failure(let error, _):
+            throw SearchError.apiError(error.message)
         }
 
         return SearchResponse(
@@ -254,7 +234,7 @@ public actor BookSearchAPIService {
             cacheHitRate: cacheHitRate,
             provider: provider,
             responseTime: 0,
-            totalItems: apiResponse.totalItems
+            totalItems: results.count
         )
     }
 
@@ -450,6 +430,7 @@ public enum SearchError: LocalizedError {
     case httpError(Int)
     case decodingError(Error)
     case networkError(Error)
+    case apiError(String)
 
     public var errorDescription: String? {
         switch self {
@@ -465,6 +446,8 @@ public enum SearchError: LocalizedError {
             return "Failed to decode response: \(error.localizedDescription)"
         case .networkError(let error):
             return "Network error: \(error.localizedDescription)"
+        case .apiError(let message):
+            return "API error: \(message)"
         }
     }
 }
