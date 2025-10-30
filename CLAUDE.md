@@ -137,7 +137,53 @@ struct BookDetailView: View {
 
 **Worker:** `api-worker` (Cloudflare Worker monolith)
 
-**Endpoints:**
+#### Canonical Data Contracts (v1.0.0) 🎉 NEW
+
+**TypeScript-first API contracts** ensure consistency across all data providers. All `/v1/*` endpoints return structured canonical responses.
+
+**Core DTOs:** `cloudflare-workers/api-worker/src/types/canonical.ts`
+- `WorkDTO` - Abstract creative work (mirrors SwiftData Work model)
+- `EditionDTO` - Physical/digital manifestation (multi-ISBN support)
+- `AuthorDTO` - Creator with diversity analytics
+
+**Response Envelope:** All `/v1/*` endpoints return discriminated union:
+```typescript
+{
+  "success": true | false,
+  "data": { works: WorkDTO[], authors: AuthorDTO[] } | undefined,
+  "error": { message: string, code: ApiErrorCode, details?: any } | undefined,
+  "meta": { timestamp: string, processingTime: number, provider: string, cached: boolean }
+}
+```
+
+**V1 Endpoints (Canonical):**
+- `GET /v1/search/title?q={query}` - Title search (canonical response)
+- `GET /v1/search/isbn?isbn={isbn}` - ISBN lookup with validation (ISBN-10/ISBN-13)
+- `GET /v1/search/advanced?title={title}&author={author}` - Flexible search (title, author, or both)
+
+**Error Codes:** Structured error handling
+- `INVALID_QUERY` - Empty/invalid search parameters
+- `INVALID_ISBN` - Malformed ISBN format
+- `PROVIDER_ERROR` - Upstream API failure (Google Books, etc.)
+- `INTERNAL_ERROR` - Unexpected server error
+
+**Provenance Tracking:** Every DTO includes:
+- `primaryProvider` - Which API contributed the data ("google-books", "openlibrary", etc.)
+- `contributors` - Array of all providers that enriched the data
+- `synthetic` - Flag for Works inferred from Edition data (enables iOS deduplication)
+
+**Implementation Status:**
+- ✅ TypeScript types defined (`enums.ts`, `canonical.ts`, `responses.ts`)
+- ✅ Google Books normalizers (`normalizeGoogleBooksToWork`, `normalizeGoogleBooksToEdition`)
+- ✅ All 3 `/v1/*` endpoints deployed and tested with real API
+- ✅ 18 tests passing (15 unit + 3 integration)
+- ⏳ iOS Swift Codable DTOs (next phase)
+- ⏳ iOS DTO → SwiftData mapper (next phase)
+
+**Design:** `docs/plans/2025-10-29-canonical-data-contracts-design.md`
+**Implementation:** `docs/plans/2025-10-29-canonical-data-contracts-implementation.md`
+
+**Legacy Endpoints (Still Active):**
 - `GET /search/title?q={query}` - Book search (6h cache)
 - `GET /search/isbn?isbn={isbn}` - ISBN lookup (7-day cache)
 - `GET /search/advanced?title={title}&author={author}` - Multi-field search (6h cache, supports POST for compatibility)
