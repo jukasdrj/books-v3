@@ -101,9 +101,9 @@ public final class EnrichmentService {
     // MARK: - Private Methods
 
     private func searchAPI(title: String, author: String?) async throws -> EnrichmentSearchResponseFlat {
-        // Use advanced search endpoint for CSV enrichment (precise backend filtering)
-        // This leverages the /search/advanced endpoint's multi-field filtering capability
-        var urlComponents = URLComponents(string: "\(baseURL)/search/advanced")!
+        // Use v1 canonical advanced search endpoint for CSV enrichment
+        // Returns canonical ApiResponse<BookSearchResponse> with WorkDTO, EditionDTO, AuthorDTO
+        var urlComponents = URLComponents(string: "\(baseURL)/v1/search/advanced")!
         var queryItems: [URLQueryItem] = []
 
         queryItems.append(URLQueryItem(name: "title", value: title))
@@ -135,17 +135,27 @@ public final class EnrichmentService {
         #endif
 
         let decoder = JSONDecoder()
-        let apiResponse = try decoder.decode(EnrichmentSearchResponse.self, from: data)
+        let envelope = try decoder.decode(ApiResponse<BookSearchResponse>.self, from: data)
 
-        // Transform VolumeItems to flat EnrichmentSearchResults
-        let transformedResults = apiResponse.items.map { volumeItem in
-            EnrichmentSearchResult(from: volumeItem.volumeInfo, volumeId: volumeItem.id)
+        // Parse canonical ApiResponse envelope
+        let transformedResults: [EnrichmentSearchResult]
+        let totalItems: Int
+
+        switch envelope {
+        case .success(let searchData, _):
+            // Transform canonical WorkDTOs to EnrichmentSearchResults
+            transformedResults = searchData.works.map { workDTO in
+                EnrichmentSearchResult(from: workDTO)
+            }
+            totalItems = searchData.totalResults ?? transformedResults.count
+
+        case .failure(let error, _):
+            throw EnrichmentError.apiError(error.message)
         }
 
-        // Create a response with transformed results for compatibility
         return EnrichmentSearchResponseFlat(
             items: transformedResults,
-            totalItems: apiResponse.totalItems ?? transformedResults.count  // Fallback to actual count if missing
+            totalItems: totalItems
         )
     }
 
@@ -317,54 +327,6 @@ public struct EnrichmentStatistics: Sendable {
     }
 }
 
-// MARK: - EnrichmentSearchResponse (Google Books Format)
-// Matches the nested volumeInfo structure from books-api-proxy worker
-
-private struct EnrichmentSearchResponse: Codable {
-    let items: [VolumeItem]
-    let totalItems: Int?  // Optional: Backend doesn't always include this field
-    let query: String?
-    let provider: String?
-    let cached: Bool?
-    let success: Bool?  // Backend includes success flag
-}
-
-private struct VolumeItem: Codable {
-    let kind: String?
-    let id: String?
-    let volumeInfo: VolumeInfo
-}
-
-private struct VolumeInfo: Codable {
-    let title: String
-    let subtitle: String?
-    let authors: [String]?
-    let publisher: String?
-    let publishedDate: String?
-    let description: String?
-    let industryIdentifiers: [IndustryIdentifier]?
-    let pageCount: Int?
-    let categories: [String]?
-    let imageLinks: ImageLinks?
-    let crossReferenceIds: CrossReferenceIds?
-}
-
-private struct ImageLinks: Codable {
-    let thumbnail: String?
-    let smallThumbnail: String?
-}
-
-private struct CrossReferenceIds: Codable {
-    let openLibraryWorkId: String?
-    let openLibraryEditionId: String?
-    let googleBooksVolumeId: String?
-}
-
-private struct IndustryIdentifier: Codable {
-    let type: String
-    let identifier: String
-}
-
 // MARK: - Transformation to Flat Model
 
 private struct EnrichmentSearchResult {
@@ -379,31 +341,19 @@ private struct EnrichmentSearchResult {
     let openLibraryWorkID: String?
     let googleBooksVolumeID: String?
 
-    init(from volumeInfo: VolumeInfo, volumeId: String?) {
-        self.title = volumeInfo.title
-        self.author = volumeInfo.authors?.first ?? "Unknown Author"
-
-        // Extract ISBN from industryIdentifiers
-        if let identifiers = volumeInfo.industryIdentifiers {
-            self.isbn = identifiers.first(where: { $0.type.contains("ISBN") })?.identifier
-        } else {
-            self.isbn = nil
-        }
-
-        self.coverImage = volumeInfo.imageLinks?.thumbnail
-
-        // Parse year from publishedDate string (e.g., "2022" or "2022-01-15")
-        if let dateString = volumeInfo.publishedDate {
-            self.publicationYear = Int(dateString.prefix(4))
-        } else {
-            self.publicationYear = nil
-        }
-
-        self.publicationDate = volumeInfo.publishedDate
-        self.publisher = volumeInfo.publisher
-        self.pageCount = volumeInfo.pageCount
-        self.openLibraryWorkID = volumeInfo.crossReferenceIds?.openLibraryWorkId
-        self.googleBooksVolumeID = volumeInfo.crossReferenceIds?.googleBooksVolumeId ?? volumeId
+    /// Create from canonical WorkDTO (v1 API response)
+    /// TODO: Integrate AuthorDTO and EditionDTO when available in response
+    init(from workDTO: WorkDTO) {
+        self.title = workDTO.title
+        self.author = "Unknown Author" // TODO: Correlate with BookSearchResponse.authors array
+        self.isbn = nil // TODO: Extract from first EditionDTO when available
+        self.coverImage = nil // TODO: Extract from first EditionDTO when available
+        self.publicationYear = workDTO.firstPublicationYear
+        self.publicationDate = nil // TODO: Extract from first EditionDTO when available
+        self.publisher = nil // TODO: Extract from first EditionDTO when available
+        self.pageCount = nil // TODO: Extract from first EditionDTO when available
+        self.openLibraryWorkID = workDTO.openLibraryWorkID
+        self.googleBooksVolumeID = workDTO.googleBooksVolumeIDs.first ?? workDTO.googleBooksVolumeID
     }
 }
 

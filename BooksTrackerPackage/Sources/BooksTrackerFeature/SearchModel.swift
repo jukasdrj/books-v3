@@ -466,7 +466,7 @@ public final class SearchModel {
                 return code >= 500 // Retry on server errors
             case .networkError, .invalidResponse:
                 return true
-            case .invalidQuery, .invalidURL, .decodingError:
+            case .invalidQuery, .invalidURL, .decodingError, .apiError:
                 return false // Don't retry client errors
             }
         }
