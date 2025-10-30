@@ -354,16 +354,29 @@ public class CSVImportService {
 
 ### Barcode Scanning
 
+**Implementation:** Apple VisionKit `DataScannerViewController` (iOS 16+)
+
 ```swift
 // Quick integration in SearchView
 .sheet(isPresented: $showingScanner) {
-    ModernBarcodeScannerView { isbn in
-        Task { await searchModel.searchByISBN(isbn) }
+    ISBNScannerView { isbn in
+        searchScope = .isbn
+        searchModel.searchByISBN(isbn.normalizedValue)
     }
 }
 ```
 
-**Critical:** Single CameraManager instance! Pass via dependency injection.
+**Key Features:**
+- Native Apple barcode scanning (zero custom camera code)
+- Auto-highlighting and tap-to-scan gestures
+- Built-in guidance ("Move Closer", "Slow Down")
+- Pinch-to-zoom support
+- Automatic capability checking (`DataScannerViewController.isSupported`, `isAvailable`)
+- Error states: UnsupportedDeviceView (A12+ required), PermissionDeniedView (Settings link)
+
+**Symbologies:** EAN-13, EAN-8, UPC-E (ISBN-specific)
+
+**See:** `docs/plans/2025-10-30-visionkit-barcode-scanner-design.md` for architecture details
 
 ### Features
 
