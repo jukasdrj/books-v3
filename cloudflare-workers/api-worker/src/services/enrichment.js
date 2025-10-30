@@ -1,49 +1,41 @@
 import * as externalApis from './external-apis.js';
+import { normalizeGoogleBooksToWork, normalizeGoogleBooksToEdition } from './normalizers/google-books.js';
 
 /**
- * Transforms the raw Google Books API response into the nested structure 
- * expected by the Swift frontend.
- *
- * @param {Object} googleBooksResponse - The raw JSON response from the Google Books API.
- * @returns {Object} The transformed response.
+ * Transforms the raw Google Books API response into canonical DTO format
+ * @param {Object} googleBooksResponse - The raw JSON response from the Google Books API
+ * @returns {Object} Canonical format: { work, editions, authors }
  */
 function transformGoogleBooksResponse(googleBooksResponse) {
-  if (!googleBooksResponse || !googleBooksResponse.items) {
+  if (!googleBooksResponse || !googleBooksResponse.items || googleBooksResponse.items.length === 0) {
     return {
-      items: [],
-      totalItems: 0,
+      work: null,
+      editions: [],
+      authors: []
     };
   }
 
-  const transformedItems = googleBooksResponse.items.map(item => {
-    return {
-      kind: item.kind,
-      id: item.id,
-      volumeInfo: {
-        title: item.volumeInfo.title,
-        subtitle: item.volumeInfo.subtitle,
-        authors: item.volumeInfo.authors,
-        publisher: item.volumeInfo.publisher,
-        publishedDate: item.volumeInfo.publishedDate,
-        description: item.volumeInfo.description,
-        industryIdentifiers: item.volumeInfo.industryIdentifiers,
-        pageCount: item.volumeInfo.pageCount,
-        categories: item.volumeInfo.categories,
-        imageLinks: item.volumeInfo.imageLinks,
-        crossReferenceIds: {
-          openLibraryWorkId: item.volumeInfo.openLibraryWorkId,
-          openLibraryEditionId: item.volumeInfo.openLibraryEditionId,
-          googleBooksVolumeId: item.id,
-        },
-      },
-    };
-  });
+  // Use first item as primary book
+  const primaryItem = googleBooksResponse.items[0];
+  const volumeInfo = primaryItem.volumeInfo || {};
+
+  // Normalize to canonical WorkDTO
+  const work = normalizeGoogleBooksToWork(primaryItem);
+
+  // Normalize all items to EditionDTOs
+  const editions = googleBooksResponse.items.map(item => normalizeGoogleBooksToEdition(item));
+
+  // Extract unique authors
+  const authorNames = volumeInfo.authors || [];
+  const authors = authorNames.map(name => ({
+    name,
+    gender: 'Unknown',
+  }));
 
   return {
-    items: transformedItems,
-    totalItems: googleBooksResponse.totalItems,
-    success: true,
-    provider: 'google-books',
+    work,
+    editions,
+    authors
   };
 }
 
@@ -225,12 +217,14 @@ async function enrichWorkWithAPIs(workId, env) {
       enrichmentData = await externalApis.searchGoogleBooks(workId, { maxResults: 5 }, env);
     }
 
-    const transformedData = transformGoogleBooksResponse(enrichmentData);
+    const canonicalData = transformGoogleBooksResponse(enrichmentData);
 
     return {
       workId,
       enriched: true,
-      data: transformedData,
+      work: canonicalData.work,
+      editions: canonicalData.editions,
+      authors: canonicalData.authors,
       isISBN,
       timestamp: new Date().toISOString()
     };
