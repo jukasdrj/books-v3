@@ -160,20 +160,33 @@ return UIImage(cgImage: croppedCGImage)
 
 ### 4. Automatic Cleanup
 
-**Trigger:** App launch (ContentView.swift:71-74)
+**Trigger:** App launch (ContentView.swift:73-78)
 
 ```swift
 .task {
     // Clean up temporary scan images after all books reviewed
     await ImageCleanupService.shared.cleanupReviewedImages(in: modelContext)
+    // Clean up orphaned temp files from failed scans (24h+ old)
+    await ImageCleanupService.shared.cleanupOrphanedFiles(in: modelContext)
 }
 ```
 
-**Logic:** (ImageCleanupService.swift:42-68)
+**Two-Phase Cleanup Strategy:**
+
+**Phase 1 - Reviewed Images:** (ImageCleanupService.swift:25-73)
 - Groups works by `originalImagePath`
 - Checks if all books from scan are `.verified` or `.userEdited`
 - Deletes image file and clears Work references
 - Saves ModelContext changes
+
+**Phase 2 - Orphaned Files:** (ImageCleanupService.swift:148-202)
+- Scans temp directory for `bookshelf_scan_*.jpg` files
+- Checks if file is referenced by any Work in SwiftData
+- Deletes files that are:
+  - NOT referenced by any Work (orphaned)
+  - AND older than 24 hours (age threshold)
+- **Handles edge cases:** Failed scans, crashes, network errors where Works are never created
+- **Safe:** 24-hour grace period prevents deleting active sessions
 
 ---
 

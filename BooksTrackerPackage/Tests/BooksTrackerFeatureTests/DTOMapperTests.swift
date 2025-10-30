@@ -320,7 +320,7 @@ struct DTOMapperTests {
         // Should have replaced synthetic with real data
         #expect(realWork.synthetic == false)
         #expect(realWork.title == "1984")
-        #expect(realWork.description == "A dystopian novel by George Orwell")
+        // Note: Work model doesn't have description field
         #expect(realWork.reviewStatus == .verified)
     }
 }

@@ -137,4 +137,67 @@ public class ImageCleanupService {
             return 0
         }
     }
+
+    // MARK: - Orphaned File Cleanup
+
+    /// Clean up orphaned temp files not referenced by any Work
+    /// Call this on app launch to handle files from failed scans
+    /// - Parameters:
+    ///   - modelContext: SwiftData context for checking Work references
+    ///   - olderThan: Age threshold in seconds (default 24 hours)
+    public func cleanupOrphanedFiles(in modelContext: ModelContext, olderThan age: TimeInterval = 86400) async {
+        let fileManager = FileManager.default
+        let tempDirectory = fileManager.temporaryDirectory
+
+        do {
+            // Get all files in temp directory
+            let contents = try fileManager.contentsOfDirectory(
+                at: tempDirectory,
+                includingPropertiesForKeys: [.contentModificationDateKey],
+                options: [.skipsHiddenFiles]
+            )
+
+            // Filter for bookshelf scan images
+            let scanImages = contents.filter { $0.lastPathComponent.hasPrefix("bookshelf_scan_") && $0.pathExtension == "jpg" }
+
+            // Get all referenced image paths from Works
+            let descriptor = FetchDescriptor<Work>()
+            let allWorks = try modelContext.fetch(descriptor)
+            let referencedPaths = Set(allWorks.compactMap { $0.originalImagePath })
+
+            var cleanedCount = 0
+            var skippedCount = 0
+
+            for imageURL in scanImages {
+                let imagePath = imageURL.path
+
+                // Skip if referenced by any Work
+                if referencedPaths.contains(imagePath) {
+                    skippedCount += 1
+                    continue
+                }
+
+                // Check file age
+                let attributes = try fileManager.attributesOfItem(atPath: imagePath)
+                guard let modificationDate = attributes[.modificationDate] as? Date else {
+                    continue
+                }
+
+                let fileAge = Date().timeIntervalSince(modificationDate)
+                if fileAge > age {
+                    // Delete orphaned old file
+                    try fileManager.removeItem(at: imageURL)
+                    cleanedCount += 1
+                    print("🧹 ImageCleanupService: Deleted orphaned file \(imageURL.lastPathComponent) (age: \(Int(fileAge / 3600))h)")
+                }
+            }
+
+            if cleanedCount > 0 || skippedCount > 0 {
+                print("🧹 ImageCleanupService: Orphaned file cleanup complete - deleted: \(cleanedCount), skipped: \(skippedCount) (referenced)")
+            }
+
+        } catch {
+            print("❌ ImageCleanupService: Orphaned file cleanup failed - \(error)")
+        }
+    }
 }

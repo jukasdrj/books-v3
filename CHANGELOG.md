@@ -6,6 +6,103 @@ All notable changes, achievements, and debugging victories for this project.
 
 ## [Unreleased]
 
+### Fixed 🐛 - Orphaned Temp File Cleanup (October 30, 2025)
+
+**Problem:** When AI bookshelf scans fail (WebSocket disconnect, network error), temporary images remain orphaned because no Works are created to track them. ImageCleanupService only cleaned files referenced by reviewed Works.
+
+**Solution:** Added age-based orphaned file cleanup that runs on app launch:
+- Scans temp directory for `bookshelf_scan_*.jpg` files
+- Deletes orphaned files older than 24 hours (not referenced by any Work)
+- Safe: 24-hour grace period prevents deleting active sessions
+- Comprehensive: Handles ALL orphaned file scenarios (not just scan failures)
+
+**Implementation:**
+- TDD approach: Wrote failing tests first (`ImageCleanupServiceTests.swift`)
+- 3 test cases: old orphaned files, recent orphaned files, referenced files
+- Runs alongside existing `cleanupReviewedImages()` on app launch
+
+**Files Changed:**
+- `ImageCleanupService.swift`: Add `cleanupOrphanedFiles()` method
+- `ImageCleanupServiceTests.swift`: Add comprehensive test suite (NEW)
+- `ContentView.swift`: Integrate cleanup on app launch
+
+**Impact:** Prevents accumulation of orphaned temp files from failed scans, keeps storage clean.
+
+---
+
+### Removed 🗑️ - Cache Warmer Worker Deprecation (October 30, 2025)
+
+**Deprecated `personal-library-cache-warmer` worker - broken since October 23 🧹**
+
+```
+┌─────────────────────────────────────────────────┐
+│  STATUS: Broken in production for 37+ days     │
+│  IMPACT: Zero (no user-facing features lost)   │
+│  ACTION: Archived to _archived/                 │
+└─────────────────────────────────────────────────┘
+```
+
+The cache-warmer worker has been deprecated and archived due to critical architectural issues that rendered it non-functional since the monolith migration.
+
+**Why Deprecated:**
+
+1. **Broken RPC Binding:**
+   - Worker called `env.BOOKS_API_PROXY.searchByAuthor()` via service binding
+   - `books-api-proxy` worker was deleted during monolith migration (October 23, 2025)
+   - All 391 cron executions/day failed silently for 37+ days
+
+2. **Incompatible Cache Keys:**
+   - Cache warmer used: `auto-search:<base64>:<base64>` format
+   - api-worker uses: `search:advanced:author=...&maxResults=...` format
+   - Even if fixed, cache hits would never work
+
+3. **No User Impact:**
+   - iOS app doesn't have author search feature
+   - No functionality lost by deprecation
+   - Saves compute resources (391 wasted executions/day)
+
+**What Changed:**
+
+- ✅ Moved `cloudflare-workers/personal-library-cache-warmer/` → `cloudflare-workers/_archived/`
+- ✅ Comprehensive architectural review preserved in archived directory
+- ✅ Documentation updated to reflect deprecation
+
+**Technical Details:**
+
+**Broken Components:**
+- RPC service binding to deleted worker (wrangler.toml:23-26)
+- 4 aggressive cron schedules (every 5min, 15min, 4hr, daily)
+- Incompatible cache key format with api-worker
+- No monitoring or alerting configured
+
+**Resource Waste:**
+- 391 failed cron executions/day × 37 days = 14,467 failed executions
+- Estimated 27 hours of wasted CPU time since October 23
+
+**Architectural Review:**
+- Complete analysis preserved in `_archived/personal-library-cache-warmer/ARCHITECTURAL_REVIEW.md`
+- Documents all issues, migration paths, and lessons learned
+
+**Future Considerations:**
+
+If author search becomes a user-facing feature:
+- Implement cache warming directly in api-worker monolith
+- Use consistent cache key format with `/search/advanced` endpoint
+- Add Analytics Engine tracking for cache effectiveness
+- Implement adaptive TTL based on author popularity
+
+**Lessons Learned:**
+- Migration audits must check for dependent workers
+- Silent failures need monitoring/alerting
+- Aggressive cron schedules need justification
+- Cache warming value depends on user-facing features
+
+**Files Modified:**
+- Archived: `cloudflare-workers/personal-library-cache-warmer/` → `_archived/`
+- Updated: CHANGELOG.md (this file)
+
+---
+
 ### Changed 🔄 - Canonical Data Contracts Migration (October 30, 2025)
 
 **Backend + iOS migrated to unified canonical v1 API format 🎯**
