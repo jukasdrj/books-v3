@@ -79,6 +79,89 @@ private struct PermissionDeniedView: View {
     }
 }
 
+@available(iOS 16.0, *)
+private struct DataScannerRepresentable: UIViewControllerRepresentable {
+    let onISBNScanned: (ISBNValidator.ISBN) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    func makeUIViewController(context: Context) -> DataScannerViewController {
+        let scanner = DataScannerViewController(
+            recognizedDataTypes: [.barcode(symbologies: [.ean13, .ean8, .upce])],
+            qualityLevel: .balanced,
+            recognizesMultipleItems: false,
+            isHighFrameRateTrackingEnabled: true,
+            isPinchToZoomEnabled: true,
+            isGuidanceEnabled: true,
+            isHighlightingEnabled: true
+        )
+
+        scanner.delegate = context.coordinator
+
+        return scanner
+    }
+
+    func updateUIViewController(_ uiViewController: DataScannerViewController, context: Context) {
+        if !uiViewController.isScanning {
+            try? uiViewController.startScanning()
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onISBNScanned: onISBNScanned, dismiss: dismiss)
+    }
+
+    class Coordinator: NSObject, DataScannerViewControllerDelegate {
+        let onISBNScanned: (ISBNValidator.ISBN) -> Void
+        let dismiss: DismissAction
+
+        init(onISBNScanned: @escaping (ISBNValidator.ISBN) -> Void, dismiss: DismissAction) {
+            self.onISBNScanned = onISBNScanned
+            self.dismiss = dismiss
+        }
+
+        func dataScanner(_ dataScanner: DataScannerViewController, didTapOn item: RecognizedItem) {
+            handleScannedItem(item, dataScanner: dataScanner)
+        }
+
+        func dataScanner(_ dataScanner: DataScannerViewController, didAdd addedItems: [RecognizedItem], allItems: [RecognizedItem]) {
+            guard let firstItem = addedItems.first else { return }
+            handleScannedItem(firstItem, dataScanner: dataScanner)
+        }
+
+        func dataScanner(_ dataScanner: DataScannerViewController, becameUnavailableWithError error: Error) {
+            print("📷 Scanner became unavailable: \(error)")
+            dismiss()
+        }
+
+        private func handleScannedItem(_ item: RecognizedItem, dataScanner: DataScannerViewController) {
+            guard case .barcode(let barcode) = item,
+                  let payload = barcode.payloadStringValue else {
+                return
+            }
+
+            switch ISBNValidator.validate(payload) {
+            case .valid(let isbn):
+                // Haptic feedback
+                let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                impactFeedback.impactOccurred()
+
+                // Stop scanning
+                dataScanner.stopScanning()
+
+                // Callback and dismiss
+                Task { @MainActor in
+                    onISBNScanned(isbn)
+                    dismiss()
+                }
+
+            case .invalid:
+                // Silently ignore non-ISBN barcodes
+                return
+            }
+        }
+    }
+}
+
 /// Apple-native barcode scanner using VisionKit DataScannerViewController
 /// Follows official guidance from "Scanning data with the camera"
 @available(iOS 16.0, *)
@@ -97,8 +180,8 @@ public struct ISBNScannerView: View {
             } else if !DataScannerViewController.isAvailable {
                 PermissionDeniedView()
             } else {
-                Text("Scanner Active State - Coming Next")
-                    .foregroundColor(.white)
+                DataScannerRepresentable(onISBNScanned: onISBNScanned)
+                    .ignoresSafeArea()
             }
         }
     }
