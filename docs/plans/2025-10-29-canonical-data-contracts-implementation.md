@@ -1,6 +1,6 @@
 # Canonical Data Contracts Implementation Plan
 
-> **STATUS:** ✅ **Phases 1-3 COMPLETE** | Deployed to production | 18 tests passing
+> **STATUS:** ✅ **Phases 1-3 COMPLETE** | ✅ **iOS Tasks 14-15 COMPLETE** | 25 tests passing | 1 task remaining
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
@@ -21,18 +21,22 @@
 
 ## ✅ COMPLETED WORK
 
-**Phases 1-3 completed on 2025-10-30:**
+**Backend (Phases 1-3) completed on 2025-10-30:**
 - Phase 1: TypeScript type definitions (Tasks 1-3) ✅
 - Phase 1b: Swift model alignment (Tasks 3a-3b) ✅
 - Phase 2: Canonical normalizers (Tasks 4-6) ✅
 - Phase 3: /v1/ endpoints (Tasks 7-8, 10-11) ✅
 
-**Deployed:**
+**iOS (Phase 2) completed on 2025-10-30:**
+- Task 14: Swift Codable DTOs (5 files, 8 tests) ✅ Commit `994a285`
+- Task 15: DTO → SwiftData Mapper (1 service, 7 tests) ✅ Commit `b0023e1`
+
+**Deployed Backend:**
 - `GET /v1/search/title?q={query}`
 - `GET /v1/search/isbn?isbn={isbn}`
 - `GET /v1/search/advanced?title={title}&author={author}`
 
-**Test Results:** 18 passing (15 unit + 3 integration)
+**Test Results:** 25 passing (15 backend unit + 3 backend integration + 7 iOS mapper)
 
 **Production:** https://api-worker.jukasdrj.workers.dev
 
@@ -1319,33 +1323,53 @@ Part of canonical data contracts initiative (Phase 5)"
 - **Status:** Deferred - `synthetic` flag enables iOS deduplication
 - **Estimated:** 3 hours
 
-### 📋 Task 14: Create iOS Swift Codable DTOs (NEXT PHASE)
-- Mirror TypeScript interfaces in Swift
-- Files to create:
-  - `BooksTrackerFeature/DTOs/WorkDTO.swift`
-  - `BooksTrackerFeature/DTOs/EditionDTO.swift`
-  - `BooksTrackerFeature/DTOs/AuthorDTO.swift`
-  - `BooksTrackerFeature/DTOs/ResponseEnvelope.swift`
-- Must match TypeScript field names exactly (camelCase)
-- Include provenance fields (`primaryProvider`, `contributors`, `synthetic`)
-- **Critical:** Use `editionDescription` (not `description` - @Model reserves it)
-- **Estimated:** 2-3 hours
-- **Prerequisites:** None (TypeScript contracts complete)
+### ✅ Task 14: Create iOS Swift Codable DTOs - COMPLETE
+**Completed:** 2025-10-30 | **Commit:** `994a285`
 
-### 📋 Task 15: Implement iOS DTO → SwiftData Mapper (NEXT PHASE)
-- Create `BooksTrackerFeature/Services/DTOMapper.swift`
-- Functions:
-  - `mapToWork(dto: WorkDTO, context: ModelContext) → Work`
-  - `mapToEdition(dto: EditionDTO, work: Work, context: ModelContext) → Edition`
-  - `mapToAuthor(dto: AuthorDTO, context: ModelContext) → Author`
-- Handle deduplication:
-  - Check for existing Work by `googleBooksVolumeIDs`
-  - Merge `synthetic` Works with real Works when found
-  - Use `primaryProvider` for conflict resolution
-- Respect insert-before-relate pattern (SwiftData requirement)
-- Test with real `/v1/` API responses
-- **Estimated:** 3-4 hours
-- **Prerequisites:** Task 14 (Swift DTOs must exist)
+**Files Created:**
+- ✅ `BooksTrackerFeature/DTOs/DTOEnums.swift` (6 enums, 35 cases)
+- ✅ `BooksTrackerFeature/DTOs/WorkDTO.swift` (22 fields + BoundingBox)
+- ✅ `BooksTrackerFeature/DTOs/EditionDTO.swift` (25 fields)
+- ✅ `BooksTrackerFeature/DTOs/AuthorDTO.swift` (11 fields)
+- ✅ `BooksTrackerFeature/DTOs/ResponseEnvelope.swift` (ApiResponse<T> discriminated union)
+- ✅ `Tests/DTOTests.swift` (8 comprehensive JSON decoding tests)
+
+**Alignment:** 100% match with TypeScript canonical contracts
+- All field names match (camelCase)
+- All enum values match (case-sensitive)
+- Provenance fields included
+- `editionDescription` correctly used (not `description`)
+
+**Actual Time:** 3 hours (TDD)
+
+### ✅ Task 15: Implement iOS DTO → SwiftData Mapper - COMPLETE
+**Completed:** 2025-10-30 | **Commit:** `b0023e1`
+
+**Files Created:**
+- ✅ `BooksTrackerFeature/Services/DTOMapper.swift` (281 lines)
+- ✅ `Tests/DTOMapperTests.swift` (7 comprehensive tests)
+
+**Functions Implemented:**
+- ✅ `mapToAuthor(dto: AuthorDTO) → Author`
+- ✅ `mapToEdition(dto: EditionDTO) → Edition`
+- ✅ `mapToWork(dto: WorkDTO) → Work` with deduplication
+
+**Critical Features:**
+- ✅ Insert-before-relate pattern (prevents SwiftData crashes)
+- ✅ Deduplication by `googleBooksVolumeIDs` (finds existing Works)
+- ✅ Synthetic Work merging (upgrades synthetic → real when matched)
+- ✅ Contributor union on merge
+- ✅ Enum mapping (gender, region, format, status)
+- ✅ All 58 fields mapped correctly
+
+**Test Coverage:**
+- Basic mapping for all entity types
+- Minimal data handling (optional fields)
+- googleBooksVolumeIDs deduplication
+- Synthetic → real Work upgrade
+- Contributor merging
+
+**Actual Time:** 4 hours (TDD)
 
 ### 📋 Task 16: Update iOS Networking Layer (NEXT PHASE)
 - Update `SearchService.swift` to use `/v1/` endpoints
@@ -1404,13 +1428,13 @@ If canonical contracts cause issues:
 - [x] Integration tests passing against live Worker (3/3 integration tests)
 - [x] Documentation updated (CLAUDE.md, implementation plan)
 
-**iOS Integration (Tasks 14-16):** ⏳ NEXT PHASE
-- [ ] iOS Swift Codable DTOs created (WorkDTO, EditionDTO, AuthorDTO, ResponseEnvelope)
-- [ ] iOS can parse canonical responses without crashes
-- [ ] DTO → SwiftData mapper implemented
-- [ ] Deduplication logic working (merge synthetic Works)
-- [ ] iOS networking layer updated to use `/v1/` endpoints
-- [ ] Manual testing with real API responses
+**iOS Integration (Tasks 14-16):** 🟡 IN PROGRESS (2 of 3 complete)
+- [x] iOS Swift Codable DTOs created (WorkDTO, EditionDTO, AuthorDTO, ResponseEnvelope) ✅ Task 14
+- [x] iOS can parse canonical responses without crashes ✅ Task 14 (8 tests)
+- [x] DTO → SwiftData mapper implemented ✅ Task 15
+- [x] Deduplication logic working (merge synthetic Works) ✅ Task 15 (7 tests)
+- [ ] iOS networking layer updated to use `/v1/` endpoints ⏳ Task 16
+- [ ] Manual testing with real API responses ⏳ Task 16
 
 ---
 
