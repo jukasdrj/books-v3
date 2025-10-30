@@ -3,6 +3,10 @@
  */
 
 import type { WorkDTO, EditionDTO } from '../../types/canonical.js';
+import { GenreNormalizer } from '../genre-normalizer.js';
+
+// Create genre normalizer instance (reused across all normalizations)
+const genreNormalizer = new GenreNormalizer();
 
 /**
  * Extract year from Google Books date string
@@ -22,7 +26,7 @@ export function normalizeGoogleBooksToWork(item: any): WorkDTO {
 
   return {
     title: volumeInfo.title || 'Unknown',
-    subjectTags: volumeInfo.categories || [],
+    subjectTags: genreNormalizer.normalize(volumeInfo.categories || [], 'google-books'),
     originalLanguage: volumeInfo.language,
     firstPublicationYear: extractYear(volumeInfo.publishedDate),
     description: volumeInfo.description,
@@ -77,7 +81,7 @@ export function normalizeGoogleBooksToEdition(item: any): EditionDTO {
 export function ensureWorkForEdition(edition: EditionDTO): WorkDTO {
   return {
     title: edition.title || 'Unknown',
-    subjectTags: [], // Will be populated by genre normalizer (Phase 3)
+    subjectTags: [], // No genres available from Edition data
     firstPublicationYear: extractYear(edition.publicationDate),
     synthetic: true, // KEY: indicates this Work was inferred
     primaryProvider: edition.primaryProvider,
