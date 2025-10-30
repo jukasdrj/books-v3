@@ -253,9 +253,9 @@ public struct SearchView: View {
 
     private var barcodeButton: some View {
         Button(action: {
-            print("🔍 DEBUG: Barcode button tapped")
+            print("📷 Barcode button tapped")
             showingScanner = true
-            print("🔍 DEBUG: showingScanner set to \(showingScanner)")
+            print("📷 showingScanner set to \(showingScanner)")
         }) {
             Image(systemName: "barcode.viewfinder")
                 .font(.title2)
