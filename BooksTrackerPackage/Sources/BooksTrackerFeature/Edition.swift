@@ -31,6 +31,14 @@ public final class Edition {
     var lastISBNDBSync: Date?       // When this edition was last synced with ISBNDB
     var isbndbQuality: Int = 0      // Data quality score from ISBNDB (0-100)
 
+    // Edition-specific description (may differ from Work description)
+    // Note: Can't use 'description' name (reserved by @Model macro)
+    var editionDescription: String?
+
+    // Provenance tracking for debugging and observability
+    var primaryProvider: String?    // Which provider contributed this Edition
+    var contributors: [String] = [] // All providers that enriched this Edition
+
     // Metadata
     var dateCreated: Date = Date()
     var lastModified: Date = Date()
@@ -51,7 +59,9 @@ public final class Edition {
         format: EditionFormat = EditionFormat.hardcover,
         coverImageURL: String? = nil,
         editionTitle: String? = nil,
-        work: Work? = nil
+        editionDescription: String? = nil,
+        work: Work? = nil,
+        primaryProvider: String? = nil
     ) {
         self.isbn = isbn
         self.publisher = publisher
@@ -60,7 +70,10 @@ public final class Edition {
         self.format = format
         self.coverImageURL = coverImageURL
         self.editionTitle = editionTitle
+        self.editionDescription = editionDescription
         self.work = work
+        self.primaryProvider = primaryProvider
+        self.contributors = []
         self.dateCreated = Date()
         self.lastModified = Date()
     }

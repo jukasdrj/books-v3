@@ -26,6 +26,11 @@ public final class Work {
     var lastISBNDBSync: Date?       // When this work was last synced with ISBNDB
     var isbndbQuality: Int = 0      // Data quality score from ISBNDB (0-100)
 
+    // Provenance tracking for debugging and observability
+    var synthetic: Bool = false     // True if Work was inferred from Edition data
+    var primaryProvider: String?    // Which provider contributed this Work
+    var contributors: [String] = [] // All providers that enriched this Work
+
     // Review status for AI-detected books
     public var reviewStatus: ReviewStatus = ReviewStatus.verified
 
@@ -85,7 +90,9 @@ public final class Work {
         authors: [Author] = [],
         originalLanguage: String? = nil,
         firstPublicationYear: Int? = nil,
-        subjectTags: [String] = []
+        subjectTags: [String] = [],
+        synthetic: Bool = false,
+        primaryProvider: String? = nil
     ) {
         self.title = title
         // CRITICAL FIX: Never create relationship arrays in init with temporary IDs
@@ -95,6 +102,9 @@ public final class Work {
         self.originalLanguage = originalLanguage
         self.firstPublicationYear = firstPublicationYear
         self.subjectTags = subjectTags
+        self.synthetic = synthetic
+        self.primaryProvider = primaryProvider
+        self.contributors = []
         self.dateCreated = Date()
         self.lastModified = Date()
     }

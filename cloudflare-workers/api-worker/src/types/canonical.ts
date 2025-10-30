@@ -83,7 +83,7 @@ export interface EditionDTO {
   format: EditionFormat;
   coverImageURL?: string;
   editionTitle?: string;
-  description?: string;
+  editionDescription?: string; // Note: Can't use 'description' in Swift (@Model macro reserves it)
   language?: string;
 
   // Provenance
