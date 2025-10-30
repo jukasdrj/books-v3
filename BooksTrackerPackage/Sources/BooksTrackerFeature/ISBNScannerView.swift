@@ -10,6 +10,7 @@ private struct UnsupportedDeviceView: View {
             Image(systemName: "barcode.viewfinder")
                 .font(.system(size: 64))
                 .foregroundColor(.white.opacity(0.6))
+                .accessibilityLabel("Barcode scanning unavailable")
 
             Text("Barcode Scanning Not Available")
                 .font(.title2)
@@ -42,6 +43,7 @@ private struct PermissionDeniedView: View {
             Image(systemName: "camera.fill")
                 .font(.system(size: 64))
                 .foregroundColor(.white.opacity(0.6))
+                .accessibilityLabel("Camera access required")
 
             Text("Camera Access Required")
                 .font(.title2)
@@ -63,7 +65,8 @@ private struct PermissionDeniedView: View {
             .padding(.horizontal, 24)
             .padding(.vertical, 12)
             .background(Color.white)
-            .cornerRadius(8)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .accessibilityHint("Opens system settings to enable camera access")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
