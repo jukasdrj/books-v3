@@ -4,11 +4,17 @@ import SwiftData
 
 // MARK: - API Service
 
-public actor BookSearchAPIService {
+@MainActor
+public class BookSearchAPIService {
     private let baseURL = "https://api-worker.jukasdrj.workers.dev"
     private let urlSession: URLSession
+    private let modelContext: ModelContext
+    private let dtoMapper: DTOMapper
 
-    public init() {
+    public init(modelContext: ModelContext) {
+        self.modelContext = modelContext
+        self.dtoMapper = DTOMapper(modelContext: modelContext)
+
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 10.0
         config.timeoutIntervalForResource = 30.0
