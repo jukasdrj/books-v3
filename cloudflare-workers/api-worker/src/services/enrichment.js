@@ -1,6 +1,54 @@
 import * as externalApis from './external-apis.js';
 
 /**
+ * Transforms the raw Google Books API response into the nested structure 
+ * expected by the Swift frontend.
+ *
+ * @param {Object} googleBooksResponse - The raw JSON response from the Google Books API.
+ * @returns {Object} The transformed response.
+ */
+function transformGoogleBooksResponse(googleBooksResponse) {
+  if (!googleBooksResponse || !googleBooksResponse.items) {
+    return {
+      items: [],
+      totalItems: 0,
+    };
+  }
+
+  const transformedItems = googleBooksResponse.items.map(item => {
+    return {
+      kind: item.kind,
+      id: item.id,
+      volumeInfo: {
+        title: item.volumeInfo.title,
+        subtitle: item.volumeInfo.subtitle,
+        authors: item.volumeInfo.authors,
+        publisher: item.volumeInfo.publisher,
+        publishedDate: item.volumeInfo.publishedDate,
+        description: item.volumeInfo.description,
+        industryIdentifiers: item.volumeInfo.industryIdentifiers,
+        pageCount: item.volumeInfo.pageCount,
+        categories: item.volumeInfo.categories,
+        imageLinks: item.volumeInfo.imageLinks,
+        crossReferenceIds: {
+          openLibraryWorkId: item.volumeInfo.openLibraryWorkId,
+          openLibraryEditionId: item.volumeInfo.openLibraryEditionId,
+          googleBooksVolumeId: item.id,
+        },
+      },
+    };
+  });
+
+  return {
+    items: transformedItems,
+    totalItems: googleBooksResponse.totalItems,
+    success: true,
+    provider: 'google-books',
+  };
+}
+
+
+/**
  * Book enrichment service
  * Migrated from enrichment-worker (Task 6: Monolith Refactor)
  *
@@ -177,10 +225,12 @@ async function enrichWorkWithAPIs(workId, env) {
       enrichmentData = await externalApis.searchGoogleBooks(workId, { maxResults: 5 }, env);
     }
 
+    const transformedData = transformGoogleBooksResponse(enrichmentData);
+
     return {
       workId,
       enriched: true,
-      data: enrichmentData,
+      data: transformedData,
       isISBN,
       timestamp: new Date().toISOString()
     };

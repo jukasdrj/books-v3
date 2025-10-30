@@ -266,8 +266,9 @@ struct iOS26AdaptiveBookCard: View {
                 if let userEntry = userEntry {
                     statusIndicator(for: userEntry.readingStatus, style: .premium)
                 } else {
+                    // Add to library button
                     Button("Add to Library") {
-                        // Add to library action
+                        addToLibrary()
                     }
                     .buttonStyle(GlassProminentButtonStyle(tint: themeStore.primaryColor))
                 }

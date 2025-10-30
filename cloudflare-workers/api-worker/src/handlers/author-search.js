@@ -26,13 +26,23 @@ export async function searchByAuthor(authorName, options, env, ctx) {
   const validatedLimit = Math.min(Math.max(1, limit), 100);
   const validatedOffset = Math.max(0, offset);
 
-  // Generate cache key with pagination params
-  const cacheKey = generateCacheKey('search:author', {
-    author: authorName.toLowerCase(),
-    limit: validatedLimit,
-    offset: validatedOffset,
-    sortBy
-  });
+  // Generate cache key consistent with the cache warmer
+  const normalizedQuery = authorName.toLowerCase().trim();
+  const queryB64 = btoa(normalizedQuery).replace(/[/+=]/g, '_');
+  
+  const params = {
+    maxResults: validatedLimit,
+    showAllEditions: false, // Assuming default, adjust if needed
+    sortBy: sortBy
+  };
+  
+  const paramsString = Object.keys(params)
+    .sort()
+    .map(key => `${key}=${params[key]}`)
+    .join('&');
+  
+  const paramsB64 = btoa(paramsString).replace(/[/+=]/g, '_');
+  const cacheKey = `auto-search:${queryB64}:${paramsB64}`;
 
   // Try UnifiedCache first (Edge → KV tiers)
   const cache = new UnifiedCacheService(env, ctx);
