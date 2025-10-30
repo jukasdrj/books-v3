@@ -15,6 +15,7 @@ import { handleCacheMetrics } from './handlers/cache-metrics.js';
 import { handleMetricsRequest } from './handlers/metrics-handler.js';
 import { handleSearchTitle } from './handlers/v1/search-title.js';
 import { handleSearchISBN } from './handlers/v1/search-isbn.js';
+import { handleSearchAdvanced } from './handlers/v1/search-advanced.js';
 
 // Export the Durable Object class for Cloudflare Workers runtime
 export { ProgressWebSocketDO };
@@ -345,6 +346,16 @@ export default {
     if (url.pathname === '/v1/search/isbn' && request.method === 'GET') {
       const isbn = url.searchParams.get('isbn');
       const response = await handleSearchISBN(isbn, env);
+      return new Response(JSON.stringify(response), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // GET /v1/search/advanced - Advanced search by title and/or author (canonical response)
+    if (url.pathname === '/v1/search/advanced' && request.method === 'GET') {
+      const title = url.searchParams.get('title') || '';
+      const author = url.searchParams.get('author') || '';
+      const response = await handleSearchAdvanced(title, author, env);
       return new Response(JSON.stringify(response), {
         headers: { 'Content-Type': 'application/json' },
       });
