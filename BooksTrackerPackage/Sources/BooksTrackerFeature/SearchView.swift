@@ -166,9 +166,9 @@ public struct SearchView: View {
                 }
         }
         .sheet(isPresented: $showingScanner) {
-            print("🔍 DEBUG: Sheet is presenting ModernBarcodeScannerView")
-            return ModernBarcodeScannerView { isbn in
-                print("🔍 DEBUG: ISBN scanned: \(isbn.normalizedValue)")
+            print("📷 Sheet is presenting ISBNScannerView")
+            return ISBNScannerView { isbn in
+                print("📷 ISBN scanned: \(isbn.normalizedValue)")
                 // Handle scanned ISBN - set scope to ISBN
                 searchScope = .isbn
                 searchModel.searchByISBN(isbn.normalizedValue)
