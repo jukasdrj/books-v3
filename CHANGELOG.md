@@ -6,6 +6,58 @@ All notable changes, achievements, and debugging victories for this project.
 
 ## [Unreleased]
 
+### Added ✨ - Canonical Contracts Completion: Genre Normalization & DTOMapper (October 30, 2025)
+
+**Completed canonical data contracts implementation with backend genre normalization and full iOS DTOMapper integration.**
+
+#### Backend Genre Normalization
+
+**Problem:** Google Books returns inconsistent genre formats (`"Fiction / Science Fiction / General"`), making filtering and analytics unreliable.
+
+**Solution:** Created `GenreNormalizer` service with:
+- Canonical genre taxonomy (25+ genres: Science Fiction, Fantasy, Mystery, etc.)
+- Provider-specific mappings for Google Books, OpenLibrary, ISBNDB formats
+- Fuzzy matching with Levenshtein distance (85% threshold)
+- Handles hierarchical formats: `"Fiction / Science Fiction / General"` → `["Fiction", "Science Fiction"]`
+
+**Implementation:**
+- `cloudflare-workers/api-worker/src/services/genre-normalizer.ts` (NEW)
+- Updated `google-books.ts` normalizer to use GenreNormalizer
+- Refactored all `/v1/*` handlers to call Google Books API directly (bypassed legacy layer)
+- Deployed to production with real-time testing
+
+**Impact:** Consistent genre tags across all search results, enabling future filtering and recommendations.
+
+#### iOS DTOMapper Integration
+
+**Problem:** BookSearchAPIService manually created Work objects without deduplication, causing duplicate books when searching multiple times.
+
+**Solution:** Integrated DTOMapper for automatic:
+- Deduplication by `googleBooksVolumeIDs`
+- Synthetic Work → Real Work merging
+- SwiftData relationship management
+
+**Implementation:**
+- Refactored `BookSearchAPIService` from `actor` → `@MainActor class`
+- Updated `search()` and `advancedSearch()` to use `dtoMapper.mapToWork()`
+- Removed 100+ lines of manual JSON parsing
+- Updated `SearchModel` to inject `modelContext`
+- Fixed all call sites (`SearchView`, `WorkDetailView`)
+
+**Files Changed:**
+- `BookSearchAPIService.swift`: DTOMapper integration
+- `SearchModel.swift`: ModelContext injection
+- `SearchView.swift`: Initialize SearchModel with modelContext
+- `WorkDetailView.swift`: Optional SearchModel handling
+- Backend: `genre-normalizer.ts`, `search-title.ts`, `search-isbn.ts`, `search-advanced.ts`
+
+**Impact:**
+- No more duplicate Works in search results
+- Genre normalization flows from backend → iOS
+- Cleaner codebase (100+ lines removed)
+
+---
+
 ### Fixed 🐛 - Orphaned Temp File Cleanup (October 30, 2025)
 
 **Problem:** When AI bookshelf scans fail (WebSocket disconnect, network error), temporary images remain orphaned because no Works are created to track them. ImageCleanupService only cleaned files referenced by reviewed Works.

@@ -4,11 +4,17 @@ import SwiftData
 
 // MARK: - API Service
 
-public actor BookSearchAPIService {
+@MainActor
+public class BookSearchAPIService {
     private let baseURL = "https://api-worker.jukasdrj.workers.dev"
     private let urlSession: URLSession
+    private let modelContext: ModelContext
+    private let dtoMapper: DTOMapper
 
-    public init() {
+    public init(modelContext: ModelContext) {
+        self.modelContext = modelContext
+        self.dtoMapper = DTOMapper(modelContext: modelContext)
+
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 10.0
         config.timeoutIntervalForResource = 30.0
@@ -86,26 +92,27 @@ public actor BookSearchAPIService {
 
         switch envelope {
         case .success(let searchData, let meta):
-            // Map canonical WorkDTOs to SearchResults
-            results = searchData.works.map { workDTO in
-                // TODO: Use DTOMapper.mapToWork() for proper deduplication
-                // For now, create temporary SearchResult
-                let work = Work(
-                    title: workDTO.title,
-                    authors: [],
-                    originalLanguage: workDTO.originalLanguage,
-                    firstPublicationYear: workDTO.firstPublicationYear,
-                    subjectTags: workDTO.subjectTags
-                )
-                work.googleBooksVolumeIDs = workDTO.googleBooksVolumeIDs
+            // Use DTOMapper to convert DTOs → SwiftData models with deduplication
+            results = searchData.works.compactMap { workDTO in
+                do {
+                    let work = try dtoMapper.mapToWork(workDTO)
 
-                return SearchResult(
-                    work: work,
-                    editions: [],
-                    authors: [],
-                    relevanceScore: 1.0,
-                    provider: meta.provider ?? "unknown"
-                )
+                    // DTOMapper automatically handles:
+                    // - Deduplication by googleBooksVolumeIDs
+                    // - Synthetic Work → Real Work merging
+                    // - Author relationship linking (if authors provided)
+
+                    return SearchResult(
+                        work: work,
+                        editions: [],
+                        authors: [],
+                        relevanceScore: 1.0,
+                        provider: meta.provider ?? "unknown"
+                    )
+                } catch {
+                    print("Warning: Failed to map Work DTO: \(error)")
+                    return nil // Continue processing other works
+                }
             }
 
         case .failure(let error, _):
@@ -204,25 +211,22 @@ public actor BookSearchAPIService {
 
         switch envelope {
         case .success(let searchData, let meta):
-            // Map canonical WorkDTOs to SearchResults
-            results = searchData.works.map { workDTO in
-                // TODO: Use DTOMapper.mapToWork() for proper deduplication
-                let work = Work(
-                    title: workDTO.title,
-                    authors: [],
-                    originalLanguage: workDTO.originalLanguage,
-                    firstPublicationYear: workDTO.firstPublicationYear,
-                    subjectTags: workDTO.subjectTags
-                )
-                work.googleBooksVolumeIDs = workDTO.googleBooksVolumeIDs
+            // Use DTOMapper to convert DTOs → SwiftData models with deduplication
+            results = searchData.works.compactMap { workDTO in
+                do {
+                    let work = try dtoMapper.mapToWork(workDTO)
 
-                return SearchResult(
-                    work: work,
-                    editions: [],
-                    authors: [],
-                    relevanceScore: 1.0,
-                    provider: meta.provider ?? "unknown"
-                )
+                    return SearchResult(
+                        work: work,
+                        editions: [],
+                        authors: [],
+                        relevanceScore: 1.0,
+                        provider: meta.provider ?? "unknown"
+                    )
+                } catch {
+                    print("Warning: Failed to map Work DTO: \(error)")
+                    return nil // Continue processing other works
+                }
             }
 
         case .failure(let error, _):

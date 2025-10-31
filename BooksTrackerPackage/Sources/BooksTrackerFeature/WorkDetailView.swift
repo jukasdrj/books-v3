@@ -298,7 +298,8 @@ struct AuthorSearchResultsView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.iOS26ThemeStore) private var themeStore
-    @State private var searchModel = SearchModel()
+    @Environment(\.modelContext) private var modelContext
+    @State private var searchModel: SearchModel?
     @State private var selectedBook: SearchResult?
 
     var body: some View {
@@ -310,17 +311,21 @@ struct AuthorSearchResultsView: View {
 
                 // Content
                 Group {
-                    switch searchModel.viewState {
-                    case .searching:
-                        searchingView
-                    case .results:
-                        resultsView
-                    case .noResults:
-                        noResultsView
-                    case .error:
-                        errorView
-                    default:
-                        searchingView
+                    if let searchModel = searchModel {
+                        switch searchModel.viewState {
+                        case .searching:
+                            searchingView
+                        case .results:
+                            resultsView
+                        case .noResults:
+                            noResultsView
+                        case .error:
+                            errorView
+                        default:
+                            searchingView
+                        }
+                    } else {
+                        ProgressView("Loading...")
                     }
                 }
             }
@@ -338,9 +343,12 @@ struct AuthorSearchResultsView: View {
                 WorkDiscoveryView(searchResult: result)
             }
             .task {
+                // Initialize searchModel with modelContext
+                searchModel = SearchModel(modelContext: modelContext)
+
                 let criteria = AdvancedSearchCriteria()
                 criteria.authorName = author.name
-                searchModel.advancedSearch(criteria: criteria)
+                searchModel?.advancedSearch(criteria: criteria)
             }
         }
     }
@@ -362,7 +370,7 @@ struct AuthorSearchResultsView: View {
     private var resultsView: some View {
         ScrollView {
             LazyVStack(spacing: 16) {
-                ForEach(searchModel.viewState.currentResults) { result in
+                ForEach(searchModel?.viewState.currentResults ?? []) { result in
                     Button {
                         selectedBook = result
                     } label: {
@@ -406,7 +414,7 @@ struct AuthorSearchResultsView: View {
                 .font(.title2.bold())
                 .foregroundStyle(.primary)
 
-            if case .error(let message, _, _, _) = searchModel.viewState {
+            if let searchModel = searchModel, case .error(let message, _, _, _) = searchModel.viewState {
                 Text(message)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -418,7 +426,7 @@ struct AuthorSearchResultsView: View {
                 Task {
                     let criteria = AdvancedSearchCriteria()
                     criteria.authorName = author.name
-                    searchModel.advancedSearch(criteria: criteria)
+                    searchModel?.advancedSearch(criteria: criteria)
                 }
             }
             .buttonStyle(.borderedProminent)

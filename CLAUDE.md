@@ -175,15 +175,16 @@ struct BookDetailView: View {
 **Implementation Status:**
 - ✅ TypeScript types defined (`enums.ts`, `canonical.ts`, `responses.ts`)
 - ✅ Google Books normalizers (`normalizeGoogleBooksToWork`, `normalizeGoogleBooksToEdition`)
-- ✅ All 3 `/v1/*` endpoints deployed and tested with real API
+- ✅ Backend genre normalization service (`genre-normalizer.ts`)
+- ✅ All 3 `/v1/*` endpoints deployed with genre normalization active
 - ✅ Backend enrichment services migrated to canonical format
 - ✅ AI scanner WebSocket messages use canonical DTOs
 - ✅ iOS Swift Codable DTOs (`WorkDTO`, `EditionDTO`, `AuthorDTO`)
-- ✅ iOS search services migrated to `/v1/*` endpoints
+- ✅ iOS search services migrated to `/v1/*` endpoints with DTOMapper
 - ✅ iOS enrichment service migrated to canonical parsing
 - ✅ Comprehensive test coverage (CanonicalAPIResponseTests)
-- ⏳ iOS DTO → SwiftData mapper integration (phase 3)
-- ⏳ Legacy endpoint deprecation (phase 3, deferred 2-4 weeks)
+- ✅ iOS DTOMapper fully integrated (deduplication active, genre normalization flowing)
+- ⏳ Legacy endpoint deprecation (deferred 2-4 weeks)
 
 **Design:** `docs/plans/2025-10-29-canonical-data-contracts-design.md`
 **Implementation:** `docs/plans/2025-10-29-canonical-data-contracts-implementation.md`

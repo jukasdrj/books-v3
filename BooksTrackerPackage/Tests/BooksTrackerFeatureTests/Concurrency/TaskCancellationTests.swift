@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import SwiftData
 @testable import BooksTrackerFeature
 
 @Suite("Task Cancellation")
@@ -8,7 +9,8 @@ struct TaskCancellationTests {
     @Test("SearchModel cancels previous search task")
     @MainActor
     func testSearchCancellation() async throws {
-        let searchModel = SearchModel()
+        let modelContext = createTestModelContext()
+        let searchModel = SearchModel(modelContext: modelContext)
 
         // Start first search
         searchModel.search(query: "First Query", scope: .all)

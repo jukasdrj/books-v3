@@ -11,6 +11,17 @@ import SwiftData
 import Foundation
 @testable import BooksTrackerFeature
 
+// MARK: - Test Helpers
+
+@MainActor
+func createTestModelContext() -> ModelContext {
+    let container = try! ModelContainer(
+        for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
+    return container.mainContext
+}
+
 // MARK: - State Transition Tests
 
 @Suite("SearchModel State Transitions")
@@ -19,7 +30,8 @@ struct SearchModelStateTransitionTests {
     @Test("Initial state starts correctly")
     @MainActor
     func testInitialState() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         // Verify initial state
         if case .initial = model.viewState {
@@ -36,7 +48,8 @@ struct SearchModelStateTransitionTests {
     @Test("Search transitions from initial to searching")
     @MainActor
     func testSearchStartsFromInitial() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         // Start search
         Task {
@@ -60,7 +73,8 @@ struct SearchModelStateTransitionTests {
     @Test("Successful search transitions to results or noResults")
     @MainActor
     func testSuccessfulSearchTransition() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         // Perform search (will hit real API - could mock in future)
         await model.search(query: "Swift Programming", scope: .all)
@@ -92,7 +106,8 @@ struct SearchModelStateTransitionTests {
     @Test("Clear search resets to initial")
     @MainActor
     func testClearSearchResetsState() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         // Set model to a non-initial state
         model.viewState = .results(
@@ -128,7 +143,8 @@ struct SearchModelStateTransitionTests {
     @Test("Multiple searches preserve query context")
     @MainActor
     func testMultipleSearchesPreserveContext() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         // First search
         await model.search(query: "First Query", scope: .title)
@@ -160,7 +176,8 @@ struct SearchModelPaginationTests {
     @Test("Load more only works when has more results")
     @MainActor
     func testLoadMoreWhenHasMorePages() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         // Perform initial search
         await model.search(query: "Swift Programming", scope: .all)
@@ -195,7 +212,8 @@ struct SearchModelPaginationTests {
     @Test("Load more preserves existing results")
     @MainActor
     func testLoadMorePreservesResults() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         // Create results state manually for testing
         let initialResult = SearchResult(
@@ -227,7 +245,8 @@ struct SearchModelPaginationTests {
     @Test("hasMoreResults returns false when no more pages")
     @MainActor
     func testHasMoreResultsWhenNoPages() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         // Set state with no more pages
         model.viewState = .results(
@@ -252,7 +271,8 @@ struct SearchModelPaginationTests {
     @Test("hasMoreResults returns true when has more pages")
     @MainActor
     func testHasMoreResultsWhenHasPages() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         // Set state with more pages
         model.viewState = .results(
@@ -288,7 +308,8 @@ struct SearchModelScopeTests {
     ])
     @MainActor
     func testSearchScopes(scope: SearchScope) async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         await model.search(query: "Test Query", scope: scope)
 
@@ -313,7 +334,8 @@ struct SearchModelScopeTests {
     @Test("Scope persists through state transitions")
     @MainActor
     func testScopePersistence() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         // Start search with specific scope
         await model.search(query: "Swift", scope: .title)
@@ -338,7 +360,8 @@ struct SearchModelErrorTests {
     @Test("Error state preserves query context")
     @MainActor
     func testErrorPreservesContext() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         // Manually set error state for testing
         model.viewState = .error(
@@ -365,7 +388,8 @@ struct SearchModelErrorTests {
     @Test("Search with empty query returns no results")
     @MainActor
     func testEmptyQuerySearch() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         await model.search(query: "", scope: .all)
 
@@ -382,7 +406,8 @@ struct SearchModelErrorTests {
     @Test("Search with very short query handles gracefully")
     @MainActor
     func testShortQuerySearch() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         await model.search(query: "a", scope: .all)
 
@@ -410,7 +435,8 @@ struct SearchModelAdvancedSearchTests {
     @Test("Advanced search uses correct scope")
     @MainActor
     func testAdvancedSearchScope() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         let criteria = AdvancedSearchCriteria(
             bookTitle: "The Hobbit",
@@ -446,7 +472,8 @@ struct SearchModelAdvancedSearchTests {
     @Test("Advanced search constructs query correctly")
     @MainActor
     func testAdvancedSearchQueryConstruction() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         let criteria = AdvancedSearchCriteria(
             bookTitle: "Hobbit",
@@ -471,7 +498,8 @@ struct SearchModelAdvancedSearchTests {
     @Test("Advanced search with ISBN only")
     @MainActor
     func testAdvancedSearchISBNOnly() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         let criteria = AdvancedSearchCriteria(
             bookTitle: "",
@@ -502,7 +530,8 @@ struct SearchModelDebounceTests {
     @Test("Rapid text changes debounce correctly")
     @MainActor
     func testSearchDebouncing() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         // Trigger multiple rapid text changes
         model.searchText = "S"
@@ -533,7 +562,8 @@ struct SearchModelDebounceTests {
     @Test("Clearing text cancels debounced search")
     @MainActor
     func testClearingTextCancelsSearch() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         // Start typing
         model.searchText = "Swift"
@@ -562,7 +592,8 @@ struct SearchModelHelperTests {
     @Test("currentResults computed property returns correct items")
     @MainActor
     func testCurrentResultsProperty() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         // Initial state has no results
         #expect(model.viewState.currentResults.isEmpty)
@@ -592,7 +623,8 @@ struct SearchModelHelperTests {
     @Test("isSearching computed property reflects state")
     @MainActor
     func testIsSearchingProperty() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         // Initial state is not searching
         #expect(model.viewState.isSearching == false)
@@ -615,7 +647,8 @@ struct SearchModelHelperTests {
     @Test("currentQuery computed property reflects state")
     @MainActor
     func testCurrentQueryProperty() async {
-        let model = SearchModel()
+        let modelContext = createTestModelContext()
+        let model = SearchModel(modelContext: modelContext)
 
         // Initial state has empty query
         #expect((model.viewState.currentQuery ?? "").isEmpty)

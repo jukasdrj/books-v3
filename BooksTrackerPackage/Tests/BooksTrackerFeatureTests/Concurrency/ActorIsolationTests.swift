@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import SwiftData
 @testable import BooksTrackerFeature
 #if canImport(UIKit)
 import UIKit
@@ -9,9 +10,11 @@ import UIKit
 struct ActorIsolationTests {
 
     @Test("BookSearchAPIService is actor-isolated")
+    @MainActor
     func testSearchAPIServiceActorIsolation() async throws {
         // Verify BookSearchAPIService enforces actor isolation
-        let service = BookSearchAPIService()
+        let modelContext = createTestModelContext()
+        let service = BookSearchAPIService(modelContext: modelContext)
 
         // This should compile without data race warnings
         let results = try await service.search(query: "Test", maxResults: 20, scope: .all)
@@ -38,8 +41,10 @@ struct ActorIsolationTests {
     }
 
     @Test("concurrent access to actor-isolated service is safe")
+    @MainActor
     func testConcurrentActorAccess() async throws {
-        let service = BookSearchAPIService()
+        let modelContext = createTestModelContext()
+        let service = BookSearchAPIService(modelContext: modelContext)
 
         // Launch multiple concurrent searches
         await withTaskGroup(of: Void.self) { group in
