@@ -368,14 +368,17 @@ public struct CorrectionView: View {
         let container = try! ModelContainer(for: Work.self, Author.self)
         let context = container.mainContext
 
+        let author = Author(name: "F. Scott Fitzgerald")
         let work = Work(
             title: "The Great Gatsby",
-            authors: [Author(name: "F. Scott Fitzgerald")],
             originalLanguage: "English",
             firstPublicationYear: 1925
         )
         work.reviewStatus = .needsReview
+
+        context.insert(author)
         context.insert(work)
+        work.authors = [author]
 
         return container
     }()

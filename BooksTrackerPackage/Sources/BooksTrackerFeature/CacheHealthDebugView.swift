@@ -167,5 +167,5 @@ private struct MetricRow: View {
     NavigationStack {
         CacheHealthDebugView()
     }
-    .iOS26ThemeStore(iOS26ThemeStore())
+    .iOS26ThemeStore(BooksTrackerFeature.iOS26ThemeStore())
 }

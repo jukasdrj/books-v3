@@ -530,7 +530,7 @@ class BookshelfScanModel {
 #Preview {
     BookshelfScannerView()
         .modelContainer(for: [Work.self, Edition.self, UserLibraryEntry.self, Author.self])
-        .environment(iOS26ThemeStore())
+        .environment(BooksTrackerFeature.iOS26ThemeStore())
 }
 
 #endif  // canImport(PhotosUI)

@@ -457,7 +457,6 @@ public struct WorkDiscoveryView: View {
         // ✅ CORRECT: Create Work without authors first
         let work = Work(
             title: searchResult.work.title,
-            authors: [],  // ✅ Empty array initially
             originalLanguage: searchResult.work.originalLanguage,
             firstPublicationYear: searchResult.work.firstPublicationYear,
             subjectTags: searchResult.work.subjectTags

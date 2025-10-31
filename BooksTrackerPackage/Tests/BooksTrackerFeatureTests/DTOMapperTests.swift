@@ -323,4 +323,70 @@ struct DTOMapperTests {
         // Note: Work model doesn't have description field
         #expect(realWork.reviewStatus == .verified)
     }
+
+    @Test("mapToWork handles existing Works with empty googleBooksVolumeIDs")
+    @MainActor
+    func mapToWorkWithEmptyVolumeIDs() throws {
+        let container = try createTestContainer()
+        let context = ModelContext(container)
+        let mapper = DTOMapper(modelContext: context)
+
+        // Create an existing Work with empty googleBooksVolumeIDs (common in CSV imports)
+        let existingWork = Work(
+            title: "The Great Gatsby",
+            originalLanguage: "English",
+            firstPublicationYear: 1925,
+            subjectTags: ["Fiction"],
+            synthetic: false,
+            primaryProvider: "csv"
+        )
+        // Empty googleBooksVolumeIDs array (default state)
+        #expect(existingWork.googleBooksVolumeIDs.isEmpty)
+
+        // Insert into context
+        context.insert(existingWork)
+        try context.save()
+
+        // Now try to map a new Work with valid googleBooksVolumeIDs
+        // This should NOT crash when comparing against existing Work with empty array
+        let newWorkDTO = WorkDTO(
+            title: "1984",
+            subjectTags: ["Dystopian", "Fiction"],
+            originalLanguage: "English",
+            firstPublicationYear: 1949,
+            description: nil,
+            synthetic: false,
+            primaryProvider: "google-books",
+            contributors: ["google-books"],
+            openLibraryID: nil,
+            openLibraryWorkID: nil,
+            isbndbID: nil,
+            googleBooksVolumeID: nil,
+            goodreadsID: nil,
+            goodreadsWorkIDs: [],
+            amazonASINs: [],
+            librarythingIDs: [],
+            googleBooksVolumeIDs: ["vol123", "vol456"],
+            lastISBNDBSync: nil,
+            isbndbQuality: 85,
+            reviewStatus: .verified,
+            originalImagePath: nil,
+            boundingBox: nil
+        )
+
+        // This is where the crash happens in production:
+        // findExistingWork() iterates over all Works and calls:
+        // Set(existingWork.googleBooksVolumeIDs).isDisjoint(with: volumeIDs)
+        // When existingWork.googleBooksVolumeIDs is empty, this crashes
+        let newWork = try mapper.mapToWork(newWorkDTO)
+
+        // Should create a new Work (not merge with existing)
+        #expect(newWork !== existingWork)
+        #expect(newWork.title == "1984")
+        #expect(newWork.googleBooksVolumeIDs.count == 2)
+
+        // Existing work should be unchanged
+        #expect(existingWork.title == "The Great Gatsby")
+        #expect(existingWork.googleBooksVolumeIDs.isEmpty)
+    }
 }

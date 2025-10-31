@@ -18,8 +18,7 @@ struct ModelLifecycleTests {
 
         // Test the CORRECT pattern
         let work = Work(
-            title: "Test Book",
-            authors: [],  // Empty initially
+            title: "Test Book",  // Empty initially
             originalLanguage: "English",
             firstPublicationYear: 2025
         )
@@ -48,7 +47,6 @@ struct ModelLifecycleTests {
 
         let work = Work(
             title: "Test Book",
-            authors: [],
             originalLanguage: "English",
             firstPublicationYear: 2025
         )
@@ -86,12 +84,11 @@ struct ModelLifecycleTests {
 
         // When: Processing scanned book (correct order)
         let work = Work(
-            title: "Scanned Book",
-            authors: [],  // Empty initially
+            title: "Scanned Book",  // Empty initially
             originalLanguage: "English",
             firstPublicationYear: nil
         )
-        work.reviewStatus = .verified
+        work.reviewStatus = ReviewStatus.verified
 
         context.insert(work)  // Insert Work first
 
@@ -117,7 +114,7 @@ struct ModelLifecycleTests {
 
         #expect(work.authors?.count == 1)
         #expect(work.editions?.count == 1)
-        #expect(work.reviewStatus == .verified)
+        #expect(work.reviewStatus == ReviewStatus.verified)
     }
 
     @Test("GeminiCSV pattern: Work linked to Authors after both inserted")
@@ -135,8 +132,7 @@ struct ModelLifecycleTests {
         context.insert(author)  // Insert first
 
         let work = Work(
-            title: "CSV Book",
-            authors: [],  // Empty initially
+            title: "CSV Book",  // Empty initially
             originalLanguage: "Unknown",
             firstPublicationYear: 2025
         )
@@ -164,8 +160,7 @@ struct ModelLifecycleTests {
         // When: Creating work from search result (correct order)
         // CRITICAL: Create Work with authors: [] (never pass objects to constructor)
         let work = Work(
-            title: "Multi-Author Book",
-            authors: [],  // Empty in constructor per fix
+            title: "Multi-Author Book",  // Empty in constructor per fix
             originalLanguage: "English",
             firstPublicationYear: 2025,
             subjectTags: ["Fiction"]
@@ -202,7 +197,6 @@ struct ModelLifecycleTests {
         // Existing work (simulates enrichment scenario)
         let work = Work(
             title: "Existing Book",
-            authors: [],
             originalLanguage: "English",
             firstPublicationYear: 2025
         )

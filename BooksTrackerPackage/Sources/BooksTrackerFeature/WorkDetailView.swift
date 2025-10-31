@@ -439,34 +439,40 @@ struct AuthorSearchResultsView: View {
 
 @available(iOS 26.0, *)
 #Preview {
-    let container = try! ModelContainer(for: Work.self, Edition.self, UserLibraryEntry.self, Author.self)
+    @Previewable @State var container: ModelContainer = {
+        let container = try! ModelContainer(for: Work.self, Edition.self, UserLibraryEntry.self, Author.self)
+        let context = container.mainContext
 
-    let context = container.mainContext
+        // Sample data
+        let author = Author(name: "Kazuo Ishiguro", culturalRegion: .asia)
+        let work = Work(
+            title: "Klara and the Sun",
+            originalLanguage: "English",
+            firstPublicationYear: 2021
+        )
+        let edition = Edition(
+            isbn: "9780571364893",
+            publisher: "Faber & Faber",
+            publicationDate: "2021",
+            pageCount: 303,
+            format: .hardcover,
+            work: nil
+        )
 
-    // Sample data
-    let author = Author(name: "Kazuo Ishiguro", culturalRegion: .asia)
-    let work = Work(
-        title: "Klara and the Sun",
-        authors: [author],
-        originalLanguage: "English",
-        firstPublicationYear: 2021
-    )
-    let edition = Edition(
-        isbn: "9780571364893",
-        publisher: "Faber & Faber",
-        publicationDate: "2021",
-        pageCount: 303,
-        format: .hardcover,
-        work: work
-    )
+        context.insert(author)
+        context.insert(work)
+        context.insert(edition)
 
-    context.insert(author)
-    context.insert(work)
-    context.insert(edition)
+        work.authors = [author]
+        edition.work = work
 
+        return container
+    }()
+
+    let work = try! container.mainContext.fetch(FetchDescriptor<Work>()).first!
     let themeStore = BooksTrackerFeature.iOS26ThemeStore()
 
-    return NavigationStack {
+    NavigationStack {
         WorkDetailView(work: work)
     }
     .modelContainer(container)

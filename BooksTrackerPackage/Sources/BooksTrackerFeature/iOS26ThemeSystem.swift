@@ -629,5 +629,5 @@ struct ThemeCardButtonStyle: ButtonStyle {
         .navigationTitle("Theme Preview")
         .iOS26NavigationGlass()
     }
-    .iOS26ThemeStore(iOS26ThemeStore())
+    .iOS26ThemeStore(BooksTrackerFeature.iOS26ThemeStore())
 }

@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import OSLog
 
 /// DTOMapper - Converts canonical DTOs to SwiftData models
 ///
@@ -13,6 +14,7 @@ import SwiftData
 @MainActor
 public final class DTOMapper {
     private let modelContext: ModelContext
+    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "DTOMapper")
 
     public init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -103,7 +105,8 @@ public final class DTOMapper {
     /// Merges synthetic Works with real Works
     public func mapToWork(_ dto: WorkDTO) throws -> Work {
         // Check for existing Work by googleBooksVolumeIDs (deduplication)
-        if let existingWork = try findExistingWork(by: dto.googleBooksVolumeIDs) {
+        // Note: May skip deduplication if ModelContext is invalid (store torn down)
+        if let existingWork = findExistingWork(by: dto.googleBooksVolumeIDs) {
             // Merge data into existing Work
             mergeWorkData(dto: dto, into: existingWork)
             return existingWork
@@ -112,7 +115,6 @@ public final class DTOMapper {
         // Create new Work
         let work = Work(
             title: dto.title,
-            authors: [], // Set after authors are inserted
             originalLanguage: dto.originalLanguage,
             firstPublicationYear: dto.firstPublicationYear,
             subjectTags: dto.subjectTags,
@@ -161,15 +163,29 @@ public final class DTOMapper {
     // MARK: - Deduplication & Merging
 
     /// Find existing Work by googleBooksVolumeIDs (for deduplication)
-    private func findExistingWork(by volumeIDs: [String]) throws -> Work? {
+    /// Returns nil if deduplication cannot be performed safely
+    private func findExistingWork(by volumeIDs: [String]) -> Work? {
         guard !volumeIDs.isEmpty else { return nil }
 
+        // DEFENSIVE: SwiftData fetch() hits precondition failure (not catchable)
+        // when CloudKit tears down the store. We cannot check ModelContext validity
+        // before calling fetch(), so we make this method non-throwing and return nil
+        // if ANY issue occurs, allowing the caller to create a new Work.
+        //
+        // This prevents crashes at the cost of potential duplicates during
+        // CloudKit store transitions.
+
         let descriptor = FetchDescriptor<Work>()
-        let allWorks = try modelContext.fetch(descriptor)
+        guard let allWorks = try? modelContext.fetch(descriptor) else {
+            logger.warning("Cannot fetch Works for deduplication (store may be invalid)")
+            return nil  // Skip deduplication, let caller create new Work
+        }
 
         // Find Work with any matching googleBooksVolumeID
+        // DEFENSIVE: Skip Works with empty googleBooksVolumeIDs (from CSV imports, manual adds)
         return allWorks.first { existingWork in
-            !Set(existingWork.googleBooksVolumeIDs).isDisjoint(with: volumeIDs)
+            guard !existingWork.googleBooksVolumeIDs.isEmpty else { return false }
+            return !Set(existingWork.googleBooksVolumeIDs).isDisjoint(with: volumeIDs)
         }
     }
 

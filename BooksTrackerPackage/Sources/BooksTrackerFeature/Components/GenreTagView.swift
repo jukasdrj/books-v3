@@ -56,5 +56,5 @@ public struct GenreTagView: View {
         GenreTagView(genres: [])
     }
     .padding()
-    .environment(\.iOS26ThemeStore, iOS26ThemeStore())
+    .environment(\.iOS26ThemeStore, BooksTrackerFeature.iOS26ThemeStore())
 }

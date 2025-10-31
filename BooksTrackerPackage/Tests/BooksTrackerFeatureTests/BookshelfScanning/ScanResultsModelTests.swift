@@ -25,12 +25,13 @@ struct ScanResultsModelTests {
         let author = Author(name: "Test Author")
         let work = Work(
             title: "Test Book",
-            authors: [author],
             originalLanguage: "English",
             firstPublicationYear: nil
         )
 
+        modelContext.insert(author)
         modelContext.insert(work)
+        work.authors = [author]
 
         // Act: Capture ID BEFORE save (current buggy behavior)
         let temporaryID = work.persistentModelID
@@ -54,11 +55,12 @@ struct ScanResultsModelTests {
             let author = Author(name: "Author \(index)")
             let work = Work(
                 title: "Book \(index)",
-                authors: [author],
                 originalLanguage: "English",
                 firstPublicationYear: nil
             )
+            modelContext.insert(author)
             modelContext.insert(work)
+            work.authors = [author]
             return work
         }
 

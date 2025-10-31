@@ -585,14 +585,27 @@ enum StatusIndicatorStyle {
 
 @available(iOS 26.0, *)
 #Preview {
-    let sampleWork = Work(
-        title: "The Seven Husbands of Evelyn Hugo",
-        authors: [Author(name: "Taylor Jenkins Reid")],
-        originalLanguage: "English",
-        firstPublicationYear: 2017
-    )
+    @Previewable @State var container: ModelContainer = {
+        let container = try! ModelContainer(for: Work.self, Author.self)
+        let context = container.mainContext
 
-    return ScrollView {
+        let author = Author(name: "Taylor Jenkins Reid")
+        let work = Work(
+            title: "The Seven Husbands of Evelyn Hugo",
+            originalLanguage: "English",
+            firstPublicationYear: 2017
+        )
+
+        context.insert(author)
+        context.insert(work)
+        work.authors = [author]
+
+        return container
+    }()
+
+    let sampleWork = try! container.mainContext.fetch(FetchDescriptor<Work>()).first!
+
+    ScrollView {
         LazyVGrid(columns: [
             GridItem(.flexible()),
             GridItem(.flexible())
@@ -611,5 +624,5 @@ enum StatusIndicatorStyle {
     }
     .themedBackground()
     .modelContainer(for: [Work.self, Edition.self, UserLibraryEntry.self, Author.self])
-    .iOS26ThemeStore(iOS26ThemeStore())
+    .iOS26ThemeStore(BooksTrackerFeature.iOS26ThemeStore())
 }

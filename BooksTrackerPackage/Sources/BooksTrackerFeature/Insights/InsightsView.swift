@@ -160,5 +160,5 @@ public struct InsightsView: View {
 #Preview("Insights View") {
     InsightsView()
         .modelContainer(for: [Work.self, Author.self, Edition.self, UserLibraryEntry.self])
-        .iOS26ThemeStore(iOS26ThemeStore())
+        .iOS26ThemeStore(BooksTrackerFeature.iOS26ThemeStore())
 }

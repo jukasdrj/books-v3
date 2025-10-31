@@ -536,13 +536,12 @@ class ScanResultsModel {
             // 1. Create Work FIRST (no relationships yet)
             let work = Work(
                 title: detectedBook.title ?? "Unknown Title",
-                authors: [],  // ✅ Empty array - set relationships AFTER insert
                 originalLanguage: "English",
                 firstPublicationYear: nil
             )
 
             // Set review status based on confidence threshold (0.60)
-            work.reviewStatus = detectedBook.needsReview ? .needsReview : .verified
+            work.reviewStatus = detectedBook.needsReview ? ReviewStatus.needsReview : ReviewStatus.verified
 
             // Store original image path and bounding box for correction UI
             work.originalImagePath = detectedBook.originalImagePath
@@ -655,7 +654,7 @@ class ScanResultsModel {
         modelContext: container.mainContext,
         onDismiss: {}
     )
-    .environment(iOS26ThemeStore())
+    .environment(BooksTrackerFeature.iOS26ThemeStore())
 }
 
 #endif  // canImport(UIKit)

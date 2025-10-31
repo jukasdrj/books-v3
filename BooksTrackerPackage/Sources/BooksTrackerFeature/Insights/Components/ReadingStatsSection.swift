@@ -101,7 +101,7 @@ private struct StatCardView: View {
 
 #Preview("Reading Stats Section") {
     PreviewContainer()
-        .iOS26ThemeStore(iOS26ThemeStore())
+        .iOS26ThemeStore(BooksTrackerFeature.iOS26ThemeStore())
 }
 
 @MainActor

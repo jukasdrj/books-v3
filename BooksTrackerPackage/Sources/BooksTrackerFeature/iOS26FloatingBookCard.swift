@@ -964,15 +964,28 @@ struct PressedButtonStyle: ButtonStyle {
 
 @available(iOS 26.0, *)
 #Preview {
-    let sampleWork = Work(
-        title: "The Adventures of Huckleberry Finn",
-        authors: [Author(name: "Mark Twain")],
-        originalLanguage: "English",
-        firstPublicationYear: 1884
-    )
+    @Previewable @State var container: ModelContainer = {
+        let container = try! ModelContainer(for: Work.self, Author.self)
+        let context = container.mainContext
+
+        let author = Author(name: "Mark Twain")
+        let work = Work(
+            title: "The Adventures of Huckleberry Finn",
+            originalLanguage: "English",
+            firstPublicationYear: 1884
+        )
+
+        context.insert(author)
+        context.insert(work)
+        work.authors = [author]
+
+        return container
+    }()
+
+    let work = try! container.mainContext.fetch(FetchDescriptor<Work>()).first!
 
     VStack {
-        iOS26FloatingBookCard(work: sampleWork, namespace: Namespace().wrappedValue, uniqueID: nil)
+        iOS26FloatingBookCard(work: work, namespace: Namespace().wrappedValue, uniqueID: nil)
             .frame(width: 160)
 
         Spacer()

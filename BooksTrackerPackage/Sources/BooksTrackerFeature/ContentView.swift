@@ -134,24 +134,21 @@ public struct ContentView: View {
         modelContext.insert(octaviaButler)
         modelContext.insert(chimamandaNgozi)
 
-        // Sample Works
+        // Sample Works - follow insert-before-relate pattern
         let klaraAndTheSun = Work(
             title: "Klara and the Sun",
-            authors: [kazuoIshiguro],
             originalLanguage: "English",
             firstPublicationYear: 2021
         )
 
         let kindred = Work(
             title: "Kindred",
-            authors: [octaviaButler],
             originalLanguage: "English",
             firstPublicationYear: 1979
         )
 
         let americanah = Work(
             title: "Americanah",
-            authors: [chimamandaNgozi],
             originalLanguage: "English",
             firstPublicationYear: 2013
         )
@@ -160,14 +157,19 @@ public struct ContentView: View {
         modelContext.insert(kindred)
         modelContext.insert(americanah)
 
-        // Sample Editions
+        // Set relationships after insert
+        klaraAndTheSun.authors = [kazuoIshiguro]
+        kindred.authors = [octaviaButler]
+        americanah.authors = [chimamandaNgozi]
+
+        // Sample Editions - set work=nil, link after insert
         let klaraEdition = Edition(
             isbn: "9780571364893",
             publisher: "Faber & Faber",
             publicationDate: "2021",
             pageCount: 303,
             format: .hardcover,
-            work: klaraAndTheSun
+            work: nil
         )
 
         let kindredEdition = Edition(
@@ -176,7 +178,7 @@ public struct ContentView: View {
             publicationDate: "1979",
             pageCount: 287,
             format: .paperback,
-            work: kindred
+            work: nil
         )
 
         let americanahEdition = Edition(
@@ -185,12 +187,17 @@ public struct ContentView: View {
             publicationDate: "2013",
             pageCount: 477,
             format: .ebook,
-            work: americanah
+            work: nil
         )
 
         modelContext.insert(klaraEdition)
         modelContext.insert(kindredEdition)
         modelContext.insert(americanahEdition)
+
+        // Link editions to works
+        klaraEdition.work = klaraAndTheSun
+        kindredEdition.work = kindred
+        americanahEdition.work = americanah
 
         // Sample Library Entries
         let klaraEntry = UserLibraryEntry.createOwnedEntry(
@@ -429,5 +436,5 @@ struct EnrichmentBanner: View {
 #Preview {
     ContentView()
         .modelContainer(for: [Work.self, Edition.self, UserLibraryEntry.self, Author.self])
-        .iOS26ThemeStore(iOS26ThemeStore())
+        .iOS26ThemeStore(BooksTrackerFeature.iOS26ThemeStore())
 }
