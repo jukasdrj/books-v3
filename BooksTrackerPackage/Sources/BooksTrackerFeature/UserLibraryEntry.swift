@@ -29,26 +29,36 @@ public final class UserLibraryEntry {
     var edition: Edition?
 
     public init(
-        work: Work,
-        edition: Edition? = nil,
         readingStatus: ReadingStatus = ReadingStatus.toRead
     ) {
-        self.work = work
-        self.edition = edition
         self.readingStatus = readingStatus
         self.dateAdded = Date()
         self.lastModified = Date()
+        // CRITICAL: work and edition MUST be set AFTER insert
+        // Usage: let entry = UserLibraryEntry(); context.insert(entry); entry.work = work
     }
 
     /// Create wishlist entry (want to read but don't own)
-    public static func createWishlistEntry(for work: Work) -> UserLibraryEntry {
-        let entry = UserLibraryEntry(work: work, edition: nil, readingStatus: ReadingStatus.wishlist)
+    /// CRITICAL: Caller MUST have already inserted work into context
+    public static func createWishlistEntry(for work: Work, context: ModelContext) -> UserLibraryEntry {
+        let entry = UserLibraryEntry(readingStatus: .wishlist)
+        context.insert(entry)  // Get permanent ID first
+        entry.work = work      // Set relationship after insert
         return entry
     }
 
     /// Create owned entry (have specific edition)
-    public static func createOwnedEntry(for work: Work, edition: Edition, status: ReadingStatus = ReadingStatus.toRead) -> UserLibraryEntry {
-        let entry = UserLibraryEntry(work: work, edition: edition, readingStatus: status)
+    /// CRITICAL: Caller MUST have already inserted work and edition into context
+    public static func createOwnedEntry(
+        for work: Work,
+        edition: Edition,
+        status: ReadingStatus = .toRead,
+        context: ModelContext
+    ) -> UserLibraryEntry {
+        let entry = UserLibraryEntry(readingStatus: status)
+        context.insert(entry)  // Get permanent ID first
+        entry.work = work      // Set relationships after insert
+        entry.edition = edition
         return entry
     }
 

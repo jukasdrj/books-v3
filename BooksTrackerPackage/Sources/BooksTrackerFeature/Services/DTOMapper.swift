@@ -64,7 +64,7 @@ public final class DTOMapper {
             coverImageURL: dto.coverImageURL,
             editionTitle: dto.editionTitle,
             editionDescription: dto.editionDescription,
-            work: nil, // Caller sets this after both entities inserted
+            // work parameter removed - caller sets this after insert
             primaryProvider: dto.primaryProvider
         )
 

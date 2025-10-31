@@ -60,7 +60,6 @@ public final class Edition {
         coverImageURL: String? = nil,
         editionTitle: String? = nil,
         editionDescription: String? = nil,
-        work: Work? = nil,
         primaryProvider: String? = nil
     ) {
         self.isbn = isbn
@@ -71,7 +70,8 @@ public final class Edition {
         self.coverImageURL = coverImageURL
         self.editionTitle = editionTitle
         self.editionDescription = editionDescription
-        self.work = work
+        // CRITICAL: work MUST be set AFTER insert
+        // Usage: let edition = Edition(); context.insert(edition); edition.work = work
         self.primaryProvider = primaryProvider
         self.contributors = []
         self.dateCreated = Date()

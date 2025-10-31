@@ -533,19 +533,18 @@ struct iOS26AdaptiveBookCard: View {
         notificationFeedback.notificationOccurred(.success)
     }
 
+    // TODO: Fix non-functional buttons (see .github/ISSUE_DEAD_CODE_CARD_PERSISTENCE.md)
+    // These functions create entries but have no modelContext to save them
     private func addToLibrary() {
-        let primaryEdition = work.availableEditions.first
-        _ = UserLibraryEntry.createOwnedEntry(
-            for: work,
-            edition: primaryEdition ?? Edition(work: work),
-            status: .toRead
-        )
-        // Add to SwiftData context
+        // DISABLED: No modelContext available in this view
+        // See GitHub issue for proper implementation
+        print("⚠️ addToLibrary() called but not implemented - no persistence")
     }
 
     private func addToWishlist() {
-        _ = UserLibraryEntry.createWishlistEntry(for: work)
-        // Add to SwiftData context
+        // DISABLED: No modelContext available in this view
+        // See GitHub issue for proper implementation
+        print("⚠️ addToWishlist() called but not implemented - no persistence")
     }
 
     private func removeFromLibrary() {

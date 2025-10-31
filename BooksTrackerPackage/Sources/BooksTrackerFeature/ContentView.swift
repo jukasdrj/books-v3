@@ -162,14 +162,13 @@ public struct ContentView: View {
         kindred.authors = [octaviaButler]
         americanah.authors = [chimamandaNgozi]
 
-        // Sample Editions - set work=nil, link after insert
+        // Sample Editions - create without work parameter
         let klaraEdition = Edition(
             isbn: "9780571364893",
             publisher: "Faber & Faber",
             publicationDate: "2021",
             pageCount: 303,
-            format: .hardcover,
-            work: nil
+            format: .hardcover
         )
 
         let kindredEdition = Edition(
@@ -177,8 +176,7 @@ public struct ContentView: View {
             publisher: "Beacon Press",
             publicationDate: "1979",
             pageCount: 287,
-            format: .paperback,
-            work: nil
+            format: .paperback
         )
 
         let americanahEdition = Edition(
@@ -186,8 +184,7 @@ public struct ContentView: View {
             publisher: "Knopf",
             publicationDate: "2013",
             pageCount: 477,
-            format: .ebook,
-            work: nil
+            format: .ebook
         )
 
         modelContext.insert(klaraEdition)
@@ -203,7 +200,8 @@ public struct ContentView: View {
         let klaraEntry = UserLibraryEntry.createOwnedEntry(
             for: klaraAndTheSun,
             edition: klaraEdition,
-            status: .reading
+            status: .reading,
+            context: modelContext
         )
         klaraEntry.readingProgress = 0.35
         klaraEntry.dateStarted = Calendar.current.date(byAdding: .day, value: -7, to: Date())
@@ -211,16 +209,15 @@ public struct ContentView: View {
         let kindredEntry = UserLibraryEntry.createOwnedEntry(
             for: kindred,
             edition: kindredEdition,
-            status: .read
+            status: .read,
+            context: modelContext
         )
         kindredEntry.dateCompleted = Calendar.current.date(byAdding: .day, value: -30, to: Date())
         kindredEntry.personalRating = 5.0
 
-        let americanahEntry = UserLibraryEntry.createWishlistEntry(for: americanah)
+        let americanahEntry = UserLibraryEntry.createWishlistEntry(for: americanah, context: modelContext)
 
-        modelContext.insert(klaraEntry)
-        modelContext.insert(kindredEntry)
-        modelContext.insert(americanahEntry)
+        // Note: Entries already inserted by factory methods - no need to insert again
 
         // Save context
         do {

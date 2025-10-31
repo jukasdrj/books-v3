@@ -609,7 +609,7 @@ struct NotesEditorView: View {
         // Sample data - follow insert-before-relate pattern
         let author = Author(name: "Sample Author")
         let work = Work(title: "Sample Book Title")
-        let edition = Edition(isbn: "9780123456789", publisher: "Sample Publisher", publicationDate: "2023", pageCount: 300, work: nil)
+        let edition = Edition(isbn: "9780123456789", publisher: "Sample Publisher", publicationDate: "2023", pageCount: 300)
 
         // Insert to get permanent IDs
         context.insert(author)
@@ -622,12 +622,12 @@ struct NotesEditorView: View {
 
         return container
     }()
-    
+
     @Previewable @State var selectedAuthor: Author?
 
     let themeStore = BooksTrackerFeature.iOS26ThemeStore()
 
-    return EditionMetadataView(work: Work(title: "Sample Book"), edition: Edition(), selectedAuthor: $selectedAuthor)
+    EditionMetadataView(work: Work(title: "Sample Book"), edition: Edition(), selectedAuthor: $selectedAuthor)
         .modelContainer(container)
         .environment(\.iOS26ThemeStore, themeStore)
         .padding()

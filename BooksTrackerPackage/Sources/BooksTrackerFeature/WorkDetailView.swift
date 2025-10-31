@@ -455,8 +455,7 @@ struct AuthorSearchResultsView: View {
             publisher: "Faber & Faber",
             publicationDate: "2021",
             pageCount: 303,
-            format: .hardcover,
-            work: nil
+            format: .hardcover
         )
 
         context.insert(author)

@@ -302,28 +302,18 @@ struct iOS26FloatingBookCard: View {
         triggerHapticFeedback(.success)
     }
 
+    // TODO: Fix non-functional buttons (see .github/ISSUE_DEAD_CODE_CARD_PERSISTENCE.md)
     private func addToLibrary() {
-        let primaryEdition = work.availableEditions.first
-        let entry = UserLibraryEntry.createOwnedEntry(
-            for: work,
-            edition: primaryEdition ?? Edition(work: work),
-            status: .toRead
-        )
-
-        if work.userLibraryEntries == nil {
-            work.userLibraryEntries = []
-        }
-        work.userLibraryEntries?.append(entry)
-        triggerHapticFeedback(.success)
+        // DISABLED: No modelContext available in this view
+        print("⚠️ addToLibrary() called but not implemented - no persistence")
+        triggerHapticFeedback(.warning)  // Changed to warning since action doesn't work
     }
 
+    // TODO: Fix non-functional buttons (see .github/ISSUE_DEAD_CODE_CARD_PERSISTENCE.md)
     private func addToWishlist() {
-        let entry = UserLibraryEntry.createWishlistEntry(for: work)
-        if work.userLibraryEntries == nil {
-            work.userLibraryEntries = []
-        }
-        work.userLibraryEntries?.append(entry)
-        triggerHapticFeedback(.success)
+        // DISABLED: No modelContext available in this view
+        print("⚠️ addToWishlist() called but not implemented - no persistence")
+        triggerHapticFeedback(.warning)  // Changed to warning since action doesn't work
     }
 
     private func removeFromLibrary() {
@@ -635,30 +625,20 @@ struct OptimizedFloatingBookCard: View {
         triggerHapticFeedback(.success)
     }
     
+    // TODO: Fix non-functional buttons (see .github/ISSUE_DEAD_CODE_CARD_PERSISTENCE.md)
     private func addToLibrary() {
-        let primaryEdition = work.availableEditions.first
-        let entry = UserLibraryEntry.createOwnedEntry(
-            for: work,
-            edition: primaryEdition ?? Edition(work: work),
-            status: .toRead
-        )
-
-        if work.userLibraryEntries == nil {
-            work.userLibraryEntries = []
-        }
-        work.userLibraryEntries?.append(entry)
+        // DISABLED: No modelContext available in this view
+        print("⚠️ addToLibrary() called but not implemented - no persistence")
         updateCachedProperties()
-        triggerHapticFeedback(.success)
+        triggerHapticFeedback(.warning)  // Changed to warning since action doesn't work
     }
 
+    // TODO: Fix non-functional buttons (see .github/ISSUE_DEAD_CODE_CARD_PERSISTENCE.md)
     private func addToWishlist() {
-        let entry = UserLibraryEntry.createWishlistEntry(for: work)
-        if work.userLibraryEntries == nil {
-            work.userLibraryEntries = []
-        }
-        work.userLibraryEntries?.append(entry)
+        // DISABLED: No modelContext available in this view
+        print("⚠️ addToWishlist() called but not implemented - no persistence")
         updateCachedProperties()
-        triggerHapticFeedback(.success)
+        triggerHapticFeedback(.warning)  // Changed to warning since action doesn't work
     }
 
     private func removeFromLibrary() {

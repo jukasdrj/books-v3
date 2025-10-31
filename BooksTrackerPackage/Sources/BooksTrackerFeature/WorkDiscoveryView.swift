@@ -387,12 +387,14 @@ public struct WorkDiscoveryView: View {
             // Create user library entry
             let libraryEntry: UserLibraryEntry
             if selectedAction == .wishlist {
-                libraryEntry = UserLibraryEntry.createWishlistEntry(for: work)
+                libraryEntry = UserLibraryEntry.createWishlistEntry(for: work, context: modelContext)
             } else {
+                let editionToUse = edition ?? createDefaultEdition(work: work, context: modelContext)
                 libraryEntry = UserLibraryEntry.createOwnedEntry(
                     for: work,
-                    edition: edition ?? createDefaultEdition(work: work),
-                    status: selectedAction.readingStatus
+                    edition: editionToUse,
+                    status: selectedAction.readingStatus,
+                    context: modelContext
                 )
             }
 
@@ -402,7 +404,7 @@ public struct WorkDiscoveryView: View {
             }
             work.userLibraryEntries?.append(libraryEntry)
 
-            modelContext.insert(libraryEntry)
+            // Note: libraryEntry already inserted by factory method - no need to insert again
 
             try modelContext.save()
 
@@ -509,16 +511,18 @@ public struct WorkDiscoveryView: View {
         return edition
     }
 
-    private func createDefaultEdition(work: Work) -> Edition {
-        return Edition(
+    private func createDefaultEdition(work: Work, context: ModelContext) -> Edition {
+        let edition = Edition(
             isbn: nil,
             publisher: nil,
             publicationDate: nil,
             pageCount: nil,
             format: .paperback,
-            coverImageURL: nil,
-            work: work
+            coverImageURL: nil
         )
+        context.insert(edition)  // Insert before setting relationship
+        edition.work = work       // Set relationship after insert
+        return edition
     }
 
     private func actionDescription(for action: LibraryAction) -> String {

@@ -565,8 +565,8 @@ class ScanResultsModel {
                     publisher: nil,
                     publicationDate: nil,
                     pageCount: nil,
-                    format: .paperback,
-                    work: nil  // ✅ Don't set work in constructor
+                    format: .paperback
+                    // work parameter removed - set after insert
                 )
                 modelContext.insert(edition)  // ✅ Insert BEFORE relating
 
@@ -578,14 +578,15 @@ class ScanResultsModel {
                 let libraryEntry = UserLibraryEntry.createOwnedEntry(
                     for: work,
                     edition: edition,
-                    status: .toRead
+                    status: .toRead,
+                    context: modelContext
                 )
-                modelContext.insert(libraryEntry)
+                // Note: libraryEntry already inserted by factory method
 
             } else {
                 // Create wishlist entry (no edition)
-                let libraryEntry = UserLibraryEntry.createWishlistEntry(for: work)
-                modelContext.insert(libraryEntry)
+                let libraryEntry = UserLibraryEntry.createWishlistEntry(for: work, context: modelContext)
+                // Note: libraryEntry already inserted by factory method
             }
         }
 

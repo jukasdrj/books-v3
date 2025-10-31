@@ -515,19 +515,16 @@ struct iOS26LiquidListRow: View {
         notificationFeedback.notificationOccurred(.success)
     }
 
+    // TODO: Fix non-functional buttons (see .github/ISSUE_DEAD_CODE_CARD_PERSISTENCE.md)
     private func addToLibrary() {
-        let primaryEdition = work.availableEditions.first
-        _ = UserLibraryEntry.createOwnedEntry(
-            for: work,
-            edition: primaryEdition ?? Edition(work: work),
-            status: .toRead
-        )
-        // Add to SwiftData context
+        // DISABLED: No modelContext available in this view
+        print("⚠️ addToLibrary() called but not implemented - no persistence")
     }
 
+    // TODO: Fix non-functional buttons (see .github/ISSUE_DEAD_CODE_CARD_PERSISTENCE.md)
     private func addToWishlist() {
-        _ = UserLibraryEntry.createWishlistEntry(for: work)
-        // Add to SwiftData context
+        // DISABLED: No modelContext available in this view
+        print("⚠️ addToWishlist() called but not implemented - no persistence")
     }
 
     private func removeFromLibrary() {
