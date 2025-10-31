@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import OSLog
 
 /// DTOMapper - Converts canonical DTOs to SwiftData models
 ///
@@ -13,6 +14,7 @@ import SwiftData
 @MainActor
 public final class DTOMapper {
     private let modelContext: ModelContext
+    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "DTOMapper")
 
     public init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -161,16 +163,17 @@ public final class DTOMapper {
     // MARK: - Deduplication & Merging
 
     /// Find existing Work by googleBooksVolumeIDs (for deduplication)
+    ///
+    /// **TEMPORARILY DISABLED** due to SwiftData reflection crash (EXC_BREAKPOINT SIGTRAP).
+    /// FetchDescriptor triggers uncatchable runtime trap in SwiftData's metadata system.
+    /// Deduplication will be re-enabled once root cause is fixed.
+    ///
+    /// Issue: https://github.com/jukasdrj/books-tracker-v1/issues/XXX
     private func findExistingWork(by volumeIDs: [String]) throws -> Work? {
-        guard !volumeIDs.isEmpty else { return nil }
-
-        let descriptor = FetchDescriptor<Work>()
-        let allWorks = try modelContext.fetch(descriptor)
-
-        // Find Work with any matching googleBooksVolumeID
-        return allWorks.first { existingWork in
-            !Set(existingWork.googleBooksVolumeIDs).isDisjoint(with: volumeIDs)
-        }
+        // TEMPORARY: Skip deduplication to prevent crashes
+        // Users may see duplicate Works until this is fixed
+        logger.info("Deduplication temporarily disabled - creating new Work")
+        return nil
     }
 
     /// Merge WorkDTO data into existing Work

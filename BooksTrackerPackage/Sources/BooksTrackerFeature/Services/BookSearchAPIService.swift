@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import SwiftData
+import OSLog
 
 // MARK: - API Service
 
@@ -10,6 +11,7 @@ public class BookSearchAPIService {
     private let urlSession: URLSession
     private let modelContext: ModelContext
     private let dtoMapper: DTOMapper
+    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "BookSearchAPIService")
 
     public init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -110,7 +112,7 @@ public class BookSearchAPIService {
                         provider: meta.provider ?? "unknown"
                     )
                 } catch {
-                    print("Warning: Failed to map Work DTO: \(error)")
+                    logger.warning("Failed to map Work DTO: \(String(describing: error))")
                     return nil // Continue processing other works
                 }
             }
@@ -224,7 +226,7 @@ public class BookSearchAPIService {
                         provider: meta.provider ?? "unknown"
                     )
                 } catch {
-                    print("Warning: Failed to map Work DTO: \(error)")
+                    logger.warning("Failed to map Work DTO: \(String(describing: error))")
                     return nil // Continue processing other works
                 }
             }
