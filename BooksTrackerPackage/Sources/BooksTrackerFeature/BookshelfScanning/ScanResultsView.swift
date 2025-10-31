@@ -15,6 +15,7 @@ public struct ScanResultsView: View {
     @Environment(\.iOS26ThemeStore) private var themeStore
     @State private var resultsModel: ScanResultsModel
     @State private var dismissedSuggestionTypes: Set<String> = []
+    @State private var showPhoto = false
 
     public init(
         scanResult: ScanResult?,
@@ -69,10 +70,22 @@ public struct ScanResultsView: View {
             .navigationTitle("Scan Results")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if let image = scanResult?.capturedImage, !resultsModel.detectedBooks.isEmpty {
+                        Button(action: { showPhoto = true }) {
+                            Image(systemName: "photo.on.rectangle")
+                        }
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         onDismiss()
                     }
+                }
+            }
+            .sheet(isPresented: $showPhoto) {
+                if let image = scanResult?.capturedImage, let books = scanResult?.detectedBooks {
+                    BoundingBoxOverlayView(image: image, detectedBooks: books)
                 }
             }
             .task {
