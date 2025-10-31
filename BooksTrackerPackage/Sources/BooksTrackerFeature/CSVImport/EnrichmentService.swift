@@ -86,7 +86,7 @@ public final class EnrichmentService {
 
             // Fallback for unknown errors
             print("🚨 Unexpected error enriching '\(searchTitle)': \(error)")
-            return .failure(.apiError(error.localizedDescription))
+            return .failure(.apiError(String(describing: error)))
         }
     }
 
