@@ -399,10 +399,9 @@ public struct GeminiCSVImportView: View {
             let author = Author(name: book.author)
             modelContext.insert(author)
 
-            // Create Work with empty authors, then insert, then set relationship
+            // Create Work, insert, then set relationship
             let work = Work(
                 title: book.title,
-                authors: [],  // ✅ Empty - set after insert
                 originalLanguage: "Unknown",  // Gemini doesn't provide this
                 firstPublicationYear: book.publicationYear
             )

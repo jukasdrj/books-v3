@@ -558,14 +558,27 @@ enum ListRowStyle: String, CaseIterable {
 
 @available(iOS 26.0, *)
 #Preview {
-    let sampleWork = Work(
-        title: "Klara and the Sun",
-        authors: [Author(name: "Kazuo Ishiguro")],
-        originalLanguage: "English",
-        firstPublicationYear: 2021
-    )
+    @Previewable @State var container: ModelContainer = {
+        let container = try! ModelContainer(for: Work.self, Author.self)
+        let context = container.mainContext
 
-    return NavigationStack {
+        let author = Author(name: "Kazuo Ishiguro")
+        let work = Work(
+            title: "Klara and the Sun",
+            originalLanguage: "English",
+            firstPublicationYear: 2021
+        )
+
+        context.insert(author)
+        context.insert(work)
+        work.authors = [author]
+
+        return container
+    }()
+
+    let sampleWork = try! container.mainContext.fetch(FetchDescriptor<Work>()).first!
+
+    NavigationStack {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(ListRowStyle.allCases, id: \.self) { style in
@@ -586,5 +599,5 @@ enum ListRowStyle: String, CaseIterable {
         .iOS26NavigationGlass()
     }
     .modelContainer(for: [Work.self, Edition.self, UserLibraryEntry.self, Author.self])
-    .iOS26ThemeStore(iOS26ThemeStore())
+    .iOS26ThemeStore(BooksTrackerFeature.iOS26ThemeStore())
 }

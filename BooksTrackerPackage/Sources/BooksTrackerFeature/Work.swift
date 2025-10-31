@@ -87,7 +87,6 @@ public final class Work {
 
     public init(
         title: String,
-        authors: [Author] = [],
         originalLanguage: String? = nil,
         firstPublicationYear: Int? = nil,
         subjectTags: [String] = [],
@@ -95,9 +94,8 @@ public final class Work {
         primaryProvider: String? = nil
     ) {
         self.title = title
-        // CRITICAL FIX: Never create relationship arrays in init with temporary IDs
-        // Relationships MUST be set AFTER the Work is inserted into ModelContext
-        // This prevents SwiftData from creating futures with temporary identifiers
+        // CRITICAL: Relationships MUST be set AFTER the Work is inserted into ModelContext
+        // Never set relationships in init - SwiftData requires permanent IDs first
         self.authors = nil
         self.originalLanguage = originalLanguage
         self.firstPublicationYear = firstPublicationYear

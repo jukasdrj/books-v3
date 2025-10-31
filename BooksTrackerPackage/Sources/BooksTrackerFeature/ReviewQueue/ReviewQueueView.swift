@@ -249,20 +249,27 @@ struct ReviewQueueRowView: View {
 // MARK: - Preview
 
 #Preview {
-    let container = try! ModelContainer(for: Work.self, Author.self)
-    let context = container.mainContext
+    @Previewable @State var container: ModelContainer = {
+        let container = try! ModelContainer(for: Work.self, Author.self)
+        let context = container.mainContext
 
-    // Create sample work needing review
-    let work = Work(
-        title: "The Great Gatsby",
-        authors: [Author(name: "F. Scott Fitzgerald")],
-        originalLanguage: "English",
-        firstPublicationYear: 1925
-    )
-    work.reviewStatus = .needsReview
-    context.insert(work)
+        // Create sample work needing review
+        let author = Author(name: "F. Scott Fitzgerald")
+        let work = Work(
+            title: "The Great Gatsby",
+            originalLanguage: "English",
+            firstPublicationYear: 1925
+        )
+        work.reviewStatus = .needsReview
 
-    return ReviewQueueView()
+        context.insert(author)
+        context.insert(work)
+        work.authors = [author]
+
+        return container
+    }()
+
+    ReviewQueueView()
         .modelContainer(container)
-        .environment(iOS26ThemeStore())
+        .environment(BooksTrackerFeature.iOS26ThemeStore())
 }

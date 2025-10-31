@@ -134,5 +134,5 @@ public struct ThemeSelectionView: View {
     NavigationStack {
         ThemeSelectionView()
     }
-    .iOS26ThemeStore(iOS26ThemeStore())
+    .iOS26ThemeStore(BooksTrackerFeature.iOS26ThemeStore())
 }

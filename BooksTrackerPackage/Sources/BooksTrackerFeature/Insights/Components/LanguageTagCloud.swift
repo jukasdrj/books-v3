@@ -124,5 +124,5 @@ private struct LanguageTag: View {
         }
         .padding()
     }
-    .iOS26ThemeStore(iOS26ThemeStore())
+    .iOS26ThemeStore(BooksTrackerFeature.iOS26ThemeStore())
 }

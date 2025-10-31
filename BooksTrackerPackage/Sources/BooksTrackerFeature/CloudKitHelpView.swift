@@ -296,5 +296,5 @@ private struct TroubleshootingItem: View {
 @available(iOS 26.0, *)
 #Preview {
     CloudKitHelpView()
-        .iOS26ThemeStore(iOS26ThemeStore())
+        .iOS26ThemeStore(BooksTrackerFeature.iOS26ThemeStore())
 }

@@ -491,5 +491,5 @@ private enum SearchField: Hashable {
     AdvancedSearchView { criteria in
         print("Search triggered with:", criteria.buildSearchQuery() ?? "empty")
     }
-    .environment(iOS26ThemeStore())
+    .environment(BooksTrackerFeature.iOS26ThemeStore())
 }

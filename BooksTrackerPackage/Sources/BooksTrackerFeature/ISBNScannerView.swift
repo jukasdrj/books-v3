@@ -83,6 +83,7 @@ private struct PermissionDeniedView: View {
 @available(iOS 16.0, *)
 private struct DataScannerRepresentable: UIViewControllerRepresentable {
     let onISBNScanned: (ISBNValidator.ISBN) -> Void
+    @Binding var errorMessage: String?
     @Environment(\.dismiss) private var dismiss
 
     func makeUIViewController(context: Context) -> DataScannerViewController {
@@ -103,20 +104,27 @@ private struct DataScannerRepresentable: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: DataScannerViewController, context: Context) {
         if !uiViewController.isScanning {
-            try? uiViewController.startScanning()
+            do {
+                try uiViewController.startScanning()
+            } catch {
+                print("📷 Failed to start scanning: \(error)")
+                context.coordinator.handleError("Unable to start scanner. Please ensure the camera is not in use by another app.")
+            }
         }
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onISBNScanned: onISBNScanned, dismiss: dismiss)
+        Coordinator(onISBNScanned: onISBNScanned, errorMessage: $errorMessage, dismiss: dismiss)
     }
 
     class Coordinator: NSObject, DataScannerViewControllerDelegate {
         let onISBNScanned: (ISBNValidator.ISBN) -> Void
+        @Binding var errorMessage: String?
         let dismiss: DismissAction
 
-        init(onISBNScanned: @escaping (ISBNValidator.ISBN) -> Void, dismiss: DismissAction) {
+        init(onISBNScanned: @escaping (ISBNValidator.ISBN) -> Void, errorMessage: Binding<String?>, dismiss: DismissAction) {
             self.onISBNScanned = onISBNScanned
+            self._errorMessage = errorMessage
             self.dismiss = dismiss
         }
 
@@ -131,7 +139,15 @@ private struct DataScannerRepresentable: UIViewControllerRepresentable {
 
         func dataScanner(_ dataScanner: DataScannerViewController, becameUnavailableWithError error: Error) {
             print("📷 Scanner became unavailable: \(error)")
-            dismiss()
+            handleError("Scanner stopped unexpectedly. Please try again.")
+        }
+
+        func handleError(_ message: String) {
+            Task { @MainActor in
+                errorMessage = message
+                try? await Task.sleep(for: .seconds(2))
+                dismiss()
+            }
         }
 
         private func handleScannedItem(_ item: RecognizedItem, dataScanner: DataScannerViewController) {
@@ -168,6 +184,7 @@ private struct DataScannerRepresentable: UIViewControllerRepresentable {
 @available(iOS 16.0, *)
 public struct ISBNScannerView: View {
     @Environment(\.dismiss) private var dismiss
+    @State private var errorMessage: String?
     let onISBNScanned: (ISBNValidator.ISBN) -> Void
 
     public init(onISBNScanned: @escaping (ISBNValidator.ISBN) -> Void) {
@@ -181,8 +198,20 @@ public struct ISBNScannerView: View {
             } else if !DataScannerViewController.isAvailable {
                 PermissionDeniedView()
             } else {
-                DataScannerRepresentable(onISBNScanned: onISBNScanned)
-                    .ignoresSafeArea()
+                DataScannerRepresentable(
+                    onISBNScanned: onISBNScanned,
+                    errorMessage: $errorMessage
+                )
+                .ignoresSafeArea()
+            }
+        }
+        .alert("Scanner Error", isPresented: .constant(errorMessage != nil)) {
+            Button("OK") {
+                errorMessage = nil
+            }
+        } message: {
+            if let errorMessage {
+                Text(errorMessage)
             }
         }
     }

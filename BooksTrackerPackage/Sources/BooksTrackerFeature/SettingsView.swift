@@ -599,5 +599,5 @@ struct CoverSelectionView: View {
         SettingsView()
     }
     .modelContainer(for: [Work.self, Edition.self, UserLibraryEntry.self, Author.self])
-    .iOS26ThemeStore(iOS26ThemeStore())
+    .iOS26ThemeStore(BooksTrackerFeature.iOS26ThemeStore())
 }

@@ -97,7 +97,7 @@ struct ImageCleanupServiceTests {
         try FileManager.default.setAttributes(attributes, ofItemAtPath: referencedFileURL.path)
 
         // Create a Work that references this file
-        let work = Work(title: "Test Book", authors: [], originalLanguage: "English", firstPublicationYear: nil)
+        let work = Work(title: "Test Book", originalLanguage: "English", firstPublicationYear: nil)
         work.originalImagePath = referencedFileURL.path
         work.reviewStatus = .needsReview
         context.insert(work)

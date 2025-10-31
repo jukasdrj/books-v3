@@ -606,14 +606,19 @@ struct NotesEditorView: View {
         let container = try! ModelContainer(for: Work.self, Edition.self, UserLibraryEntry.self, Author.self)
         let context = container.mainContext
 
-        // Sample data
+        // Sample data - follow insert-before-relate pattern
         let author = Author(name: "Sample Author")
-        let work = Work(title: "Sample Book Title", authors: [author])
-        let edition = Edition(isbn: "9780123456789", publisher: "Sample Publisher", publicationDate: "2023", pageCount: 300, work: work)
+        let work = Work(title: "Sample Book Title")
+        let edition = Edition(isbn: "9780123456789", publisher: "Sample Publisher", publicationDate: "2023", pageCount: 300, work: nil)
 
+        // Insert to get permanent IDs
         context.insert(author)
         context.insert(work)
         context.insert(edition)
+
+        // Set relationships after insert
+        work.authors = [author]
+        edition.work = work
 
         return container
     }()

@@ -12,7 +12,7 @@ struct RelationshipCascadeTests {
         let context = createTestContext()
 
         // Create Work with UserLibraryEntry
-        let work = Work(title: "Test Book", authors: [])
+        let work = Work(title: "Test Book")
         let entry = UserLibraryEntry(work: work, readingStatus: .toRead)
         work.userLibraryEntries = [entry]
 
@@ -37,12 +37,15 @@ struct RelationshipCascadeTests {
     func testDeleteAuthorPreservesWork() throws {
         let context = createTestContext()
 
-        // Create Author and Work
+        // Create Author and Work - follow insert-before-relate pattern
         let author = Author(name: "Test Author", gender: .unknown, culturalRegion: nil)
-        let work = Work(title: "Test Book", authors: [author])
+        let work = Work(title: "Test Book")
 
         context.insert(author)
         context.insert(work)
+
+        // Set relationship after insert
+        work.authors = [author]
         try context.save()
 
         // Verify relationship
@@ -63,7 +66,7 @@ struct RelationshipCascadeTests {
         let context = createTestContext()
 
         // Create Work and Edition
-        let work = Work(title: "Test Book", authors: [])
+        let work = Work(title: "Test Book")
         let edition = Edition(isbn: "1234567890", format: .hardcover, work: work)
         work.editions = [edition]
 
@@ -85,20 +88,25 @@ struct RelationshipCascadeTests {
     func testLibraryResetClearsRelationships() throws {
         let context = createTestContext()
 
-        // Create complex relationship graph
+        // Create complex relationship graph - follow insert-before-relate pattern
         let author = Author(name: "Author", gender: .unknown, culturalRegion: nil)
-        let work = Work(title: "Book", authors: [author])
-        let edition = Edition(isbn: "123", format: .paperback, work: work)
+        let work = Work(title: "Book")
+        let edition = Edition(isbn: "123", format: .paperback, work: nil)
         let entry = UserLibraryEntry(work: work, readingStatus: .read)
 
-        entry.edition = edition
-        work.editions = [edition]
-        work.userLibraryEntries = [entry]
-
+        // Insert all models first to get permanent IDs
         context.insert(author)
         context.insert(work)
         context.insert(edition)
         context.insert(entry)
+
+        // Set relationships after insert
+        work.authors = [author]
+        edition.work = work
+        entry.work = work
+        entry.edition = edition
+        work.editions = [edition]
+        work.userLibraryEntries = [entry]
         try context.save()
 
         // Simulate library reset

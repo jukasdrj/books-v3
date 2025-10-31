@@ -105,7 +105,8 @@ public final class DTOMapper {
     /// Merges synthetic Works with real Works
     public func mapToWork(_ dto: WorkDTO) throws -> Work {
         // Check for existing Work by googleBooksVolumeIDs (deduplication)
-        if let existingWork = try findExistingWork(by: dto.googleBooksVolumeIDs) {
+        // Note: May skip deduplication if ModelContext is invalid (store torn down)
+        if let existingWork = findExistingWork(by: dto.googleBooksVolumeIDs) {
             // Merge data into existing Work
             mergeWorkData(dto: dto, into: existingWork)
             return existingWork
@@ -114,7 +115,6 @@ public final class DTOMapper {
         // Create new Work
         let work = Work(
             title: dto.title,
-            authors: [], // Set after authors are inserted
             originalLanguage: dto.originalLanguage,
             firstPublicationYear: dto.firstPublicationYear,
             subjectTags: dto.subjectTags,

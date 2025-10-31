@@ -963,7 +963,7 @@ struct iOS26ScrollEdgeEffectModifier: ViewModifier {
     NavigationStack {
         SearchView()
     }
-    .environment(\.iOS26ThemeStore, iOS26ThemeStore())
+    .environment(\.iOS26ThemeStore, BooksTrackerFeature.iOS26ThemeStore())
     .modelContainer(for: [Work.self, Edition.self, Author.self, UserLibraryEntry.self])
 }
 
@@ -972,7 +972,7 @@ struct iOS26ScrollEdgeEffectModifier: ViewModifier {
     NavigationStack {
         SearchView()
     }
-    .environment(\.iOS26ThemeStore, iOS26ThemeStore())
+    .environment(\.iOS26ThemeStore, BooksTrackerFeature.iOS26ThemeStore())
     .modelContainer(for: [Work.self, Edition.self, Author.self, UserLibraryEntry.self])
     .preferredColorScheme(.dark)
 }
