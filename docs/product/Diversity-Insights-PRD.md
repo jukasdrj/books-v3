@@ -5,7 +5,7 @@
 **Engineering Lead:** iOS Development Team
 **Design Lead:** iOS 26 HIG Compliance
 **Target Release:** v3.1.0 (October 2025)
-**Last Updated:** January 27, 2025
+**Last Updated:** October 31, 2025
 
 ---
 
