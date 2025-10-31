@@ -163,41 +163,17 @@ public final class DTOMapper {
     // MARK: - Deduplication & Merging
 
     /// Find existing Work by googleBooksVolumeIDs (for deduplication)
-    /// Returns nil if deduplication cannot be performed safely
-    /// Uses a child context to isolate CloudKit store teardown crashes
-    private func findExistingWork(by volumeIDs: [String]) -> Work? {
-        guard !volumeIDs.isEmpty else { return nil }
-
-        // CRITICAL: Use child context to isolate CloudKit store teardown crashes
-        // If CloudKit tears down the store during fetch(), the child context crashes
-        // but the parent modelContext remains valid. This prevents app termination.
-        //
-        // SwiftData fetch() uses preconditionFailure() (not throwable) when store
-        // is invalid, so try? cannot catch it. Child context isolation is the only
-        // way to prevent crashes during concurrent CloudKit sync operations.
-
-        let childContext = ModelContext(modelContext.container)
-
-        let descriptor = FetchDescriptor<Work>()
-        guard let allWorks = try? childContext.fetch(descriptor) else {
-            logger.warning("Cannot fetch Works for deduplication (store may be invalid)")
-            return nil  // Skip deduplication, let caller create new Work
-        }
-
-        // Find Work with any matching googleBooksVolumeID
-        // DEFENSIVE: Skip Works with empty googleBooksVolumeIDs (from CSV imports, manual adds)
-        let matchingWork = allWorks.first { existingWork in
-            guard !existingWork.googleBooksVolumeIDs.isEmpty else { return false }
-            return !Set(existingWork.googleBooksVolumeIDs).isDisjoint(with: volumeIDs)
-        }
-
-        // CRITICAL: If we found a match in child context, fetch it from parent context
-        // We can't return the child context's Work object - it must come from parent
-        guard let match = matchingWork else { return nil }
-
-        // Fetch the same Work from parent context using its ID
-        let matchID = match.persistentModelID
-        return modelContext.model(for: matchID) as? Work
+    ///
+    /// **TEMPORARILY DISABLED** due to SwiftData reflection crash (EXC_BREAKPOINT SIGTRAP).
+    /// FetchDescriptor triggers uncatchable runtime trap in SwiftData's metadata system.
+    /// Deduplication will be re-enabled once root cause is fixed.
+    ///
+    /// Issue: https://github.com/jukasdrj/books-tracker-v1/issues/XXX
+    private func findExistingWork(by volumeIDs: [String]) throws -> Work? {
+        // TEMPORARY: Skip deduplication to prevent crashes
+        // Users may see duplicate Works until this is fixed
+        logger.info("Deduplication temporarily disabled - creating new Work")
+        return nil
     }
 
     /// Merge WorkDTO data into existing Work

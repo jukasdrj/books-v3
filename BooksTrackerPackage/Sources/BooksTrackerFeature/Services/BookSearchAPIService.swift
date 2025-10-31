@@ -11,7 +11,7 @@ public class BookSearchAPIService {
     private let urlSession: URLSession
     private let modelContext: ModelContext
     private let dtoMapper: DTOMapper
-    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "BookSearchAPI")
+    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "BookSearchAPIService")
 
     public init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -112,7 +112,7 @@ public class BookSearchAPIService {
                         provider: meta.provider ?? "unknown"
                     )
                 } catch {
-                    logger.warning("Failed to map Work DTO: \(error.localizedDescription)")
+                    logger.warning("Failed to map Work DTO: \(String(describing: error))")
                     return nil // Continue processing other works
                 }
             }
@@ -226,7 +226,7 @@ public class BookSearchAPIService {
                         provider: meta.provider ?? "unknown"
                     )
                 } catch {
-                    logger.warning("Failed to map Work DTO: \(error.localizedDescription)")
+                    logger.warning("Failed to map Work DTO: \(String(describing: error))")
                     return nil // Continue processing other works
                 }
             }
