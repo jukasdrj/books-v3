@@ -45,7 +45,7 @@ struct BooksTrackerApp: App {
         } catch {
             // Print detailed error for debugging
             print("❌ ModelContainer creation failed: \(error)")
-            print("❌ Error details: \(error.localizedDescription)")
+            print("❌ Error details: \(String(describing: error))")
 
             #if targetEnvironment(simulator)
             print("💡 Simulator detected - trying persistent fallback")
