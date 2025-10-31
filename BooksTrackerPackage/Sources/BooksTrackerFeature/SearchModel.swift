@@ -55,8 +55,8 @@ public final class SearchModel {
     // Pagination state
     private var currentPage: Int = 1
 
-    public init(modelContext: ModelContext) {
-        self.apiService = BookSearchAPIService(modelContext: modelContext)
+    public init(modelContext: ModelContext, dtoMapper: DTOMapper) {
+        self.apiService = BookSearchAPIService(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // Load recent searches from UserDefaults
         if let savedSearches = UserDefaults.standard.array(forKey: "RecentBookSearches") as? [String] {

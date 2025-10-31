@@ -13,9 +13,9 @@ public class BookSearchAPIService {
     private let dtoMapper: DTOMapper
     private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "BookSearchAPIService")
 
-    public init(modelContext: ModelContext) {
+    public init(modelContext: ModelContext, dtoMapper: DTOMapper) {
         self.modelContext = modelContext
-        self.dtoMapper = DTOMapper(modelContext: modelContext)
+        self.dtoMapper = dtoMapper
 
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 10.0

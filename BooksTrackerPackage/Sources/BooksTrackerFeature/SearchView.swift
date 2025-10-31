@@ -62,23 +62,19 @@ import UIKit
 public struct SearchView: View {
     @Environment(\.iOS26ThemeStore) private var themeStore
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dtoMapper) private var dtoMapper
     @Environment(SearchCoordinator.self) private var searchCoordinator
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     // MARK: - State Management
     // HIG: Use SwiftUI's standard state management patterns
 
-    @State private var searchModel: SearchModel
+    @State private var searchModel: SearchModel?
     @State private var selectedBook: SearchResult?
     @State private var searchScope: SearchScope = .all
     @Namespace private var searchTransition
 
-    public init() {
-        // Initialize with temporary preview context
-        // Will be replaced with actual modelContext in .task
-        let previewContainer = try! ModelContainer(for: Work.self, Edition.self, Author.self, UserLibraryEntry.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
-        _searchModel = State(initialValue: SearchModel(modelContext: previewContainer.mainContext))
-    }
+    public init() {}
 
     // iOS 26 Scrolling Enhancements
     @State private var scrollPosition = ScrollPosition()
@@ -102,73 +98,82 @@ public struct SearchView: View {
     // MARK: - Body
 
     public var body: some View {
-        NavigationStack {
-            searchContentArea
-                // HIG: Standard iOS search bar placement (top of navigation)
-                // NOTE: Removed explicit displayMode to fix iOS 26 keyboard bug on physical devices
-                // displayMode: .always was blocking space bar and touch events on iPhone 17 Pro
-                .searchable(
-                    text: $searchModel.searchText,
-                    placement: .navigationBarDrawer,
-                    prompt: searchPrompt
-                )
-                // HIG: Search scopes for filtering
-                .searchScopes($searchScope) {
-                    ForEach(SearchScope.allCases) { scope in
-                        Text(scope.displayName)
-                            .tag(scope)
-                            .accessibilityLabel(scope.accessibilityLabel)
-                    }
-                }
-                // HIG: Search suggestions integration
-                .searchSuggestions {
-                    searchSuggestionsView
-                }
-                // HIG: Navigation destination for hierarchical navigation
-                .navigationDestination(item: $selectedBook) { book in
-                    WorkDiscoveryView(searchResult: book)
-                        .navigationTitle(book.displayTitle)
-                        .navigationBarTitleDisplayMode(.large)
-                }
-                .navigationTitle("Search")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        advancedSearchButton
-                    }
+        Group {
+            if let searchModel = searchModel {
+                NavigationStack {
+                    searchContentArea(searchModel: searchModel)
+                        // HIG: Standard iOS search bar placement (top of navigation)
+                        // NOTE: Removed explicit displayMode to fix iOS 26 keyboard bug on physical devices
+                        // displayMode: .always was blocking space bar and touch events on iPhone 17 Pro
+                        .searchable(
+                            text: Binding(
+                                get: { searchModel.searchText },
+                                set: { searchModel.searchText = $0 }
+                            ),
+                            placement: .navigationBarDrawer,
+                            prompt: searchPrompt
+                        )
+                        // HIG: Search scopes for filtering
+                        .searchScopes($searchScope) {
+                            ForEach(SearchScope.allCases) { scope in
+                                Text(scope.displayName)
+                                    .tag(scope)
+                                    .accessibilityLabel(scope.accessibilityLabel)
+                            }
+                        }
+                        // HIG: Search suggestions integration
+                        .searchSuggestions {
+                            searchSuggestionsView(searchModel: searchModel)
+                        }
+                        // HIG: Navigation destination for hierarchical navigation
+                        .navigationDestination(item: $selectedBook) { book in
+                            WorkDiscoveryView(searchResult: book)
+                                .navigationTitle(book.displayTitle)
+                                .navigationBarTitleDisplayMode(.large)
+                        }
+                        .navigationTitle("Search")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarLeading) {
+                                advancedSearchButton
+                            }
 
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        barcodeButton
-                    }
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                barcodeButton
+                            }
+                        }
+                        .background(backgroundView.ignoresSafeArea())
+                        // HIG: Accessibility - Custom actions for power users
+                        .accessibilityElement(children: .contain)
+                        .accessibilityLabel(accessibilityDescription(for: searchModel.viewState))
+                        .accessibilityAction(named: "Clear search") {
+                            searchModel.clearSearch()
+                        }
+                        .onAppear {
+                            // Handle pending author search after tab becomes visible
+                            handlePendingAuthorSearch(searchModel: searchModel)
+                        }
+                        .onChange(of: searchCoordinator.pendingAuthorSearch) {
+                            // Handle pending search when set while tab is already visible
+                            handlePendingAuthorSearch(searchModel: searchModel)
+                        }
+                        // onChange for search text with scope filtering
+                        .onChange(of: searchModel.searchText) { oldValue, newValue in
+                            performScopedSearch(query: newValue, scope: searchScope, searchModel: searchModel)
+                        }
+                        .onChange(of: searchScope) { oldValue, newValue in
+                            // Re-search with new scope if there's active text
+                            if !searchModel.searchText.isEmpty {
+                                performScopedSearch(query: searchModel.searchText, scope: newValue, searchModel: searchModel)
+                            }
+                        }
                 }
-                .background(backgroundView.ignoresSafeArea())
-                // HIG: Accessibility - Custom actions for power users
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel(accessibilityDescription)
-                .accessibilityAction(named: "Clear search") {
-                    searchModel.clearSearch()
-                }
-                .task {
-                    await loadInitialData()
-                }
-                .onAppear {
-                    // Handle pending author search after tab becomes visible
-                    handlePendingAuthorSearch()
-                }
-                .onChange(of: searchCoordinator.pendingAuthorSearch) {
-                    // Handle pending search when set while tab is already visible
-                    handlePendingAuthorSearch()
-                }
-                // onChange for search text with scope filtering
-                .onChange(of: searchModel.searchText) { oldValue, newValue in
-                    performScopedSearch(query: newValue, scope: searchScope)
-                }
-                .onChange(of: searchScope) { oldValue, newValue in
-                    // Re-search with new scope if there's active text
-                    if !searchModel.searchText.isEmpty {
-                        performScopedSearch(query: searchModel.searchText, scope: newValue)
-                    }
-                }
+            } else {
+                ProgressView()
+            }
+        }
+        .task {
+            setupSearchModel()
         }
         .sheet(isPresented: $showingScanner) {
             print("📷 Sheet is presenting ISBNScannerView")
@@ -176,15 +181,17 @@ public struct SearchView: View {
                 print("📷 ISBN scanned: \(isbn.normalizedValue)")
                 // Handle scanned ISBN - set scope to ISBN
                 searchScope = .isbn
-                searchModel.searchByISBN(isbn.normalizedValue)
+                searchModel?.searchByISBN(isbn.normalizedValue)
                 #if DEBUG
                 updatePerformanceText()
                 #endif
             }
         }
         .sheet(isPresented: $showingAdvancedSearch) {
-            AdvancedSearchView { criteria in
-                handleAdvancedSearch(criteria)
+            if let searchModel = searchModel {
+                AdvancedSearchView { criteria in
+                    handleAdvancedSearch(criteria, searchModel: searchModel)
+                }
             }
         }
     }
@@ -206,7 +213,7 @@ public struct SearchView: View {
     // HIG: Provide helpful, contextual suggestions
 
     @ViewBuilder
-    private var searchSuggestionsView: some View {
+    private func searchSuggestionsView(searchModel: SearchModel) -> some View {
         if searchModel.searchText.isEmpty {
             // Show popular searches when empty
             ForEach(Array(searchModel.searchSuggestions.prefix(5)), id: \.self) { suggestion in
@@ -229,7 +236,7 @@ public struct SearchView: View {
                     searchModel.searchText = suggestion
                 } label: {
                     HStack {
-                        Image(systemName: suggestionIcon(for: suggestion))
+                        Image(systemName: suggestionIcon(for: suggestion, searchModel: searchModel))
                             .foregroundStyle(.secondary)
                         Text(suggestion)
                         Spacer()
@@ -241,7 +248,7 @@ public struct SearchView: View {
     }
 
     // HIG: Contextual icons for different suggestion types
-    private func suggestionIcon(for suggestion: String) -> String {
+    private func suggestionIcon(for suggestion: String, searchModel: SearchModel) -> String {
         if searchModel.recentSearches.contains(suggestion) {
             return "clock"
         } else if suggestion.allSatisfy({ $0.isNumber || $0 == "-" || $0.uppercased() == "X" }) {
@@ -290,11 +297,11 @@ public struct SearchView: View {
     // HIG: Clear state-based UI with smooth transitions
 
     @ViewBuilder
-    private var searchContentArea: some View {
+    private func searchContentArea(searchModel: SearchModel) -> some View {
         ZStack(alignment: .bottom) {
             switch searchModel.viewState {
             case .initial(let trending, let recentSearches):
-                initialStateView(trending: trending, recentSearches: recentSearches)
+                initialStateView(trending: trending, recentSearches: recentSearches, searchModel: searchModel)
 
             case .searching(let query, let scope, let previousResults):
                 searchingStateView(query: query, scope: scope, previousResults: previousResults)
@@ -303,16 +310,16 @@ public struct SearchView: View {
                 resultsStateView(items: items, hasMorePages: hasMorePages, cacheHitRate: cacheHitRate)
 
             case .noResults(let query, let scope):
-                noResultsStateView(query: query, scope: scope)
+                noResultsStateView(query: query, scope: scope, searchModel: searchModel)
 
             case .error(let message, let lastQuery, let lastScope, let recoverySuggestion):
-                errorStateView(message: message, lastQuery: lastQuery, lastScope: lastScope, recoverySuggestion: recoverySuggestion)
+                errorStateView(message: message, lastQuery: lastQuery, lastScope: lastScope, recoverySuggestion: recoverySuggestion, searchModel: searchModel)
             }
 
             // HIG: Debug info only in development builds
             #if DEBUG
-            if !performanceText.isEmpty {
-                performanceSection
+            if let searchModel = searchModel, !performanceText(for: searchModel).isEmpty {
+                performanceSection(searchModel: searchModel)
             }
             #endif
         }
@@ -321,7 +328,7 @@ public struct SearchView: View {
     // MARK: - State Views
     // HIG: Enhanced empty states with contextual guidance
 
-    private func initialStateView(trending: [SearchResult], recentSearches: [String]) -> some View {
+    private func initialStateView(trending: [SearchResult], recentSearches: [String], searchModel: SearchModel) -> some View {
         ScrollView {
             LazyVStack(spacing: 32) {
                 // Welcome section - HIG: Clear, inviting empty state
@@ -348,7 +355,7 @@ public struct SearchView: View {
 
                 // Recent searches section - HIG: Quick access to previous searches
                 if !recentSearches.isEmpty {
-                    recentSearchesSection(recentSearches: recentSearches)
+                    recentSearchesSection(recentSearches: recentSearches, searchModel: searchModel)
                 }
 
                 // Trending books grid - HIG: Contextual content discovery
@@ -384,7 +391,7 @@ public struct SearchView: View {
     }
 
     // HIG: Recent searches for quick re-access
-    private func recentSearchesSection(recentSearches: [String]) -> some View {
+    private func recentSearchesSection(recentSearches: [String], searchModel: SearchModel) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Label("Recent Searches", systemImage: "clock")
@@ -739,7 +746,7 @@ public struct SearchView: View {
     }
 
     // HIG: Helpful no results state
-    private func noResultsStateView(query: String, scope: SearchScope) -> some View {
+    private func noResultsStateView(query: String, scope: SearchScope, searchModel: SearchModel) -> some View {
         VStack(spacing: 24) {
             Spacer()
 
@@ -777,7 +784,7 @@ public struct SearchView: View {
     }
 
     // HIG: Clear error states with recovery options
-    private func errorStateView(message: String, lastQuery: String?, lastScope: SearchScope?, recoverySuggestion: String?) -> some View {
+    private func errorStateView(message: String, lastQuery: String?, lastScope: SearchScope?, recoverySuggestion: String?, searchModel: SearchModel) -> some View {
         VStack(spacing: 24) {
             Spacer()
 
@@ -826,11 +833,11 @@ public struct SearchView: View {
     // HIG: Performance metrics only visible in development
 
     #if DEBUG
-    private var performanceSection: some View {
+    private func performanceSection(searchModel: SearchModel) -> some View {
         VStack(spacing: 4) {
             Divider()
 
-            Text(performanceText)
+            Text(performanceText(for: searchModel))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 16)
@@ -843,7 +850,7 @@ public struct SearchView: View {
     // MARK: - Helper Methods
 
     /// HIG: Scope-aware search execution
-    private func performScopedSearch(query: String, scope: SearchScope) {
+    private func performScopedSearch(query: String, scope: SearchScope, searchModel: SearchModel) {
         // Do not trim whitespace here; let the model handle it.
         // This resolves the iOS 18 spacebar bug where trimming interferes
         // with the @State -> @Observable update cycle.
@@ -868,7 +875,7 @@ public struct SearchView: View {
 
     /// HIG: Advanced search with multi-field criteria
     /// Backend performs all filtering - returns clean results
-    private func handleAdvancedSearch(_ criteria: AdvancedSearchCriteria) {
+    private func handleAdvancedSearch(_ criteria: AdvancedSearchCriteria, searchModel: SearchModel) {
         guard criteria.hasAnyCriteria else { return }
 
         // Update search text to show what was searched
@@ -882,11 +889,11 @@ public struct SearchView: View {
 
     /// Handle pending author search from cross-tab navigation
     /// Called by both .onAppear (after tab switch) and .onChange (when already visible)
-    private func handlePendingAuthorSearch() {
+    private func handlePendingAuthorSearch(searchModel: SearchModel) {
         if let authorName = searchCoordinator.consumePendingAuthorSearch() {
             searchModel.searchText = authorName
             searchScope = .author
-            performScopedSearch(query: authorName, scope: .author)
+            performScopedSearch(query: authorName, scope: .author, searchModel: searchModel)
         }
     }
 
@@ -896,41 +903,44 @@ public struct SearchView: View {
         isLoadingMore = true
 
         Task {
-            await searchModel.loadMoreResults()
+            await searchModel?.loadMoreResults()
             isLoadingMore = false
         }
     }
 
-    private func loadInitialData() async {
-        // Replace preview SearchModel with one using actual modelContext
-        searchModel = SearchModel(modelContext: modelContext)
+    private func setupSearchModel() {
+        if searchModel == nil {
+            searchModel = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
+        }
     }
 
     #if DEBUG
     private func updatePerformanceText() {
-        if searchModel.lastSearchTime > 0 {
-            // Get cache hit rate from viewState if in results state
-            let cacheHitRate: Double
-            if case .results(_, _, _, _, let rate) = searchModel.viewState {
-                cacheHitRate = rate
-            } else {
-                cacheHitRate = 0
-            }
+        // This method is now a bit redundant as the text is generated on-demand
+        // from the searchModel. It can be removed if no longer needed.
+    }
 
-            let cacheStatus = cacheHitRate > 0 ? "CACHED" : "FRESH"
-            performanceText = String(format: "%.0fms • %@ • %.0f%% cache",
-                                     searchModel.lastSearchTime * 1000,
-                                     cacheStatus,
-                                     cacheHitRate * 100)
+    private func performanceText(for searchModel: SearchModel) -> String {
+        guard searchModel.lastSearchTime > 0 else { return "" }
+
+        let cacheHitRate: Double
+        if case .results(_, _, _, _, let rate) = searchModel.viewState {
+            cacheHitRate = rate
         } else {
-            performanceText = ""
+            cacheHitRate = 0
         }
+
+        let cacheStatus = cacheHitRate > 0 ? "CACHED" : "FRESH"
+        return String(format: "%.0fms • %@ • %.0f%% cache",
+                      searchModel.lastSearchTime * 1000,
+                      cacheStatus,
+                      cacheHitRate * 100)
     }
     #endif
 
     // HIG: Comprehensive accessibility descriptions
-    private var accessibilityDescription: String {
-        switch searchModel.viewState {
+    private func accessibilityDescription(for state: SearchViewState) -> String {
+        switch state {
         case .initial:
             return "Search for books. Currently showing trending books and recent searches."
         case .searching:
@@ -960,19 +970,27 @@ struct iOS26ScrollEdgeEffectModifier: ViewModifier {
 
 @available(iOS 26.0, *)
 #Preview("Search View - Initial State") {
-    NavigationStack {
+    let container = try! ModelContainer(for: Work.self, Edition.self, Author.self, UserLibraryEntry.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let dtoMapper = DTOMapper(modelContext: container.mainContext)
+
+    return NavigationStack {
         SearchView()
     }
     .environment(\.iOS26ThemeStore, BooksTrackerFeature.iOS26ThemeStore())
-    .modelContainer(for: [Work.self, Edition.self, Author.self, UserLibraryEntry.self])
+    .modelContainer(container)
+    .environment(\.dtoMapper, dtoMapper)
 }
 
 @available(iOS 26.0, *)
 #Preview("Search View - Dark Mode") {
-    NavigationStack {
+    let container = try! ModelContainer(for: Work.self, Edition.self, Author.self, UserLibraryEntry.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let dtoMapper = DTOMapper(modelContext: container.mainContext)
+
+    return NavigationStack {
         SearchView()
     }
     .environment(\.iOS26ThemeStore, BooksTrackerFeature.iOS26ThemeStore())
-    .modelContainer(for: [Work.self, Edition.self, Author.self, UserLibraryEntry.self])
+    .modelContainer(container)
+    .environment(\.dtoMapper, dtoMapper)
     .preferredColorScheme(.dark)
 }
