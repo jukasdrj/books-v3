@@ -15,6 +15,7 @@ import OSLog
 public final class DTOMapper {
     private let modelContext: ModelContext
     private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "DTOMapper")
+    private var workCache: [String: Work] = [:] // volumeID -> Work
 
     public init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -157,22 +158,50 @@ public final class DTOMapper {
         // CRITICAL: Insert before any relationships
         modelContext.insert(work)
 
+        // Update cache
+        for volumeID in dto.googleBooksVolumeIDs {
+            workCache[volumeID] = work
+        }
+
         return work
+    }
+
+    // MARK: - Cache Management
+
+    /// Removes a Work from the deduplication cache.
+    /// Call this method when a Work is deleted to prevent returning stale data.
+    public func removeWorkFromCache(_ work: Work) {
+        for volumeID in work.googleBooksVolumeIDs {
+            if workCache.removeValue(forKey: volumeID) != nil {
+                logger.info("Removed Work \(work.title) (volumeID: \(volumeID)) from deduplication cache.")
+            }
+        }
+    }
+
+    /// Clears the entire deduplication cache.
+    /// Call this when performing a full library reset.
+    public func clearCache() {
+        workCache.removeAll()
+        logger.info("Deduplication cache cleared.")
     }
 
     // MARK: - Deduplication & Merging
 
     /// Find existing Work by googleBooksVolumeIDs (for deduplication)
     ///
-    /// **TEMPORARILY DISABLED** due to SwiftData reflection crash (EXC_BREAKPOINT SIGTRAP).
+    /// Uses an in-memory cache to avoid SwiftData reflection crash (EXC_BREAKPOINT SIGTRAP).
     /// FetchDescriptor triggers uncatchable runtime trap in SwiftData's metadata system.
-    /// Deduplication will be re-enabled once root cause is fixed.
+    /// The cache provides a safe and performant alternative.
     ///
     /// Issue: https://github.com/jukasdrj/books-tracker-v1/issues/XXX
     private func findExistingWork(by volumeIDs: [String]) throws -> Work? {
-        // TEMPORARY: Skip deduplication to prevent crashes
-        // Users may see duplicate Works until this is fixed
-        logger.info("Deduplication temporarily disabled - creating new Work")
+        for volumeID in volumeIDs {
+            if let cachedWork = workCache[volumeID] {
+                logger.info("Deduplication cache hit for volumeID: \(volumeID)")
+                return cachedWork
+            }
+        }
+        logger.info("Deduplication cache miss for volumeIDs: \(volumeIDs.joined(separator: ", "))")
         return nil
     }
 

@@ -15,6 +15,7 @@ struct EditionMetadataView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.iOS26ThemeStore) private var themeStore
+    @Environment(\.dtoMapper) private var dtoMapper
     @State private var showingStatusPicker = false
     @State private var showingNotesEditor = false
     @FocusState private var isPageFieldFocused: Bool
@@ -408,6 +409,7 @@ struct EditionMetadataView: View {
 
         // If work has no more library entries, delete the work (and cascade to editions/authors)
         if work.userLibraryEntries?.isEmpty == true || work.userLibraryEntries == nil {
+            dtoMapper.removeWorkFromCache(work)
             modelContext.delete(work)
         }
 
