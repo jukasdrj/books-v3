@@ -361,28 +361,35 @@ public struct CorrectionView: View {
     }
 }
 
-#endif  // canImport(UIKit)
-
 // MARK: - Preview
 
 #Preview {
-    let container = try! ModelContainer(for: Work.self, Author.self)
+    @Previewable @State var container: ModelContainer = {
+        let container = try! ModelContainer(for: Work.self, Author.self)
+        let context = container.mainContext
+
+        let work = Work(
+            title: "The Great Gatsby",
+            authors: [Author(name: "F. Scott Fitzgerald")],
+            originalLanguage: "English",
+            firstPublicationYear: 1925
+        )
+        work.reviewStatus = .needsReview
+        context.insert(work)
+
+        return container
+    }()
+
     let context = container.mainContext
-
-    let work = Work(
-        title: "The Great Gatsby",
-        authors: [Author(name: "F. Scott Fitzgerald")],
-        originalLanguage: "English",
-        firstPublicationYear: 1925
-    )
-    work.reviewStatus = .needsReview
-    context.insert(work)
-
+    let work = try! context.fetch(FetchDescriptor<Work>()).first!
     let model = ReviewQueueModel()
+    let themeStore = BooksTrackerFeature.iOS26ThemeStore()
 
-    return NavigationStack {
+    NavigationStack {
         CorrectionView(work: work, reviewModel: model)
             .modelContainer(container)
-            .environment(iOS26ThemeStore())
+            .environment(themeStore)
     }
 }
+
+#endif  // canImport(UIKit)
