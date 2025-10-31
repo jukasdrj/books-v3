@@ -599,7 +599,7 @@ struct CoverSelectionView: View {
     private func clearManualSelections() {
         Task { @MainActor in
             do {
-                let descriptor = FetchDescriptor<UserLibraryEntry>()
+                let descriptor = FetchDescriptor<UserLibraryEntry>(predicate: #Predicate { $0.preferredEdition != nil })
                 let entries = try modelContext.fetch(descriptor)
                 for entry in entries {
                     entry.preferredEdition = nil
