@@ -1,8 +1,9 @@
 # Search Workflow
 
-**Feature:** Book Search with ISBN Scanner
-**Primary Flow:** User searches for books by title, author, or ISBN
-**Last Updated:** October 2025
+**Feature:** Multi-Mode Book Search (Title, ISBN, Advanced)
+**Primary Flow:** User searches for books by title, author, or ISBN using canonical V1 endpoints
+**Last Updated:** October 31, 2025
+**Related PRD:** [Search PRD](../product/Search-PRD.md)
 
 ---
 
@@ -20,11 +21,11 @@ flowchart TD
 
     TextSearch --> ValidateQuery{Query length ≥ 2?}
     ValidateQuery -->|No| ShowError[Show inline validation]
-    ValidateQuery -->|Yes| CallAPI[Call /search/title API]
+    ValidateQuery -->|Yes| CallAPI[Call /v1/search/title API]
 
     ISBNScanner --> ScanBarcode[Scan ISBN barcode]
     ScanBarcode --> ISBNSuccess{Barcode detected?}
-    ISBNSuccess -->|Yes| CallISBN[Call /search/isbn API]
+    ISBNSuccess -->|Yes| CallISBN[Call /v1/search/isbn API]
     ISBNSuccess -->|No| ScanBarcode
 
     CallAPI --> APIResponse{API Response}
@@ -104,19 +105,22 @@ sequenceDiagram
     SearchModel->>SearchModel: validateQuery() ✓ (length ≥ 2)
     SearchModel->>APIClient: searchTitle("Harry Potter")
 
-    APIClient->>CloudflareWorker: GET /search/title?q=Harry+Potter
+    APIClient->>CloudflareWorker: GET /v1/search/title?q=Harry+Potter
 
     alt Cache Hit (KV)
-        CloudflareWorker-->>APIClient: Return cached results (6h TTL)
+        CloudflareWorker-->>APIClient: Cached ResponseEnvelope (6h TTL)
     else Cache Miss
-        CloudflareWorker->>GoogleBooks: Search API
-        CloudflareWorker->>OpenLibrary: Search API
-        CloudflareWorker->>CloudflareWorker: Deduplicate & merge
+        CloudflareWorker->>GoogleBooks: Search volumes
+        CloudflareWorker->>CloudflareWorker: Normalize to canonical DTOs (WorkDTO, EditionDTO, AuthorDTO)
+        CloudflareWorker->>CloudflareWorker: Apply genre normalization
+        CloudflareWorker->>CloudflareWorker: Wrap in ResponseEnvelope
         CloudflareWorker->>CloudflareWorker: Cache in KV (6h)
-        CloudflareWorker-->>APIClient: Return merged results
+        CloudflareWorker-->>APIClient: ResponseEnvelope<WorkDTO[], EditionDTO[], AuthorDTO[]>
     end
 
-    APIClient-->>SearchModel: [SearchResult] array
+    APIClient->>APIClient: Parse ResponseEnvelope
+    APIClient->>DTOMapper: mapToWorks(data, modelContext)
+    DTOMapper-->>APIClient: [Work] array
     SearchModel->>SearchModel: state = .results(items, query)
     SearchModel-->>SearchView: UI update
     SearchView-->>User: Display results list
@@ -134,8 +138,9 @@ sequenceDiagram
 | **SearchView** | UI rendering, user input | `SearchView.swift` |
 | **SearchModel** | State management (@Observable) | `SearchModel.swift:1129` |
 | **SearchViewState** | Enum-based state representation | `SearchModel.swift:18-31` |
-| **BookSearchAPIService** | HTTP requests to Cloudflare Worker | `Services/BookSearchAPIService.swift` |
-| **ModernBarcodeScannerView** | ISBN camera scanner | `ModernBarcodeScannerView.swift` |
+| **BookSearchAPIService** | HTTP requests to `/v1/*` endpoints | `Services/BookSearchAPIService.swift` |
+| **DTOMapper** | Converts canonical DTOs to SwiftData models | `Services/DTOMapper.swift` |
+| **ISBNScannerView** | VisionKit barcode scanner | `ISBNScannerView.swift` |
 
 ---
 
@@ -175,11 +180,15 @@ flowchart LR
 
 ## Related Documentation
 
-- **API Reference:** `cloudflare-workers/api-worker/src/handlers/book-search.js`
+- **PRD:** `docs/product/Search-PRD.md` (this feature)
+- **V1 API Handlers:**
+  - `cloudflare-workers/api-worker/src/handlers/v1/search-title.ts`
+  - `cloudflare-workers/api-worker/src/handlers/v1/search-isbn.ts`
+  - `cloudflare-workers/api-worker/src/handlers/v1/search-advanced.ts`
+- **Canonical DTOs:** `docs/product/Canonical-Data-Contracts-PRD.md`
 - **Backend Architecture:** `cloudflare-workers/MONOLITH_ARCHITECTURE.md`
-- **State Management:** `CLAUDE.md` - @Observable Pattern
-- **Barcode Scanner:** `docs/features/BOOKSHELF_SCANNER.md` (camera permissions)
-- **Cache Health:** `docs/features/CACHE_HEALTH_MONITORING.md` (new - Oct 2025)
+- **Barcode Scanner:** `docs/product/VisionKit-Barcode-Scanner-PRD.md`
+- **DTOMapper:** `docs/product/DTOMapper-PRD.md`
 
 ---
 
