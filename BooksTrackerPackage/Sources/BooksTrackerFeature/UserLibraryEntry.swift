@@ -28,6 +28,9 @@ public final class UserLibraryEntry {
     // Inverse defined on Edition side at line 43
     var edition: Edition?
 
+    @Relationship(deleteRule: .nullify)
+    var preferredEdition: Edition?
+
     public init(
         readingStatus: ReadingStatus = ReadingStatus.toRead
     ) {
