@@ -71,8 +71,10 @@ public struct ScanResultsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    if let image = scanResult?.capturedImage, !resultsModel.detectedBooks.isEmpty {
-                        Button(action: { showPhoto = true }) {
+                    if let image = scanResult?.capturedImage, let books = scanResult?.detectedBooks, !books.isEmpty {
+                        Button(action: { 
+                            self.photoOverlayInfo = PhotoOverlayInfo(image: image, books: books)
+                        }) {
                             Image(systemName: "photo.on.rectangle")
                         }
                     }
@@ -83,10 +85,8 @@ public struct ScanResultsView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showPhoto) {
-                if let image = scanResult?.capturedImage, let books = scanResult?.detectedBooks {
-                    BoundingBoxOverlayView(image: image, detectedBooks: books)
-                }
+            .sheet(item: $photoOverlayInfo) { info in
+                BoundingBoxOverlayView(image: info.image, detectedBooks: info.books)
             }
             .task {
                 await resultsModel.performDuplicateCheck(modelContext: modelContext)
