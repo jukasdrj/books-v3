@@ -90,36 +90,8 @@ public class BookSearchAPIService {
             throw SearchError.decodingError(error)
         }
 
-        let results: [SearchResult]
-
-        switch envelope {
-        case .success(let searchData, let meta):
-            // Use DTOMapper to convert DTOs → SwiftData models with deduplication
-            results = searchData.works.compactMap { workDTO in
-                do {
-                    let work = try dtoMapper.mapToWork(workDTO)
-
-                    // DTOMapper automatically handles:
-                    // - Deduplication by googleBooksVolumeIDs
-                    // - Synthetic Work → Real Work merging
-                    // - Author relationship linking (if authors provided)
-
-                    return SearchResult(
-                        work: work,
-                        editions: [],
-                        authors: [],
-                        relevanceScore: 1.0,
-                        provider: meta.provider ?? "unknown"
-                    )
-                } catch {
-                    logger.warning("Failed to map Work DTO: \(String(describing: error))")
-                    return nil // Continue processing other works
-                }
-            }
-
-        case .failure(let error, _):
-            throw SearchError.apiError(error.message)
-        }
+        // Process response using shared helper (eliminates duplication with advancedSearch)
+        let results = try processSearchResponse(envelope)
 
         return SearchResponse(
             results: results,
@@ -209,19 +181,54 @@ public class BookSearchAPIService {
             throw SearchError.decodingError(error)
         }
 
-        let results: [SearchResult]
+        // Process response using shared helper (eliminates duplication with search)
+        let results = try processSearchResponse(envelope)
 
+        return SearchResponse(
+            results: results,
+            cacheHitRate: cacheHitRate,
+            provider: provider,
+            responseTime: 0,
+            totalItems: results.count
+        )
+    }
+
+    // MARK: - Helper Methods
+
+    /// Process BookSearchResponse envelope and convert to SearchResult array
+    /// Extracts common logic for mapping authors and works from API DTOs
+    private func processSearchResponse(_ envelope: ApiResponse<BookSearchResponse>) throws -> [SearchResult] {
         switch envelope {
         case .success(let searchData, let meta):
+            // Map authors from API response (separate from works for normalization)
+            let mappedAuthors = searchData.authors.compactMap { authorDTO in
+                do {
+                    return try dtoMapper.mapToAuthor(authorDTO)
+                } catch {
+                    logger.warning("Failed to map Author DTO: \(String(describing: error))")
+                    return nil
+                }
+            }
+
             // Use DTOMapper to convert DTOs → SwiftData models with deduplication
-            results = searchData.works.compactMap { workDTO in
+            return searchData.works.compactMap { workDTO in
                 do {
                     let work = try dtoMapper.mapToWork(workDTO)
+
+                    // DTOMapper handles:
+                    // - Deduplication by googleBooksVolumeIDs
+                    // - Synthetic Work → Real Work merging
+                    // Note: Authors must be explicitly linked (not automatic)
+
+                    // Link authors to work (insert-before-relate already satisfied by DTOMapper)
+                    if !mappedAuthors.isEmpty {
+                        work.authors = mappedAuthors
+                    }
 
                     return SearchResult(
                         work: work,
                         editions: [],
-                        authors: [],
+                        authors: mappedAuthors,
                         relevanceScore: 1.0,
                         provider: meta.provider ?? "unknown"
                     )
@@ -234,17 +241,7 @@ public class BookSearchAPIService {
         case .failure(let error, _):
             throw SearchError.apiError(error.message)
         }
-
-        return SearchResponse(
-            results: results,
-            cacheHitRate: cacheHitRate,
-            provider: provider,
-            responseTime: 0,
-            totalItems: results.count
-        )
     }
-
-    // MARK: - Helper Methods
 
     private func calculateCacheHitRate(from cacheStatus: String) -> Double {
         if cacheStatus.contains("HIT") {
