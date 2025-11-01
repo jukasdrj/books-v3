@@ -1,0 +1,17 @@
+feat/optimize-edition-selection
+feat/add-swiftlint-concurrency-rules
+feature/isbn-scanner-error-alert
+fix/genre-normalization-comment
+fix/redundant-logging
+fix/remove-empty-update-performance-text
+fix/search-model-tests-migration
+refactor-confidence-thresholds
+refactor-pan-zoom-gestures
+refactor-search-handlers
+refactor/primary-edition-strategy
+refactor/quality-scoring-helper
+refactor/single-pass-search-handlers
+feat/edge-caching-book-covers
+feature/robust-work-cache
+feature/batch-enrichment
+feature/manual-book-matching
