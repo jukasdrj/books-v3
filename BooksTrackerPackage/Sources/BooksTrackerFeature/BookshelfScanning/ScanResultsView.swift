@@ -3,6 +3,15 @@ import SwiftData
 
 #if canImport(UIKit)
 
+// MARK: - Photo Overlay Info
+
+/// Data structure for photo overlay sheet presentation
+private struct PhotoOverlayInfo: Identifiable {
+    let id = UUID()
+    let image: UIImage
+    let books: [DetectedBook]
+}
+
 // MARK: - Scan Results View
 
 /// Review and confirm detected books before adding to library
@@ -15,7 +24,7 @@ public struct ScanResultsView: View {
     @Environment(\.iOS26ThemeStore) private var themeStore
     @State private var resultsModel: ScanResultsModel
     @State private var dismissedSuggestionTypes: Set<String> = []
-    @State private var showPhoto = false
+    @State private var photoOverlayInfo: PhotoOverlayInfo?
 
     public init(
         scanResult: ScanResult?,
@@ -588,7 +597,7 @@ class ScanResultsModel {
                 work.editions = [edition]
 
                 // Create library entry (owned)
-                let libraryEntry = UserLibraryEntry.createOwnedEntry(
+                _ = UserLibraryEntry.createOwnedEntry(
                     for: work,
                     edition: edition,
                     status: .toRead,
@@ -598,7 +607,7 @@ class ScanResultsModel {
 
             } else {
                 // Create wishlist entry (no edition)
-                let libraryEntry = UserLibraryEntry.createWishlistEntry(for: work, context: modelContext)
+                _ = UserLibraryEntry.createWishlistEntry(for: work, context: modelContext)
                 // Note: libraryEntry already inserted by factory method
             }
         }

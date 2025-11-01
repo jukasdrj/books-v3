@@ -226,7 +226,7 @@ public struct ContentView: View {
         kindredEntry.dateCompleted = Calendar.current.date(byAdding: .day, value: -30, to: Date())
         kindredEntry.personalRating = 5.0
 
-        let americanahEntry = UserLibraryEntry.createWishlistEntry(for: americanah, context: modelContext)
+        _ = UserLibraryEntry.createWishlistEntry(for: americanah, context: modelContext)
 
         // Note: Entries already inserted by factory methods - no need to insert again
 

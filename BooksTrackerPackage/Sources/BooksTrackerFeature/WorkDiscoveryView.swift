@@ -381,7 +381,8 @@ public struct WorkDiscoveryView: View {
 
             // Save edition to SwiftData context
             if let edition = edition {
-                modelContext.insert(edition)
+                modelContext.insert(edition)  // Insert before setting relationship
+                edition.work = work            // ✅ CRITICAL: Link edition to work after insert
             }
 
             // Create user library entry
@@ -499,8 +500,7 @@ public struct WorkDiscoveryView: View {
             publicationDate: primaryEdition.publicationDate,
             pageCount: primaryEdition.pageCount,
             format: primaryEdition.format,
-            coverImageURL: primaryEdition.coverImageURL,
-            work: work
+            coverImageURL: primaryEdition.coverImageURL
         )
 
         // Set external identifiers

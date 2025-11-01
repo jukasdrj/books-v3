@@ -12,7 +12,7 @@ struct WorkDetailView: View {
     @State private var selectedEdition: Edition?
     @State private var showingEditionPicker = false
     @State private var selectedAuthor: Author?
-    @State private var selectedEditionID: UUID?
+    @State private var selectedEditionID: PersistentIdentifier?
 
     // Primary edition for display
     private var primaryEdition: Edition {
@@ -21,7 +21,7 @@ struct WorkDetailView: View {
 
     // Placeholder edition for works without editions
     private var placeholderEdition: Edition {
-        Edition(work: work)
+        Edition()
     }
 
     var body: some View {
@@ -240,13 +240,20 @@ struct WorkDetailView: View {
             Label("Edition Selection", systemImage: "highlighter")
                 .foregroundColor(themeStore.primaryColor)
         }
-        .groupBoxStyle(.glass)
-    .onAppear {
-        selectedEditionID = userEntry.preferredEdition?.id
-    }
-    .onChange(of: selectedEditionID) { _, newID in
-        userEntry.preferredEdition = work.availableEditions.first { $0.id == newID }
-    }
+        .background {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial)
+        }
+        .onAppear {
+            selectedEditionID = userEntry.preferredEdition?.id
+        }
+        .onChange(of: selectedEditionID) { oldValue, newValue in
+            if let newID = newValue {
+                userEntry.preferredEdition = work.availableEditions.first { $0.id == newID }
+            } else {
+                userEntry.preferredEdition = nil  // Clear when no edition selected
+            }
+        }
     }
 }
 
@@ -331,6 +338,7 @@ struct AuthorSearchResultsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.iOS26ThemeStore) private var themeStore
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dtoMapper) private var dtoMapper
     @State private var searchModel: SearchModel?
     @State private var selectedBook: SearchResult?
 
@@ -375,12 +383,14 @@ struct AuthorSearchResultsView: View {
                 WorkDiscoveryView(searchResult: result)
             }
             .task {
-                // Initialize searchModel with modelContext
-                searchModel = SearchModel(modelContext: modelContext)
+                // Initialize searchModel with modelContext and environment dtoMapper
+                if let dtoMapper = dtoMapper {
+                    searchModel = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
-                let criteria = AdvancedSearchCriteria()
-                criteria.authorName = author.name
-                searchModel?.advancedSearch(criteria: criteria)
+                    let criteria = AdvancedSearchCriteria()
+                    criteria.authorName = author.name
+                    searchModel?.advancedSearch(criteria: criteria)
+                }
             }
         }
     }

@@ -107,7 +107,7 @@ public final class DTOMapper {
     public func mapToWork(_ dto: WorkDTO) throws -> Work {
         // Check for existing Work by googleBooksVolumeIDs (deduplication)
         // Note: May skip deduplication if ModelContext is invalid (store torn down)
-        if let existingWork = findExistingWork(by: dto.googleBooksVolumeIDs) {
+        if let existingWork = try findExistingWork(by: dto.googleBooksVolumeIDs) {
             // Merge data into existing Work
             mergeWorkData(dto: dto, into: existingWork)
             return existingWork

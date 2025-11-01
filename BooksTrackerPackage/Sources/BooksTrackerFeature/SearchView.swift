@@ -318,7 +318,7 @@ public struct SearchView: View {
 
             // HIG: Debug info only in development builds
             #if DEBUG
-            if let searchModel = searchModel, !performanceText(for: searchModel).isEmpty {
+            if !performanceText(for: searchModel).isEmpty {
                 performanceSection(searchModel: searchModel)
             }
             #endif
@@ -909,7 +909,7 @@ public struct SearchView: View {
     }
 
     private func setupSearchModel() {
-        if searchModel == nil {
+        if searchModel == nil, let dtoMapper = dtoMapper {
             searchModel = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
         }
     }

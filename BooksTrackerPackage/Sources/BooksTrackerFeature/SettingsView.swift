@@ -403,7 +403,7 @@ public struct SettingsView: View {
                 EnrichmentQueue.shared.clear()
 
                 // NEW: Clear the deduplication cache
-                dtoMapper.clearCache()
+                dtoMapper?.clearCache()
 
                 // 4. Delete all Work objects (CASCADE deletes Editions & UserLibraryEntries automatically)
                 let workDescriptor = FetchDescriptor<Work>()
