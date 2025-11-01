@@ -182,9 +182,6 @@ public struct SearchView: View {
                 // Handle scanned ISBN - set scope to ISBN
                 searchScope = .isbn
                 searchModel?.searchByISBN(isbn.normalizedValue)
-                #if DEBUG
-                updatePerformanceText()
-                #endif
             }
         }
         .sheet(isPresented: $showingAdvancedSearch) {
@@ -862,10 +859,6 @@ public struct SearchView: View {
         // Pass scope to search model for filtering
         searchModel.search(query: query, scope: scope)
 
-        #if DEBUG
-        updatePerformanceText()
-        #endif
-
         // HIG: Haptic feedback for user actions
         #if canImport(UIKit)
         let impact = UIImpactFeedbackGenerator(style: .light)
@@ -915,11 +908,6 @@ public struct SearchView: View {
     }
 
     #if DEBUG
-    private func updatePerformanceText() {
-        // This method is now a bit redundant as the text is generated on-demand
-        // from the searchModel. It can be removed if no longer needed.
-    }
-
     private func performanceText(for searchModel: SearchModel) -> String {
         guard searchModel.lastSearchTime > 0 else { return "" }
 

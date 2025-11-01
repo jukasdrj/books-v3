@@ -7,27 +7,35 @@ struct BoundingBoxOverlayView: View {
     let image: UIImage
     let detectedBooks: [DetectedBook]
 
-    @State private var currentScale: CGFloat = 1.0
     @State private var finalScale: CGFloat = 1.0
+    @GestureState private var gestureScale: CGFloat = 1.0
 
-    @State private var currentOffset = CGSize.zero
     @State private var finalOffset = CGSize.zero
+    @GestureState private var gestureOffset = CGSize.zero
+
+    // MARK: - Confidence Thresholds
+
+    private enum ConfidenceThreshold {
+        static let high: Double = 0.7
+        static let medium: Double = 0.1
+    }
 
     var body: some View {
         let dragGesture = DragGesture()
-            .onChanged { value in
-                self.currentOffset = CGSize(width: value.translation.width + self.finalOffset.width, height: value.translation.height + self.finalOffset.height)
+            .updating($gestureOffset) { value, state, _ in
+                state = value.translation
             }
             .onEnded { value in
-                self.finalOffset = self.currentOffset
+                self.finalOffset.width += value.translation.width
+                self.finalOffset.height += value.translation.height
             }
 
         let magnificationGesture = MagnificationGesture()
-            .onChanged { value in
-                self.currentScale = value * self.finalScale
+            .updating($gestureScale) { value, state, _ in
+                state = value
             }
             .onEnded { value in
-                self.finalScale = self.currentScale
+                self.finalScale *= value
             }
 
         let combinedGesture = dragGesture.simultaneously(with: magnificationGesture)
@@ -43,7 +51,7 @@ struct BoundingBoxOverlayView: View {
                 ForEach(detectedBooks) { book in
                     let rect = self.convert(normalizedRect: book.boundingBox, to: imageFrame.size)
                     Rectangle()
-                        .stroke(self.color(for: book.confidence), lineWidth: 2 / self.currentScale)
+                        .stroke(self.color(for: book.confidence), lineWidth: 2 / (self.finalScale * self.gestureScale))
                         .frame(width: rect.width, height: rect.height)
                         .position(x: rect.midX, y: rect.midY)
                         .accessibilityElement()
@@ -52,8 +60,8 @@ struct BoundingBoxOverlayView: View {
             }
             .frame(width: imageFrame.width, height: imageFrame.height)
             .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
-            .scaleEffect(self.currentScale)
-            .offset(self.currentOffset)
+            .scaleEffect(self.finalScale * self.gestureScale)
+            .offset(x: self.finalOffset.width + self.gestureOffset.width, y: self.finalOffset.height + self.gestureOffset.height)
             .gesture(combinedGesture)
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Scanned photo of bookshelf with \(detectedBooks.count) detected books.")
@@ -81,21 +89,26 @@ struct BoundingBoxOverlayView: View {
     }
 
     private func accessibilityLabel(for book: DetectedBook) -> String {
-        var label = ""
-        if let title = book.title { label += title } else { label += "Unknown title" }
-        if let author = book.author { label += " by \(author)" }
+        let titlePart = book.title ?? "Unknown title"
+        let authorPart = book.author.map { " by \($0)" } ?? ""
         let confidencePercent = Int(book.confidence * 100)
-        label += ". Confidence: \(confidencePercent)%."
-        if book.confidence >= 0.7 { label += " Detected." }
-        else if book.confidence >= 0.1 { label += " Uncertain." }
-        else { label += " Unreadable." }
-        return label
+
+        let confidenceDescription: String
+        if book.confidence >= ConfidenceThreshold.high {
+            confidenceDescription = "Detected."
+        } else if book.confidence >= ConfidenceThreshold.medium {
+            confidenceDescription = "Uncertain."
+        } else {
+            confidenceDescription = "Unreadable."
+        }
+
+        return "\(titlePart)\(authorPart). Confidence: \(confidencePercent)%. \(confidenceDescription)"
     }
 
     private func color(for confidence: Double) -> Color {
-        if confidence >= 0.7 {
+        if confidence >= ConfidenceThreshold.high {
             return .green
-        } else if confidence >= 0.1 {
+        } else if confidence >= ConfidenceThreshold.medium {
             return .yellow
         } else {
             return .red

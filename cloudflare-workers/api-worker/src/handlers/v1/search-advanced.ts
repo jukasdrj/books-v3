@@ -76,16 +76,16 @@ export async function handleSearchAdvanced(
     const data = await response.json();
 
     // Use canonical normalizer with genre normalization
-    const works: WorkDTO[] = (data.items || []).map((item: any) =>
-      normalizeGoogleBooksToWork(item)
+    // Single-pass iteration: build works and extract authors simultaneously
+    const { works, authorsSet } = (data.items || []).reduce(
+      (acc, item: any) => {
+        acc.works.push(normalizeGoogleBooksToWork(item));
+        const itemAuthors = item.volumeInfo?.authors || [];
+        itemAuthors.forEach((author: string) => acc.authorsSet.add(author));
+        return acc;
+      },
+      { works: [] as WorkDTO[], authorsSet: new Set<string>() }
     );
-
-    // Extract unique authors from all works
-    const authorsSet = new Set<string>();
-    data.items?.forEach((item: any) => {
-      const authors = item.volumeInfo?.authors || [];
-      authors.forEach((author: string) => authorsSet.add(author));
-    });
 
     const authors: AuthorDTO[] = Array.from(authorsSet).map(name => ({
       name,

@@ -1,6 +1,7 @@
 import SwiftUI
 import VisionKit
 import UIKit
+import OSLog
 
 @available(iOS 16.0, *)
 private struct UnsupportedDeviceView: View {
@@ -85,6 +86,7 @@ private struct DataScannerRepresentable: UIViewControllerRepresentable {
     let onISBNScanned: (ISBNValidator.ISBN) -> Void
     @Binding var errorMessage: String?
     @Environment(\.dismiss) private var dismiss
+    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "ISBNScanner")
 
     func makeUIViewController(context: Context) -> DataScannerViewController {
         let scanner = DataScannerViewController(
@@ -107,7 +109,7 @@ private struct DataScannerRepresentable: UIViewControllerRepresentable {
             do {
                 try uiViewController.startScanning()
             } catch {
-                print("📷 Failed to start scanning: \(error)")
+                logger.error("Failed to start scanning: \(error.localizedDescription)")
                 context.coordinator.handleError("Unable to start scanner. Please ensure the camera is not in use by another app.")
             }
         }
@@ -121,6 +123,7 @@ private struct DataScannerRepresentable: UIViewControllerRepresentable {
         let onISBNScanned: (ISBNValidator.ISBN) -> Void
         @Binding var errorMessage: String?
         let dismiss: DismissAction
+        private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "ISBNScanner")
 
         init(onISBNScanned: @escaping (ISBNValidator.ISBN) -> Void, errorMessage: Binding<String?>, dismiss: DismissAction) {
             self.onISBNScanned = onISBNScanned
@@ -138,15 +141,14 @@ private struct DataScannerRepresentable: UIViewControllerRepresentable {
         }
 
         func dataScanner(_ dataScanner: DataScannerViewController, becameUnavailableWithError error: Error) {
-            print("📷 Scanner became unavailable: \(error)")
-            handleError("Scanner stopped unexpectedly. Please try again.")
+            logger.error("Scanner became unavailable: \(error.localizedDescription)")
+            handleError("Scanner stopped unexpectedly: \(error.localizedDescription)")
         }
 
         func handleError(_ message: String) {
             Task { @MainActor in
                 errorMessage = message
-                try? await Task.sleep(for: .seconds(2))
-                dismiss()
+                // Let user dismiss the alert manually instead of auto-dismissing
             }
         }
 
@@ -208,6 +210,7 @@ public struct ISBNScannerView: View {
         .alert("Scanner Error", isPresented: .constant(errorMessage != nil)) {
             Button("OK") {
                 errorMessage = nil
+                dismiss()
             }
         } message: {
             if let errorMessage {

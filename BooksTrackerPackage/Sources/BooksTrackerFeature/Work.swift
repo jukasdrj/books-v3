@@ -170,6 +170,16 @@ public final class Work {
     /// Respects user's cover selection strategy from Settings
     /// Prioritizes: 1) User's owned edition, 2) Strategy-based selection (auto/recent/hardcover/manual)
     var primaryEdition: Edition? {
+        return primaryEdition(using: FeatureFlags.shared.coverSelectionStrategy)
+    }
+
+    /// Get the primary edition using a specific selection strategy
+    /// - Parameter strategy: The cover selection strategy to apply
+    /// - Returns: The best edition according to the strategy, or nil if no editions exist
+    ///
+    /// This method enables testability by decoupling from FeatureFlags.shared singleton.
+    /// The computed property `primaryEdition` calls this method with the global strategy.
+    func primaryEdition(using strategy: CoverSelectionStrategy) -> Edition? {
         // User's owned edition always takes priority
         if let userEdition = userEntry?.edition {
             return userEdition
@@ -177,16 +187,9 @@ public final class Work {
 
         guard let editions = editions, !editions.isEmpty else { return nil }
 
-        // Apply user's preferred selection strategy
-        let strategy = FeatureFlags.shared.coverSelectionStrategy
-
         switch strategy {
         case .auto:
-            // Quality-based scoring (original algorithm)
-            let scored = editions.map { edition in
-                (edition: edition, score: qualityScore(for: edition))
-            }
-            return scored.max(by: { $0.score < $1.score })?.edition
+            return qualityBasedSelectedEdition()
 
         case .recent:
             // Most recently published edition
@@ -201,23 +204,25 @@ public final class Work {
             if let hardcoverEdition = editions.first(where: { $0.format == .hardcover }) {
                 return hardcoverEdition
             }
-            // Fallback to auto selection if no hardcover
-            let scored = editions.map { edition in
-                (edition: edition, score: qualityScore(for: edition))
-            }
-            return scored.max(by: { $0.score < $1.score })?.edition
+            return qualityBasedSelectedEdition()
 
         case .manual:
             // Prioritize user's manually selected edition
             if let preferred = userEntry?.preferredEdition {
                 return preferred
             }
-            // Fallback to auto if no preference set
-            let scored = editions.map { edition in
-                (edition: edition, score: qualityScore(for: edition))
-            }
-            return scored.max(by: { $0.score < $1.score })?.edition
+            return qualityBasedSelectedEdition()
         }
+    }
+
+    /// Select edition with highest quality score
+    /// Helper method to avoid duplicating quality scoring logic across multiple cases
+    private func qualityBasedSelectedEdition() -> Edition? {
+        guard let editions = editions else { return nil }
+        let scored = editions.map { edition in
+            (edition: edition, score: qualityScore(for: edition))
+        }
+        return scored.max(by: { $0.score < $1.score })?.edition
     }
 
     /// Extract year from publication date string

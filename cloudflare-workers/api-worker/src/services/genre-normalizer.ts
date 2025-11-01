@@ -158,7 +158,7 @@ export class GenreNormalizer {
 
   /**
    * Provider-specific preprocessing
-   * - Google Books: Relies on exact match for hierarchical genres (e.g., "Fiction / Science Fiction / General")
+   * - Google Books: Attempts exact match for hierarchical genres (e.g., "Fiction / Science Fiction / General") via PROVIDER_MAPPINGS, falls back to fuzzy matching
    * - OpenLibrary: Lowercase normalization, trim
    * - ISBNDB: Split "&" separators
    */
