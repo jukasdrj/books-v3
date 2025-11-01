@@ -250,6 +250,7 @@ sequenceDiagram
 
 | Device | A12+ Chip | VisionKit Support | Result |
 |--------|-----------|-------------------|--------|
+| iPhone 17 series | ✅ | ✅ | Scanner works |
 | iPhone 16 series | ✅ | ✅ | Scanner works |
 | iPhone 15 series | ✅ | ✅ | Scanner works |
 | iPhone 14 series | ✅ | ✅ | Scanner works |

@@ -50,11 +50,12 @@ struct SearchModelStateTransitionTests {
     @MainActor
     func testSearchStartsFromInitial() async {
         let modelContext = createTestModelContext()
-        let model = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // Start search
         Task {
-            await model.search(query: "Swift Programming", scope: .all)
+            await model.search(query: "Swift Programming", scope: SearchScope.all)
         }
 
         // Give task time to start
@@ -63,9 +64,9 @@ struct SearchModelStateTransitionTests {
         // Verify searching state
         #expect(model.viewState.isSearching == true)
 
-        if case .searching(let query, let scope, _) = model.viewState {
+        if case SearchViewState.searching(let query, let scope, _) = model.viewState {
             #expect(query == "Swift Programming")
-            #expect(scope == .all)
+            #expect(scope == SearchScope.all)
         } else {
             Issue.record("Expected searching state, got \(model.viewState)")
         }
@@ -75,10 +76,11 @@ struct SearchModelStateTransitionTests {
     @MainActor
     func testSuccessfulSearchTransition() async {
         let modelContext = createTestModelContext()
-        let model = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // Perform search (will hit real API - could mock in future)
-        await model.search(query: "Swift Programming", scope: .all)
+        await model.search(query: "Swift Programming", scope: SearchScope.all)
 
         // Wait for search to complete (max 10 seconds)
         var iterations = 0
@@ -89,14 +91,14 @@ struct SearchModelStateTransitionTests {
 
         // Verify results or noResults state (both valid)
         switch model.viewState {
-        case .results(let query, let scope, let items, _, _):
+        case SearchViewState.results(let query, let scope, let items, _, _):
             #expect(query == "Swift Programming")
-            #expect(scope == .all)
+            #expect(scope == SearchScope.all)
             #expect(!items.isEmpty)
-        case .noResults(let query, let scope):
+        case SearchViewState.noResults(let query, let scope):
             #expect(query == "Swift Programming")
-            #expect(scope == .all)
-        case .error:
+            #expect(scope == SearchScope.all)
+        case SearchViewState.error:
             // Network error is acceptable in test environment
             break
         default:
@@ -108,12 +110,13 @@ struct SearchModelStateTransitionTests {
     @MainActor
     func testClearSearchResetsState() async {
         let modelContext = createTestModelContext()
-        let model = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // Set model to a non-initial state
-        model.viewState = .results(
+        model.viewState = SearchViewState.results(
             query: "Test Query",
-            scope: .all,
+            scope: SearchScope.all,
             items: [
                 SearchResult(
                     work: Work(title: "Test Book"),
@@ -131,7 +134,7 @@ struct SearchModelStateTransitionTests {
         model.clearSearch()
 
         // Verify initial state
-        if case .initial = model.viewState {
+        if case SearchViewState.initial = model.viewState {
             // Expected
         } else {
             Issue.record("Expected initial state after clear, got \(model.viewState)")
@@ -145,27 +148,28 @@ struct SearchModelStateTransitionTests {
     @MainActor
     func testMultipleSearchesPreserveContext() async {
         let modelContext = createTestModelContext()
-        let model = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // First search
-        await model.search(query: "First Query", scope: .title)
+        await model.search(query: "First Query", scope: SearchScope.title)
 
         // Wait briefly
         try? await Task.sleep(for: .milliseconds(100))
 
         // Verify first query context
         #expect(model.viewState.currentQuery == "First Query")
-        #expect(model.viewState.currentScope == .title)
+        #expect(model.viewState.currentScope == SearchScope.title)
 
         // Second search
-        await model.search(query: "Second Query", scope: .author)
+        await model.search(query: "Second Query", scope: SearchScope.author)
 
         // Wait briefly
         try? await Task.sleep(for: .milliseconds(100))
 
         // Verify second query context
         #expect(model.viewState.currentQuery == "Second Query")
-        #expect(model.viewState.currentScope == .author)
+        #expect(model.viewState.currentScope == SearchScope.author)
     }
 }
 
@@ -178,10 +182,11 @@ struct SearchModelPaginationTests {
     @MainActor
     func testLoadMoreWhenHasMorePages() async {
         let modelContext = createTestModelContext()
-        let model = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // Perform initial search
-        await model.search(query: "Swift Programming", scope: .all)
+        await model.search(query: "Swift Programming", scope: SearchScope.all)
 
         // Wait for completion (max 10 seconds)
         var iterations = 0
@@ -214,7 +219,8 @@ struct SearchModelPaginationTests {
     @MainActor
     func testLoadMorePreservesResults() async {
         let modelContext = createTestModelContext()
-        let model = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // Create results state manually for testing
         let initialResult = SearchResult(
@@ -225,9 +231,9 @@ struct SearchModelPaginationTests {
             provider: "test"
         )
 
-        model.viewState = .results(
+        model.viewState = SearchViewState.results(
             query: "Test",
-            scope: .all,
+            scope: SearchScope.all,
             items: [initialResult],
             hasMorePages: true,
             cacheHitRate: 0.0
@@ -247,12 +253,13 @@ struct SearchModelPaginationTests {
     @MainActor
     func testHasMoreResultsWhenNoPages() async {
         let modelContext = createTestModelContext()
-        let model = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // Set state with no more pages
-        model.viewState = .results(
+        model.viewState = SearchViewState.results(
             query: "Test",
-            scope: .all,
+            scope: SearchScope.all,
             items: [
                 SearchResult(
                     work: Work(title: "Book 1"),
@@ -273,12 +280,13 @@ struct SearchModelPaginationTests {
     @MainActor
     func testHasMoreResultsWhenHasPages() async {
         let modelContext = createTestModelContext()
-        let model = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // Set state with more pages
-        model.viewState = .results(
+        model.viewState = SearchViewState.results(
             query: "Test",
-            scope: .all,
+            scope: SearchScope.all,
             items: [
                 SearchResult(
                     work: Work(title: "Book 1"),
@@ -310,7 +318,8 @@ struct SearchModelScopeTests {
     @MainActor
     func testSearchScopes(scope: SearchScope) async {
         let modelContext = createTestModelContext()
-        let model = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
         await model.search(query: "Test Query", scope: scope)
 
@@ -319,15 +328,15 @@ struct SearchModelScopeTests {
 
         // Verify scope is preserved in state
         switch model.viewState {
-        case .searching(_, let searchScope, _):
+        case SearchViewState.searching(_, let searchScope, _):
             #expect(searchScope == scope)
-        case .results(_, let searchScope, _, _, _):
+        case SearchViewState.results(_, let searchScope, _, _, _):
             #expect(searchScope == scope)
-        case .noResults(_, let searchScope):
+        case SearchViewState.noResults(_, let searchScope):
             #expect(searchScope == scope)
-        case .error(_, _, let searchScope, _):
+        case SearchViewState.error(_, _, let searchScope, _):
             #expect(searchScope == scope)
-        case .initial:
+        case SearchViewState.initial:
             Issue.record("Search should have started, got initial state")
         }
     }
@@ -336,10 +345,11 @@ struct SearchModelScopeTests {
     @MainActor
     func testScopePersistence() async {
         let modelContext = createTestModelContext()
-        let model = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // Start search with specific scope
-        await model.search(query: "Swift", scope: .title)
+        await model.search(query: "Swift", scope: SearchScope.title)
 
         // Wait for completion
         var iterations = 0
@@ -349,7 +359,7 @@ struct SearchModelScopeTests {
         }
 
         // Verify scope persisted
-        #expect(model.viewState.currentScope == .title)
+        #expect(model.viewState.currentScope == SearchScope.title)
     }
 }
 
@@ -362,41 +372,43 @@ struct SearchModelErrorTests {
     @MainActor
     func testErrorPreservesContext() async {
         let modelContext = createTestModelContext()
-        let model = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // Manually set error state for testing
-        model.viewState = .error(
+        model.viewState = SearchViewState.error(
             message: "Network error",
             lastQuery: "Test Query",
-            lastScope: .title,
+            lastScope: SearchScope.title,
             recoverySuggestion: "Check connection"
         )
 
         // Verify context preserved
-        if case .error(let message, let lastQuery, let lastScope, let suggestion) = model.viewState {
+        if case SearchViewState.error(let message, let lastQuery, let lastScope, let suggestion) = model.viewState {
             #expect(message == "Network error")
             #expect(lastQuery == "Test Query")
-            #expect(lastScope == .title)
+            #expect(lastScope == SearchScope.title)
             #expect(suggestion == "Check connection")
         } else {
             Issue.record("Expected error state, got \(model.viewState)")
         }
 
         #expect(model.viewState.currentQuery == "Test Query")
-        #expect(model.viewState.currentScope == .title)
+        #expect(model.viewState.currentScope == SearchScope.title)
     }
 
     @Test("Search with empty query returns no results")
     @MainActor
     func testEmptyQuerySearch() async {
         let modelContext = createTestModelContext()
-        let model = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
-        await model.search(query: "", scope: .all)
+        await model.search(query: "", scope: SearchScope.all)
 
         // Empty query should result in initial or noResults state
         switch model.viewState {
-        case .initial, .noResults:
+        case SearchViewState.initial, SearchViewState.noResults:
             // Expected
             break
         default:
@@ -408,9 +420,10 @@ struct SearchModelErrorTests {
     @MainActor
     func testShortQuerySearch() async {
         let modelContext = createTestModelContext()
-        let model = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
-        await model.search(query: "a", scope: .all)
+        await model.search(query: "a", scope: SearchScope.all)
 
         // Wait for completion
         var iterations = 0
@@ -421,7 +434,7 @@ struct SearchModelErrorTests {
 
         // Should complete without crashing (any valid state is fine)
         switch model.viewState {
-        case .initial, .searching, .results, .noResults, .error:
+        case SearchViewState.initial, SearchViewState.searching, SearchViewState.results, SearchViewState.noResults, SearchViewState.error:
             // All valid outcomes
             break
         }
@@ -532,7 +545,8 @@ struct SearchModelDebounceTests {
     @MainActor
     func testSearchDebouncing() async {
         let modelContext = createTestModelContext()
-        let model = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // Trigger multiple rapid text changes
         model.searchText = "S"
@@ -546,15 +560,15 @@ struct SearchModelDebounceTests {
 
         // Only last search should execute
         switch model.viewState {
-        case .searching(let query, _, _):
+        case SearchViewState.searching(let query, _, _):
             #expect(query == "Swift")
-        case .results(let query, _, _, _, _):
+        case SearchViewState.results(let query, _, _, _, _):
             #expect(query == "Swift")
-        case .noResults(let query, _):
+        case SearchViewState.noResults(let query, _):
             #expect(query == "Swift")
-        case .error(_, let lastQuery, _, _):
+        case SearchViewState.error(_, let lastQuery, _, _):
             #expect(lastQuery == "Swift")
-        case .initial:
+        case SearchViewState.initial:
             // If still initial, text might have been too short to trigger search
             break
         }
@@ -564,7 +578,8 @@ struct SearchModelDebounceTests {
     @MainActor
     func testClearingTextCancelsSearch() async {
         let modelContext = createTestModelContext()
-        let model = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // Start typing
         model.searchText = "Swift"
@@ -577,7 +592,7 @@ struct SearchModelDebounceTests {
         try? await Task.sleep(for: .milliseconds(500))
 
         // Should remain in initial state
-        if case .initial = model.viewState {
+        if case SearchViewState.initial = model.viewState {
             // Expected
         } else {
             Issue.record("Expected initial state after clearing text, got \(model.viewState)")
@@ -594,7 +609,8 @@ struct SearchModelHelperTests {
     @MainActor
     func testCurrentResultsProperty() async {
         let modelContext = createTestModelContext()
-        let model = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // Initial state has no results
         #expect(model.viewState.currentResults.isEmpty)
@@ -608,9 +624,9 @@ struct SearchModelHelperTests {
             provider: "test"
         )
 
-        model.viewState = .results(
+        model.viewState = SearchViewState.results(
             query: "Test",
-            scope: .all,
+            scope: SearchScope.all,
             items: [result],
             hasMorePages: false,
             cacheHitRate: 0.0
@@ -625,19 +641,20 @@ struct SearchModelHelperTests {
     @MainActor
     func testIsSearchingProperty() async {
         let modelContext = createTestModelContext()
-        let model = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // Initial state is not searching
         #expect(model.viewState.isSearching == false)
 
         // Searching state is searching
-        model.viewState = .searching(query: "Test", scope: .all, previousResults: [])
+        model.viewState = SearchViewState.searching(query: "Test", scope: SearchScope.all, previousResults: [])
         #expect(model.viewState.isSearching == true)
 
         // Results state is not searching
-        model.viewState = .results(
+        model.viewState = SearchViewState.results(
             query: "Test",
-            scope: .all,
+            scope: SearchScope.all,
             items: [],
             hasMorePages: false,
             cacheHitRate: 0.0
@@ -649,15 +666,16 @@ struct SearchModelHelperTests {
     @MainActor
     func testCurrentQueryProperty() async {
         let modelContext = createTestModelContext()
-        let model = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // Initial state has empty query
         #expect((model.viewState.currentQuery ?? "").isEmpty)
 
         // Results state preserves query
-        model.viewState = .results(
+        model.viewState = SearchViewState.results(
             query: "Test Query",
-            scope: .all,
+            scope: SearchScope.all,
             items: [],
             hasMorePages: false,
             cacheHitRate: 0.0
@@ -665,10 +683,10 @@ struct SearchModelHelperTests {
         #expect(model.viewState.currentQuery == "Test Query")
 
         // Error state preserves last query
-        model.viewState = .error(
+        model.viewState = SearchViewState.error(
             message: "Error",
             lastQuery: "Error Query",
-            lastScope: .all,
+            lastScope: SearchScope.all,
             recoverySuggestion: "Retry"
         )
         #expect(model.viewState.currentQuery == "Error Query")

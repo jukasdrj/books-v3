@@ -9,14 +9,14 @@ on:
 jobs:
   build:
     name: Build BooksTrack
-    runs-on: macos-14
+    runs-on: macos-15
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Select Xcode 16.2
-        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+      - name: Select Xcode 16.1
+        run: sudo xcode-select -s /Applications/Xcode_16.1.app
 
       - name: Show Xcode version
         run: xcodebuild -version
@@ -25,7 +25,7 @@ jobs:
         run: |
           xcodebuild build \
             -scheme BooksTracker \
-            -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=18.0' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.0' \
             -configuration Debug \
             ONLY_ACTIVE_ARCH=NO \
             CODE_SIGNING_ALLOWED=NO \
@@ -35,7 +35,7 @@ jobs:
         run: |
           xcodebuild test \
             -scheme BooksTracker \
-            -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=18.0' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.0' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \
             | xcpretty && exit ${PIPESTATUS[0]}
@@ -45,7 +45,7 @@ jobs:
           # Enforce zero-warnings policy
           warnings=$(xcodebuild build \
             -scheme BooksTracker \
-            -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=18.0' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.0' \
             -configuration Debug \
             ONLY_ACTIVE_ARCH=NO \
             CODE_SIGNING_ALLOWED=NO \

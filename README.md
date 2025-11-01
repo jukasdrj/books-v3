@@ -238,7 +238,7 @@ books-tracker-v1/
 Cmd + U
 
 # Via command line
-xcodebuild test -scheme BooksTracker -destination 'platform=iOS Simulator,name=iPhone 16'
+xcodebuild test -scheme BooksTracker -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max'
 
 
 **Test Coverage:**

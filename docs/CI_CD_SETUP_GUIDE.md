@@ -97,14 +97,14 @@ jobs:
         run: |
           xcodebuild build \
             -scheme BooksTracker \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.0' \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=18.0' \
             -quiet
 
       - name: Run Swift Tests
         run: |
           xcodebuild test \
             -scheme BooksTracker \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.0' \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=18.0' \
             -quiet
 ```
 
