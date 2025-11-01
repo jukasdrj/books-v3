@@ -1,0 +1,59 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build BooksTrack
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 16.1
+        run: sudo xcode-select -s /Applications/Xcode_16.1.app
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build for iOS Simulator
+        run: |
+          xcodebuild build \
+            -scheme BooksTracker \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=18.0' \
+            -configuration Debug \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty && exit ${PIPESTATUS[0]}
+
+      - name: Run Swift Tests
+        run: |
+          xcodebuild test \
+            -scheme BooksTracker \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=18.0' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty && exit ${PIPESTATUS[0]}
+
+      - name: Check for warnings
+        run: |
+          # Enforce zero-warnings policy
+          warnings=$(xcodebuild build \
+            -scheme BooksTracker \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=18.0' \
+            -configuration Debug \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | grep -c "warning:" || true)
+
+          if [ "$warnings" -gt 0 ]; then
+            echo "❌ Found $warnings warnings (zero-warnings policy violated)"
+            exit 1
+          else
+            echo "✅ Zero warnings detected"
+          fi

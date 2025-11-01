@@ -251,8 +251,7 @@ public final class EnrichmentService {
                 publicationDate: searchResult.publicationDate,
                 pageCount: searchResult.pageCount,
                 format: .paperback,
-                coverImageURL: searchResult.coverImage,
-                work: nil  // ✅ Don't set in constructor
+                coverImageURL: searchResult.coverImage
             )
             modelContext.insert(newEdition)  // ✅ Get permanent ID FIRST
 
