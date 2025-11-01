@@ -123,14 +123,14 @@ Library tab updates in real-time (no refresh needed)
 
 ### iOS Components
 
-**GeminiCSVImportView.swift**
+**GeminiCSVImportView.swift** (`BooksTrackerPackage/Sources/BooksTrackerFeature/GeminiCSVImport/GeminiCSVImportView.swift`)
 - Main UI with 5 states: idle, uploading, processing, completed, failed
 - WebSocket client for real-time progress
 - File picker integration with UTType validation
 - Haptic feedback for success/error states
 - SwiftData persistence with duplicate detection
 
-**GeminiCSVImportService.swift**
+**GeminiCSVImportService.swift** (`BooksTrackerPackage/Sources/BooksTrackerFeature/GeminiCSVImport/GeminiCSVImportService.swift`)
 - Actor-isolated HTTP upload service
 - Multipart/form-data encoding
 - File size validation (10MB max)

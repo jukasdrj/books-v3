@@ -261,8 +261,10 @@ flowchart LR
 
 | Component | Responsibility | File |
 |-----------|---------------|------|
-| **GeminiCSVImportView** | Upload + progress UI | `CSVImport/GeminiCSVImportView.swift` |
-| **GeminiCSVImportService** | Backend API client | `CSVImport/GeminiCSVImportService.swift` |
+| **GeminiCSVImportView** | Upload + progress UI | `GeminiCSVImport/GeminiCSVImportView.swift` |
+| **GeminiCSVImportService** | Backend API client | `GeminiCSVImport/GeminiCSVImportService.swift` |
+| **EnrichmentService** | Fetches book metadata | `Enrichment/EnrichmentService.swift` |
+| **EnrichmentQueue** | Manages background enrichment | `Enrichment/EnrichmentQueue.swift` |
 | **api-worker** | Gemini parsing + enrichment | `cloudflare-workers/api-worker/src/handlers/gemini-csv-import.js` |
 | **ProgressWebSocketDO** | Real-time progress updates | `cloudflare-workers/api-worker/src/durable-objects/ProgressWebSocketDO.js` |
 
