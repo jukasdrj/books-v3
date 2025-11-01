@@ -386,26 +386,19 @@ public struct WorkDiscoveryView: View {
             }
 
             // Create user library entry
-            let libraryEntry: UserLibraryEntry
+            // Note: Factory method handles insertion AND sets inverse relationship (entry.work = work)
+            // SwiftData automatically maintains work.userLibraryEntries - no manual append needed
             if selectedAction == .wishlist {
-                libraryEntry = UserLibraryEntry.createWishlistEntry(for: work, context: modelContext)
+                _ = UserLibraryEntry.createWishlistEntry(for: work, context: modelContext)
             } else {
                 let editionToUse = edition ?? createDefaultEdition(work: work, context: modelContext)
-                libraryEntry = UserLibraryEntry.createOwnedEntry(
+                _ = UserLibraryEntry.createOwnedEntry(
                     for: work,
                     edition: editionToUse,
                     status: selectedAction.readingStatus,
                     context: modelContext
                 )
             }
-
-            // ✅ FIX: Link the entry to the work for library view filtering
-            if work.userLibraryEntries == nil {
-                work.userLibraryEntries = []
-            }
-            work.userLibraryEntries?.append(libraryEntry)
-
-            // Note: libraryEntry already inserted by factory method - no need to insert again
 
             try modelContext.save()
 

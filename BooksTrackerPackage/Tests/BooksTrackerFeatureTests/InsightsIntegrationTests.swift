@@ -62,10 +62,7 @@ struct InsightsIntegrationTests {
         entry3.dateStarted = Calendar.current.date(byAdding: .day, value: -10, to: Date())
         entry3.currentPage = 160
 
-        context.insert(entry1)
-        context.insert(entry2)
-        context.insert(entry3)
-
+        // Note: Factory already inserted entries - no manual insert needed
         try context.save()
 
         // Calculate diversity stats

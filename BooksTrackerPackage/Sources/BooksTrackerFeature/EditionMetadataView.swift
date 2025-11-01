@@ -354,8 +354,8 @@ struct EditionMetadataView: View {
     private func ensureLibraryEntry() {
         // Create wishlist entry if none exists
         if libraryEntry == nil {
-            let wishlistEntry = UserLibraryEntry.createWishlistEntry(for: work, context: modelContext)
-            modelContext.insert(wishlistEntry)
+            // Note: Factory method handles insertion into context
+            _ = UserLibraryEntry.createWishlistEntry(for: work, context: modelContext)
             saveContext()
         }
     }

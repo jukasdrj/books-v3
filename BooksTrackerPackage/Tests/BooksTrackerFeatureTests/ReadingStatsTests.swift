@@ -27,8 +27,7 @@ struct ReadingStatsTests {
         entry1.dateCompleted = Date() // Today (within "Last 30 Days")
         entry1.currentPage = 300
 
-        context.insert(entry1)
-
+        // Note: Factory already inserted entry - no manual insert needed
         try context.save()
 
         // Calculate stats for "Last 30 Days"
@@ -57,8 +56,7 @@ struct ReadingStatsTests {
         entry.dateStarted = Calendar.current.date(byAdding: .day, value: -10, to: Date())
         entry.currentPage = 200
 
-        context.insert(entry)
-
+        // Note: Factory already inserted entry - no manual insert needed
         try context.save()
 
         let stats = try ReadingStats.calculate(from: context, period: .allTime)
@@ -112,14 +110,11 @@ struct ReadingStatsTests {
         edition2.work = work2
         edition3.work = work3
 
-        let entry1 = UserLibraryEntry.createOwnedEntry(for: work1, edition: edition1, status: .read, context: context)
-        let entry2 = UserLibraryEntry.createOwnedEntry(for: work2, edition: edition2, status: .read, context: context)
-        let entry3 = UserLibraryEntry.createOwnedEntry(for: work3, edition: edition3, status: .read, context: context)
+        _ = UserLibraryEntry.createOwnedEntry(for: work1, edition: edition1, status: .read, context: context)
+        _ = UserLibraryEntry.createOwnedEntry(for: work2, edition: edition2, status: .read, context: context)
+        _ = UserLibraryEntry.createOwnedEntry(for: work3, edition: edition3, status: .read, context: context)
 
-        context.insert(entry1)
-        context.insert(entry2)
-        context.insert(entry3)
-
+        // Note: Factory already inserted entries - no manual insert needed
         try context.save()
 
         let stats = try ReadingStats.calculate(from: context, period: .allTime)
