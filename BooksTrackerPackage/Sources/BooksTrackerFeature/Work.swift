@@ -208,9 +208,15 @@ public final class Work {
             return scored.max(by: { $0.score < $1.score })?.edition
 
         case .manual:
-            // Manual selection - return first edition as placeholder
-            // TODO: Implement UI for manual edition selection per work
-            return editions.first
+            // Prioritize user's manually selected edition
+            if let preferred = userEntry?.preferredEdition {
+                return preferred
+            }
+            // Fallback to auto if no preference set
+            let scored = editions.map { edition in
+                (edition: edition, score: qualityScore(for: edition))
+            }
+            return scored.max(by: { $0.score < $1.score })?.edition
         }
     }
 

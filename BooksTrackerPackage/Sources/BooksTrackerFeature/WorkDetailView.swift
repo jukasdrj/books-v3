@@ -12,6 +12,7 @@ struct WorkDetailView: View {
     @State private var selectedEdition: Edition?
     @State private var showingEditionPicker = false
     @State private var selectedAuthor: Author?
+    @State private var selectedEditionID: UUID?
 
     // Primary edition for display
     private var primaryEdition: Edition {
@@ -139,6 +140,14 @@ struct WorkDetailView: View {
                 EditionMetadataView(work: work, edition: primaryEdition, selectedAuthor: $selectedAuthor)
                     .padding(.horizontal, 20)
 
+                // MARK: - Manual Edition Selection
+                if FeatureFlags.shared.coverSelectionStrategy == .manual,
+                   let userEntry = work.userEntry,
+                   work.availableEditions.count > 1 {
+                    editionSelectionSection(userEntry: userEntry)
+                        .padding(.horizontal, 20)
+                }
+
                 // Bottom padding
                 Color.clear.frame(height: 40)
             }
@@ -215,6 +224,29 @@ struct WorkDetailView: View {
             }
             .padding(.horizontal, 20)
         }
+    }
+
+    // MARK: - Manual Edition Selection Section
+    private func editionSelectionSection(userEntry: UserLibraryEntry) -> some View {
+        GroupBox {
+        Picker("Display Edition", selection: $selectedEditionID) {
+                ForEach(work.availableEditions) { edition in
+                    EditionRow(edition: edition)
+                        .tag(edition.id)
+                }
+            }
+            .pickerStyle(.navigationLink)
+        } label: {
+            Label("Edition Selection", systemImage: "highlighter")
+                .foregroundColor(themeStore.primaryColor)
+        }
+        .groupBoxStyle(.glass)
+    .onAppear {
+        selectedEditionID = userEntry.preferredEdition?.id
+    }
+    .onChange(of: selectedEditionID) { _, newID in
+        userEntry.preferredEdition = work.availableEditions.first { $0.id == newID }
+    }
     }
 }
 
@@ -476,4 +508,36 @@ struct AuthorSearchResultsView: View {
     }
     .modelContainer(container)
     .environment(\.iOS26ThemeStore, themeStore)
+}
+
+// MARK: - EditionRow View
+private struct EditionRow: View {
+    let edition: Edition
+
+    var body: some View {
+        HStack(spacing: 12) {
+            CachedAsyncImage(url: edition.coverImageURL.flatMap(URL.init)) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Image(systemName: "book.closed")
+                    .font(.title)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(width: 40, height: 60)
+            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(edition.editionTitle ?? "Edition")
+                    .font(.subheadline.bold())
+                    .lineLimit(1)
+                Text(edition.publisherInfo)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.vertical, 4)
+    }
 }

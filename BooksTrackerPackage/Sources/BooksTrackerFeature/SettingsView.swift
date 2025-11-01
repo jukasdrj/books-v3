@@ -553,6 +553,7 @@ enum CloudKitStatus {
 struct CoverSelectionView: View {
     @Environment(\.iOS26ThemeStore) private var themeStore
     @Environment(FeatureFlags.self) private var featureFlags
+    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         List {
@@ -592,6 +593,26 @@ struct CoverSelectionView: View {
         .navigationTitle("Cover Selection")
         .navigationBarTitleDisplayMode(.inline)
         .background(themeStore.backgroundGradient.ignoresSafeArea())
+        .onChange(of: featureFlags.coverSelectionStrategy) { _, newStrategy in
+            if newStrategy != .manual {
+                clearManualSelections()
+            }
+        }
+    }
+
+    private func clearManualSelections() {
+        Task { @MainActor in
+            do {
+                let descriptor = FetchDescriptor<UserLibraryEntry>(predicate: #Predicate { $0.preferredEdition != nil })
+                let entries = try modelContext.fetch(descriptor)
+                for entry in entries {
+                    entry.preferredEdition = nil
+                }
+                try modelContext.save()
+            } catch {
+                print("Failed to clear manual selections: \(error)")
+            }
+        }
     }
 }
 
