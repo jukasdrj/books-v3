@@ -270,7 +270,7 @@ actor BookshelfAIService {
     func processBookshelfImageWithWebSocket(
         _ image: UIImage,
         progressHandler: @MainActor @escaping (Double, String) -> Void
-    ) async throws(BookshelfAIError) -> ([DetectedBook], [SuggestionViewModel]) {
+    ) async throws -> (UIImage, [DetectedBook], [SuggestionViewModel]) {
         let provider = getSelectedProvider()
         let jobId = UUID().uuidString
 
@@ -290,7 +290,7 @@ actor BookshelfAIService {
             print("✅ WebSocket scan completed successfully")
             print("[Analytics] bookshelf_scan_completed - provider: \(provider.rawValue), books_detected: \(result.0.count), scan_id: \(jobId), success: true, strategy: websocket")
 
-            return result
+            return (image, result.0, result.1)
 
         } catch {
             // WebSocket failed - no fallback available (polling removed in monolith refactor)

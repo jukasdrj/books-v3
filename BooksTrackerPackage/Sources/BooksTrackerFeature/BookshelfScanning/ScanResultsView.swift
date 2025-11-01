@@ -15,6 +15,7 @@ public struct ScanResultsView: View {
     @Environment(\.iOS26ThemeStore) private var themeStore
     @State private var resultsModel: ScanResultsModel
     @State private var dismissedSuggestionTypes: Set<String> = []
+    @State private var showPhoto = false
 
     public init(
         scanResult: ScanResult?,
@@ -69,11 +70,23 @@ public struct ScanResultsView: View {
             .navigationTitle("Scan Results")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if let image = scanResult?.capturedImage, let books = scanResult?.detectedBooks, !books.isEmpty {
+                        Button(action: { 
+                            self.photoOverlayInfo = PhotoOverlayInfo(image: image, books: books)
+                        }) {
+                            Image(systemName: "photo.on.rectangle")
+                        }
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         onDismiss()
                     }
                 }
+            }
+            .sheet(item: $photoOverlayInfo) { info in
+                BoundingBoxOverlayView(image: info.image, detectedBooks: info.books)
             }
             .task {
                 await resultsModel.performDuplicateCheck(modelContext: modelContext)

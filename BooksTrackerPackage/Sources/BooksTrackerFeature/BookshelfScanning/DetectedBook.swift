@@ -108,11 +108,20 @@ public enum DetectionStatus: String, CaseIterable, Sendable {
 public struct ScanResult: Sendable {
     public let sessionId = UUID()
     public let scanDate = Date()
+    #if canImport(UIKit)
+    public var capturedImage: UIImage?
+    #endif
     public var detectedBooks: [DetectedBook]
     public var totalProcessingTime: TimeInterval
     public var suggestions: [SuggestionViewModel]
 
-    public init(detectedBooks: [DetectedBook], totalProcessingTime: TimeInterval, suggestions: [SuggestionViewModel] = []) {
+    public init(
+        capturedImage: UIImage? = nil,
+        detectedBooks: [DetectedBook],
+        totalProcessingTime: TimeInterval,
+        suggestions: [SuggestionViewModel] = []
+    ) {
+        self.capturedImage = capturedImage
         self.detectedBooks = detectedBooks
         self.totalProcessingTime = totalProcessingTime
         self.suggestions = suggestions
