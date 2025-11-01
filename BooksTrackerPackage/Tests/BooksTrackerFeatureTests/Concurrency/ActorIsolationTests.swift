@@ -14,10 +14,11 @@ struct ActorIsolationTests {
     func testSearchAPIServiceActorIsolation() async throws {
         // Verify BookSearchAPIService enforces actor isolation
         let modelContext = createTestModelContext()
-        let service = BookSearchAPIService(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let service = BookSearchAPIService(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // This should compile without data race warnings
-        let results = try await service.search(query: "Test", maxResults: 20, scope: .all)
+        let results = try await service.search(query: "Test", maxResults: 20, scope: SearchScope.all)
 
         #expect(results.results.count >= 0, "Actor-isolated call should succeed")
     }
@@ -44,14 +45,15 @@ struct ActorIsolationTests {
     @MainActor
     func testConcurrentActorAccess() async throws {
         let modelContext = createTestModelContext()
-        let service = BookSearchAPIService(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let service = BookSearchAPIService(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // Launch multiple concurrent searches
         await withTaskGroup(of: Void.self) { group in
             for i in 1...10 {
                 group.addTask {
                     do {
-                        _ = try await service.search(query: "Query \(i)", maxResults: 20, scope: .all)
+                        _ = try await service.search(query: "Query \(i)", maxResults: 20, scope: SearchScope.all)
                     } catch {
                         // Expected failures OK - testing actor safety, not success
                     }

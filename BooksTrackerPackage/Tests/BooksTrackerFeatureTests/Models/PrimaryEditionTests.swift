@@ -32,8 +32,8 @@ struct PrimaryEditionTests {
     @Test("Test Manual Selection")
     func testManualSelection() {
         let work = Work(title: "Test Book")
-        let edition1 = Edition(work: work, publicationDate: "2021")
-        let edition2 = Edition(work: work, publicationDate: "2022")
+        let edition1 = Edition(publicationDate: "2021")
+        let edition2 = Edition(publicationDate: "2022")
         let userEntry = UserLibraryEntry()
 
         context.insert(work)
@@ -41,6 +41,9 @@ struct PrimaryEditionTests {
         context.insert(edition2)
         context.insert(userEntry)
 
+        // Link relationships (insert-before-relate)
+        edition1.work = work
+        edition2.work = work
         work.editions = [edition1, edition2]
         work.userLibraryEntries = [userEntry]
         userEntry.work = work
@@ -54,8 +57,8 @@ struct PrimaryEditionTests {
     @Test("Test Manual Selection Fallback")
     func testManualSelectionFallback() {
         let work = Work(title: "Test Book")
-        let edition1 = Edition(work: work, publicationDate: "2021", isbndbQuality: 80)
-        let edition2 = Edition(work: work, publicationDate: "2022", isbndbQuality: 90)
+        let edition1 = Edition(publicationDate: "2021")
+        let edition2 = Edition(publicationDate: "2022")
         let userEntry = UserLibraryEntry()
 
         context.insert(work)
@@ -63,6 +66,13 @@ struct PrimaryEditionTests {
         context.insert(edition2)
         context.insert(userEntry)
 
+        // Set quality scores
+        edition1.isbndbQuality = 80
+        edition2.isbndbQuality = 90
+
+        // Link relationships (insert-before-relate)
+        edition1.work = work
+        edition2.work = work
         work.editions = [edition1, edition2]
         work.userLibraryEntries = [userEntry]
         userEntry.work = work

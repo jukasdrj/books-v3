@@ -20,7 +20,7 @@ struct BookshelfAIServiceWebSocketTests {
         let service = BookshelfAIService.shared
 
         // This test will fail initially because the method doesn't exist yet
-        let (books, suggestions) = try await service.processBookshelfImageWithWebSocket(
+        let (_, books, suggestions) = try await service.processBookshelfImageWithWebSocket(
             image,
             progressHandler: { progress, stage in
                 progressUpdates.append((progress, stage))

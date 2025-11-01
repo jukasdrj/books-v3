@@ -31,7 +31,8 @@ struct SearchModelStateTransitionTests {
     @MainActor
     func testInitialState() async {
         let modelContext = createTestModelContext()
-        let model = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // Verify initial state
         if case .initial = model.viewState {

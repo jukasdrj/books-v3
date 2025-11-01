@@ -22,8 +22,12 @@ struct LibraryResetCrashTests {
         work.openLibraryID = "OL123W"
         context.insert(work)
 
-        let entry = UserLibraryEntry(work: work, readingStatus: .reading)
+        let entry = UserLibraryEntry(readingStatus: .reading)
         context.insert(entry)
+
+        // Link entry to work (insert-before-relate)
+        entry.work = work
+        work.userLibraryEntries = [entry]
 
         try context.save()
 
@@ -70,16 +74,26 @@ struct LibraryResetCrashTests {
         let validWork = Work(title: "Valid Book")
         validWork.openLibraryID = "OL456W"
         context.insert(validWork)
-        let entry = UserLibraryEntry(work: validWork, readingStatus: .read)
+        let entry = UserLibraryEntry(readingStatus: .read)
         context.insert(entry)
+
+        // Link entry to work (insert-before-relate)
+        entry.work = validWork
+        validWork.userLibraryEntries = [entry]
+
         allWorks.append(validWork)
 
         // Work to be deleted
         let deletedWork = Work(title: "Deleted Book")
         deletedWork.openLibraryID = "OL789W"
         context.insert(deletedWork)
-        let deletedEntry = UserLibraryEntry(work: deletedWork, readingStatus: .read)
+        let deletedEntry = UserLibraryEntry(readingStatus: .read)
         context.insert(deletedEntry)
+
+        // Link entry to work (insert-before-relate)
+        deletedEntry.work = deletedWork
+        deletedWork.userLibraryEntries = [deletedEntry]
+
         allWorks.append(deletedWork)
 
         try context.save()

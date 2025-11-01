@@ -10,13 +10,14 @@ struct TaskCancellationTests {
     @MainActor
     func testSearchCancellation() async throws {
         let modelContext = createTestModelContext()
-        let searchModel = SearchModel(modelContext: modelContext)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        let searchModel = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
 
         // Start first search
-        searchModel.search(query: "First Query", scope: .all)
+        searchModel.search(query: "First Query", scope: SearchScope.all)
 
         // Immediately start second search (should cancel first)
-        searchModel.search(query: "Second Query", scope: .all)
+        searchModel.search(query: "Second Query", scope: SearchScope.all)
 
         // Wait for completion
         try await Task.sleep(for: .seconds(1))

@@ -15,14 +15,18 @@ struct ReadingStatsTests {
 
         // Create test data
         let work = Work(title: "Test Book")
-        let edition = Edition(pageCount: 300, work: work)
-
-        let entry1 = UserLibraryEntry.createOwnedEntry(for: work, edition: edition, status: .read)
-        entry1.dateCompleted = Date() // Today (within "Last 30 Days")
-        entry1.currentPage = 300
+        let edition = Edition(pageCount: 300)
 
         context.insert(work)
         context.insert(edition)
+
+        // Link edition to work (insert-before-relate)
+        edition.work = work
+
+        let entry1 = UserLibraryEntry.createOwnedEntry(for: work, edition: edition, status: .read, context: context)
+        entry1.dateCompleted = Date() // Today (within "Last 30 Days")
+        entry1.currentPage = 300
+
         context.insert(entry1)
 
         try context.save()
@@ -41,14 +45,18 @@ struct ReadingStatsTests {
         let context = container.mainContext
 
         let work = Work(title: "Reading Now")
-        let edition = Edition(pageCount: 400, work: work)
-
-        let entry = UserLibraryEntry.createOwnedEntry(for: work, edition: edition, status: .reading)
-        entry.dateStarted = Calendar.current.date(byAdding: .day, value: -10, to: Date())
-        entry.currentPage = 200
+        let edition = Edition(pageCount: 400)
 
         context.insert(work)
         context.insert(edition)
+
+        // Link edition to work (insert-before-relate)
+        edition.work = work
+
+        let entry = UserLibraryEntry.createOwnedEntry(for: work, edition: edition, status: .reading, context: context)
+        entry.dateStarted = Calendar.current.date(byAdding: .day, value: -10, to: Date())
+        entry.currentPage = 200
+
         context.insert(entry)
 
         try context.save()
@@ -91,17 +99,23 @@ struct ReadingStatsTests {
         context.insert(work3)
 
         // Add to library
-        let edition1 = Edition(work: work1)
-        let edition2 = Edition(work: work2)
-        let edition3 = Edition(work: work3)
-
-        let entry1 = UserLibraryEntry.createOwnedEntry(for: work1, edition: edition1, status: .read)
-        let entry2 = UserLibraryEntry.createOwnedEntry(for: work2, edition: edition2, status: .read)
-        let entry3 = UserLibraryEntry.createOwnedEntry(for: work3, edition: edition3, status: .read)
+        let edition1 = Edition()
+        let edition2 = Edition()
+        let edition3 = Edition()
 
         context.insert(edition1)
         context.insert(edition2)
         context.insert(edition3)
+
+        // Link editions to works (insert-before-relate)
+        edition1.work = work1
+        edition2.work = work2
+        edition3.work = work3
+
+        let entry1 = UserLibraryEntry.createOwnedEntry(for: work1, edition: edition1, status: .read, context: context)
+        let entry2 = UserLibraryEntry.createOwnedEntry(for: work2, edition: edition2, status: .read, context: context)
+        let entry3 = UserLibraryEntry.createOwnedEntry(for: work3, edition: edition3, status: .read, context: context)
+
         context.insert(entry1)
         context.insert(entry2)
         context.insert(entry3)

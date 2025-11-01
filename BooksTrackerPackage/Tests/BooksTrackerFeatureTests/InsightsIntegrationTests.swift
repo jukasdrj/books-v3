@@ -39,23 +39,29 @@ struct InsightsIntegrationTests {
         context.insert(work2)
         context.insert(work3)
 
-        let edition1 = Edition(pageCount: 768, work: work1)
-        let edition2 = Edition(pageCount: 340, work: work2)
-        let edition3 = Edition(pageCount: 321, work: work3)
-
-        let entry1 = UserLibraryEntry.createOwnedEntry(for: work1, edition: edition1, status: .read)
-        entry1.dateCompleted = Date()
-
-        let entry2 = UserLibraryEntry.createOwnedEntry(for: work2, edition: edition2, status: .read)
-        entry2.dateCompleted = Date()
-
-        let entry3 = UserLibraryEntry.createOwnedEntry(for: work3, edition: edition3, status: .reading)
-        entry3.dateStarted = Calendar.current.date(byAdding: .day, value: -10, to: Date())
-        entry3.currentPage = 160
+        let edition1 = Edition(pageCount: 768)
+        let edition2 = Edition(pageCount: 340)
+        let edition3 = Edition(pageCount: 321)
 
         context.insert(edition1)
         context.insert(edition2)
         context.insert(edition3)
+
+        // Link editions to works (insert-before-relate)
+        edition1.work = work1
+        edition2.work = work2
+        edition3.work = work3
+
+        let entry1 = UserLibraryEntry.createOwnedEntry(for: work1, edition: edition1, status: .read, context: context)
+        entry1.dateCompleted = Date()
+
+        let entry2 = UserLibraryEntry.createOwnedEntry(for: work2, edition: edition2, status: .read, context: context)
+        entry2.dateCompleted = Date()
+
+        let entry3 = UserLibraryEntry.createOwnedEntry(for: work3, edition: edition3, status: .reading, context: context)
+        entry3.dateStarted = Calendar.current.date(byAdding: .day, value: -10, to: Date())
+        entry3.currentPage = 160
+
         context.insert(entry1)
         context.insert(entry2)
         context.insert(entry3)

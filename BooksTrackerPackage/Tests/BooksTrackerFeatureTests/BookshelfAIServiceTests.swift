@@ -65,7 +65,7 @@ func testWebSocketFallbackToPolling() async throws {
 
     // Should have fallen back to polling
     #expect(strategies.contains(.polling))
-    #expect(result.0.count > 0)
+    #expect(result.1.count > 0)  // result.1 is [DetectedBook]
 }
 
 @Test("processBookshelfImageWithWebSocket uses WebSocket when available", .disabled("Requires live backend"))
@@ -85,5 +85,5 @@ func testWebSocketPreferred() async throws {
 
     // WebSocket should be preferred
     #expect(usedWebSocket == true)
-    #expect(result.0.count > 0)
+    #expect(result.1.count > 0)  // result.1 is [DetectedBook]
 }

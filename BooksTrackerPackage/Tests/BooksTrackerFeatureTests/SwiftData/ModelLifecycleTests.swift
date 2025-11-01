@@ -57,8 +57,7 @@ struct ModelLifecycleTests {
             publisher: "Test Publisher",
             publicationDate: "2025",
             pageCount: 300,
-            format: .paperback,
-            work: nil  // Don't set in constructor
+            format: .paperback
         )
         context.insert(edition)  // Get permanent ID
 
@@ -102,8 +101,7 @@ struct ModelLifecycleTests {
             publisher: nil,
             publicationDate: nil,
             pageCount: nil,
-            format: .paperback,
-            work: nil
+            format: .paperback
         )
         context.insert(edition)  // Insert first
         edition.work = work
@@ -209,8 +207,7 @@ struct ModelLifecycleTests {
             publisher: "Enriched Publisher",
             publicationDate: "2025",
             pageCount: 300,
-            format: .paperback,
-            work: nil  // Don't set in constructor
+            format: .paperback
         )
         context.insert(edition)  // Insert first
 

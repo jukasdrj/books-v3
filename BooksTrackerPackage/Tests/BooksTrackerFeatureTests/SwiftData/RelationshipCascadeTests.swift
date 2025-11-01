@@ -13,11 +13,15 @@ struct RelationshipCascadeTests {
 
         // Create Work with UserLibraryEntry
         let work = Work(title: "Test Book")
-        let entry = UserLibraryEntry(work: work, readingStatus: .toRead)
-        work.userLibraryEntries = [entry]
+        let entry = UserLibraryEntry(readingStatus: .toRead)
 
         context.insert(work)
         context.insert(entry)
+
+        // Link entry to work (insert-before-relate)
+        entry.work = work
+        work.userLibraryEntries = [entry]
+
         try context.save()
 
         // Verify entry exists
@@ -67,11 +71,15 @@ struct RelationshipCascadeTests {
 
         // Create Work and Edition
         let work = Work(title: "Test Book")
-        let edition = Edition(isbn: "1234567890", format: .hardcover, work: work)
-        work.editions = [edition]
+        let edition = Edition(isbn: "1234567890", format: .hardcover)
 
         context.insert(work)
         context.insert(edition)
+
+        // Link edition to work (insert-before-relate)
+        edition.work = work
+        work.editions = [edition]
+
         try context.save()
 
         // Delete edition
@@ -91,8 +99,8 @@ struct RelationshipCascadeTests {
         // Create complex relationship graph - follow insert-before-relate pattern
         let author = Author(name: "Author", gender: .unknown, culturalRegion: nil)
         let work = Work(title: "Book")
-        let edition = Edition(isbn: "123", format: .paperback, work: nil)
-        let entry = UserLibraryEntry(work: work, readingStatus: .read)
+        let edition = Edition(isbn: "123", format: .paperback)
+        let entry = UserLibraryEntry(readingStatus: .read)
 
         // Insert all models first to get permanent IDs
         context.insert(author)

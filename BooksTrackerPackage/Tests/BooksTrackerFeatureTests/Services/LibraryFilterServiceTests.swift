@@ -16,12 +16,16 @@ struct LibraryFilterServiceTests {
         let work1 = Work(title: "Test Book 1")
         let work2 = Work(title: "Test Book 2")
 
-        // Add work1 to library, leave work2 out
-        let entry = UserLibraryEntry(work: work1, readingStatus: .toRead)
-        work1.userLibraryEntries = [entry]
-
         modelContext.insert(work1)
         modelContext.insert(work2)
+
+        // Add work1 to library, leave work2 out
+        let entry = UserLibraryEntry(readingStatus: .toRead)
+        modelContext.insert(entry)
+
+        // Link entry to work (insert-before-relate)
+        entry.work = work1
+        work1.userLibraryEntries = [entry]
 
         let allWorks = [work1, work2]
         let filtered = service.filterLibraryWorks(from: allWorks)

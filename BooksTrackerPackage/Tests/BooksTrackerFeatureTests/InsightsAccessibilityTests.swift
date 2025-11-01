@@ -12,7 +12,7 @@ struct InsightsAccessibilityTests {
             .init(title: "Test Stat", value: "42", systemImage: "star", color: .blue)
         ]
 
-        let card = HeroStatsCard(stats: stats) { _ in }
+        _ = HeroStatsCard(stats: stats) { _ in }
 
         // Verify accessibility is enabled
         // Note: This is a structural test - manual VoiceOver testing required
