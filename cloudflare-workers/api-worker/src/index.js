@@ -43,8 +43,12 @@ export default {
     // Enrichment API Endpoint
     // ========================================================================
 
-    // POST /api/enrichment/start - Start batch enrichment with WebSocket progress
+    // POST /api/enrichment/start - DEPRECATED: Redirect to /api/enrichment/batch
+    // This endpoint used old workIds format. iOS should migrate to /api/enrichment/batch with books array.
+    // For backward compatibility, we convert workIds to books format (assuming workId = title for now)
     if (url.pathname === '/api/enrichment/start' && request.method === 'POST') {
+      console.warn('[DEPRECATED] /api/enrichment/start called. iOS should migrate to /api/enrichment/batch');
+
       try {
         const { jobId, workIds } = await request.json();
 
@@ -67,23 +71,16 @@ export default {
           });
         }
 
-        // Get DO stub for this job
-        const doId = env.PROGRESS_WEBSOCKET_DO.idFromName(jobId);
-        const doStub = env.PROGRESS_WEBSOCKET_DO.get(doId);
+        // Convert workIds to books format (workId is treated as title for backward compat)
+        // TODO: iOS should send actual book data via /api/enrichment/batch instead
+        const books = workIds.map(id => ({ title: String(id) }));
 
-        // Start enrichment in background (direct function call, NO RPC!)
-        ctx.waitUntil(enrichment.enrichBatch(jobId, workIds, env, doStub));
-
-        // Return 202 Accepted immediately
-        return new Response(JSON.stringify({
-          jobId,
-          status: 'started',
-          totalBooks: workIds.length,
-          message: 'Enrichment job started. Connect to /ws/progress?jobId=' + jobId + ' for real-time updates.'
-        }), {
-          status: 202,
-          headers: { 'Content-Type': 'application/json' }
+        // Redirect to new batch enrichment handler
+        const modifiedRequest = new Request(request, {
+          body: JSON.stringify({ books, jobId })
         });
+
+        return handleBatchEnrichment(modifiedRequest, { ...env, ctx });
 
       } catch (error) {
         console.error('Failed to start enrichment:', error);

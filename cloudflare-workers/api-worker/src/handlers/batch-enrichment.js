@@ -1,5 +1,6 @@
 // src/handlers/batch-enrichment.js
 import { enrichBooksParallel } from '../services/parallel-enrichment.js';
+import { enrichSingleBook } from '../services/enrichment.js';
 
 /**
  * Handle batch enrichment request (POST /api/enrichment/batch)
@@ -53,10 +54,26 @@ async function processBatchEnrichment(books, doStub, env) {
     const enrichedBooks = await enrichBooksParallel(
       books,
       async (book) => {
-        // TODO: Implement actual enrichment logic when endpoint is activated
-        // Should call external APIs (Google Books, OpenLibrary) similar to
-        // the enrichment service used by iOS EnrichmentQueue
-        return book;
+        // Call enrichment service (multi-provider fallback: Google Books → OpenLibrary)
+        const enriched = await enrichSingleBook(
+          {
+            title: book.title,
+            author: book.author,
+            isbn: book.isbn
+          },
+          env
+        );
+
+        if (enriched) {
+          return { ...book, enriched, success: true };
+        } else {
+          return {
+            ...book,
+            enriched: null,
+            success: false,
+            error: 'Book not found in any provider'
+          };
+        }
       },
       async (completed, total, title, hasError) => {
         const progress = completed / total;

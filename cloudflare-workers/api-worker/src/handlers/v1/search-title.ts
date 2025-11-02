@@ -2,14 +2,13 @@
  * GET /v1/search/title
  *
  * Search for books by title using canonical response format
+ * Returns up to 20 results for iOS search UI
  */
 
 import type { ApiResponse, BookSearchResponse } from '../../types/responses.js';
 import { createSuccessResponse, createErrorResponse } from '../../types/responses.js';
-import { normalizeGoogleBooksToWork } from '../../services/normalizers/google-books.js';
-import type { WorkDTO, AuthorDTO } from '../../types/canonical.js';
-
-const GOOGLE_BOOKS_USER_AGENT = 'BooksTracker/1.0 (nerd@ooheynerds.com)';
+import { enrichMultipleBooks } from '../../services/enrichment.js';
+import type { AuthorDTO } from '../../types/canonical.js';
 
 export async function handleSearchTitle(
   query: string,
@@ -27,66 +26,39 @@ export async function handleSearchTitle(
   }
 
   try {
-    console.log(`GoogleBooks v1 title search for "${query}"`);
+    console.log(`v1 title search for "${query}" (using enrichMultipleBooks, maxResults: 20)`);
 
-    // Get API key (handle both secrets store and direct env var)
-    const apiKey = env.GOOGLE_BOOKS_API_KEY?.get
-      ? await env.GOOGLE_BOOKS_API_KEY.get()
-      : env.GOOGLE_BOOKS_API_KEY;
+    // Use enrichMultipleBooks for search endpoints (returns up to 20 results)
+    const works = await enrichMultipleBooks({ title: query }, env, { maxResults: 20 });
 
-    if (!apiKey) {
-      return createErrorResponse(
-        'Google Books API key not configured',
-        'INTERNAL_ERROR',
-        undefined,
-        { processingTime: Date.now() - startTime }
+    if (!works || works.length === 0) {
+      // No books found in any provider
+      return createSuccessResponse(
+        { works: [], authors: [] },
+        {
+          processingTime: Date.now() - startTime,
+          provider: 'none',
+          cached: false,
+        }
       );
     }
 
-    // Call Google Books API directly
-    const maxResults = 20;
-    const searchUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=${maxResults}&key=${apiKey}`;
-
-    const response = await fetch(searchUrl, {
-      headers: {
-        'User-Agent': GOOGLE_BOOKS_USER_AGENT,
-        'Accept': 'application/json',
-      },
+    // Extract all unique authors from works
+    const authorsMap = new Map<string, AuthorDTO>();
+    works.forEach(work => {
+      (work.authors || []).forEach((author: AuthorDTO) => {
+        if (!authorsMap.has(author.name)) {
+          authorsMap.set(author.name, author);
+        }
+      });
     });
-
-    if (!response.ok) {
-      return createErrorResponse(
-        `Google Books API error: ${response.status} ${response.statusText}`,
-        'PROVIDER_ERROR',
-        undefined,
-        { processingTime: Date.now() - startTime }
-      );
-    }
-
-    const data = await response.json();
-
-    // Use canonical normalizer with genre normalization
-    // Single-pass iteration: build works and extract authors simultaneously
-    const { works, authorsSet } = (data.items || []).reduce(
-      (acc, item: any) => {
-        acc.works.push(normalizeGoogleBooksToWork(item));
-        const itemAuthors = item.volumeInfo?.authors || [];
-        itemAuthors.forEach((author: string) => acc.authorsSet.add(author));
-        return acc;
-      },
-      { works: [] as WorkDTO[], authorsSet: new Set<string>() }
-    );
-
-    const authors: AuthorDTO[] = Array.from(authorsSet).map(name => ({
-      name,
-      gender: 'Unknown',
-    }));
+    const authors = Array.from(authorsMap.values());
 
     return createSuccessResponse(
       { works, authors },
       {
         processingTime: Date.now() - startTime,
-        provider: 'google-books',
+        provider: works[0]?.primaryProvider || 'google-books',
         cached: false,
       }
     );
