@@ -15,7 +15,7 @@ import OSLog
 public final class DTOMapper {
     private let modelContext: ModelContext
     private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "DTOMapper")
-    private var workCache: [String: Work] = [:] // volumeID -> Work
+    private var workCache: [String: PersistentIdentifier] = [:] // volumeID -> PersistentIdentifier
 
     public init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -158,9 +158,9 @@ public final class DTOMapper {
         // CRITICAL: Insert before any relationships
         modelContext.insert(work)
 
-        // Update cache
+        // Update cache with PersistentIdentifier
         for volumeID in dto.googleBooksVolumeIDs {
-            workCache[volumeID] = work
+            workCache[volumeID] = work.persistentModelID
         }
 
         return work
