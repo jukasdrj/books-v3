@@ -107,7 +107,7 @@ public final class DTOMapper {
     public func mapToWork(_ dto: WorkDTO) throws -> Work {
         // Check for existing Work by googleBooksVolumeIDs (deduplication)
         // Note: May skip deduplication if ModelContext is invalid (store torn down)
-        if let existingWork = try findExistingWork(by: dto.googleBooksVolumeIDs) {
+        if let existingWork = try findExistingWork(by: dto.googleBooksVolumeIDs ?? []) {
             // Merge data into existing Work
             mergeWorkData(dto: dto, into: existingWork)
             return existingWork
@@ -118,7 +118,7 @@ public final class DTOMapper {
             title: dto.title,
             originalLanguage: dto.originalLanguage,
             firstPublicationYear: dto.firstPublicationYear,
-            subjectTags: dto.subjectTags,
+            subjectTags: dto.subjectTags ?? [],  // Default to empty array if missing
             synthetic: dto.synthetic ?? false,
             primaryProvider: dto.primaryProvider
         )
@@ -130,14 +130,14 @@ public final class DTOMapper {
         work.googleBooksVolumeID = dto.googleBooksVolumeID
         work.goodreadsID = dto.goodreadsID
 
-        // External ID arrays
-        work.goodreadsWorkIDs = dto.goodreadsWorkIDs
-        work.amazonASINs = dto.amazonASINs
-        work.librarythingIDs = dto.librarythingIDs
-        work.googleBooksVolumeIDs = dto.googleBooksVolumeIDs
+        // External ID arrays (default to empty if not provided)
+        work.goodreadsWorkIDs = dto.goodreadsWorkIDs ?? []
+        work.amazonASINs = dto.amazonASINs ?? []
+        work.librarythingIDs = dto.librarythingIDs ?? []
+        work.googleBooksVolumeIDs = dto.googleBooksVolumeIDs ?? []
 
         // Quality metrics
-        work.isbndbQuality = dto.isbndbQuality
+        work.isbndbQuality = dto.isbndbQuality ?? 0
         if let lastSync = dto.lastISBNDBSync {
             work.lastISBNDBSync = ISO8601DateFormatter().date(from: lastSync)
         }
@@ -159,7 +159,7 @@ public final class DTOMapper {
         modelContext.insert(work)
 
         // Update cache with PersistentIdentifier
-        for volumeID in dto.googleBooksVolumeIDs {
+        for volumeID in dto.googleBooksVolumeIDs ?? [] {
             workCache[volumeID] = work.persistentModelID
         }
 
@@ -212,7 +212,7 @@ public final class DTOMapper {
             work.title = dto.title
             work.originalLanguage = dto.originalLanguage
             work.firstPublicationYear = dto.firstPublicationYear
-            work.subjectTags = dto.subjectTags
+            work.subjectTags = dto.subjectTags ?? []  // Default to empty if missing
             work.reviewStatus = mapReviewStatus(dto.reviewStatus)
 
             // Update external IDs
@@ -220,18 +220,18 @@ public final class DTOMapper {
             work.isbndbID = dto.isbndbID
 
             // Merge external ID arrays
-            dto.goodreadsWorkIDs.forEach { work.addGoodreadsWorkID($0) }
-            dto.amazonASINs.forEach { work.addAmazonASIN($0) }
-            dto.librarythingIDs.forEach { work.addLibraryThingID($0) }
+            dto.goodreadsWorkIDs?.forEach { work.addGoodreadsWorkID($0) }
+            dto.amazonASINs?.forEach { work.addAmazonASIN($0) }
+            dto.librarythingIDs?.forEach { work.addLibraryThingID($0) }
 
             // Update quality metrics
-            if dto.isbndbQuality > work.isbndbQuality {
-                work.isbndbQuality = dto.isbndbQuality
+            if let newQuality = dto.isbndbQuality, newQuality > work.isbndbQuality {
+                work.isbndbQuality = newQuality
             }
         }
 
         // Always merge googleBooksVolumeIDs (for deduplication tracking)
-        dto.googleBooksVolumeIDs.forEach { work.addGoogleBooksVolumeID($0) }
+        dto.googleBooksVolumeIDs?.forEach { work.addGoogleBooksVolumeID($0) }
 
         // Merge contributors (union)
         if let newContributors = dto.contributors {
@@ -291,7 +291,8 @@ public final class DTOMapper {
     }
 
     /// Map DTOReviewStatus to ReviewStatus
-    private func mapReviewStatus(_ dto: DTOReviewStatus) -> ReviewStatus {
+    private func mapReviewStatus(_ dto: DTOReviewStatus?) -> ReviewStatus {
+        guard let dto = dto else { return .verified }  // Default to verified if missing
         switch dto {
         case .verified: return .verified
         case .needsReview: return .needsReview
