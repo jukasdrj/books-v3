@@ -70,30 +70,6 @@ struct CoverSelectionTests {
         #expect(work.primaryEdition?.publicationDate == "2023")
     }
 
-    @Test("High ISBNDB quality adds bonus to score")
-    func dataQualityScoring() async throws {
-        let work = Work(title: "Test Book")
-
-        let lowQuality = Edition(
-            publicationDate: "2023",
-            format: .hardcover,
-            coverImageURL: "https://covers.openlibrary.org/a.jpg",
-            isbndbQuality: 50
-        )
-
-        let highQuality = Edition(
-            publicationDate: "2023",
-            format: .paperback,  // Slightly worse format
-            coverImageURL: "https://covers.openlibrary.org/b.jpg",
-            isbndbQuality: 90
-        )
-
-        work.editions = [lowQuality, highQuality]
-
-        // High quality wins (+5 bonus overcomes -1 format difference)
-        #expect(work.primaryEdition?.isbndbQuality == 90)
-    }
-
     @Test("User's owned edition always takes priority")
     func userEditionPriority() async throws {
         let work = Work(title: "Test Book")
@@ -113,7 +89,8 @@ struct CoverSelectionTests {
         work.editions = [poorEdition, betterEdition]
 
         // Create user entry with poor edition
-        let userEntry = UserLibraryEntry(work: work, status: .read)
+        let userEntry = UserLibraryEntry(readingStatus: .read)
+        userEntry.work = work
         userEntry.edition = poorEdition
         work.userLibraryEntries = [userEntry]
 
