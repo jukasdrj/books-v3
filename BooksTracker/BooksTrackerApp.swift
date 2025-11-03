@@ -65,12 +65,20 @@ struct BooksTrackerApp: App {
         }
     }()
 
+    let dtoMapper: DTOMapper
+
+    init() {
+        // Create DTOMapper with main context
+        self.dtoMapper = DTOMapper(modelContext: modelContainer.mainContext)
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .iOS26ThemeStore(themeStore)
                 .modelContainer(modelContainer)
                 .environment(featureFlags)
+                .environment(\.dtoMapper, dtoMapper)
         }
     }
 }

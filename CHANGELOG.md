@@ -6,6 +6,88 @@ All notable changes, achievements, and debugging victories for this project.
 
 ## [Unreleased]
 
+### Refactored 🔧 - ContentView Decomposition for Maintainability (November 2, 2025)
+
+**Decomposed monolithic ContentView (448 lines) into focused, single-responsibility components.**
+
+#### Problem
+ContentView violated Single Responsibility Principle by handling:
+- Tab navigation orchestration
+- Sample data generation (124 lines)
+- Notification listening (5 concurrent tasks, 70+ lines)
+- EnrichmentBanner UI definition (92 lines)
+- DTOMapper initialization with optional state
+
+**Specific Issues:**
+- Magic strings in notification `userInfo` causing silent runtime failures
+- Inefficient database query fetching ALL Work objects just to check existence
+- Optional DTOMapper requiring `if let` unwrapping and causing ProgressView flash on launch
+- Verbose notification handling creating cognitive overhead
+
+#### Solution: File-Based Separation with Type-Safe Notifications
+
+**Extracted Components:**
+1. **EnrichmentBanner** → `UI/EnrichmentBanner.swift` (92 lines)
+   - Pure SwiftUI component for enrichment progress display
+   - Glass effect container with gradient progress bar
+   - Reusable across views
+
+2. **SampleDataGenerator** → `Services/SampleDataGenerator.swift` (126 lines)
+   - Optimized existence check using `fetchLimit=1` (avoids fetching all Works)
+   - Sample data creation logic isolated
+   - 3 diverse sample books: Kazuo Ishiguro, Octavia E. Butler, Chimamanda Ngozi Adichie
+
+3. **NotificationCoordinator** → `Services/NotificationCoordinator.swift` (80 lines)
+   - Type-safe notification posting and extraction
+   - Centralized `handleNotifications()` method with callbacks
+   - Reduces ContentView notification handling from 70 → 15 lines
+
+4. **NotificationPayloads** → `Models/NotificationPayloads.swift` (60 lines)
+   - `EnrichmentStartedPayload`, `EnrichmentProgressPayload`, `SearchForAuthorPayload`
+   - Compile-time safety for notification contracts
+   - Eliminates magic strings ("totalBooks", "authorName", etc.)
+
+5. **DTOMapper Environment Injection**
+   - Created DTOMapper in `BooksTrackerApp.swift` and injected via environment
+   - Removed optional `@State` and `if let` unwrapping from ContentView
+   - No ProgressView flash on launch (DTOMapper ready immediately)
+
+#### Results
+
+**Line Reduction:**
+- **Before:** 448 lines
+- **After:** 165 lines
+- **Reduction:** 63% (283 lines extracted to focused components)
+
+**Improvements:**
+- **Type Safety:** Notification typos become compile errors (not silent runtime failures)
+- **Performance:** Sample data check optimized with `fetchLimit=1` (avoids loading entire library)
+- **UX:** No ProgressView flash on app launch (DTOMapper injected from app root)
+- **Maintainability:** Clear separation of concerns (UI, business logic, coordination)
+- **Testability:** Extracted components easier to test in isolation
+
+**Files Modified:**
+- `ContentView.swift`: Slimmed to 165 lines (orchestration only)
+- `BooksTrackerApp.swift`: DTOMapper creation and environment injection
+- `EnrichmentQueue.swift`: Replaced `NotificationCenter.default.post` with `NotificationCoordinator`
+
+**Files Created:**
+- `UI/EnrichmentBanner.swift` (92 lines)
+- `Services/SampleDataGenerator.swift` (126 lines)
+- `Services/NotificationCoordinator.swift` (80 lines)
+- `Models/NotificationPayloads.swift` (60 lines)
+
+**Testing:**
+- ✅ Build succeeds with zero warnings
+- ✅ Sample data appears on first launch (3 books)
+- ✅ No duplication on subsequent launches (fetchLimit=1 working)
+- ✅ All 4 tabs render correctly (Library, Search, Shelf, Insights)
+- ✅ No ProgressView flash on launch (DTOMapper injected)
+
+**Commits:** 13 total (design doc + 12 implementation commits)
+
+---
+
 ### Added ✨ - Canonical Contracts Completion: Genre Normalization & DTOMapper (October 30, 2025)
 
 **Completed canonical data contracts implementation with backend genre normalization and full iOS DTOMapper integration.**

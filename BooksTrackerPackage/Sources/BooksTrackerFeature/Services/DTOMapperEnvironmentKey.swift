@@ -6,7 +6,7 @@ private struct DTOMapperKey: EnvironmentKey {
 }
 
 extension EnvironmentValues {
-    var dtoMapper: DTOMapper? {
+    public var dtoMapper: DTOMapper? {
         get { self[DTOMapperKey.self] }
         set { self[DTOMapperKey.self] = newValue }
     }
