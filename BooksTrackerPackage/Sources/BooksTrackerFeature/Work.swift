@@ -7,6 +7,8 @@ public final class Work {
     var title: String = "" // CloudKit: default value required
     var originalLanguage: String?
     var firstPublicationYear: Int?
+
+    @Attribute(.externalStorage)
     var subjectTags: [String] = []
 
     // External API identifiers for syncing and deduplication
@@ -17,9 +19,16 @@ public final class Work {
     var goodreadsID: String?       // Goodreads work ID (legacy, prefer goodreadsWorkIDs)
 
     // Enhanced cross-reference identifiers (arrays for multiple IDs)
+    @Attribute(.externalStorage)
     var goodreadsWorkIDs: [String] = []      // Multiple Goodreads work IDs
+
+    @Attribute(.externalStorage)
     var amazonASINs: [String] = []           // Amazon ASINs from various providers
+
+    @Attribute(.externalStorage)
     var librarythingIDs: [String] = []       // LibraryThing identifiers
+
+    @Attribute(.externalStorage)
     var googleBooksVolumeIDs: [String] = []  // Google Books volume IDs
 
     // Cache optimization for ISBNDB integration
@@ -29,6 +38,8 @@ public final class Work {
     // Provenance tracking for debugging and observability
     var synthetic: Bool = false     // True if Work was inferred from Edition data
     var primaryProvider: String?    // Which provider contributed this Work
+
+    @Attribute(.externalStorage)
     var contributors: [String] = [] // All providers that enriched this Work
 
     // Review status for AI-detected books

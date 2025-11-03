@@ -6,6 +6,9 @@ import SwiftUI
 public final class Edition {
     // ISBN support - now supports multiple ISBNs per edition
     var isbn: String?           // Primary ISBN (for backward compatibility)
+
+    // CloudKit requires externalStorage for array attributes
+    @Attribute(.externalStorage)
     var isbns: [String] = []    // All ISBNs (ISBN-10, ISBN-13, etc.)
 
     var publisher: String?
@@ -23,8 +26,13 @@ public final class Edition {
     var goodreadsID: String?       // Goodreads edition ID (legacy, prefer arrays)
 
     // Enhanced cross-reference identifiers (arrays for multiple IDs)
+    @Attribute(.externalStorage)
     var amazonASINs: [String] = []           // Amazon ASINs for this specific edition
+
+    @Attribute(.externalStorage)
     var googleBooksVolumeIDs: [String] = []  // Google Books volume IDs for this edition
+
+    @Attribute(.externalStorage)
     var librarythingIDs: [String] = []       // LibraryThing edition identifiers
 
     // Cache optimization for ISBNDB integration
@@ -37,6 +45,8 @@ public final class Edition {
 
     // Provenance tracking for debugging and observability
     var primaryProvider: String?    // Which provider contributed this Edition
+
+    @Attribute(.externalStorage)
     var contributors: [String] = [] // All providers that enriched this Edition
 
     // Metadata
@@ -50,6 +60,11 @@ public final class Edition {
     // This is the "to-many" side of the one-to-many relationship
     @Relationship(deleteRule: .nullify, inverse: \UserLibraryEntry.edition)
     var userLibraryEntries: [UserLibraryEntry]?
+
+    // Inverse for UserLibraryEntry.preferredEdition (CloudKit requirement)
+    // Users who prefer this edition (e.g., when they own multiple editions of same work)
+    @Relationship(deleteRule: .nullify, inverse: \UserLibraryEntry.preferredEdition)
+    var preferringUsers: [UserLibraryEntry]?
 
     public init(
         isbn: String? = nil,

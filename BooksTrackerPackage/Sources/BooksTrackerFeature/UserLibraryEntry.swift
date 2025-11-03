@@ -11,6 +11,8 @@ public final class UserLibraryEntry {
     var rating: Int? // 1-5 stars
     var personalRating: Double? // 0.0-5.0 for more granular ratings
     var notes: String?
+
+    @Attribute(.externalStorage)
     var tags: [String] = []
 
     // Reading tracking
@@ -28,6 +30,8 @@ public final class UserLibraryEntry {
     // Inverse defined on Edition side at line 43
     var edition: Edition?
 
+    // Preferred edition for users who own multiple editions of the same work
+    // Inverse relationship declared on Edition side (Edition.preferringUsers)
     @Relationship(deleteRule: .nullify)
     var preferredEdition: Edition?
 
