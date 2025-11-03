@@ -409,8 +409,7 @@ struct EditionMetadataView: View {
 
         // If work has no more library entries, delete the work (and cascade to editions/authors)
         if work.userLibraryEntries?.isEmpty == true || work.userLibraryEntries == nil {
-            dtoMapper?.removeWorkFromCache(work)
-            modelContext.delete(work)
+            modelContext.delete(work)  // Cache will auto-clean on next access
         }
 
         saveContext()
