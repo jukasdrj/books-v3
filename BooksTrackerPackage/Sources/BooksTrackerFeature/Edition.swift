@@ -7,7 +7,7 @@ public final class Edition {
     // ISBN support - now supports multiple ISBNs per edition
     var isbn: String?           // Primary ISBN (for backward compatibility)
 
-    // CloudKit requires externalStorage for array attributes
+    // For large arrays, externalStorage optimizes CloudKit sync performance
     @Attribute(.externalStorage)
     var isbns: [String] = []    // All ISBNs (ISBN-10, ISBN-13, etc.)
 

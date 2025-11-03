@@ -31,7 +31,7 @@ public final class UserLibraryEntry {
     var edition: Edition?
 
     // Preferred edition for users who own multiple editions of the same work
-    // Inverse relationship declared on Edition side (Edition.preferringUsers)
+    // Inverse relationship declared on Edition side (verify property name matches Edition.swift)
     @Relationship(deleteRule: .nullify)
     var preferredEdition: Edition?
 

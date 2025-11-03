@@ -104,18 +104,19 @@ struct CoverSelectionStrategyTests {
 
     @Test("Auto strategy uses quality scoring")
     func autoStrategy() async throws {
-        let flags = FeatureFlags.shared
-        flags.coverSelectionStrategy = .auto
+        let work = Work(title: "Test Book")
+        work.editions = [
+            Edition(publicationDate: "2020", format: .paperback, coverImageURL: "url1"),
+            Edition(publicationDate: "2024", format: .hardcover, coverImageURL: "url2")
+        ]
 
-        // Test that quality algorithm is applied
-        // (Similar to quality scoring tests above)
+        // Auto strategy uses quality-based algorithm (recency + format + provider)
+        // 2024 hardcover should win due to recency and format
+        #expect(work.primaryEdition(using: .auto)?.publicationDate == "2024")
     }
 
     @Test("Recent strategy selects most recent publication")
     func recentStrategy() async throws {
-        let flags = FeatureFlags.shared
-        flags.coverSelectionStrategy = .recent
-
         let work = Work(title: "Test Book")
         work.editions = [
             Edition(publicationDate: "2020", format: .hardcover),
@@ -123,37 +124,33 @@ struct CoverSelectionStrategyTests {
             Edition(publicationDate: "1990", format: .hardcover)
         ]
 
-        #expect(work.primaryEdition?.publicationDate == "2024")
+        #expect(work.primaryEdition(using: .recent)?.publicationDate == "2024")
     }
 
     @Test("Hardcover strategy prioritizes hardcover editions")
     func hardcoverStrategy() async throws {
-        let flags = FeatureFlags.shared
-        flags.coverSelectionStrategy = .hardcover
-
         let work = Work(title: "Test Book")
         work.editions = [
             Edition(publicationDate: "2024", format: .paperback),
             Edition(publicationDate: "2020", format: .hardcover)
         ]
 
-        #expect(work.primaryEdition?.format == .hardcover)
+        #expect(work.primaryEdition(using: .hardcover)?.format == .hardcover)
     }
 
-    @Test("Manual strategy returns first edition (placeholder)")
+    @Test("Manual strategy falls back to quality scoring")
     func manualStrategy() async throws {
-        let flags = FeatureFlags.shared
-        flags.coverSelectionStrategy = .manual
-
         let work = Work(title: "Test Book")
-        let firstEdition = Edition(publicationDate: "1990")
+        let oldEdition = Edition(publicationDate: "1990")
+        let recentEdition = Edition(publicationDate: "2023")
         work.editions = [
-            firstEdition,
-            Edition(publicationDate: "2023")
+            oldEdition,
+            recentEdition
         ]
 
-        // Current implementation returns first edition
-        #expect(work.primaryEdition?.id == firstEdition.id)
+        // Without a preferred edition, manual strategy falls back to quality scoring
+        // 2023 edition will have higher score due to recency
+        #expect(work.primaryEdition(using: .manual)?.id == recentEdition.id)
     }
 }
 
