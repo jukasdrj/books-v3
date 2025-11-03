@@ -189,16 +189,22 @@ public final class DTOMapper {
 
     /// Find existing Work by googleBooksVolumeIDs (for deduplication)
     ///
-    /// Uses an in-memory cache to avoid SwiftData reflection crash (EXC_BREAKPOINT SIGTRAP).
-    /// FetchDescriptor triggers uncatchable runtime trap in SwiftData's metadata system.
-    /// The cache provides a safe and performant alternative.
+    /// Uses PersistentIdentifier cache with on-demand fetching for robustness.
+    /// Automatically detects and evicts stale cache entries when Work is deleted.
     ///
-    /// Issue: https://github.com/jukasdrj/books-tracker-v1/issues/XXX
+    /// Issue: https://github.com/jukasdrj/books-tracker-v1/issues/168
     private func findExistingWork(by volumeIDs: [String]) throws -> Work? {
         for volumeID in volumeIDs {
-            if let cachedWork = workCache[volumeID] {
-                logger.info("Deduplication cache hit for volumeID: \(volumeID)")
-                return cachedWork
+            if let persistentID = workCache[volumeID] {
+                // Fetch Work from ModelContext (returns nil if deleted)
+                if let cachedWork = modelContext.model(for: persistentID) as? Work {
+                    logger.info("Deduplication cache hit for volumeID: \(volumeID)")
+                    return cachedWork
+                } else {
+                    // Work was deleted - evict stale entry
+                    workCache.removeValue(forKey: volumeID)
+                    logger.info("Evicted stale cache entry for deleted Work with volumeID: \(volumeID)")
+                }
             }
         }
         logger.info("Deduplication cache miss for volumeIDs: \(volumeIDs.joined(separator: ", "))")
