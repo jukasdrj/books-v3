@@ -1,6 +1,6 @@
 import { ProgressWebSocketDO } from './durable-objects/progress-socket.js';
 import * as externalApis from './services/external-apis.js';
-import * as enrichment from './services/enrichment.js';
+import * as enrichment from './services/enrichment.ts';
 import * as aiScanner from './services/ai-scanner.js';
 import * as bookSearch from './handlers/book-search.js';
 import * as authorSearch from './handlers/author-search.js';

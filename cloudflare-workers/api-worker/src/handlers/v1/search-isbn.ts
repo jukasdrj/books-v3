@@ -7,7 +7,7 @@
 
 import type { ApiResponse, BookSearchResponse } from '../../types/responses.js';
 import { createSuccessResponse, createErrorResponse } from '../../types/responses.js';
-import { enrichSingleBook } from '../../services/enrichment.js';
+import { enrichSingleBook } from '../../services/enrichment.ts';
 import type { AuthorDTO } from '../../types/canonical.js';
 
 /**

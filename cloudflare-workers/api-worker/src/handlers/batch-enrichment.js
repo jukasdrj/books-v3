@@ -1,6 +1,6 @@
 // src/handlers/batch-enrichment.js
 import { enrichBooksParallel } from '../services/parallel-enrichment.js';
-import { enrichSingleBook } from '../services/enrichment.js';
+import { enrichSingleBook } from '../services/enrichment.ts';
 
 /**
  * Handle batch enrichment request (POST /api/enrichment/batch)

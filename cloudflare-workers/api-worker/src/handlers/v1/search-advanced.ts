@@ -7,7 +7,7 @@
 
 import type { ApiResponse, BookSearchResponse } from '../../types/responses.js';
 import { createSuccessResponse, createErrorResponse } from '../../types/responses.js';
-import { enrichMultipleBooks } from '../../services/enrichment.js';
+import { enrichMultipleBooks } from '../../services/enrichment.ts';
 import type { AuthorDTO } from '../../types/canonical.js';
 
 export async function handleSearchAdvanced(
