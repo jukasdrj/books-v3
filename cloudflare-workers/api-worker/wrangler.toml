@@ -140,3 +140,8 @@ crons = [
   "0 2 * * *",      # Daily archival at 2:00 AM UTC
   "*/15 * * * *"    # Alert checks every 15 minutes
 ]
+
+# Harvest task for ISBNdb cover images
+[[tasks]]
+name = "harvest-covers"
+script = "src/tasks/harvest-covers.ts"
