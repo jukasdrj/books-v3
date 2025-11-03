@@ -48,20 +48,23 @@ struct BooksTrackerApp: App {
 
             #if targetEnvironment(simulator)
             print("💡 Simulator detected - trying persistent fallback")
-            // Last resort fallback for simulator
+            #else
+            print("💡 Device detected - trying local-only fallback (CloudKit disabled)")
+            #endif
+
+            // Last resort fallback: Disable CloudKit and use local-only storage
+            // This prevents app crashes when CloudKit sync fails or schema migration issues occur
             do {
                 let fallbackConfig = ModelConfiguration(
                     schema: schema,
-                    isStoredInMemoryOnly: false,  // Persist data
-                    cloudKitDatabase: .none
+                    isStoredInMemoryOnly: false,  // Persist data locally
+                    cloudKitDatabase: .none       // Disable CloudKit sync
                 )
                 return try ModelContainer(for: schema, configurations: [fallbackConfig])
             } catch {
-                fatalError("Failed to create fallback ModelContainer: \(error)")
+                // If even fallback fails, crash with detailed error for debugging
+                fatalError("Failed to create fallback ModelContainer (local-only mode): \(error)")
             }
-            #else
-            fatalError("Failed to create ModelContainer: \(error)")
-            #endif
         }
     }()
 
