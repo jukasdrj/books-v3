@@ -308,7 +308,7 @@ public final class WebSocketProgressManager: ObservableObject {
                         totalDetected: scanData.totalDetected,
                         approved: scanData.approved,
                         needsReview: scanData.needsReview,
-                        books: scanData.books.map { book in
+                        books: (scanData.books ?? []).map { book in
                             ScanResultPayload.BookPayload(
                                 title: book.title,
                                 author: book.author,
@@ -387,7 +387,7 @@ struct ScanResultData: Codable, Sendable {
     let totalDetected: Int
     let approved: Int
     let needsReview: Int
-    let books: [BookData]
+    let books: [BookData]?  // Optional - may be missing in error/cancellation messages
     let metadata: ScanMetadata
 
     struct BookData: Codable, Sendable {
