@@ -14,6 +14,7 @@ public final class EnrichmentQueue {
     private var queue: [EnrichmentQueueItem] = []
     private var processing: Bool = false
     private var currentTask: Task<Void, Never>?
+    private var webSocketHandler: EnrichmentWebSocketHandler?
     // Track current backend job ID for cancellation
     private var currentJobId: String?
 
@@ -173,77 +174,48 @@ public final class EnrichmentQueue {
         in modelContext: ModelContext,
         progressHandler: @escaping (Int, Int, String) -> Void
     ) {
-        // Don't start if already processing
         guard !processing else { return }
+        guard !queue.isEmpty else { return }
 
         processing = true
         let totalCount = queue.count
 
-        // Notify ContentView that enrichment started
         NotificationCoordinator.postEnrichmentStarted(totalBooks: totalCount)
 
         currentTask = Task { @MainActor in
-            var processedCount = 0
+            let workIDs = self.getAllPending()
+            let works = workIDs.compactMap { modelContext.work(for: $0) }
 
-            while !queue.isEmpty {
-                // Check for cancellation
-                guard !Task.isCancelled else {
-                    processing = false
-                    return
-                }
-
-                // Get next work to enrich
-                guard let workID = pop() else { break }
-
-                // Fetch work from context - handle deleted works gracefully
-                guard let work = modelContext.model(for: workID) as? Work else {
-                    print("⚠️ Skipping deleted work (cleaning up queue)")
-                    saveQueue()
-                    continue
-                }
-
-                // Enrich the work (EnrichmentService needs to be called from MainActor)
-                let result = await EnrichmentService.shared.enrichWork(work, in: modelContext)
-
-                processedCount += 1
-
-                // Report progress with current book title
-                progressHandler(processedCount, totalCount, work.title)
-
-                // Notify ContentView of progress update
-                NotificationCoordinator.postEnrichmentProgress(
-                    completed: processedCount,
-                    total: totalCount,
-                    currentTitle: work.title
-                )
-
-                // Log result with detailed error information
-                switch result {
-                case .success:
-                    print("✅ Enriched: \(work.title)")
-                case .failure(let error):
-                    // Show detailed error information for debugging
-                    switch error {
-                    case .httpError(let statusCode):
-                        print("⚠️ Failed to enrich \(work.title): HTTP \(statusCode)")
-                    case .noMatchFound:
-                        print("⚠️ Failed to enrich \(work.title): No match found")
-                    case .missingTitle:
-                        print("⚠️ Failed to enrich \(work.title): Missing title")
-                    case .apiError(let message):
-                        print("⚠️ Failed to enrich \(work.title): API error - \(message)")
-                    case .invalidQuery, .invalidURL, .invalidResponse:
-                        print("⚠️ Failed to enrich \(work.title): \(error)")
-                    }
-                }
-
-                // Yield to avoid blocking
-                await Task.yield()
+            guard !works.isEmpty else {
+                self.clear()
+                processing = false
+                NotificationCoordinator.postEnrichmentCompleted()
+                return
             }
 
-            processing = false
+            let jobId = UUID().uuidString
+            self.setCurrentJobId(jobId)
 
-            // Notify ContentView that enrichment completed
+            self.webSocketHandler = EnrichmentWebSocketHandler(jobId: jobId, progressHandler: { processed, total, title in
+                progressHandler(processed, total, title)
+                NotificationCoordinator.postEnrichmentProgress(completed: processed, total: total, currentTitle: title)
+            })
+            self.webSocketHandler?.connect()
+
+            let result = await EnrichmentService.shared.batchEnrichWorks(works, jobId: jobId, in: modelContext)
+
+            self.webSocketHandler?.disconnect()
+            self.webSocketHandler = nil
+
+            if Task.isCancelled {
+                processing = false
+                return
+            }
+
+            print("✅ Batch enrichment complete. Success: \(result.successCount), Failed: \(result.failureCount)")
+
+            self.clear()
+            processing = false
             NotificationCoordinator.postEnrichmentCompleted()
         }
     }

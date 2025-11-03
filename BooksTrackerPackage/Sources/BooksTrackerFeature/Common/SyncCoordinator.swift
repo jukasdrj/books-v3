@@ -130,12 +130,21 @@ public final class SyncCoordinator: ObservableObject {
         // Create or use provided WebSocket manager
         let wsManager = webSocketManager ?? WebSocketProgressManager()
 
-        // Get work IDs to enrich
-        let workIds = enrichmentQueue.getQueuedWorkIds()
+        // Get work IDs and convert to Books
+        let workIDs = enrichmentQueue.getAllPending()
+        let works = workIDs.compactMap { modelContext.work(for: $0) }
+
+        let books = works.map { work in
+            Book(
+                title: work.title.normalizedTitleForSearch,
+                author: work.primaryAuthorName,
+                isbn: work.editions?.first?.isbn
+            )
+        }
 
         // Initial progress
         let progress = JobProgress(
-            totalItems: workIds.count,
+            totalItems: books.count,
             processedItems: 0,
             currentStatus: "Connecting..."
         )
@@ -154,7 +163,7 @@ public final class SyncCoordinator: ObservableObject {
             let enrichmentAPI = EnrichmentAPIClient()
             let result = try await enrichmentAPI.startEnrichment(
                 jobId: jobId.id.uuidString,
-                workIds: workIds
+                books: books
             )
 
             // Track the job ID for potential cancellation

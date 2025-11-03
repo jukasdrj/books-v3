@@ -10,8 +10,8 @@ public final class EnrichmentService {
     public static let shared = EnrichmentService()
 
     // MARK: - Properties
-
-    private let baseURL = "https://api-worker.jukasdrj.workers.dev"
+    private let apiClient = EnrichmentAPIClient()
+    private let baseURL = EnrichmentConfig.baseURL
     private let urlSession: URLSession
     private let batchSize = 5 // Process 5 books at a time
     private let throttleDelay: TimeInterval = 0.5 // 500ms between requests
@@ -87,6 +87,36 @@ public final class EnrichmentService {
             // Fallback for unknown errors
             print("🚨 Unexpected error enriching '\(searchTitle)': \(error)")
             return .failure(.apiError(String(describing: error)))
+        }
+    }
+
+    /// Enrich a batch of works with metadata from the API
+    public func batchEnrichWorks(
+        _ works: [Work],
+        jobId: String,
+        in modelContext: ModelContext
+    ) async -> BatchEnrichmentResult {
+        let books = works.map { work in
+            Book(
+                title: work.title.normalizedTitleForSearch,
+                author: work.primaryAuthorName,
+                isbn: work.editions?.first?.isbn
+            )
+        }
+
+        do {
+            let result = try await apiClient.startEnrichment(jobId: jobId, books: books)
+            return BatchEnrichmentResult(
+                successCount: result.processedCount,
+                failureCount: result.totalCount - result.processedCount,
+                errors: []
+            )
+        } catch {
+            return BatchEnrichmentResult(
+                successCount: 0,
+                failureCount: works.count,
+                errors: [EnrichmentError.apiError(String(describing: error))]
+            )
         }
     }
 
