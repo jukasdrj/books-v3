@@ -1,0 +1,12 @@
+graph TD
+    A[iOS Client] -->|1. POST /v1/enrichment/batch| B(API Worker);
+    B -->|2. Establishes WebSocket| A;
+    B -->|3. Calls enrichMultipleBooks| C{Batch Processor};
+    C -->|4. Loops through books| D[enrichSingleBook];
+    D -->|5. Query| E(Google Books);
+    E -->|6a. Success| F[Send Progress via WebSocket];
+    E -->|6b. Failure / Incomplete Data| G(OpenLibrary);
+    G -->|7a. Success| F;
+    G -->|7b. Failure| H[Send Error via WebSocket];
+    F --> A;
+    H --> A;

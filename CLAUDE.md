@@ -160,6 +160,7 @@ struct BookDetailView: View {
 - `GET /v1/search/title?q={query}` - Title search (canonical response)
 - `GET /v1/search/isbn?isbn={isbn}` - ISBN lookup with validation (ISBN-10/ISBN-13)
 - `GET /v1/search/advanced?title={title}&author={author}` - Flexible search (title, author, or both)
+- `POST /v1/enrichment/batch` - Batch enrichment with WebSocket progress
 
 **Error Codes:** Structured error handling
 - `INVALID_QUERY` - Empty/invalid search parameters
@@ -193,7 +194,7 @@ struct BookDetailView: View {
 - `GET /search/title?q={query}` - Book search (6h cache)
 - `GET /search/isbn?isbn={isbn}` - ISBN lookup (7-day cache)
 - `GET /search/advanced?title={title}&author={author}` - Multi-field search (6h cache, supports POST for compatibility)
-- `POST /api/enrichment/start` - Batch enrichment with WebSocket progress
+- `POST /api/enrichment/start` - **DEPRECATED** Batch enrichment with WebSocket progress
 - `POST /api/scan-bookshelf?jobId={uuid}` - AI bookshelf scan with Gemini 2.0 Flash
 - `POST /api/scan-bookshelf/batch` - Batch scan (max 5 photos, parallel upload → sequential processing)
 - `POST /api/import/csv-gemini` - AI-powered CSV import with Gemini parsing (Beta)
