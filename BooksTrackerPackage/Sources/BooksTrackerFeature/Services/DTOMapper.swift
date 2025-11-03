@@ -168,18 +168,10 @@ public final class DTOMapper {
 
     // MARK: - Cache Management
 
-    /// Removes a Work from the deduplication cache.
-    /// Call this method when a Work is deleted to prevent returning stale data.
-    public func removeWorkFromCache(_ work: Work) {
-        for volumeID in work.googleBooksVolumeIDs {
-            if workCache.removeValue(forKey: volumeID) != nil {
-                logger.info("Removed Work \(work.title) (volumeID: \(volumeID)) from deduplication cache.")
-            }
-        }
-    }
-
     /// Clears the entire deduplication cache.
     /// Call this when performing a full library reset.
+    /// Note: Manual cache cleanup is no longer needed - stale entries are
+    /// automatically evicted when Works are deleted.
     public func clearCache() {
         workCache.removeAll()
         logger.info("Deduplication cache cleared.")
