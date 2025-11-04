@@ -2,6 +2,27 @@ import Foundation
 import SwiftData
 import SwiftUI
 
+/// Represents an author with cultural diversity analytics.
+///
+/// # SwiftUI Reactive Updates
+///
+/// Use `@Bindable` when observing author works relationship or statistics:
+///
+/// ```swift
+/// struct AuthorDetailView: View {
+///     @Bindable var author: Author
+///
+///     var body: some View {
+///         Text("\(author.name) has written \(author.bookCount) books")  // ← Updates reactively
+///         ForEach(author.works ?? []) { work in  // ← Observes works relationship
+///             Text(work.title)
+///         }
+///     }
+/// }
+/// ```
+///
+/// **Why:** `@Bindable` enables reactive updates when author's works relationship
+/// changes or statistics are recalculated via `updateStatistics()`.
 @Model
 public final class Author {
     var name: String = "" // CloudKit: default value required

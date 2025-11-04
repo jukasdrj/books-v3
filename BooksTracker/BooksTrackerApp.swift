@@ -69,10 +69,14 @@ struct BooksTrackerApp: App {
     }()
 
     let dtoMapper: DTOMapper
+    let libraryRepository: LibraryRepository
 
     init() {
         // Create DTOMapper with main context
         self.dtoMapper = DTOMapper(modelContext: modelContainer.mainContext)
+
+        // Create LibraryRepository for centralized data access
+        self.libraryRepository = LibraryRepository(modelContext: modelContainer.mainContext)
     }
 
     var body: some Scene {
@@ -82,6 +86,7 @@ struct BooksTrackerApp: App {
                 .modelContainer(modelContainer)
                 .environment(featureFlags)
                 .environment(\.dtoMapper, dtoMapper)
+                .environment(libraryRepository)
         }
     }
 }

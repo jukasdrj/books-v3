@@ -2,6 +2,40 @@ import Foundation
 import SwiftData
 import SwiftUI
 
+/// Represents an abstract creative work (book, novel, collection).
+///
+/// # SwiftUI Reactive Updates
+///
+/// **CRITICAL:** When passing `Work` to child views that observe relationships,
+/// use `@Bindable` to enable reactive updates:
+///
+/// ```swift
+/// struct WorkDetailView: View {
+///     @Bindable var work: Work  // ← Observes userLibraryEntries, editions, authors
+///
+///     var body: some View {
+///         Text("Rating: \(work.userEntry?.personalRating ?? 0)")  // ← Updates reactively!
+///     }
+/// }
+/// ```
+///
+/// **Why:** SwiftData relationships don't trigger view updates unless observed via `@Bindable`.
+///
+/// # Insert-Before-Relate Pattern
+///
+/// **CRITICAL:** Always call `modelContext.insert()` BEFORE setting relationships:
+///
+/// ```swift
+/// let work = Work(title: "...", authors: [], ...)
+/// modelContext.insert(work)  // ← Gets permanent ID
+///
+/// let author = Author(name: "...")
+/// modelContext.insert(author)  // ← Gets permanent ID
+///
+/// work.authors = [author]  // ← Safe - both have permanent IDs
+/// ```
+///
+/// - SeeAlso: `CLAUDE.md` lines 126-149 for full SwiftData lifecycle rules
 @Model
 public final class Work {
     var title: String = "" // CloudKit: default value required
@@ -190,103 +224,28 @@ public final class Work {
     ///
     /// This method enables testability by decoupling from FeatureFlags.shared singleton.
     /// The computed property `primaryEdition` calls this method with the global strategy.
+    ///
+    /// **Refactored:** Now delegates to EditionSelectionStrategy protocol (v3.4.0+)
+    /// See `EditionSelectionStrategy.swift` for strategy implementations.
     func primaryEdition(using strategy: CoverSelectionStrategy) -> Edition? {
-        // User's owned edition always takes priority
+        // User's owned edition always takes priority (overrides strategy)
         if let userEdition = userEntry?.edition {
             return userEdition
         }
 
         guard let editions = editions, !editions.isEmpty else { return nil }
 
-        switch strategy {
-        case .auto:
-            return qualityBasedSelectedEdition()
-
-        case .recent:
-            // Most recently published edition
-            return editions.max { edition1, edition2 in
-                let year1 = yearFromPublicationDate(edition1.publicationDate)
-                let year2 = yearFromPublicationDate(edition2.publicationDate)
-                return year1 < year2
+        // Delegate to strategy pattern
+        let selectionStrategy: EditionSelectionStrategy = {
+            switch strategy {
+            case .auto: return AutoStrategy()
+            case .recent: return RecentStrategy()
+            case .hardcover: return HardcoverStrategy()
+            case .manual: return ManualStrategy()
             }
+        }()
 
-        case .hardcover:
-            // Prefer hardcover, fallback to quality scoring
-            if let hardcoverEdition = editions.first(where: { $0.format == .hardcover }) {
-                return hardcoverEdition
-            }
-            return qualityBasedSelectedEdition()
-
-        case .manual:
-            // Prioritize user's manually selected edition
-            if let preferred = userEntry?.preferredEdition {
-                return preferred
-            }
-            return qualityBasedSelectedEdition()
-        }
-    }
-
-    /// Select edition with highest quality score
-    /// Helper method to avoid duplicating quality scoring logic across multiple cases
-    private func qualityBasedSelectedEdition() -> Edition? {
-        guard let editions = editions else { return nil }
-        let scored = editions.map { edition in
-            (edition: edition, score: qualityScore(for: edition))
-        }
-        return scored.max(by: { $0.score < $1.score })?.edition
-    }
-
-    /// Extract year from publication date string
-    private func yearFromPublicationDate(_ dateString: String?) -> Int {
-        guard let dateString = dateString,
-              let year = Int(dateString.prefix(4)) else {
-            return 0  // Default for unparseable dates
-        }
-        return year
-    }
-
-    /// Calculate quality score for an edition (higher = better for display)
-    /// Scoring factors:
-    /// - Cover image availability: +10 (most important)
-    /// - Format preference: +3 hardcover, +2 paperback, +1 ebook
-    /// - Publication recency: +1 per year since 2000
-    /// - Data quality: +5 if ISBNDB quality > 80
-    private func qualityScore(for edition: Edition) -> Int {
-        var score = 0
-
-        // Cover image availability (+10 points)
-        // Can't display what doesn't exist!
-        if let coverURL = edition.coverImageURL, !coverURL.isEmpty {
-            score += 10
-        }
-
-        // Format preference (+3 for hardcover, +2 for paperback, +1 for ebook)
-        // Hardcovers typically have better cover art
-        switch edition.format {
-        case .hardcover:
-            score += 3
-        case .paperback:
-            score += 2
-        case .ebook:
-            score += 1
-        default:
-            break
-        }
-
-        // Publication recency (+1 per year since 2000)
-        // Prefer modern covers over vintage (unless vintage is only option with cover)
-        if let yearString = edition.publicationDate?.prefix(4),
-           let year = Int(yearString) {
-            score += max(0, year - 2000)
-        }
-
-        // Data quality from ISBNDB (+5 if high quality)
-        // Higher quality = more complete metadata = better enrichment
-        if edition.isbndbQuality > 80 {
-            score += 5
-        }
-
-        return score
+        return selectionStrategy.selectPrimaryEdition(from: editions, for: self)
     }
 
     /// Add an author to this work

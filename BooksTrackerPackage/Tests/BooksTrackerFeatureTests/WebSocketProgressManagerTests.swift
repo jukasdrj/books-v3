@@ -33,7 +33,7 @@ struct WebSocketProgressManagerTests {
 
         // Connect then disconnect
         await manager.connect(jobId: "test-job", progressHandler: { _ in })
-        await manager.disconnect()
+        manager.disconnect()
 
         #expect(!manager.isConnected)
     }

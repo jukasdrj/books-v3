@@ -80,6 +80,18 @@ bucket_name = "bookshelf-images"
 [ai]
 binding = "AI"
 
+# Rate Limiting via KV (Security: Prevents denial-of-wallet attacks)
+# Note: Using existing KV_CACHE namespace for rate limit tracking
+# Implementation: src/middleware/rate-limiter.js stores per-IP counters with TTL
+# Limit: 10 requests per minute per IP (protects expensive AI/enrichment endpoints)
+# Cost: ~$0 (uses existing KV namespace with ~100 writes/min peak)
+
+# CORS Configuration
+# Current: 'Access-Control-Allow-Origin: *' (permissive)
+# Reason: Primary client is native iOS app (doesn't send Origin header)
+# Defense: Rate limiting (10 req/min) prevents abuse
+# Phase 2: Restrict CORS when web interface is added (see src/middleware/cors.js)
+
 # Durable Objects - SINGLE binding, NO service bindings!
 [[durable_objects.bindings]]
 name = "PROGRESS_WEBSOCKET_DO"

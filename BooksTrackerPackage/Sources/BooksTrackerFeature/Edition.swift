@@ -2,6 +2,26 @@ import Foundation
 import SwiftData
 import SwiftUI
 
+/// Represents a physical or digital manifestation of a work.
+///
+/// # SwiftUI Reactive Updates
+///
+/// Use `@Bindable` when observing ISBN array or format changes:
+///
+/// ```swift
+/// struct EditionDetailView: View {
+///     @Bindable var edition: Edition
+///
+///     var body: some View {
+///         ForEach(edition.isbns, id: \.self) { isbn in  // ← Observes array changes
+///             Text(isbn)
+///         }
+///     }
+/// }
+/// ```
+///
+/// **Why:** `@Bindable` enables SwiftData to track changes to collection properties
+/// like `isbns` array and trigger view updates when items are added/removed.
 @Model
 public final class Edition {
     // ISBN support - now supports multiple ISBNs per edition

@@ -2,6 +2,24 @@ import Foundation
 import SwiftData
 import SwiftUI
 
+/// Represents a user's interaction with a work (ownership, reading status, rating).
+///
+/// # SwiftUI Reactive Updates
+///
+/// Use `@Bindable` when binding to forms or observing status changes:
+///
+/// ```swift
+/// struct ReadingProgressView: View {
+///     @Bindable var entry: UserLibraryEntry
+///
+///     var body: some View {
+///         Slider(value: $entry.readingProgress, in: 0...1)  // ← Two-way binding!
+///     }
+/// }
+/// ```
+///
+/// **Why:** `@Bindable` enables two-way binding with `$` syntax for forms and enables
+/// SwiftData to observe property changes for automatic persistence.
 @Model
 public final class UserLibraryEntry {
     var dateAdded: Date = Date()
@@ -244,70 +262,18 @@ public enum ReadingStatus: String, Codable, CaseIterable, Identifiable, Sendable
 
     /// Parse reading status from common CSV export formats
     /// Supports Goodreads, LibraryThing, StoryGraph, and custom formats
+    /// Parse reading status from import string.
+    ///
+    /// **Delegate to ReadingStatusParser** for fuzzy matching and maintainability.
+    ///
+    /// Examples:
+    /// - "want to read" → `.wishlist`
+    /// - "currenty reading" → `.reading` (typo corrected via fuzzy match)
+    /// - "completed" → `.read`
+    ///
+    /// - SeeAlso: `ReadingStatusParser` for implementation details
     public static func from(string: String?) -> ReadingStatus? {
-        guard let string = string?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() else {
-            return nil
-        }
-
-        guard !string.isEmpty else { return nil }
-
-        // Direct matches
-        switch string {
-        // Wishlist variants
-        case "wishlist", "want to read", "to-read", "want", "planned":
-            return .wishlist
-
-        // To Read variants (owned but not started)
-        case "tbr", "to read", "owned", "unread", "on shelf", "to-be-read":
-            return .toRead
-
-        // Currently Reading variants
-        case "reading", "currently reading", "in progress", "started", "current":
-            return .reading
-
-        // Read/Finished variants
-        case "read", "finished", "completed", "done":
-            return .read
-
-        // On Hold variants
-        case "on hold", "on-hold", "paused", "suspended":
-            return .onHold
-
-        // DNF variants
-        case "dnf", "did not finish", "abandoned", "quit", "stopped":
-            return .dnf
-
-        default:
-            break
-        }
-
-        // Partial matches for common patterns
-        if string.contains("wish") || string.contains("want") {
-            return .wishlist
-        }
-
-        if string.contains("reading") || string.contains("current") {
-            return .reading
-        }
-
-        if string.contains("read") || string.contains("finish") || string.contains("complete") {
-            return .read
-        }
-
-        if string.contains("hold") || string.contains("pause") {
-            return .onHold
-        }
-
-        if string.contains("dnf") || string.contains("abandon") {
-            return .dnf
-        }
-
-        if string.contains("tbr") || string.contains("owned") {
-            return .toRead
-        }
-
-        // Unable to determine - return nil
-        return nil
+        return ReadingStatusParser.parse(string)
     }
 }
 

@@ -16,6 +16,9 @@ import { handleMetricsRequest } from './handlers/metrics-handler.js';
 import { handleSearchTitle } from './handlers/v1/search-title.js';
 import { handleSearchISBN } from './handlers/v1/search-isbn.js';
 import { handleSearchAdvanced } from './handlers/v1/search-advanced.js';
+import { checkRateLimit } from './middleware/rate-limiter.js';
+import { validateRequestSize, validateResourceSize } from './middleware/size-validator.js';
+import { getCorsHeaders } from './middleware/cors.js';
 
 // Export the Durable Object class for Cloudflare Workers runtime
 export { ProgressWebSocketDO };
@@ -23,6 +26,14 @@ export { ProgressWebSocketDO };
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    // Handle OPTIONS preflight requests (CORS)
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: getCorsHeaders(request)
+      });
+    }
 
     // Route WebSocket connections to the Durable Object
     if (url.pathname === '/ws/progress') {
@@ -48,6 +59,10 @@ export default {
     // For backward compatibility, we convert workIds to books format (assuming workId = title for now)
     if (url.pathname === '/api/enrichment/start' && request.method === 'POST') {
       console.warn('[DEPRECATED] /api/enrichment/start called. iOS should migrate to /api/enrichment/batch');
+
+      // Rate limiting: Prevent denial-of-wallet attacks
+      const rateLimitResponse = await checkRateLimit(request, env);
+      if (rateLimitResponse) return rateLimitResponse;
 
       try {
         const { jobId, workIds } = await request.json();
@@ -124,8 +139,8 @@ export default {
         }), {
           status: 200,
           headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
+            ...getCorsHeaders(request),
+            'Content-Type': 'application/json'
           }
         });
 
@@ -147,6 +162,10 @@ export default {
 
     // POST /api/scan-bookshelf/batch - Batch AI bookshelf scanner with WebSocket progress
     if (url.pathname === '/api/scan-bookshelf/batch' && request.method === 'POST') {
+      // Rate limiting: Prevent denial-of-wallet attacks on AI batch endpoint
+      const rateLimitResponse = await checkRateLimit(request, env);
+      if (rateLimitResponse) return rateLimitResponse;
+
       return handleBatchScan(request, env, ctx);
     }
 
@@ -170,8 +189,8 @@ export default {
         return new Response(JSON.stringify(result), {
           status: 200,
           headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
+            ...getCorsHeaders(request),
+            'Content-Type': 'application/json'
           }
         });
       } catch (error) {
@@ -189,6 +208,14 @@ export default {
 
     // POST /api/import/csv-gemini - Gemini-powered CSV import with WebSocket progress
     if (url.pathname === '/api/import/csv-gemini' && request.method === 'POST') {
+      // Rate limiting: Prevent denial-of-wallet attacks on AI CSV import
+      const rateLimitResponse = await checkRateLimit(request, env);
+      if (rateLimitResponse) return rateLimitResponse;
+
+      // Size validation: Prevent memory crashes (10MB limit)
+      const sizeCheck = validateResourceSize(request, 10, 'CSV file');
+      if (sizeCheck) return sizeCheck;
+
       return handleCSVImport(request, { ...env, ctx });
     }
 
@@ -206,11 +233,23 @@ export default {
 
     // Batch enrichment endpoint (POST /api/enrichment/batch)
     if (url.pathname === '/api/enrichment/batch' && request.method === 'POST') {
+      // Rate limiting: Prevent denial-of-wallet attacks
+      const rateLimitResponse = await checkRateLimit(request, env);
+      if (rateLimitResponse) return rateLimitResponse;
+
       return handleBatchEnrichment(request, { ...env, ctx });
     }
 
     // POST /api/scan-bookshelf - AI bookshelf scanner with WebSocket progress
     if (url.pathname === '/api/scan-bookshelf' && request.method === 'POST') {
+      // Rate limiting: Prevent denial-of-wallet attacks on AI endpoint
+      const rateLimitResponse = await checkRateLimit(request, env);
+      if (rateLimitResponse) return rateLimitResponse;
+
+      // Size validation: Prevent memory crashes (5MB limit per photo)
+      const sizeCheck = validateResourceSize(request, 5, 'image');
+      if (sizeCheck) return sizeCheck;
+
       try {
         // Get or generate jobId
         const jobId = url.searchParams.get('jobId') || crypto.randomUUID();
@@ -234,19 +273,6 @@ export default {
 
         // Read image data
         const imageData = await request.arrayBuffer();
-
-        // Validate size (default 10MB max)
-        const maxSize = parseInt(env.MAX_SCAN_FILE_SIZE || '10485760');
-        if (imageData.byteLength > maxSize) {
-          return new Response(JSON.stringify({
-            error: 'Image too large',
-            maxSize: maxSize,
-            receivedSize: imageData.byteLength
-          }), {
-            status: 413,
-            headers: { 'Content-Type': 'application/json' }
-          });
-        }
 
         // Get DO stub for this job
         const doId = env.PROGRESS_WEBSOCKET_DO.idFromName(jobId);
@@ -295,8 +321,8 @@ export default {
         }), {
           status: 202,
           headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*' // CORS for iOS app
+            ...getCorsHeaders(request),
+            'Content-Type': 'application/json'
           }
         });
 
@@ -381,8 +407,8 @@ export default {
 
       return new Response(JSON.stringify(result), {
         headers: {
+          ...getCorsHeaders(request),
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
           ...cacheHeaders
         }
       });
@@ -407,8 +433,8 @@ export default {
 
       return new Response(JSON.stringify(result), {
         headers: {
+          ...getCorsHeaders(request),
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
           ...cacheHeaders
         }
       });
@@ -475,8 +501,8 @@ export default {
 
       return new Response(JSON.stringify(result), {
         headers: {
+          ...getCorsHeaders(request),
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
           'Cache-Control': 'public, max-age=21600', // 6h cache
           'X-Cache': cacheStatus,
           'X-Cache-Source': cacheSource,
@@ -540,8 +566,8 @@ export default {
 
         return new Response(JSON.stringify(result), {
           headers: {
+            ...getCorsHeaders(request),
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
             // Add cache header for GET requests (like /search/title)
             ...(request.method === 'GET' && { 'Cache-Control': 'public, max-age=21600' }) // 6h cache
           }
@@ -702,7 +728,7 @@ export default {
 
         return new Response(JSON.stringify(result), {
           status: 200,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          headers: { ...getCorsHeaders(request), 'Content-Type': 'application/json' }
         });
       } catch (error) {
         console.error('Test init-batch failed:', error);
@@ -738,7 +764,7 @@ export default {
 
         return new Response(JSON.stringify(state), {
           status: 200,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          headers: { ...getCorsHeaders(request), 'Content-Type': 'application/json' }
         });
       } catch (error) {
         console.error('Test get-state failed:', error);
@@ -760,7 +786,7 @@ export default {
 
         return new Response(JSON.stringify(result), {
           status: result.error ? 404 : 200,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          headers: { ...getCorsHeaders(request), 'Content-Type': 'application/json' }
         });
       } catch (error) {
         console.error('Test update-photo failed:', error);
@@ -782,7 +808,7 @@ export default {
 
         return new Response(JSON.stringify(result), {
           status: 200,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          headers: { ...getCorsHeaders(request), 'Content-Type': 'application/json' }
         });
       } catch (error) {
         console.error('Test complete-batch failed:', error);
@@ -811,7 +837,7 @@ export default {
 
         return new Response(JSON.stringify(result), {
           status: 200,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          headers: { ...getCorsHeaders(request), 'Content-Type': 'application/json' }
         });
       } catch (error) {
         console.error('Test is-canceled failed:', error);
@@ -833,7 +859,7 @@ export default {
 
         return new Response(JSON.stringify(result), {
           status: 200,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          headers: { ...getCorsHeaders(request), 'Content-Type': 'application/json' }
         });
       } catch (error) {
         console.error('Test cancel-batch failed:', error);
