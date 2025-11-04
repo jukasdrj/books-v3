@@ -2,16 +2,22 @@ import SwiftUI
 import SwiftData
 import BooksTrackerFeature
 
-@main
-struct BooksTrackerApp: App {
-    @State private var themeStore = iOS26ThemeStore()
-    @State private var featureFlags = FeatureFlags.shared
+// MARK: - Model Container Factory
 
-    // MARK: - SwiftData Configuration
+/// Factory for creating ModelContainer with lazy initialization pattern
+@MainActor
+class ModelContainerFactory {
+    static let shared = ModelContainerFactory()
 
-    /// SwiftData model container - created once and reused
-    /// Configured for local storage (CloudKit sync disabled on simulator)
-    let modelContainer: ModelContainer = {
+    private var _container: ModelContainer?
+
+    var container: ModelContainer {
+        if let _container = _container {
+            return _container
+        }
+
+        LaunchMetrics.shared.recordMilestone("ModelContainer creation start")
+
         let schema = Schema([
             Work.self,
             Edition.self,
@@ -38,10 +44,13 @@ struct BooksTrackerApp: App {
         #endif
 
         do {
-            return try ModelContainer(
+            let container = try ModelContainer(
                 for: schema,
                 configurations: [modelConfiguration]
             )
+            LaunchMetrics.shared.recordMilestone("ModelContainer created successfully")
+            _container = container
+            return container
         } catch {
             // Print detailed error for debugging
             print("❌ ModelContainer creation failed: \(error)")
@@ -60,33 +69,71 @@ struct BooksTrackerApp: App {
                     isStoredInMemoryOnly: false,  // Persist data locally
                     cloudKitDatabase: .none       // Disable CloudKit sync
                 )
-                return try ModelContainer(for: schema, configurations: [fallbackConfig])
+                let container = try ModelContainer(for: schema, configurations: [fallbackConfig])
+                LaunchMetrics.shared.recordMilestone("ModelContainer created (fallback)")
+                _container = container
+                return container
             } catch {
                 // If even fallback fails, crash with detailed error for debugging
                 fatalError("Failed to create fallback ModelContainer (local-only mode): \(error)")
             }
         }
-    }()
-
-    let dtoMapper: DTOMapper
-    let libraryRepository: LibraryRepository
-
-    init() {
-        // Create DTOMapper with main context
-        self.dtoMapper = DTOMapper(modelContext: modelContainer.mainContext)
-
-        // Create LibraryRepository for centralized data access
-        self.libraryRepository = LibraryRepository(modelContext: modelContainer.mainContext)
     }
+
+    // Lazy LibraryRepository - created on first access
+    private var _libraryRepository: LibraryRepository?
+
+    var libraryRepository: LibraryRepository {
+        if let _libraryRepository = _libraryRepository {
+            return _libraryRepository
+        }
+
+        LaunchMetrics.shared.recordMilestone("LibraryRepository creation start")
+        let repository = LibraryRepository(modelContext: container.mainContext)
+        LaunchMetrics.shared.recordMilestone("LibraryRepository created")
+        _libraryRepository = repository
+        return repository
+    }
+}
+
+// MARK: - DTO Mapper Factory
+
+@MainActor
+class DTOMapperFactory {
+    static let shared = DTOMapperFactory()
+
+    private var _mapper: DTOMapper?
+
+    func mapper(for context: ModelContext) -> DTOMapper {
+        if let _mapper = _mapper {
+            return _mapper
+        }
+
+        LaunchMetrics.shared.recordMilestone("DTOMapper creation start")
+        let mapper = DTOMapper(modelContext: context)
+        LaunchMetrics.shared.recordMilestone("DTOMapper created")
+        _mapper = mapper
+        return mapper
+    }
+}
+
+@main
+struct BooksTrackerApp: App {
+    @State private var themeStore = iOS26ThemeStore()
+    @State private var featureFlags = FeatureFlags.shared
 
     var body: some Scene {
         WindowGroup {
+            let container = ModelContainerFactory.shared.container
             ContentView()
+                .onAppear {
+                    LaunchMetrics.shared.recordMilestone("ContentView appeared")
+                }
                 .iOS26ThemeStore(themeStore)
-                .modelContainer(modelContainer)
+                .modelContainer(container)
                 .environment(featureFlags)
-                .environment(\.dtoMapper, dtoMapper)
-                .environment(libraryRepository)
+                .environment(\.dtoMapper, DTOMapperFactory.shared.mapper(for: container.mainContext))
+                .environment(ModelContainerFactory.shared.libraryRepository)
         }
     }
 }

@@ -97,22 +97,41 @@ public struct ContentView: View {
                 #endif
             })
             .themedBackground()
-            .task {
-                // Validate enrichment queue on app startup - remove stale persistent IDs
-                EnrichmentQueue.shared.validateQueue(in: modelContext)
+            .onAppear {
+                LaunchMetrics.shared.recordMilestone("UI fully interactive")
+
+                // Print full launch report after a short delay (let everything settle)
+                Task {
+                    try? await Task.sleep(for: .seconds(5))
+                    LaunchMetrics.shared.printReport()
+                }
             }
             .task {
-                // Clean up temporary scan images after all books reviewed
-                await ImageCleanupService.shared.cleanupReviewedImages(in: modelContext)
-                // Clean up orphaned temp files from failed scans (24h+ old)
-                await ImageCleanupService.shared.cleanupOrphanedFiles(in: modelContext)
+                // Defer non-critical background tasks until app is interactive
+                BackgroundTaskScheduler.shared.schedule(priority: .low) {
+                    LaunchMetrics.shared.recordMilestone("EnrichmentQueue validation start")
+                    EnrichmentQueue.shared.validateQueue(in: modelContext)
+                    LaunchMetrics.shared.recordMilestone("EnrichmentQueue validation end")
+                }
+
+                BackgroundTaskScheduler.shared.schedule(priority: .low) {
+                    LaunchMetrics.shared.recordMilestone("ImageCleanup start")
+                    await ImageCleanupService.shared.cleanupReviewedImages(in: modelContext)
+                    await ImageCleanupService.shared.cleanupOrphanedFiles(in: modelContext)
+                    LaunchMetrics.shared.recordMilestone("ImageCleanup end")
+                }
+
+                BackgroundTaskScheduler.shared.schedule(priority: .low) {
+                    LaunchMetrics.shared.recordMilestone("SampleData check start")
+                    let generator = SampleDataGenerator(modelContext: modelContext)
+                    generator.setupSampleDataIfNeeded()
+                    LaunchMetrics.shared.recordMilestone("SampleData check end")
+                }
+
+                LaunchMetrics.shared.recordMilestone("Background tasks scheduled")
             }
-            .task {
-                // Setup sample data if library is empty
-                let generator = SampleDataGenerator(modelContext: modelContext)
-                generator.setupSampleDataIfNeeded()
-            }
-            .task {
+            .task(priority: .userInitiated) {
+                LaunchMetrics.shared.recordMilestone("NotificationCoordinator setup")
                 await notificationCoordinator.handleNotifications(
                     onSwitchToLibrary: { selectedTab = .library },
                     onEnrichmentStarted: { payload in

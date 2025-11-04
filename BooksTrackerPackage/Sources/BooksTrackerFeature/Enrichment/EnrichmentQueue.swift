@@ -136,6 +136,12 @@ public final class EnrichmentQueue {
 
     /// Validate queue on startup - remove invalid persistent IDs
     public func validateQueue(in modelContext: ModelContext) {
+        // Early exit if queue is empty - avoid unnecessary work
+        guard !queue.isEmpty else {
+            print("✅ EnrichmentQueue empty - skipping validation")
+            return
+        }
+
         let initialCount = queue.count
 
         queue.removeAll { item in

@@ -426,9 +426,9 @@ struct EditionMetadataView: View {
         }
     }
 
-    private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+    private func triggerHaptic(_ style: UIKit.UIImpactFeedbackGenerator.FeedbackStyle) {
         #if canImport(UIKit)
-        let impactFeedback = UIImpactFeedbackGenerator(style: style)
+        let impactFeedback = UIKit.UIImpactFeedbackGenerator(style: style)
         impactFeedback.impactOccurred()
         #endif
     }
@@ -465,9 +465,9 @@ struct StarRatingView: View {
         }
     }
 
-    private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+    private func triggerHaptic(_ style: UIKit.UIImpactFeedbackGenerator.FeedbackStyle) {
         #if canImport(UIKit)
-        let impactFeedback = UIImpactFeedbackGenerator(style: style)
+        let impactFeedback = UIKit.UIImpactFeedbackGenerator(style: style)
         impactFeedback.impactOccurred()
         #endif
     }

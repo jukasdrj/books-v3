@@ -431,6 +431,9 @@ public struct SettingsView: View {
                 // 8. Clear search history from UserDefaults
                 UserDefaults.standard.removeObject(forKey: "RecentBookSearches")
 
+                // Reset sample data flag so it will be re-added if library becomes empty
+                SampleDataGenerator(modelContext: modelContext).resetSampleDataFlag()
+
                 // 9. Reset app-level settings to default values
                 featureFlags.resetToDefaults()
 

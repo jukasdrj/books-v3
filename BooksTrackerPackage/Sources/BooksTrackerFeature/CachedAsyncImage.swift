@@ -1,5 +1,6 @@
 import SwiftUI
 import Foundation
+#if canImport(UIKit)
 import UIKit
 
 // MARK: - Image Cache Manager
@@ -282,3 +283,5 @@ public extension CachedAsyncImage where Content == Image, Placeholder == Color {
     }
     .padding()
 }
+
+#endif

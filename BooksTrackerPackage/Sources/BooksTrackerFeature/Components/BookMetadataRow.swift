@@ -45,7 +45,12 @@ public enum MetadataStyle {
     var color: Color {
         switch self {
         case .secondary: return .secondary
-        case .tertiary: return Color(uiColor: .tertiaryLabel)
+        case .tertiary:
+            #if canImport(UIKit)
+            return Color(uiColor: .tertiaryLabel)
+            #else
+            return .secondary
+            #endif
         }
     }
 }

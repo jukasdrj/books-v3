@@ -1,6 +1,8 @@
 import SwiftUI
 import VisionKit
+#if canImport(UIKit)
 import UIKit
+#endif
 import OSLog
 
 @available(iOS 16.0, *)

@@ -4,6 +4,7 @@ import Foundation
 @MainActor
 public final class SampleDataGenerator {
     private let modelContext: ModelContext
+    private let sampleDataAddedKey = "SampleDataAdded"
 
     public init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -11,8 +12,27 @@ public final class SampleDataGenerator {
 
     /// Adds sample data only if library is empty. Optimized check (fetchLimit=1).
     public func setupSampleDataIfNeeded() {
-        guard isLibraryEmpty() else { return }
+        // Check UserDefaults first - if sample data was added before, skip check
+        if UserDefaults.standard.bool(forKey: sampleDataAddedKey) {
+            print("✅ Sample data previously added - skipping check")
+            return
+        }
+
+        guard isLibraryEmpty() else {
+            print("✅ Library not empty - skipping sample data")
+            return
+        }
+
         addSampleData()
+
+        // Mark that sample data was added
+        UserDefaults.standard.set(true, forKey: sampleDataAddedKey)
+    }
+
+    /// Reset sample data flag (call when library is reset)
+    public func resetSampleDataFlag() {
+        UserDefaults.standard.removeObject(forKey: sampleDataAddedKey)
+        print("🔄 Sample data flag reset")
     }
 
     // MARK: - Private Helpers
