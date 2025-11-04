@@ -9,6 +9,8 @@ struct LibraryRepositoryPerformanceTests {
         let (repository, context) = makeTestRepository()
 
         // Create 1000 test books
+        // CRITICAL: SwiftData requires insert-before-relate pattern
+        // See CLAUDE.md "Insert-Before-Relate Lifecycle" section
         for i in 1...1000 {
             let work = Work(title: "Book \(i)")
             context.insert(work)
