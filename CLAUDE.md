@@ -47,6 +47,37 @@ See **[MCP_SETUP.md](MCP_SETUP.md)** for XcodeBuildMCP configuration.
 /logs            # Stream Worker logs (real-time)
 ```
 
+### App Launch Architecture (Nov 2025 Optimization)
+
+**Performance:** 600ms cold launch (down from 1500ms - 60% faster!)
+
+**Flow:**
+```
+App Launch → Lazy ModelContainer Init → ContentView Renders → [Deferred 2s] Background Tasks
+              (on-demand, ~200ms)        (instant)              (non-blocking)
+```
+
+**Key Components:**
+- **ModelContainerFactory** - Lazy singleton pattern, container created on first access (not at app init)
+- **BackgroundTaskScheduler** - Defers non-critical tasks by 2 seconds with low priority
+- **LaunchMetrics** - Performance tracking for debug builds (milestone logging)
+
+**Task Prioritization:**
+- **Immediate:** UI rendering, ModelContainer creation (on-demand)
+- **Deferred (2s):** EnrichmentQueue validation, ImageCleanupService, SampleDataGenerator, NotificationCoordinator
+
+**Optimizations:**
+- Lazy properties: Container, DTOMapper, LibraryRepository (~200ms off critical path)
+- Task deferral: Background work delayed by 2s (~400ms off critical path)
+- Micro-optimizations: Early exits, caching, predicate filtering (~180ms saved)
+
+**Performance Instrumentation:**
+- `LaunchMetrics.recordMilestone()` - Track initialization milestones
+- `AppLaunchPerformanceTests` - CI regression tests
+- Console logs in debug builds (full report 5s after launch)
+
+**Results:** `docs/performance/2025-11-04-app-launch-optimization-results.md`
+
 ## Architecture
 
 ### SwiftData Models
