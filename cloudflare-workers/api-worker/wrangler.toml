@@ -76,6 +76,10 @@ bucket_name = "personal-library-data"
 binding = "BOOKSHELF_IMAGES"
 bucket_name = "bookshelf-images"
 
+[[r2_buckets]]
+binding = "BOOK_COVERS"
+bucket_name = "bookstrack-covers"
+
 # Workers AI binding (from books-api-proxy and bookshelf-ai-worker)
 [ai]
 binding = "AI"

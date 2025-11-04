@@ -1,5 +1,7 @@
 // src/utils/cache-keys.js
 
+import { normalizeISBN } from './normalization.js';
+
 /**
  * Generate SHA-256 hash of string using Web Crypto API
  *
@@ -35,13 +37,13 @@ export async function generateCSVCacheKey(csvText, promptVersion) {
  * Generate cache key for ISBN enrichment data.
  * Format: isbn:{normalizedISBN}
  *
- * Normalizes ISBN by removing hyphens and spaces for consistent caching.
+ * Uses shared normalizeISBN() for consistent caching across all services.
  *
  * @param {string} isbn - ISBN string (with or without hyphens/spaces)
  * @returns {string} Cache key in format isbn:{normalized}
  */
 export function generateISBNCacheKey(isbn) {
-  // Remove hyphens and spaces for consistent format
-  const normalized = isbn.replace(/[-\s]/g, '');
+  // Use shared normalization utility for consistency
+  const normalized = normalizeISBN(isbn);
   return `isbn:${normalized}`;
 }

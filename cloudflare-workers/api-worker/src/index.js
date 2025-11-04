@@ -16,6 +16,7 @@ import { handleMetricsRequest } from './handlers/metrics-handler.js';
 import { handleSearchTitle } from './handlers/v1/search-title.js';
 import { handleSearchISBN } from './handlers/v1/search-isbn.js';
 import { handleSearchAdvanced } from './handlers/v1/search-advanced.js';
+import { handleImageProxy } from './handlers/image-proxy.js';
 import { checkRateLimit } from './middleware/rate-limiter.js';
 import { validateRequestSize, validateResourceSize } from './middleware/size-validator.js';
 import { getCorsHeaders } from './middleware/cors.js';
@@ -382,6 +383,15 @@ export default {
       return new Response(JSON.stringify(response), {
         headers: { 'Content-Type': 'application/json' },
       });
+    }
+
+    // ========================================================================
+    // Image Proxy Endpoint
+    // ========================================================================
+
+    // GET /images/proxy - Proxy and cache book cover images via R2
+    if (url.pathname === '/images/proxy' && request.method === 'GET') {
+      return handleImageProxy(request, env);
     }
 
     // ========================================================================

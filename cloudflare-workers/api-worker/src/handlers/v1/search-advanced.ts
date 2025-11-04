@@ -9,6 +9,7 @@ import type { ApiResponse, BookSearchResponse } from '../../types/responses.js';
 import { createSuccessResponse, createErrorResponse } from '../../types/responses.js';
 import { enrichMultipleBooks } from '../../services/enrichment.ts';
 import type { AuthorDTO } from '../../types/canonical.js';
+import { normalizeTitle, normalizeAuthor } from '../../utils/normalization.js';
 
 export async function handleSearchAdvanced(
   title: string,
@@ -30,13 +31,17 @@ export async function handleSearchAdvanced(
   }
 
   try {
-    console.log(`v1 advanced search - title: "${title}", author: "${author}" (using enrichMultipleBooks, maxResults: 20)`);
+    // Normalize both title and author for consistent cache keys
+    const normalizedTitle = hasTitle ? normalizeTitle(title) : undefined;
+    const normalizedAuthor = hasAuthor ? normalizeAuthor(author) : undefined;
+
+    console.log(`v1 advanced search - title: "${title}" (normalized: "${normalizedTitle}"), author: "${author}" (normalized: "${normalizedAuthor}") (using enrichMultipleBooks, maxResults: 20)`);
 
     // Use enrichMultipleBooks for search endpoints (returns up to 20 results)
     const works = await enrichMultipleBooks(
       {
-        title: hasTitle ? title : undefined,
-        author: hasAuthor ? author : undefined
+        title: normalizedTitle,
+        author: normalizedAuthor
       },
       env,
       { maxResults: 20 }

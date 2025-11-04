@@ -9,6 +9,7 @@ import type { ApiResponse, BookSearchResponse } from '../../types/responses.js';
 import { createSuccessResponse, createErrorResponse } from '../../types/responses.js';
 import { enrichSingleBook } from '../../services/enrichment.ts';
 import type { AuthorDTO } from '../../types/canonical.js';
+import { normalizeISBN } from '../../utils/normalization.js';
 
 /**
  * Validate ISBN-10 or ISBN-13 format
@@ -53,10 +54,12 @@ export async function handleSearchISBN(
   }
 
   try {
-    console.log(`v1 ISBN search for "${isbn}" (using enrichSingleBook)`);
+    // Normalize ISBN for consistent cache keys
+    const normalizedISBN = normalizeISBN(isbn);
+    console.log(`v1 ISBN search for "${isbn}" (normalized: "${normalizedISBN}") (using enrichSingleBook)`);
 
     // Use shared enrichment service (DRY - multi-provider fallback included)
-    const result = await enrichSingleBook({ isbn }, env);
+    const result = await enrichSingleBook({ isbn: normalizedISBN }, env);
 
     if (!result) {
       // Book not found in any provider

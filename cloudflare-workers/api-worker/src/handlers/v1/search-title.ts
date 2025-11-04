@@ -9,6 +9,7 @@ import type { ApiResponse, BookSearchResponse } from '../../types/responses.js';
 import { createSuccessResponse, createErrorResponse } from '../../types/responses.js';
 import { enrichMultipleBooks } from '../../services/enrichment.ts';
 import type { AuthorDTO } from '../../types/canonical.js';
+import { normalizeTitle } from '../../utils/normalization.js';
 
 export async function handleSearchTitle(
   query: string,
@@ -26,10 +27,12 @@ export async function handleSearchTitle(
   }
 
   try {
-    console.log(`v1 title search for "${query}" (using enrichMultipleBooks, maxResults: 20)`);
+    // Normalize title for consistent cache keys
+    const normalizedTitle = normalizeTitle(query);
+    console.log(`v1 title search for "${query}" (normalized: "${normalizedTitle}") (using enrichMultipleBooks, maxResults: 20)`);
 
     // Use enrichMultipleBooks for search endpoints (returns up to 20 results)
-    const works = await enrichMultipleBooks({ title: query }, env, { maxResults: 20 });
+    const works = await enrichMultipleBooks({ title: normalizedTitle }, env, { maxResults: 20 });
 
     if (!works || works.length === 0) {
       // No books found in any provider
