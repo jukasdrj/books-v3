@@ -1,6 +1,21 @@
 import SwiftUI
 import SwiftData
 
+/// Reading statistics for Insights view
+public struct ReadingStatistics: Codable, Sendable {
+    public let totalBooks: Int
+    public let completionRate: Double
+    public let currentlyReading: Int
+    public let totalPagesRead: Int
+
+    public init(totalBooks: Int, completionRate: Double, currentlyReading: Int, totalPagesRead: Int) {
+        self.totalBooks = totalBooks
+        self.completionRate = completionRate
+        self.currentlyReading = currentlyReading
+        self.totalPagesRead = totalPagesRead
+    }
+}
+
 /// Repository pattern for centralizing SwiftData queries and business logic.
 ///
 /// # Purpose
@@ -238,13 +253,13 @@ public class LibraryRepository {
     ///
     /// **Metrics:**
     /// - Total books
-    /// - Completion rate
+    /// - Completion rate (0.0 to 1.0)
     /// - Currently reading count
     /// - Total pages read
     ///
-    /// - Returns: Dictionary of statistic keys and values
+    /// - Returns: Typed statistics struct (compile-time safe)
     /// - Throws: `SwiftDataError` if query fails
-    public func calculateReadingStatistics() throws -> [String: Any] {
+    public func calculateReadingStatistics() throws -> ReadingStatistics {
         let total = try totalBooksCount()
         let completion = try completionRate()
         let reading = try fetchCurrentlyReading().count
@@ -255,11 +270,11 @@ public class LibraryRepository {
             work.userLibraryEntries?.first?.edition?.pageCount
         }.reduce(0, +)
 
-        return [
-            "totalBooks": total,
-            "completionRate": completion,
-            "currentlyReading": reading,
-            "totalPagesRead": totalPages
-        ]
+        return ReadingStatistics(
+            totalBooks: total,
+            completionRate: completion,
+            currentlyReading: reading,
+            totalPagesRead: totalPages
+        )
     }
 }
