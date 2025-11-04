@@ -83,16 +83,19 @@ public class LibraryRepository {
     /// let reading = try repository.fetchByReadingStatus(.reading)
     /// ```
     ///
+    /// **Performance:** Fetches UserLibraryEntry first (smaller dataset), then maps to Works.
     /// - Parameter status: Reading status to filter by (.wishlist, .toRead, .reading, .read)
     /// - Returns: Array of works sorted by last modified date
     /// - Throws: `SwiftDataError` if query fails
     public func fetchByReadingStatus(_ status: ReadingStatus) throws -> [Work] {
-        let allWorks = try fetchUserLibrary()
+        // PERFORMANCE: Fetch UserLibraryEntry first (smaller dataset), then map to Works
+        let descriptor = FetchDescriptor<UserLibraryEntry>(
+            predicate: #Predicate { $0.readingStatus == status }
+        )
+        let entries = try modelContext.fetch(descriptor)
 
-        // Filter by reading status
-        return allWorks.filter { work in
-            work.userLibraryEntries?.first?.readingStatus == status
-        }
+        // Map to Works (only loads needed Works, not entire library)
+        return entries.compactMap { $0.work }
     }
 
     /// Fetches books currently being read.
