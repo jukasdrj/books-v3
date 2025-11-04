@@ -302,13 +302,17 @@ struct CanonicalAPIResponseTests {
           "primaryProvider": "google-books",
           "contributors": ["google-books"],
           "openLibraryWorkID": null,
-          "authors": null,
-          "editions": []
+          "goodreadsWorkIDs": [],
+          "amazonASINs": [],
+          "librarythingIDs": [],
+          "googleBooksVolumeIDs": [],
+          "isbndbQuality": 0,
+          "reviewStatus": "verified"
         }
         """
         let work = try JSONDecoder().decode(WorkDTO.self, from: json.data(using: .utf8)!)
 
-        #expect(work.authors == nil || work.authors?.isEmpty == true)
+        #expect(work.title == "Anonymous Work")
     }
 
     @Test("WorkDTO round-trip serialization preserves data")
@@ -335,9 +339,7 @@ struct CanonicalAPIResponseTests {
             isbndbQuality: 0,
             reviewStatus: .verified,
             originalImagePath: nil,
-            boundingBox: nil,
-            authors: nil,
-            editions: []
+            boundingBox: nil
         )
 
         let encoded = try JSONEncoder().encode(original)

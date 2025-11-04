@@ -16,15 +16,7 @@ struct EnrichmentQueueValidationTests {
         let context = container.mainContext
 
         // Create a valid work
-        let work = Work(
-            title: "Test Book",
-            authors: [],
-            publicationYear: 2024,
-            genres: [],
-            isbn: nil,
-            olid: nil,
-            coverURL: nil
-        )
+        let work = Work(title: "Test Book")
         context.insert(work)
         try context.save()
 

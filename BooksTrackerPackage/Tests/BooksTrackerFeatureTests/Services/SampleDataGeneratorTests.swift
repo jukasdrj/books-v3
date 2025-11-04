@@ -1,5 +1,6 @@
 import Testing
 import SwiftData
+import Foundation
 @testable import BooksTrackerFeature
 
 @MainActor
@@ -35,15 +36,7 @@ struct SampleDataGeneratorTests {
         let context = container.mainContext
 
         // Add one work to make library non-empty
-        let work = Work(
-            title: "Existing Book",
-            authors: [],
-            publicationYear: 2024,
-            genres: [],
-            isbn: nil,
-            olid: nil,
-            coverURL: nil
-        )
+        let work = Work(title: "Existing Book")
         context.insert(work)
         try context.save()
 

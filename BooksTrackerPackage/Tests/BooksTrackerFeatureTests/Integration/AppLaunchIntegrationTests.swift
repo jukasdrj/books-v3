@@ -1,5 +1,6 @@
 import Testing
 import SwiftData
+import Foundation
 @testable import BooksTrackerFeature
 
 @MainActor
@@ -70,15 +71,7 @@ struct AppLaunchIntegrationTests {
         let context = container.mainContext
 
         // Add existing work
-        let work = Work(
-            title: "Existing Book",
-            authors: [],
-            publicationYear: 2024,
-            genres: [],
-            isbn: nil,
-            olid: nil,
-            coverURL: nil
-        )
+        let work = Work(title: "Existing Book")
         context.insert(work)
         try context.save()
 
