@@ -6,7 +6,7 @@ import Foundation
 /// Corresponds to SwiftData Edition model.
 ///
 /// Design: docs/plans/2025-10-29-canonical-data-contracts-design.md
-public struct EditionDTO: Codable, Sendable {
+public struct EditionDTO: Codable, Sendable, Equatable {
     // MARK: - Identifiers
 
     /// Primary ISBN (ISBN-13 preferred)

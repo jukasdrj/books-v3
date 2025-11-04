@@ -6,7 +6,7 @@ import Foundation
 /// Corresponds to SwiftData Author model.
 ///
 /// Design: docs/plans/2025-10-29-canonical-data-contracts-design.md
-public struct AuthorDTO: Codable, Sendable {
+public struct AuthorDTO: Codable, Sendable, Equatable {
     // MARK: - Required Fields
 
     /// Author name

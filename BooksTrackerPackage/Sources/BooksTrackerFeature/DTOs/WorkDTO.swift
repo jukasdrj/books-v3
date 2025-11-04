@@ -6,7 +6,7 @@ import Foundation
 /// Corresponds to SwiftData Work model.
 ///
 /// Design: docs/plans/2025-10-29-canonical-data-contracts-design.md
-public struct WorkDTO: Codable, Sendable {
+public struct WorkDTO: Codable, Sendable, Equatable {
     // MARK: - Required Fields
 
     /// Work title
@@ -80,7 +80,7 @@ public struct WorkDTO: Codable, Sendable {
 
     // MARK: - Nested Types
 
-    public struct BoundingBox: Codable, Sendable {
+    public struct BoundingBox: Codable, Sendable, Equatable {
         public let x: Double
         public let y: Double
         public let width: Double

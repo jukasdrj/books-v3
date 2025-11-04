@@ -457,7 +457,7 @@ actor BookshelfAIService {
             }
         }()
 
-        return DetectedBook(
+        var detectedBook = DetectedBook(
             isbn: bookPayload.isbn,
             title: bookPayload.title,
             author: bookPayload.author,
@@ -467,6 +467,26 @@ actor BookshelfAIService {
             rawText: rawText,
             status: status
         )
+
+        // Attach enrichment data if available and successful
+        if let enrichment = bookPayload.enrichment,
+           enrichment.status.uppercased() == "SUCCESS",
+           let work = enrichment.work,
+           let editions = enrichment.editions,
+           let authors = enrichment.authors,
+           !editions.isEmpty,
+           !authors.isEmpty {
+
+            detectedBook.enrichmentWork = work
+            detectedBook.enrichmentEditions = editions
+            detectedBook.enrichmentAuthors = authors
+
+            print("✅ Enrichment data attached to DetectedBook: \(work.title)")
+        } else {
+            print("⚠️ No enrichment data available for DetectedBook: \(bookPayload.title)")
+        }
+
+        return detectedBook
     }
 
     /// Generate suggestions from scan result payload

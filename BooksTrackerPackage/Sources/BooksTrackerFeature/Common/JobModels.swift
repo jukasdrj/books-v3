@@ -100,18 +100,11 @@ public struct ScanResultPayload: Codable, Sendable, Equatable {
 
         public struct EnrichmentPayload: Codable, Sendable, Equatable {
             public let status: String
-            public let apiData: APIDataPayload?
+            public let work: WorkDTO?
+            public let editions: [EditionDTO]?
+            public let authors: [AuthorDTO]?
             public let provider: String?
             public let cachedResult: Bool?
-
-            public struct APIDataPayload: Codable, Sendable, Equatable {
-                public let title: String?
-                public let authors: [String]?
-                public let isbn: String?
-                public let coverUrl: String?
-                public let publisher: String?
-                public let publicationYear: Int?
-            }
         }
     }
 

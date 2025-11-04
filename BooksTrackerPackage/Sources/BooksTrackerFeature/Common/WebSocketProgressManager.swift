@@ -324,16 +324,9 @@ public final class WebSocketProgressManager: ObservableObject {
                                 enrichment: book.enrichment.map { enr in
                                     ScanResultPayload.BookPayload.EnrichmentPayload(
                                         status: enr.status,
-                                        apiData: enr.apiData.map { api in
-                                            ScanResultPayload.BookPayload.EnrichmentPayload.APIDataPayload(
-                                                title: api.title,
-                                                authors: api.authors,
-                                                isbn: api.isbn,
-                                                coverUrl: api.coverUrl,
-                                                publisher: api.publisher,
-                                                publicationYear: api.publicationYear
-                                            )
-                                        },
+                                        work: enr.work,
+                                        editions: enr.editions,
+                                        authors: enr.authors,
                                         provider: enr.provider,
                                         cachedResult: enr.cachedResult
                                     )
@@ -408,18 +401,11 @@ struct ScanResultData: Codable, Sendable {
 
         struct Enrichment: Codable, Sendable {
             let status: String
-            let apiData: APIData?
+            let work: WorkDTO?
+            let editions: [EditionDTO]?
+            let authors: [AuthorDTO]?
             let provider: String?
             let cachedResult: Bool?
-
-            struct APIData: Codable, Sendable {
-                let title: String?
-                let authors: [String]?
-                let isbn: String?
-                let coverUrl: String?
-                let publisher: String?
-                let publicationYear: Int?
-            }
         }
     }
 

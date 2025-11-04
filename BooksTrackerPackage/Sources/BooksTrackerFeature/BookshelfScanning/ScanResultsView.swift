@@ -560,91 +560,149 @@ class ScanResultsModel {
         isAdding = true
 
         let confirmedBooks = detectedBooks.filter { $0.status == .confirmed }
-        var addedWorks: [Work] = []
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        var enrichedImportCount = 0
+        var queuedImportCount = 0
+        var addedWorksForQueue: [Work] = []
 
         for detectedBook in confirmedBooks {
-            // 1. Create Work FIRST (no relationships yet)
-            let work = Work(
-                title: detectedBook.title ?? "Unknown Title",
-                originalLanguage: "English",
-                firstPublicationYear: nil
-            )
+            var importedViaPathA = false
 
-            // Set review status based on confidence threshold (0.60)
-            work.reviewStatus = detectedBook.needsReview ? ReviewStatus.needsReview : ReviewStatus.verified
+            // Path A: Use pre-enriched data from backend
+            if let enrichedWork = detectedBook.enrichmentWork,
+               let enrichedEditions = detectedBook.enrichmentEditions,
+               let enrichedAuthors = detectedBook.enrichmentAuthors {
 
-            // Store original image path and bounding box for correction UI
-            work.originalImagePath = detectedBook.originalImagePath
-            work.boundingBox = detectedBook.boundingBox
-
-            // 2. INSERT Work IMMEDIATELY (gets permanent ID)
-            modelContext.insert(work)
-            addedWorks.append(work)
-
-            // 3. Create and insert Author BEFORE setting relationship
-            if let authorName = detectedBook.author {
-                let author = Author(name: authorName)
-                modelContext.insert(author)  // ✅ Insert BEFORE relating
-                work.authors = [author]      // ✅ Safe - both have permanent IDs
-            }
-
-            // 4. Create edition if ISBN available
-            if let isbn = detectedBook.isbn {
-                let edition = Edition(
-                    isbn: isbn,
-                    publisher: nil,
-                    publicationDate: nil,
-                    pageCount: nil,
-                    format: .paperback
-                    // work parameter removed - set after insert
-                )
-                modelContext.insert(edition)  // ✅ Insert BEFORE relating
-
-                // ✅ Safe - both have permanent IDs
-                edition.work = work
-                work.editions = [edition]
-
-                // Create library entry (owned)
-                _ = UserLibraryEntry.createOwnedEntry(
-                    for: work,
-                    edition: edition,
-                    status: .toRead,
-                    context: modelContext
-                )
-                // Note: libraryEntry already inserted by factory method
-
-            } else {
-                // Create wishlist entry (no edition)
-                _ = UserLibraryEntry.createWishlistEntry(for: work, context: modelContext)
-                // Note: libraryEntry already inserted by factory method
-            }
-        }
-
-        // Save context FIRST to convert temporary IDs to permanent IDs
-        do {
-            try modelContext.save()
-
-            // Capture permanent IDs AFTER save
-            let addedWorkIDs = addedWorks.map { $0.persistentModelID }
-
-            // Enqueue works for background enrichment
-            if !addedWorkIDs.isEmpty {
-                EnrichmentQueue.shared.enqueueBatch(addedWorkIDs)
-                print("📚 Queued \(addedWorkIDs.count) books from scan for background enrichment")
-
-                // Delay enrichment to allow SwiftData to fully persist newly created works
-                // Swift 6.2: Use Task.sleep instead of DispatchQueue.asyncAfter for better actor isolation
-                Task {
-                    try? await Task.sleep(for: .milliseconds(500))
-                    EnrichmentQueue.shared.startProcessing(in: modelContext) { _, _, _ in
-                        // Silent background processing - progress shown via EnrichmentProgressBanner
+                do {
+                    // Create Authors first (insert before relationships)
+                    let authors = try enrichedAuthors.map { authorDTO in
+                        try dtoMapper.mapToAuthor(authorDTO)
                     }
+
+                    // Create Work (insert before relationships)
+                    let work = try dtoMapper.mapToWork(enrichedWork)
+
+                    // Set review status based on confidence threshold (0.60)
+                    work.reviewStatus = detectedBook.needsReview ? ReviewStatus.needsReview : ReviewStatus.verified
+
+                    // Store original image path and bounding box for correction UI
+                    work.originalImagePath = detectedBook.originalImagePath
+                    work.boundingBox = detectedBook.boundingBox
+
+                    // Create Editions (insert before relationships)
+                    let editions = try enrichedEditions.map { editionDTO in
+                        try dtoMapper.mapToEdition(editionDTO)
+                    }
+
+                    // CRITICAL: Link relationships AFTER all inserts
+                    work.authors = authors
+                    for edition in editions {
+                        edition.work = work
+                    }
+
+                    // Create library entry
+                    let entry = UserLibraryEntry.createWishlistEntry(for: work, context: modelContext)
+                    if let primaryEdition = editions.first {
+                        entry.edition = primaryEdition
+                    }
+
+                    try modelContext.save()
+
+                    print("✅ Imported enriched book: \(work.title)")
+                    enrichedImportCount += 1
+                    importedViaPathA = true
+
+                } catch {
+                    print("❌ Path A failed for enriched book: \(error). Falling back to Path B.")
+                    // Fall through to Path B below
                 }
             }
 
-        } catch {
-            print("Failed to save books: \(error)")
+            // Path B: Minimal import + queue for enrichment (fallback or primary)
+            if !importedViaPathA {
+                do {
+                    // Create minimal Work
+                    let work = Work(
+                        title: detectedBook.title ?? "Unknown Title",
+                        originalLanguage: nil,
+                        firstPublicationYear: nil,
+                        subjectTags: [],
+                        synthetic: false,
+                        primaryProvider: nil
+                    )
+
+                    // Set review status based on confidence threshold (0.60)
+                    work.reviewStatus = detectedBook.needsReview ? ReviewStatus.needsReview : ReviewStatus.verified
+
+                    // Store original image path and bounding box for correction UI
+                    work.originalImagePath = detectedBook.originalImagePath
+                    work.boundingBox = detectedBook.boundingBox
+
+                    modelContext.insert(work)
+
+                    // Create Authors
+                    if let authorName = detectedBook.author {
+                        let author = Author(
+                            name: authorName,
+                            nationality: nil,
+                            gender: .unknown,
+                            culturalRegion: nil,
+                            birthYear: nil,
+                            deathYear: nil
+                        )
+                        modelContext.insert(author)
+                        work.authors = [author]
+                    }
+
+                    // Create library entry
+                    let entry = UserLibraryEntry.createWishlistEntry(for: work, context: modelContext)
+
+                    // If ISBN available, create minimal edition
+                    if let isbn = detectedBook.isbn {
+                        let edition = Edition(
+                            isbn: isbn,
+                            publisher: nil,
+                            publicationDate: nil,
+                            pageCount: nil,
+                            format: .paperback
+                        )
+                        modelContext.insert(edition)
+                        edition.work = work
+                        entry.edition = edition
+                    }
+
+                    try modelContext.save()
+
+                    // Track for enrichment queue
+                    addedWorksForQueue.append(work)
+
+                    print("⚠️ Queued book for enrichment: \(work.title)")
+                    queuedImportCount += 1
+
+                } catch {
+                    print("❌ Failed to import book (Path B): \(error)")
+                }
+            }
         }
+
+        // Queue Path B books for enrichment
+        if !addedWorksForQueue.isEmpty {
+            let workIDs = addedWorksForQueue.map { $0.persistentModelID }
+            EnrichmentQueue.shared.enqueueBatch(workIDs)
+            print("📚 Queued \(workIDs.count) books from scan for background enrichment")
+
+            // Delay enrichment to allow SwiftData to fully persist newly created works
+            Task {
+                try? await Task.sleep(for: .milliseconds(500))
+                EnrichmentQueue.shared.startProcessing(in: modelContext) { _, _, _ in
+                    // Silent background processing - progress shown via EnrichmentProgressBanner
+                }
+            }
+        }
+
+        // Analytics logging
+        print("📊 Import complete: \(enrichedImportCount) enriched, \(queuedImportCount) queued")
+        print("📊 Analytics: bookshelf_import_completed - total: \(confirmedBooks.count), enriched: \(enrichedImportCount), queued: \(queuedImportCount)")
 
         isAdding = false
     }

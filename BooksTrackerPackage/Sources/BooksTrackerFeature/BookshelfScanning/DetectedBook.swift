@@ -38,6 +38,14 @@ public struct DetectedBook: Identifiable, Sendable {
     /// Used for correction UI to show cropped spine image
     public var originalImagePath: String?
 
+    // MARK: - Enrichment Storage
+
+    /// Store enrichment DTOs from backend WebSocket
+    /// Populated during bookshelf scan enrichment phase
+    public var enrichmentWork: WorkDTO?
+    public var enrichmentEditions: [EditionDTO]?
+    public var enrichmentAuthors: [AuthorDTO]?
+
     /// Confidence threshold for requiring human review
     /// Books below 0.60 (60%) confidence should be reviewed
     private static let reviewThreshold: Double = 0.60
@@ -67,6 +75,10 @@ public struct DetectedBook: Identifiable, Sendable {
         self.rawText = rawText
         self.status = status
         self.originalImagePath = originalImagePath
+        // Enrichment fields default to nil
+        self.enrichmentWork = nil
+        self.enrichmentEditions = nil
+        self.enrichmentAuthors = nil
     }
 }
 
