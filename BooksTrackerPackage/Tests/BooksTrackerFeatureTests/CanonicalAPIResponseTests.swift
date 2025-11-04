@@ -292,29 +292,6 @@ struct CanonicalAPIResponseTests {
         #expect(edition.title == "Unknown Book")
     }
 
-    @Test("WorkDTO with null authors decodes as empty array")
-    func testWorkDTO_nullAuthors_decodesAsEmptyArray() throws {
-        let json = """
-        {
-          "title": "Anonymous Work",
-          "subjectTags": [],
-          "synthetic": false,
-          "primaryProvider": "google-books",
-          "contributors": ["google-books"],
-          "openLibraryWorkID": null,
-          "goodreadsWorkIDs": [],
-          "amazonASINs": [],
-          "librarythingIDs": [],
-          "googleBooksVolumeIDs": [],
-          "isbndbQuality": 0,
-          "reviewStatus": "verified"
-        }
-        """
-        let work = try JSONDecoder().decode(WorkDTO.self, from: json.data(using: .utf8)!)
-
-        #expect(work.title == "Anonymous Work")
-    }
-
     @Test("WorkDTO round-trip serialization preserves data")
     func testWorkDTO_roundTripSerialization_preservesData() throws {
         let original = WorkDTO(

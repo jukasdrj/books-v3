@@ -211,13 +211,15 @@ public class LibraryRepository {
     ///
     /// Returns count of books in review queue.
     ///
-    /// **Performance:** Uses `fetchCount()` with predicate (8x faster than loading objects).
+    /// **Performance:** Fetches all works and filters in-memory due to SwiftData limitation.
+    /// SwiftData predicates cannot compare enum cases directly (key path limitation).
     /// - Returns: Number of works needing review
     /// - Throws: `SwiftDataError` if query fails
     public func reviewQueueCount() throws -> Int {
-        // PERFORMANCE: Direct database-level count
-        // Note: Fetch all and filter in-memory because SwiftData predicates
-        // can't compare enum cases directly (key path limitation)
+        // PERFORMANCE: Fetches all works and filters in-memory.
+        // Note: This is a workaround because SwiftData predicates currently have
+        // limitations with direct enum case comparisons, which prevents using the
+        // more performant `fetchCount` with a predicate.
         let descriptor = FetchDescriptor<Work>()
         let allWorks = try modelContext.fetch(descriptor)
         return allWorks.filter { $0.reviewStatus == .needsReview }.count
