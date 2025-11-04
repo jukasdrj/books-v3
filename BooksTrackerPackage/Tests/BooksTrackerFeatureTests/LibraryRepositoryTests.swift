@@ -440,10 +440,10 @@ struct LibraryRepositoryTests {
 
         let stats = try repository.calculateReadingStatistics()
 
-        #expect(stats["totalBooks"] as? Int == 3)
-        #expect(stats["currentlyReading"] as? Int == 2)
-        #expect(stats["completionRate"] as? Double == (1.0 / 3.0))  // 1 read out of 3 total
-        #expect(stats["totalPagesRead"] as? Int == 300)  // Only read1 has pages
+        #expect(stats.totalBooks == 3)
+        #expect(stats.currentlyReading == 2)
+        #expect(stats.completionRate == (1.0 / 3.0))  // 1 read out of 3 total
+        #expect(stats.totalPagesRead == 300)  // Only read1 has pages
     }
 
     // MARK: - Edge Case Tests
