@@ -34,7 +34,9 @@ struct PrimaryEditionTests {
         let work = Work(title: "Test Book")
         let edition1 = Edition(publicationDate: "2021")
         let edition2 = Edition(publicationDate: "2022")
-        let userEntry = UserLibraryEntry()
+        // CRITICAL: SwiftData requires insert-before-relate pattern
+        // See CLAUDE.md "Insert-Before-Relate Lifecycle" section
+        let userEntry = UserLibraryEntry(readingStatus: .toRead)
 
         context.insert(work)
         context.insert(edition1)
@@ -59,7 +61,7 @@ struct PrimaryEditionTests {
         let work = Work(title: "Test Book")
         let edition1 = Edition(publicationDate: "2021")
         let edition2 = Edition(publicationDate: "2022")
-        let userEntry = UserLibraryEntry()
+        let userEntry = UserLibraryEntry(readingStatus: .toRead)
 
         context.insert(work)
         context.insert(edition1)
