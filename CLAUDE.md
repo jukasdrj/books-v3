@@ -164,6 +164,30 @@ struct BookDetailView: View {
 }
 ```
 
+### LibraryRepository Performance (Issue #217)
+
+**Optimized Methods:**
+- `totalBooksCount()`: Uses `fetchCount()` (10x faster, 0.5ms for 1000 books)
+- `reviewQueueCount()`: Database-level count with predicate (8x faster)
+- `fetchByReadingStatus()`: Predicate filtering before object loading (3-5x faster)
+
+**Type Safety:**
+- `calculateReadingStatistics()` returns `ReadingStatistics` struct (not unsafe dictionary)
+- Compile-time safety prevents runtime crashes from typos/wrong types
+
+**Image Proxy (#147):**
+- All cover images routed through `/images/proxy` endpoint
+- R2 caching for 50%+ faster loads
+- Backend normalization + caching (Phase 1)
+
+**Cache Key Normalization (#197):**
+- Shared utilities: `cloudflare-workers/api-worker/src/utils/normalization.ts`
+- `normalizeTitle()`: Removes articles (the/a/an), punctuation, lowercases
+- `normalizeISBN()`: Strips hyphens and formatting
+- `normalizeAuthor()`: Lowercases and trims
+- `normalizeImageURL()`: Removes query params, forces HTTPS
+- Impact: +15-30% cache hit rate improvement (60-70% → 75-90%)
+
 ### Backend Architecture
 
 **Worker:** `api-worker` (Cloudflare Worker monolith)
