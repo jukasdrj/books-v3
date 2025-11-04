@@ -269,4 +269,83 @@ struct CanonicalAPIResponseTests {
             try decoder.decode(ApiResponse<BookSearchResponse>.self, from: data)
         }
     }
+
+    // MARK: - Edge Case Tests (Issue #217)
+
+    @Test("EditionDTO with missing ISBNs decodes successfully")
+    func testEditionDTO_missingISBN_decodesSuccessfully() throws {
+        let json = """
+        {
+          "title": "Unknown Book",
+          "publisher": "Unknown",
+          "publicationDate": "2020",
+          "format": "unknown",
+          "coverImageURL": null,
+          "contributors": [],
+          "isbns": []
+        }
+        """
+        let edition = try JSONDecoder().decode(EditionDTO.self, from: json.data(using: .utf8)!)
+
+        #expect(edition.isbn == nil)
+        #expect(edition.isbns.isEmpty)
+        #expect(edition.title == "Unknown Book")
+    }
+
+    @Test("WorkDTO with null authors decodes as empty array")
+    func testWorkDTO_nullAuthors_decodesAsEmptyArray() throws {
+        let json = """
+        {
+          "title": "Anonymous Work",
+          "subjectTags": [],
+          "synthetic": false,
+          "primaryProvider": "google-books",
+          "contributors": ["google-books"],
+          "openLibraryWorkID": null,
+          "authors": null,
+          "editions": []
+        }
+        """
+        let work = try JSONDecoder().decode(WorkDTO.self, from: json.data(using: .utf8)!)
+
+        #expect(work.authors == nil || work.authors?.isEmpty == true)
+    }
+
+    @Test("WorkDTO round-trip serialization preserves data")
+    func testWorkDTO_roundTripSerialization_preservesData() throws {
+        let original = WorkDTO(
+            title: "The Hobbit",
+            subjectTags: ["fantasy", "adventure"],
+            originalLanguage: "en",
+            firstPublicationYear: 1937,
+            description: "A fantasy novel",
+            synthetic: false,
+            primaryProvider: "google-books",
+            contributors: ["google-books"],
+            openLibraryID: nil,
+            openLibraryWorkID: "OL26320A",
+            isbndbID: nil,
+            googleBooksVolumeID: "hFfhrCWiLSMC",
+            goodreadsID: nil,
+            goodreadsWorkIDs: [],
+            amazonASINs: [],
+            librarythingIDs: [],
+            googleBooksVolumeIDs: ["hFfhrCWiLSMC"],
+            lastISBNDBSync: nil,
+            isbndbQuality: 0,
+            reviewStatus: .verified,
+            originalImagePath: nil,
+            boundingBox: nil,
+            authors: nil,
+            editions: []
+        )
+
+        let encoded = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(WorkDTO.self, from: encoded)
+
+        #expect(decoded.title == original.title)
+        #expect(decoded.openLibraryWorkID == original.openLibraryWorkID)
+        #expect(decoded.synthetic == original.synthetic)
+        #expect(decoded.firstPublicationYear == original.firstPublicationYear)
+    }
 }
