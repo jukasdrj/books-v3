@@ -405,8 +405,9 @@ public struct SettingsView: View {
                 // NEW: Clear the deduplication cache
                 dtoMapper?.clearCache()
 
-                // CRITICAL: Invalidate DiversityStats cache to prevent accessing deleted authors
+                // CRITICAL: Invalidate all stats caches to prevent accessing deleted objects
                 DiversityStats.invalidateCache()
+                await ReadingStats.invalidateCache()
 
                 // 4. Delete all Work objects (CASCADE deletes Editions & UserLibraryEntries automatically)
                 let workDescriptor = FetchDescriptor<Work>()

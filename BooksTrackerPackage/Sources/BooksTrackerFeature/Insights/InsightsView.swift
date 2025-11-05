@@ -149,7 +149,7 @@ public struct InsightsView: View {
             diversityStats = try DiversityStats.calculate(from: modelContext)
 
             // Calculate reading stats for selected period
-            readingStats = try ReadingStats.calculate(from: modelContext, period: selectedPeriod)
+            readingStats = try await ReadingStats.calculate(from: modelContext, period: selectedPeriod)
 
             isLoading = false
 

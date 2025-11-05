@@ -31,7 +31,7 @@ struct ReadingStatsTests {
         try context.save()
 
         // Calculate stats for "Last 30 Days"
-        let stats = try ReadingStats.calculate(from: context, period: .last30Days)
+        let stats = try await ReadingStats.calculate(from: context, period: .last30Days)
 
         #expect(stats.pagesRead == 300)
         #expect(stats.booksCompleted == 1)
@@ -59,7 +59,7 @@ struct ReadingStatsTests {
         // Note: Factory already inserted entry - no manual insert needed
         try context.save()
 
-        let stats = try ReadingStats.calculate(from: context, period: .allTime)
+        let stats = try await ReadingStats.calculate(from: context, period: .allTime)
 
         // 200 pages over 10 days = 20 pages/day
         #expect(stats.averageReadingPace == 20.0)
@@ -117,7 +117,7 @@ struct ReadingStatsTests {
         // Note: Factory already inserted entries - no manual insert needed
         try context.save()
 
-        let stats = try ReadingStats.calculate(from: context, period: .allTime)
+        let stats = try await ReadingStats.calculate(from: context, period: .allTime)
 
         // Should have high diversity score (3 regions, 2 genders, 3 languages, 66% marginalized)
         #expect(stats.diversityScore > 7.0)

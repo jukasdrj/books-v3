@@ -86,7 +86,7 @@ struct InsightsIntegrationTests {
         #expect(diversityStats.totalLanguages == 2) // Gikuyu and English
 
         // Calculate reading stats
-        let readingStats = try ReadingStats.calculate(from: context, period: .allTime)
+        let readingStats = try await ReadingStats.calculate(from: context, period: .allTime)
 
         // Verify reading stats
         #expect(readingStats.booksCompleted == 2)
