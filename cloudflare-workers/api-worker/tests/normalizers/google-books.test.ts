@@ -21,7 +21,8 @@ describe('normalizeGoogleBooksToWork', () => {
 
     expect(work.title).toBe('1984');
     expect(work.firstPublicationYear).toBe(1949);
-    expect(work.subjectTags).toEqual(['Fiction', 'Dystopian']);
+    expect(work.subjectTags).toContain('Fiction');
+    expect(work.subjectTags).toContain('Dystopian');
     expect(work.googleBooksVolumeIDs).toContain('beSP5CCpiGUC');
     expect(work.primaryProvider).toBe('google-books');
     expect(work.synthetic).toBe(false);

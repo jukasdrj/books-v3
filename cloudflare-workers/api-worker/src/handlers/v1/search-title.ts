@@ -57,8 +57,14 @@ export async function handleSearchTitle(
     });
     const authors = Array.from(authorsMap.values());
 
+    // Remove authors property from works (not part of canonical WorkDTO)
+    const cleanWorks = works.map(work => {
+      const { authors: _, ...cleanWork } = work;
+      return cleanWork;
+    });
+
     return createSuccessResponseObject(
-      { works, authors },
+      { works: cleanWorks, authors },
       {
         processingTime: Date.now() - startTime,
         provider: works[0]?.primaryProvider || 'google-books',

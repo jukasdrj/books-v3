@@ -4,7 +4,21 @@
  *
  * This service provides functions for searching and enriching book data
  * from multiple external providers.
+ *
+ * Uses canonical normalizers to ensure all responses conform to
+ * TypeScript canonical contracts (WorkDTO, EditionDTO, AuthorDTO).
  */
+
+import {
+  normalizeGoogleBooksToWork,
+  normalizeGoogleBooksToEdition,
+  ensureWorkForEdition
+} from './normalizers/google-books.js';
+
+import {
+  normalizeOpenLibraryToWork,
+  normalizeOpenLibraryToAuthor
+} from './normalizers/openlibrary.js';
 
 // ============================================================================
 // Google Books API
@@ -137,12 +151,20 @@ export async function searchGoogleBooksByISBN(isbn, env) {
   }
 }
 
+/**
+ * Normalize Google Books API response to canonical DTOs
+ * Uses canonical normalizers to ensure contract compliance
+ * 
+ * NOTE: This function temporarily attaches an `authors` property to WorkDTO
+ * for enrichment service compatibility (WorkDTOWithAuthors type).
+ * Handlers must strip this property before sending to client.
+ */
 function normalizeGoogleBooksResponse(apiResponse) {
   if (!apiResponse.items || apiResponse.items.length === 0) {
     return { works: [], authors: [] };
   }
 
-  const worksMap = new Map();
+  const works = [];
   const authorsMap = new Map();
 
   apiResponse.items.forEach(item => {
@@ -151,59 +173,31 @@ function normalizeGoogleBooksResponse(apiResponse) {
       return;
     }
 
-    const authors = volumeInfo.authors || ['Unknown Author'];
+    // Use canonical normalizer for WorkDTO (ensures all required fields)
+    const work = normalizeGoogleBooksToWork(item);
+    
+    // Extract authors and create AuthorDTOs
+    const authorNames = volumeInfo.authors || ['Unknown Author'];
+    const authors = authorNames.map(name => ({
+      name,
+      gender: 'Unknown', // Required field per canonical contract
+    }));
 
-    const workKey = `${volumeInfo.title.toLowerCase()}-${authors[0].toLowerCase()}`;
+    // Attach authors to work for enrichment service compatibility
+    work.authors = authors;
 
-    if (!worksMap.has(workKey)) {
-      worksMap.set(workKey, {
-        title: volumeInfo.title,
-        subtitle: volumeInfo.subtitle,
-        authors: authors.map(name => ({ name })),
-        editions: [],
-        firstPublishYear: extractYear(volumeInfo.publishedDate),
-        firstPublicationYear: extractYear(volumeInfo.publishedDate),
-      });
-    }
-
-    const work = worksMap.get(workKey);
-
-    const isbn13 = volumeInfo.industryIdentifiers?.find(id => id.type === 'ISBN_13')?.identifier;
-    const isbn10 = volumeInfo.industryIdentifiers?.find(id => id.type === 'ISBN_10')?.identifier;
-
-    work.editions.push({
-      googleBooksVolumeId: item.id,
-      isbn13: isbn13,
-      isbn10: isbn10,
-      title: volumeInfo.title,
-      subtitle: volumeInfo.subtitle,
-      publisher: volumeInfo.publisher,
-      publishDate: volumeInfo.publishedDate,
-      publicationDate: volumeInfo.publishedDate,
-      publishYear: extractYear(volumeInfo.publishedDate),
-      pages: volumeInfo.pageCount,
-      pageCount: volumeInfo.pageCount,
-      language: volumeInfo.language,
-      genres: volumeInfo.categories || [],
-      description: volumeInfo.description,
-      coverImageURL: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:'),
-      previewLink: volumeInfo.previewLink,
-      infoLink: volumeInfo.infoLink,
-      source: 'google-books',
-    });
-
-    authors.forEach(authorName => {
-      if (!authorsMap.has(authorName)) {
-        authorsMap.set(authorName, {
-          name: authorName,
-          source: 'google-books'
-        });
+    // Add to authors map for deduplication
+    authors.forEach(author => {
+      if (!authorsMap.has(author.name)) {
+        authorsMap.set(author.name, author);
       }
     });
+
+    works.push(work);
   });
 
   return {
-    works: Array.from(worksMap.values()),
+    works,
     authors: Array.from(authorsMap.values())
   };
 }
@@ -274,74 +268,42 @@ export async function getOpenLibraryAuthorWorks(authorName, env) {
   }
 }
 
+/**
+ * Normalize OpenLibrary search results to canonical DTOs
+ * Uses canonical normalizers to ensure contract compliance
+ * 
+ * NOTE: This function temporarily attaches an `authors` property to WorkDTO
+ * for enrichment service compatibility (WorkDTOWithAuthors type).
+ * Handlers must strip this property before sending to client.
+ */
 function normalizeOpenLibrarySearchResults(docs) {
-  const worksMap = new Map();
+  const works = [];
+  const authorsMap = new Map();
 
   docs.forEach(doc => {
-    const isWork = doc.type === 'work' || (doc.key && doc.key.startsWith('/works/'));
+    if (!doc.title) return;
 
-    if (!isWork) {
-      const potentialWorkKey = doc.key?.replace('/books/', '/works/').replace(/M$/, 'W');
-      if (worksMap.has(potentialWorkKey)) {
-        return;
+    // Use canonical normalizer for WorkDTO (ensures all required fields)
+    const work = normalizeOpenLibraryToWork(doc);
+
+    // Extract authors and create AuthorDTOs
+    const authorNames = doc.author_name || ['Unknown Author'];
+    const authors = authorNames.map(name => normalizeOpenLibraryToAuthor(name));
+
+    // Attach authors to work for enrichment service compatibility
+    work.authors = authors;
+
+    // Add to authors map for deduplication
+    authors.forEach(author => {
+      if (!authorsMap.has(author.name)) {
+        authorsMap.set(author.name, author);
       }
-    }
+    });
 
-    const workKey = doc.key || `synthetic-${doc.title?.replace(/\s+/g, '-').toLowerCase()}`;
-
-    if (!worksMap.has(workKey)) {
-      const work = {
-        title: doc.title || 'Unknown Title',
-        subtitle: doc.subtitle,
-        authors: (doc.author_name || []).map(name => ({ name })),
-        firstPublicationYear: doc.first_publish_year,
-        subjects: doc.subject || [],
-
-        externalIds: {
-          openLibraryWorkId: isWork ? extractWorkId(doc.key) : null,
-          openLibraryEditionId: !isWork ? extractEditionId(doc.key) : null,
-          goodreadsWorkIds: doc.id_goodreads || [],
-          amazonASINs: doc.id_amazon || [],
-          librarythingIds: doc.id_librarything || [],
-          googleBooksVolumeIds: doc.id_google || [],
-          isbndbIds: [],
-        },
-
-        editions: [{
-          isbn10: doc.isbn?.[0],
-          isbn13: doc.isbn?.find(isbn => isbn.length === 13),
-          publisher: doc.publisher?.[0],
-          publicationDate: doc.publish_date?.[0],
-          pageCount: doc.number_of_pages_median,
-          language: doc.language?.[0],
-          coverImageURL: doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg` : null,
-          externalIds: {
-            openLibraryEditionId: !isWork ? extractEditionId(doc.key) : null,
-            googleBooksVolumeIds: doc.id_google || [],
-            amazonASINs: doc.id_amazon || []
-          }
-        }],
-
-        source: 'openlibrary'
-      };
-
-      worksMap.set(workKey, work);
-    }
+    works.push(work);
   });
 
-  return Array.from(worksMap.values());
-}
-
-function extractWorkId(key) {
-  if (!key) return null;
-  const match = key.match(/\/works\/([^\/]+)/);
-  return match ? match[1] : null;
-}
-
-function extractEditionId(key) {
-  if (!key) return null;
-  const match = key.match(/\/books\/([^\/]+)/);
-  return match ? match[1] : null;
+  return works;
 }
 
 async function findAuthorKeyByName(authorName) {
