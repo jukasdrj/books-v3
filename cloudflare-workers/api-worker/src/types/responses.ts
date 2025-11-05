@@ -91,6 +91,7 @@ export type ApiResponse<T> = SuccessResponse<T> | ErrorResponse;
  */
 export interface BookSearchResponse {
   works: WorkDTO[];
+  editions: EditionDTO[];
   authors: AuthorDTO[];
   totalResults?: number; // for pagination (future)
 }

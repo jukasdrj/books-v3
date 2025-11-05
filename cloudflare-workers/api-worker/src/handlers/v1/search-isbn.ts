@@ -64,7 +64,7 @@ export async function handleSearchISBN(
     if (!result) {
       // Book not found in any provider
       return createSuccessResponseObject(
-        { works: [], authors: [] },
+        { works: [], editions: [], authors: [] },
         {
           processingTime: Date.now() - startTime,
           provider: 'none',
@@ -80,8 +80,9 @@ export async function handleSearchISBN(
     // Remove authors property from work (not part of canonical WorkDTO)
     const { authors: _, ...cleanWork } = result;
 
+    // TODO: Extract edition from enrichSingleBook result when available
     return createSuccessResponseObject(
-      { works: [cleanWork], authors },
+      { works: [cleanWork], editions: [], authors },
       {
         processingTime: Date.now() - startTime,
         provider: result.primaryProvider || 'google-books',

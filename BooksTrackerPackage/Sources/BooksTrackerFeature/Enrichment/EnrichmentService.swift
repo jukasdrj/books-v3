@@ -173,9 +173,15 @@ public final class EnrichmentService {
 
         switch envelope {
         case .success(let searchData, _):
-            // Transform canonical WorkDTOs to EnrichmentSearchResults
-            transformedResults = searchData.works.map { workDTO in
-                EnrichmentSearchResult(from: workDTO)
+            // Create a map of work index to editions for correlation (1:1 mapping)
+            let editionsByIndex = Dictionary(uniqueKeysWithValues:
+                searchData.editions.enumerated().map { ($0, $1) }
+            )
+
+            // Transform canonical DTOs to EnrichmentSearchResults
+            transformedResults = searchData.works.enumerated().map { (index, workDTO) in
+                let edition = editionsByIndex[index]
+                return EnrichmentSearchResult(from: workDTO, edition: edition, authors: searchData.authors)
             }
             totalItems = searchData.totalResults ?? transformedResults.count
 
@@ -370,17 +376,16 @@ private struct EnrichmentSearchResult {
     let openLibraryWorkID: String?
     let googleBooksVolumeID: String?
 
-    /// Create from canonical WorkDTO (v1 API response)
-    /// TODO: Integrate AuthorDTO and EditionDTO when available in response
-    init(from workDTO: WorkDTO) {
+    /// Create from canonical WorkDTO + EditionDTO (v1 API response)
+    init(from workDTO: WorkDTO, edition: EditionDTO?, authors: [AuthorDTO]) {
         self.title = workDTO.title
-        self.author = "Unknown Author" // TODO: Correlate with BookSearchResponse.authors array
-        self.isbn = nil // TODO: Extract from first EditionDTO when available
-        self.coverImage = nil // TODO: Extract from first EditionDTO when available
+        self.author = authors.first?.name ?? "Unknown Author"
+        self.isbn = edition?.isbn
+        self.coverImage = edition?.coverImageURL
         self.publicationYear = workDTO.firstPublicationYear
-        self.publicationDate = nil // TODO: Extract from first EditionDTO when available
-        self.publisher = nil // TODO: Extract from first EditionDTO when available
-        self.pageCount = nil // TODO: Extract from first EditionDTO when available
+        self.publicationDate = edition?.publicationDate
+        self.publisher = edition?.publisher
+        self.pageCount = edition?.pageCount
         self.openLibraryWorkID = workDTO.openLibraryWorkID
         self.googleBooksVolumeID = workDTO.googleBooksVolumeIDs.first ?? workDTO.googleBooksVolumeID
     }

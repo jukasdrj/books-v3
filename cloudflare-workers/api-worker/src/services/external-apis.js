@@ -17,6 +17,7 @@ import {
 
 import {
   normalizeOpenLibraryToWork,
+  normalizeOpenLibraryToEdition,
   normalizeOpenLibraryToAuthor
 } from './normalizers/openlibrary.js';
 
@@ -161,10 +162,11 @@ export async function searchGoogleBooksByISBN(isbn, env) {
  */
 function normalizeGoogleBooksResponse(apiResponse) {
   if (!apiResponse.items || apiResponse.items.length === 0) {
-    return { works: [], authors: [] };
+    return { works: [], editions: [], authors: [] };
   }
 
   const works = [];
+  const editions = [];
   const authorsMap = new Map();
 
   apiResponse.items.forEach(item => {
@@ -175,6 +177,9 @@ function normalizeGoogleBooksResponse(apiResponse) {
 
     // Use canonical normalizer for WorkDTO (ensures all required fields)
     const work = normalizeGoogleBooksToWork(item);
+    
+    // Use canonical normalizer for EditionDTO
+    const edition = normalizeGoogleBooksToEdition(item);
     
     // Extract authors and create AuthorDTOs
     const authorNames = volumeInfo.authors || ['Unknown Author'];
@@ -194,10 +199,12 @@ function normalizeGoogleBooksResponse(apiResponse) {
     });
 
     works.push(work);
+    editions.push(edition);
   });
 
   return {
     works,
+    editions,
     authors: Array.from(authorsMap.values())
   };
 }
@@ -224,12 +231,14 @@ export async function searchOpenLibrary(query, params = {}, env) {
     }
 
     const data = await response.json();
-    const works = normalizeOpenLibrarySearchResults(data.docs || []);
+    const normalized = normalizeOpenLibrarySearchResults(data.docs || []);
 
     return {
       success: true,
       provider: 'openlibrary',
-      works: works,
+      works: normalized.works,
+      editions: normalized.editions,
+      authors: normalized.authors,
       totalResults: data.numFound || 0
     };
 
@@ -278,6 +287,7 @@ export async function getOpenLibraryAuthorWorks(authorName, env) {
  */
 function normalizeOpenLibrarySearchResults(docs) {
   const works = [];
+  const editions = [];
   const authorsMap = new Map();
 
   docs.forEach(doc => {
@@ -285,6 +295,9 @@ function normalizeOpenLibrarySearchResults(docs) {
 
     // Use canonical normalizer for WorkDTO (ensures all required fields)
     const work = normalizeOpenLibraryToWork(doc);
+
+    // Use canonical normalizer for EditionDTO
+    const edition = normalizeOpenLibraryToEdition(doc);
 
     // Extract authors and create AuthorDTOs
     const authorNames = doc.author_name || ['Unknown Author'];
@@ -301,9 +314,14 @@ function normalizeOpenLibrarySearchResults(docs) {
     });
 
     works.push(work);
+    editions.push(edition);
   });
 
-  return works;
+  return {
+    works,
+    editions,
+    authors: Array.from(authorsMap.values())
+  };
 }
 
 async function findAuthorKeyByName(authorName) {

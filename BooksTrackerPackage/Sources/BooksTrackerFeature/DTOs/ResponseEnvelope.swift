@@ -132,6 +132,7 @@ public struct ResponseEnvelope<T: Codable>: Codable {
 /// Used by: /v1/search/title, /v1/search/isbn, /v1/search/advanced
 public struct BookSearchResponse: Codable, Sendable {
     public let works: [WorkDTO]
+    public let editions: [EditionDTO]
     public let authors: [AuthorDTO]
     public let totalResults: Int?
 }
