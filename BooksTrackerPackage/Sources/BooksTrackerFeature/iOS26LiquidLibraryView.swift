@@ -38,9 +38,9 @@ public struct iOS26LiquidLibraryView: View {
     ) private var allWorks: [Work]
 
     // Computed property to get only works in user's library
-    // CRITICAL: Safe access after library reset - UserLibraryEntry might be deleted but Work still exists during CloudKit sync
+    // CRITICAL: Safe access after library reset - validates objects before accessing relationships
     private var libraryWorks: [Work] {
-        filterService.filterLibraryWorks(from: allWorks)
+        filterService.filterLibraryWorks(from: allWorks, modelContext: modelContext)
     }
     
     // ✅ FIX 2: Simplified state management
@@ -368,20 +368,10 @@ public struct iOS26LiquidLibraryView: View {
     private var readingProgressOverview: some View {
         HStack(spacing: 16) {
             ForEach(ReadingStatus.allCases.prefix(4), id: \.self) { status in
-                // DEFENSIVE: Safely access userLibraryEntries with nil checks
+                // DEFENSIVE: Safely count entries only from non-deleted works
                 // During library reset, works may be deleted while view is rendering
-                let count = cachedFilteredWorks
-                    .compactMap { work -> [UserLibraryEntry]? in
-                        // Guard against accessing deleted/invalidated SwiftData objects
-                        guard work.userLibraryEntries != nil else { return nil }
-                        return work.userLibraryEntries
-                    }
-                    .flatMap { $0 }
-                    .filter { entry in
-                        // Additional guard: ensure entry is valid before accessing property
-                        entry.readingStatus == status
-                    }
-                    .count
+                // We must avoid accessing relationship properties on deleted SwiftData objects
+                let count = safeCountEntries(for: status)
 
                 VStack(spacing: 4) {
                     Image(systemName: status.systemImage)
@@ -401,6 +391,31 @@ public struct iOS26LiquidLibraryView: View {
             }
         }
     }
+    
+    /// Safely count library entries for a given status, avoiding deleted SwiftData objects
+    /// - Parameter status: The reading status to count
+    /// - Returns: Count of entries, or 0 if cachedFilteredWorks is empty or contains deleted objects
+    private func safeCountEntries(for status: ReadingStatus) -> Int {
+        // CRITICAL: Early return if cache is empty (e.g., during library reset)
+        // This prevents accessing relationship properties on deleted objects
+        guard !cachedFilteredWorks.isEmpty else { return 0 }
+        
+        // DEFENSIVE: Validate that works are still in the context before accessing relationships
+        // During library reset, objects may be deleted but still referenced in cachedFilteredWorks
+        // Accessing userLibraryEntries on a deleted object triggers fault resolution and crashes
+        var count = 0
+        for work in cachedFilteredWorks {
+            // Check if the work is still valid in the context
+            // model(for:) returns nil for deleted objects, preventing crashes
+            if modelContext.model(for: work.persistentModelID) as? Work != nil {
+                // Only access the relationship if the object is valid
+                if let entries = work.userLibraryEntries {
+                    count += entries.filter { $0.readingStatus == status }.count
+                }
+            }
+        }
+        return count
+    }
 
     // MARK: - Performance Optimizations
 
@@ -411,13 +426,13 @@ public struct iOS26LiquidLibraryView: View {
         if searchText.isEmpty {
             filtered = Array(libraryWorks)
         } else {
-            filtered = filterService.searchWorks(libraryWorks, searchText: searchText)
+            filtered = filterService.searchWorks(libraryWorks, searchText: searchText, modelContext: modelContext)
         }
 
         // Only update if actually changed
         if filtered.map(\.id) != cachedFilteredWorks.map(\.id) {
             cachedFilteredWorks = filtered
-            cachedDiversityScore = filterService.calculateDiversityScore(for: filtered)
+            cachedDiversityScore = filterService.calculateDiversityScore(for: filtered, modelContext: modelContext)
         }
     }
 

@@ -13,10 +13,20 @@ public final class LibraryFilterService {
     // MARK: - Library Filtering
 
     /// Filter works to include only those in user's library.
-    /// - Parameter works: All works from SwiftData
-    /// - Returns: Works with non-empty userLibraryEntries
-    public func filterLibraryWorks(from works: [Work]) -> [Work] {
+    /// - Parameters:
+    ///   - works: All works from SwiftData
+    ///   - modelContext: SwiftData model context for validating object lifecycle
+    /// - Returns: Works with non-empty userLibraryEntries, excluding deleted objects
+    public func filterLibraryWorks(from works: [Work], modelContext: ModelContext) -> [Work] {
         works.filter { work in
+            // CRITICAL: Check if work is still valid in context before accessing relationships
+            // During library reset, @Query may not have updated yet and allWorks may contain deleted objects
+            // Accessing userLibraryEntries on a deleted object triggers fault resolution and crashes
+            guard modelContext.model(for: work.persistentModelID) as? Work != nil else {
+                return false
+            }
+            
+            // Now safe to access relationship property
             guard let entries = work.userLibraryEntries else { return false }
             return !entries.isEmpty
         }
@@ -28,12 +38,18 @@ public final class LibraryFilterService {
     /// - Parameters:
     ///   - works: Works to search through
     ///   - searchText: Search query
+    ///   - modelContext: SwiftData model context for validating object lifecycle
     /// - Returns: Filtered works matching search query
-    public func searchWorks(_ works: [Work], searchText: String) -> [Work] {
+    public func searchWorks(_ works: [Work], searchText: String, modelContext: ModelContext) -> [Work] {
         guard !searchText.isEmpty else { return works }
 
         let lowercased = searchText.lowercased()
         return works.filter { work in
+            // CRITICAL: Validate work is still in context before accessing relationships
+            guard modelContext.model(for: work.persistentModelID) as? Work != nil else {
+                return false
+            }
+            
             // Search in title
             if work.title.lowercased().contains(lowercased) {
                 return true
@@ -55,15 +71,22 @@ public final class LibraryFilterService {
     // MARK: - Diversity Metrics
 
     /// Calculate diversity score for a collection of works.
-    /// - Parameter works: Works to analyze
+    /// - Parameters:
+    ///   - works: Works to analyze
+    ///   - modelContext: SwiftData model context for validating object lifecycle
     /// - Returns: Diversity score (0-100)
-    public func calculateDiversityScore(for works: [Work]) -> Double {
+    public func calculateDiversityScore(for works: [Work], modelContext: ModelContext) -> Double {
         guard !works.isEmpty else { return 0.0 }
 
         var genderSet: Set<AuthorGender> = []
         var regionSet: Set<CulturalRegion> = []
 
         for work in works {
+            // CRITICAL: Validate work is still in context before accessing relationships
+            guard modelContext.model(for: work.persistentModelID) as? Work != nil else {
+                continue
+            }
+            
             guard let authors = work.authors else { continue }
             for author in authors {
                 genderSet.insert(author.gender)

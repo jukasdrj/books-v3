@@ -86,6 +86,11 @@ public class LibraryRepository {
         // Filter in-memory for works with library entries
         // CRITICAL: Cannot use predicate for to-many relationship filtering
         return allWorks.filter { work in
+            // DEFENSIVE: Validate work is still in context before accessing relationships
+            // During library reset, works may be deleted while this query is running
+            guard modelContext.model(for: work.persistentModelID) as? Work != nil else {
+                return false
+            }
             guard let entries = work.userLibraryEntries else { return false }
             return !entries.isEmpty
         }
@@ -143,6 +148,11 @@ public class LibraryRepository {
 
         // Search in title and author names
         return allWorks.filter { work in
+            // DEFENSIVE: Validate work is still in context before accessing relationships
+            guard modelContext.model(for: work.persistentModelID) as? Work != nil else {
+                return false
+            }
+            
             // Search title
             if work.title.lowercased().contains(lowercasedQuery) {
                 return true
@@ -242,7 +252,13 @@ public class LibraryRepository {
     public func calculateDiversityScore(for works: [Work]? = nil) throws -> Double {
         let targetWorks = try works ?? fetchUserLibrary()
 
-        let allAuthors = targetWorks.compactMap(\.authors).flatMap { $0 }
+        let allAuthors = targetWorks.compactMap { work -> [Author]? in
+            // DEFENSIVE: Validate work is still in context before accessing relationships
+            guard modelContext.model(for: work.persistentModelID) as? Work != nil else {
+                return nil
+            }
+            return work.authors
+        }.flatMap { $0 }
         guard !allAuthors.isEmpty else { return 0.0 }
 
         let diverseCount = allAuthors.filter { author in
@@ -269,8 +285,12 @@ public class LibraryRepository {
 
         // Calculate total pages read
         let readBooks = try fetchByReadingStatus(.read)
-        let totalPages = readBooks.compactMap { work in
-            work.userLibraryEntries?.first?.edition?.pageCount
+        let totalPages = readBooks.compactMap { work -> Int? in
+            // DEFENSIVE: Validate work is still in context before accessing relationships
+            guard modelContext.model(for: work.persistentModelID) as? Work != nil else {
+                return nil
+            }
+            return work.userLibraryEntries?.first?.edition?.pageCount
         }.reduce(0, +)
 
         return ReadingStatistics(

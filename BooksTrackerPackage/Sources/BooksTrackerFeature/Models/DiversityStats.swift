@@ -184,12 +184,22 @@ public struct DiversityStats: Sendable {
         let workDescriptor = FetchDescriptor<Work>()
         let works = try context.fetch(workDescriptor)
         let worksInLibrary = works.filter { work in
-            (work.userLibraryEntries?.isEmpty == false)
+            // DEFENSIVE: Validate work is still in context before accessing relationships
+            // During library reset, works may be deleted before this calculation completes
+            guard context.model(for: work.persistentModelID) as? Work != nil else {
+                return false
+            }
+            return (work.userLibraryEntries?.isEmpty == false)
         }
 
         // Calculate cultural region stats
         var regionCounts: [CulturalRegion: Int] = [:]
         for work in worksInLibrary {
+            // Additional validation before accessing nested relationships
+            guard context.model(for: work.persistentModelID) as? Work != nil else {
+                continue
+            }
+            
             if let primaryAuthor = work.primaryAuthor,
                let region = primaryAuthor.culturalRegion {
                 regionCounts[region, default: 0] += 1
@@ -221,6 +231,11 @@ public struct DiversityStats: Sendable {
         // Calculate language stats
         var languageCounts: [String: Int] = [:]
         for work in worksInLibrary {
+            // DEFENSIVE: Validate work is still in context before accessing properties
+            guard context.model(for: work.persistentModelID) as? Work != nil else {
+                continue
+            }
+            
             if let language = work.originalLanguage, !language.isEmpty {
                 languageCounts[language, default: 0] += 1
             }
