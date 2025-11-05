@@ -98,23 +98,50 @@ UserLibraryEntry many:1 Edition
 - All relationships optional
 - Predicates can't filter on to-many (filter in-memory)
 
-**🚨 CRITICAL: Insert-Before-Relate Lifecycle**
+**🚨 CRITICAL: SwiftData Persistent Identifier Lifecycle**
+
+SwiftData objects go through two ID states:
+1. **Temporary ID** - Assigned by `modelContext.insert()` (in-memory only)
+2. **Permanent ID** - Assigned by `modelContext.save()` (persisted to disk)
+
+**NEVER use `persistentModelID` before calling `save()`!**
+
 ```swift
-// ❌ WRONG: Crash with "temporary identifier"
-let work = Work(title: "...", authors: [author], ...)
+// ❌ WRONG: Using ID before save() - CRASH!
+let work = Work(title: "...")
+modelContext.insert(work)  // Assigns TEMPORARY ID
+let id = work.persistentModelID  // ❌ Still temporary!
+// Later when enrichment tries to use this ID:
+// Fatal error: "Illegal attempt to create a full future for a temporary identifier"
+
+// ✅ CORRECT: Save BEFORE capturing IDs
+let work = Work(title: "...")
+modelContext.insert(work)
+work.authors = [author]  // Relationships use temporary IDs (OK)
+try modelContext.save()  // IDs become PERMANENT
+let id = work.persistentModelID  // ✅ Now safe to use!
+```
+
+**Insert-Before-Relate Rule:**
+```swift
+// ❌ WRONG: Setting relationship during initialization
+let work = Work(title: "...", authors: [author])  // Crash!
 modelContext.insert(work)
 
 // ✅ CORRECT: Insert BEFORE setting relationships
-let work = Work(title: "...", authors: [], ...)
-modelContext.insert(work)  // Gets permanent ID
-
 let author = Author(name: "...")
-modelContext.insert(author)  // Gets permanent ID
+modelContext.insert(author)
 
-work.authors = [author]  // Safe - both have permanent IDs
+let work = Work(title: "...", authors: [])
+modelContext.insert(work)
+work.authors = [author]  // Set relationship AFTER both are inserted
 ```
 
-**Rule:** ALWAYS call `modelContext.insert()` IMMEDIATELY after creating a new model, BEFORE setting any relationships. SwiftData cannot create relationship futures with temporary IDs.
+**Rules:**
+1. Always `insert()` immediately after creating models
+2. Set relationships AFTER both objects are inserted
+3. Call `save()` before using `persistentModelID` for anything (enrichment queue, notifications, etc.)
+4. Temporary IDs cannot be used for futures, deduplication, or background tasks
 
 ### State Management - No ViewModels!
 

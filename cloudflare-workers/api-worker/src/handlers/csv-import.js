@@ -10,9 +10,12 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 /**
  * Handle CSV import request (POST /api/import/csv-gemini)
  *
+ * Uses Durable Object alarm to avoid ctx.waitUntil() timeout (Issue #249)
+ * Long-running Gemini API calls (20-60s) exceed Workers inactivity limits
+ *
  * @param {Request} request - Incoming request with FormData containing CSV file
  * @param {Object} env - Worker environment bindings
- * @param {ExecutionContext} ctx - Execution context for waitUntil
+ * @param {ExecutionContext} ctx - Execution context (not used for processing)
  * @returns {Promise<Response>} Response with jobId
  */
 export async function handleCSVImport(request, env, ctx) {
@@ -44,8 +47,10 @@ export async function handleCSVImport(request, env, ctx) {
     const doId = env.PROGRESS_WEBSOCKET_DO.idFromName(jobId);
     const doStub = env.PROGRESS_WEBSOCKET_DO.get(doId);
 
-    // Start background processing immediately (no waitForReady here - handled in background)
-    ctx.waitUntil(processCSVImport(csvFile, jobId, doStub, env));
+    // Read CSV content and schedule processing via Durable Object alarm
+    // This avoids ctx.waitUntil() timeout for long-running Gemini API calls
+    const csvText = await csvFile.text();
+    await doStub.scheduleCSVProcessing(csvText, jobId);
 
     return Response.json(
       createSuccessResponseObject({ jobId }, {}),
@@ -61,22 +66,20 @@ export async function handleCSVImport(request, env, ctx) {
 }
 
 /**
- * Background processor for CSV import (two-stage: parse → validate)
+ * Core CSV import processor (called by Durable Object alarm)
  *
  * Stage 1 (5-50%): Gemini parses CSV into structured book data
  * Stage 2 (50-100%): Validate parsed books (title and author required)
  *
  * Note: Enrichment now happens on iOS via EnrichmentQueue
  *
- * @param {File} csvFile - CSV file from FormData
+ * @param {string} csvText - Raw CSV file content
  * @param {string} jobId - Unique job identifier
- * @param {Object} doStub - ProgressWebSocketDO stub
+ * @param {Object} doStub - ProgressWebSocketDO stub (or 'this' from alarm context)
  * @param {Object} env - Worker environment bindings
  */
-export async function processCSVImport(csvFile, jobId, doStub, env) {
+export async function processCSVImportCore(csvText, jobId, doStub, env) {
   try {
-    // Read CSV content
-    const csvText = await csvFile.text();
 
     // Give the client a predictable window to establish the WebSocket connection.
     // This is a temporary workaround for the race condition where ctx.waitUntil()

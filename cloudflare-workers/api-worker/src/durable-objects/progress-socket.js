@@ -396,6 +396,90 @@ export class ProgressWebSocketDO extends DurableObject {
   }
 
   /**
+   * RPC Method: Schedule CSV processing via Durable Object alarm
+   * Called by csv-import.js to avoid ctx.waitUntil() timeout
+   *
+   * @param {string} csvText - Raw CSV file content
+   * @param {string} jobId - Job identifier
+   * @returns {Promise<{success: boolean}>}
+   */
+  async scheduleCSVProcessing(csvText, jobId) {
+    console.log(`[${jobId}] Scheduling CSV processing via alarm`);
+
+    // Store CSV data and job metadata in Durable Object storage
+    await this.storage.put('csvData', csvText);
+    await this.storage.put('jobId', jobId);
+    await this.storage.put('jobType', 'csv-import');
+
+    // Schedule alarm with 2-second delay to ensure WebSocket connects
+    // iOS needs time to: receive HTTP 202 → extract jobId → connect WebSocket → send ready
+    const alarmTime = Date.now() + 2000;
+    await this.storage.setAlarm(alarmTime);
+
+    console.log(`[${jobId}] CSV processing alarm scheduled for ${new Date(alarmTime).toISOString()}`);
+
+    return { success: true };
+  }
+
+  /**
+   * Alarm handler: Process long-running background jobs
+   * Runs outside ctx.waitUntil() timeout limits
+   */
+  async alarm() {
+    const jobType = await this.storage.get('jobType');
+    const jobId = await this.storage.get('jobId');
+
+    console.log(`[${jobId}] Alarm triggered for job type: ${jobType}`);
+
+    if (jobType === 'csv-import') {
+      await this.processCSVImportAlarm();
+    } else {
+      console.warn(`[${jobId}] Unknown job type in alarm: ${jobType}`);
+    }
+  }
+
+  /**
+   * Process CSV import inside Durable Object alarm
+   * No ctx.waitUntil() timeout - can run indefinitely
+   */
+  async processCSVImportAlarm() {
+    const csvText = await this.storage.get('csvData');
+    const jobId = await this.storage.get('jobId');
+
+    console.log(`[${jobId}] Starting CSV processing in alarm (no timeout limits)`);
+
+    try {
+      // Import processing logic (need to inline or import)
+      const { processCSVImportCore } = await import('../handlers/csv-import.js');
+
+      // Process CSV with access to this (DO stub methods)
+      await processCSVImportCore(csvText, jobId, this, this.env);
+
+      console.log(`[${jobId}] CSV processing completed successfully`);
+
+      // Clean up storage
+      await this.storage.delete('csvData');
+      await this.storage.delete('jobId');
+      await this.storage.delete('jobType');
+
+    } catch (error) {
+      console.error(`[${jobId}] CSV processing failed in alarm:`, error);
+
+      // Send error to client
+      await this.fail({
+        error: error.message,
+        fallbackAvailable: true,
+        suggestion: 'Try manual CSV import instead'
+      });
+
+      // Clean up storage even on error
+      await this.storage.delete('csvData');
+      await this.storage.delete('jobId');
+      await this.storage.delete('jobType');
+    }
+  }
+
+  /**
    * RPC Method: Initialize batch job with photo array
    * Called by batch-scan-handler.js when batch upload starts
    */

@@ -3,7 +3,7 @@ import SwiftData
 import SwiftUI
 
 /// Time period for filtering reading statistics
-public enum TimePeriod: String, CaseIterable, Identifiable, Hashable {
+public enum TimePeriod: String, CaseIterable, Identifiable, Hashable, Sendable {
     case allTime = "All Time"
     case thisYear = "This Year"
     case last30Days = "Last 30 Days"
@@ -139,7 +139,7 @@ public struct ReadingStats: Sendable {
 
     /// Thread-safe cache key that includes all parameters affecting calculation
     /// FIXED: Copilot Issue #3 - Include customStart/customEnd in cache key
-    private struct CacheKey: Hashable {
+    private struct CacheKey: Hashable, Sendable {
         let period: TimePeriod
         let customStart: Date?
         let customEnd: Date?

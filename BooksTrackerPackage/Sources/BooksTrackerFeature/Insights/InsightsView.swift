@@ -49,9 +49,8 @@ public struct InsightsView: View {
                 // Prevents crash from accessing deleted Author objects
                 diversityStats = nil
                 readingStats = nil
-                Task {
-                    await loadStatistics()
-                }
+                // Don't reload stats immediately - library is empty after reset
+                // Stats will reload automatically via .onAppear when user adds books
             }
         }
     }
