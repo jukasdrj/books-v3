@@ -40,7 +40,7 @@ export async function scanImageWithGemini(imageData, env) {
     }
     const base64Image = btoa(binary);
 
-    // Call Gemini API
+    // Call Gemini API with optimized prompting strategy
     const response = await fetch(
         'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
         {
@@ -50,48 +50,74 @@ export async function scanImageWithGemini(imageData, env) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                contents: [{
-                    parts: [
-                        {
-                            text: `Analyze this bookshelf image and extract all visible book titles, authors, and physical format. Return a JSON array with this exact format:
+                // System instruction: Define role and output format (static, won't change)
+                system_instruction: {
+                    parts: [{
+                        text: `You are an expert bookshelf analyzer specialized in extracting book metadata from shelf photos.
+
+Your output must be a valid JSON array with this exact schema:
 [
   {
     "title": "Book Title",
     "author": "Author Name",
-    "format": "hardcover",
-    "confidence": 0.95,
+    "format": "hardcover" | "paperback" | "mass-market" | "unknown",
+    "confidence": 0.0-1.0,
     "boundingBox": {
-      "x1": 0.1,
-      "y1": 0.2,
-      "x2": 0.3,
-      "y2": 0.4
+      "x1": 0.0-1.0,
+      "y1": 0.0-1.0,
+      "x2": 0.0-1.0,
+      "y2": 0.0-1.0
     }
   }
 ]
 
-Guidelines:
-- confidence: 0.0-1.0 (how certain you are about the text)
-- boundingBox: normalized coordinates (0.0-1.0) for the book spine
-- format: Detect physical format based on visual cues:
-  * "hardcover": Rigid spine, usually larger, cloth/embossed texture, square corners
-  * "paperback": Flexible spine, glossy cover, rounded spine edge
-  * "mass-market": Very small paperback (~4x7 inches), pocket-sized
-  * "unknown": Cannot determine from image
+Format Detection Rules:
+- "hardcover": Rigid spine, larger size, cloth/embossed texture, square corners
+- "paperback": Flexible spine, glossy cover, rounded spine edge
+- "mass-market": Small paperback (~4x7 inches), pocket-sized
+- "unknown": Cannot determine from visual cues
+
+Quality Standards:
 - Only include books where you can read at least the title
-- Skip decorative items, bookends, or non-book objects`
-                        },
+- Skip decorative items, bookends, or non-book objects
+- confidence: Your certainty level (0.0-1.0) about the extracted text
+- boundingBox: Normalized coordinates (0.0-1.0) for the book spine location`
+                    }]
+                },
+                contents: [{
+                    parts: [
                         {
                             inline_data: {
                                 mime_type: 'image/jpeg',
                                 data: base64Image
                             }
+                        },
+                        {
+                            text: `Analyze this bookshelf image step by step:
+
+1. **Identify individual book spines**: Look for vertical or horizontal book orientations
+2. **Handle common challenges**:
+   - Vertical spines with sideways text
+   - Horizontal stacks with upward-facing covers
+   - Partial visibility (books cut off at frame edges)
+   - Glare or reflections on glossy covers
+   - Low contrast text on dark spines
+   - Books tilted or at angles
+3. **Extract text carefully**: For each readable book spine:
+   - Title (required)
+   - Author name (if visible)
+   - Assign confidence based on text clarity
+4. **Detect physical format**: Based on visual cues (size, spine flexibility, texture)
+5. **Return structured JSON**: Only include books with readable titles
+
+Extract all visible book information now.`
                         }
                     ]
                 }],
                 generationConfig: {
-                    temperature: 0.1,  // Factual output
-                    topK: 1,           // Most likely tokens
-                    topP: 1,
+                    temperature: 0.4,  // Balanced: deterministic enough for accuracy, flexible enough for inference
+                    topK: 40,          // Allow some variation for better book spine recognition
+                    topP: 0.95,        // Nucleus sampling for quality
                     maxOutputTokens: 2048,  // Prevent truncation
                     responseMimeType: 'application/json'  // Force JSON output
                 }

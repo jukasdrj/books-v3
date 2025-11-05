@@ -6,8 +6,9 @@ const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/mo
  * Parse CSV file using Gemini 2.0 Flash API
  *
  * Features:
- * - Low temperature (0.1) for consistent, deterministic parsing
- * - Handles markdown code blocks in Gemini responses
+ * - System instructions for role definition (Gemini best practice)
+ * - Low temperature (0.2) for consistent, deterministic parsing
+ * - responseMimeType for guaranteed JSON output (no markdown stripping needed)
  * - Validates JSON array output
  * - Supports large CSVs (up to 8K tokens output)
  *
@@ -27,14 +28,32 @@ export async function parseCSVWithGemini(csvText, prompt, apiKey) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
+      // System instruction: Define the CSV parser's role
+      system_instruction: {
+        parts: [{
+          text: `You are an expert book data parser specialized in extracting structured book information from CSV exports.
+
+Your primary task is to intelligently map CSV columns to a standardized book data schema, handling various CSV formats from Goodreads, LibraryThing, StoryGraph, and custom exports.
+
+Core capabilities:
+- Auto-detect column headers regardless of format variations
+- Infer missing metadata (author gender, cultural region, genre) when possible
+- Normalize data types and formats (dates, ratings, ISBN formats)
+- Handle malformed or incomplete rows gracefully
+
+Always return ONLY a valid JSON array. Do not include explanatory text.`
+        }]
+      },
       contents: [{
         parts: [{
           text: fullPrompt
         }]
       }],
       generationConfig: {
-        temperature: 0.1, // Low temperature for consistent parsing
-        maxOutputTokens: 8192
+        temperature: 0.2, // Low temperature for consistent, deterministic parsing (slightly higher than 0.1 for better inference)
+        topP: 0.95,       // Nucleus sampling for quality
+        maxOutputTokens: 8192,
+        responseMimeType: 'application/json'  // Force JSON output (eliminates markdown code blocks)
       }
     })
   });
@@ -51,10 +70,11 @@ export async function parseCSVWithGemini(csvText, prompt, apiKey) {
     throw new Error('Gemini returned empty response');
   }
 
-  // Extract JSON array from response (handle markdown code blocks)
+  // With responseMimeType='application/json', text should be clean JSON
+  // Keep markdown stripping as defensive fallback for API version compatibility
   let jsonText = textResponse.trim();
 
-  // Remove markdown code blocks if present
+  // Remove markdown code blocks if present (defensive fallback)
   if (jsonText.startsWith('```json')) {
     jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
   } else if (jsonText.startsWith('```')) {
