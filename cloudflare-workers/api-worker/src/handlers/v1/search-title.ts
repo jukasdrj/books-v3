@@ -6,7 +6,7 @@
  */
 
 import type { ApiResponse, BookSearchResponse } from '../../types/responses.js';
-import { createSuccessResponse, createErrorResponse } from '../../types/responses.js';
+import { createSuccessResponseObject, createErrorResponseObject } from '../../types/responses.js';
 import { enrichMultipleBooks } from '../../services/enrichment.ts';
 import type { AuthorDTO } from '../../types/canonical.js';
 import { normalizeTitle } from '../../utils/normalization.js';
@@ -19,7 +19,7 @@ export async function handleSearchTitle(
 
   // Validation
   if (!query || query.trim().length === 0) {
-    return createErrorResponse(
+    return createErrorResponseObject(
       'Search query is required',
       'INVALID_QUERY',
       { query }
@@ -36,7 +36,7 @@ export async function handleSearchTitle(
 
     if (!works || works.length === 0) {
       // No books found in any provider
-      return createSuccessResponse(
+      return createSuccessResponseObject(
         { works: [], authors: [] },
         {
           processingTime: Date.now() - startTime,
@@ -57,7 +57,7 @@ export async function handleSearchTitle(
     });
     const authors = Array.from(authorsMap.values());
 
-    return createSuccessResponse(
+    return createSuccessResponseObject(
       { works, authors },
       {
         processingTime: Date.now() - startTime,
@@ -67,7 +67,7 @@ export async function handleSearchTitle(
     );
   } catch (error: any) {
     console.error('Error in v1 title search:', error);
-    return createErrorResponse(
+    return createErrorResponseObject(
       error.message || 'Internal server error',
       'INTERNAL_ERROR',
       { error: error.toString() },

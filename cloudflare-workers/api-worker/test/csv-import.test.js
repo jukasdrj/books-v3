@@ -15,16 +15,25 @@ describe('CSV Import Handler', () => {
     const mockEnv = {
       PROGRESS_WEBSOCKET_DO: {
         idFromName: vi.fn(() => 'do-id'),
-        get: vi.fn(() => ({}))
+        get: vi.fn(() => ({
+          ready: vi.fn().mockResolvedValue(undefined),
+          updateProgress: vi.fn().mockResolvedValue(undefined),
+          complete: vi.fn().mockResolvedValue(undefined),
+          fail: vi.fn().mockResolvedValue(undefined)
+        }))
       },
       ctx: { waitUntil: vi.fn() }
     };
 
     const response = await handleCSVImport(request, mockEnv);
-    const data = await response.json();
+    const body = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(data.jobId).toBeDefined();
+    expect(response.status).toBe(202);
+    expect(body.data).toBeDefined();
+    expect(body.data.jobId).toBeDefined();
+    expect(body.metadata).toBeDefined();
+    expect(body.metadata.timestamp).toBeDefined();
+    expect(body.error).toBeUndefined();
     expect(mockEnv.ctx.waitUntil).toHaveBeenCalled();
   });
 
@@ -39,6 +48,13 @@ describe('CSV Import Handler', () => {
     });
 
     const response = await handleCSVImport(request, {});
+    const body = await response.json();
+
     expect(response.status).toBe(413);
+    expect(body.data).toBeNull();
+    expect(body.error).toBeDefined();
+    expect(body.error.message).toContain('too large');
+    expect(body.error.code).toBe('E_FILE_TOO_LARGE');
+    expect(body.metadata.timestamp).toBeDefined();
   });
 });

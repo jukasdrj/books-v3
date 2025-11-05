@@ -31,10 +31,33 @@ actor EnrichmentAPIClient {
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
+              httpResponse.statusCode == 202 else {
+            // Try to decode error response to extract error code
+            if let errorResponse = try? JSONDecoder().decode(ApiResponse<EnrichmentResult>.self, from: data),
+               case .failure(let apiError, _) = errorResponse {
+                // Preserve error code in NSError userInfo
+                let userInfo: [String: Any] = [
+                    NSLocalizedDescriptionKey: apiError.message,
+                    "errorCode": apiError.code?.rawValue ?? "UNKNOWN",
+                    "details": apiError.details?.value ?? NSNull()
+                ]
+                throw NSError(domain: "EnrichmentAPIClient", code: (response as? HTTPURLResponse)?.statusCode ?? -1, userInfo: userInfo)
+            }
             throw URLError(.badServerResponse)
         }
 
-        return try JSONDecoder().decode(EnrichmentResult.self, from: data)
+        // Decode ResponseEnvelope and unwrap data
+        let envelope = try JSONDecoder().decode(ResponseEnvelope<EnrichmentResult>.self, from: data)
+
+        // Check for errors in envelope
+        if let error = envelope.error {
+            throw NSError(domain: "EnrichmentAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: error.message])
+        }
+
+        guard let result = envelope.data else {
+            throw URLError(.badServerResponse)
+        }
+
+        return result
     }
 }

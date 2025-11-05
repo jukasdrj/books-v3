@@ -6,7 +6,7 @@
  */
 
 import type { ApiResponse, BookSearchResponse } from '../../types/responses.js';
-import { createSuccessResponse, createErrorResponse } from '../../types/responses.js';
+import { createSuccessResponseObject, createErrorResponseObject } from '../../types/responses.js';
 import { enrichSingleBook } from '../../services/enrichment.ts';
 import type { AuthorDTO } from '../../types/canonical.js';
 import { normalizeISBN } from '../../utils/normalization.js';
@@ -38,7 +38,7 @@ export async function handleSearchISBN(
 
   // Validation
   if (!isbn || isbn.trim().length === 0) {
-    return createErrorResponse(
+    return createErrorResponseObject(
       'ISBN is required',
       'INVALID_ISBN',
       { isbn }
@@ -46,7 +46,7 @@ export async function handleSearchISBN(
   }
 
   if (!isValidISBN(isbn)) {
-    return createErrorResponse(
+    return createErrorResponseObject(
       'Invalid ISBN format. Must be valid ISBN-10 or ISBN-13',
       'INVALID_ISBN',
       { isbn }
@@ -63,7 +63,7 @@ export async function handleSearchISBN(
 
     if (!result) {
       // Book not found in any provider
-      return createSuccessResponse(
+      return createSuccessResponseObject(
         { works: [], authors: [] },
         {
           processingTime: Date.now() - startTime,
@@ -77,7 +77,7 @@ export async function handleSearchISBN(
     // Extract authors from the work for the canonical response format
     const authors: AuthorDTO[] = result.authors || [];
 
-    return createSuccessResponse(
+    return createSuccessResponseObject(
       { works: [result], authors },
       {
         processingTime: Date.now() - startTime,
@@ -87,7 +87,7 @@ export async function handleSearchISBN(
     );
   } catch (error: any) {
     console.error('Error in v1 ISBN search:', error);
-    return createErrorResponse(
+    return createErrorResponseObject(
       error.message || 'Internal server error',
       'INTERNAL_ERROR',
       { error: error.toString() },

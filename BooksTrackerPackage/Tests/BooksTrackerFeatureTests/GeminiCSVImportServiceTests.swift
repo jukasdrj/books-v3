@@ -2,6 +2,20 @@ import Testing
 import Foundation
 @testable import BooksTrackerFeature
 
+// MARK: - ResponseEnvelope Test Helper
+
+extension ResponseEnvelope {
+    /// Create a mock ResponseEnvelope for testing
+    static func mock<T>(with data: T) -> ResponseEnvelope<T> {
+        ResponseEnvelope(
+            data: data,
+            metadata: ResponseMetadata(timestamp: ISO8601DateFormatter().string(from: Date()))
+        )
+    }
+}
+
+// MARK: - Tests
+
 @MainActor
 @Suite("Gemini CSV Import Service Tests")
 struct GeminiCSVImportServiceTests {

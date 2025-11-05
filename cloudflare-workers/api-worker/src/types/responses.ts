@@ -13,7 +13,7 @@ import type { WorkDTO, EditionDTO, AuthorDTO } from './canonical.js';
 // ============================================================================
 
 /**
- * Response metadata included in every response
+ * Response metadata included in every response (legacy)
  */
 export interface ResponseMeta {
   timestamp: string; // ISO 8601
@@ -22,6 +22,36 @@ export interface ResponseMeta {
   cached?: boolean;
   cacheAge?: number; // seconds since cached
   requestId?: string; // for distributed tracing (future)
+}
+
+/**
+ * Response metadata for new envelope format
+ */
+export interface ResponseMetadata {
+  timestamp: string; // ISO 8601
+  traceId?: string; // for distributed tracing
+  processingTime?: number; // milliseconds
+  provider?: DataProvider;
+  cached?: boolean;
+}
+
+/**
+ * API Error structure
+ */
+export interface ApiError {
+  message: string;
+  code?: string;
+  details?: any;
+}
+
+/**
+ * Universal response envelope (new format)
+ * Used for all /v1/* endpoints requiring standardized responses
+ */
+export interface ResponseEnvelope<T> {
+  data: T | null;
+  metadata: ResponseMetadata;
+  error?: ApiError;
 }
 
 /**
@@ -95,9 +125,10 @@ export interface BookshelfScanResponse {
 // ============================================================================
 
 /**
- * Create success response
+ * Create success response object (legacy format)
+ * Returns SuccessResponse<T> object, not Response
  */
-export function createSuccessResponse<T>(
+export function createSuccessResponseObject<T>(
   data: T,
   meta: Partial<ResponseMeta> = {}
 ): SuccessResponse<T> {
@@ -112,9 +143,10 @@ export function createSuccessResponse<T>(
 }
 
 /**
- * Create error response
+ * Create error response object (legacy format)
+ * Returns ErrorResponse object, not Response
  */
-export function createErrorResponse(
+export function createErrorResponseObject(
   message: string,
   code?: ApiErrorCode,
   details?: any,

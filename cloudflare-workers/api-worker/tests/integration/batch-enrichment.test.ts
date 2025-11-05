@@ -58,12 +58,16 @@ describe('POST /api/enrichment/start (integration)', () => {
 
       expect(response.status).toBe(202);
 
-      const data = await response.json();
-      expect(data.jobId).toBe(jobId);
-      expect(data.status).toBe('started');
-      expect(data.totalBooks).toBe(3);
-      expect(data.message).toContain('ws/progress');
-      expect(data.message).toContain(jobId);
+      const body = await response.json();
+      expect(body.data).toBeDefined();
+      expect(body.data.jobId).toBe(jobId);
+      expect(body.data.status).toBe('started');
+      expect(body.data.totalBooks).toBe(3);
+      expect(body.data.message).toContain('ws/progress');
+      expect(body.data.message).toContain(jobId);
+      expect(body.metadata).toBeDefined();
+      expect(body.metadata.timestamp).toBeDefined();
+      expect(body.error).toBeUndefined();
     });
 
     it('should handle single workId', async () => {
@@ -78,8 +82,10 @@ describe('POST /api/enrichment/start (integration)', () => {
 
       expect(response.status).toBe(202);
 
-      const data = await response.json();
-      expect(data.totalBooks).toBe(1);
+      const body = await response.json();
+      expect(body.data).toBeDefined();
+      expect(body.data.totalBooks).toBe(1);
+      expect(body.metadata.timestamp).toBeDefined();
     });
 
     it('should handle large batch of workIds (50+)', async () => {
@@ -94,8 +100,10 @@ describe('POST /api/enrichment/start (integration)', () => {
 
       expect(response.status).toBe(202);
 
-      const data = await response.json();
-      expect(data.totalBooks).toBe(50);
+      const body = await response.json();
+      expect(body.data).toBeDefined();
+      expect(body.data.totalBooks).toBe(50);
+      expect(body.metadata.timestamp).toBeDefined();
     });
 
     it('should handle 100 workIds (stress test)', async () => {
@@ -110,8 +118,10 @@ describe('POST /api/enrichment/start (integration)', () => {
 
       expect(response.status).toBe(202);
 
-      const data = await response.json();
-      expect(data.totalBooks).toBe(100);
+      const body = await response.json();
+      expect(body.data).toBeDefined();
+      expect(body.data.totalBooks).toBe(100);
+      expect(body.metadata.timestamp).toBeDefined();
     });
   });
 
@@ -131,9 +141,11 @@ describe('POST /api/enrichment/start (integration)', () => {
 
       expect(response.status).toBe(400);
 
-      const data = await response.json();
-      expect(data.error).toBeDefined();
-      expect(data.error.toLowerCase()).toContain('jobid');
+      const body = await response.json();
+      expect(body.data).toBeNull();
+      expect(body.error).toBeDefined();
+      expect(body.error.message.toLowerCase()).toContain('jobid');
+      expect(body.metadata.timestamp).toBeDefined();
     });
 
     it('should return 400 for missing workIds', async () => {
@@ -147,9 +159,11 @@ describe('POST /api/enrichment/start (integration)', () => {
 
       expect(response.status).toBe(400);
 
-      const data = await response.json();
-      expect(data.error).toBeDefined();
-      expect(data.error.toLowerCase()).toContain('workids');
+      const body = await response.json();
+      expect(body.data).toBeNull();
+      expect(body.error).toBeDefined();
+      expect(body.error.message.toLowerCase()).toContain('workids');
+      expect(body.metadata.timestamp).toBeDefined();
     });
 
     it('should return 400 for empty workIds array', async () => {
@@ -164,9 +178,11 @@ describe('POST /api/enrichment/start (integration)', () => {
 
       expect(response.status).toBe(400);
 
-      const data = await response.json();
-      expect(data.error).toBeDefined();
-      expect(data.error.toLowerCase()).toContain('empty');
+      const body = await response.json();
+      expect(body.data).toBeNull();
+      expect(body.error).toBeDefined();
+      expect(body.error.message.toLowerCase()).toContain('empty');
+      expect(body.metadata.timestamp).toBeDefined();
     });
 
     it('should return 400 for workIds as non-array', async () => {
@@ -181,8 +197,10 @@ describe('POST /api/enrichment/start (integration)', () => {
 
       expect(response.status).toBe(400);
 
-      const data = await response.json();
-      expect(data.error).toBeDefined();
+      const body = await response.json();
+      expect(body.data).toBeNull();
+      expect(body.error).toBeDefined();
+      expect(body.metadata.timestamp).toBeDefined();
     });
 
     it('should return 400 for malformed JSON', async () => {
@@ -213,25 +231,35 @@ describe('POST /api/enrichment/start (integration)', () => {
 
       expect(response.status).toBe(202);
 
-      const data = await response.json();
+      const body = await response.json();
 
-      // Validate required fields
-      expect(data).toHaveProperty('jobId');
-      expect(data).toHaveProperty('status');
-      expect(data).toHaveProperty('totalBooks');
-      expect(data).toHaveProperty('message');
+      // Validate envelope structure
+      expect(body).toHaveProperty('data');
+      expect(body).toHaveProperty('metadata');
+      expect(body.data).toBeDefined();
+      expect(body.metadata).toBeDefined();
+
+      // Validate metadata
+      expect(body.metadata.timestamp).toBeDefined();
+      expect(typeof body.metadata.timestamp).toBe('string');
+
+      // Validate data payload
+      expect(body.data).toHaveProperty('jobId');
+      expect(body.data).toHaveProperty('status');
+      expect(body.data).toHaveProperty('totalBooks');
+      expect(body.data).toHaveProperty('message');
 
       // Validate types
-      expect(typeof data.jobId).toBe('string');
-      expect(typeof data.status).toBe('string');
-      expect(typeof data.totalBooks).toBe('number');
-      expect(typeof data.message).toBe('string');
+      expect(typeof body.data.jobId).toBe('string');
+      expect(typeof body.data.status).toBe('string');
+      expect(typeof body.data.totalBooks).toBe('number');
+      expect(typeof body.data.message).toBe('string');
 
       // Validate values
-      expect(data.jobId).toBe(jobId);
-      expect(data.status).toBe('started');
-      expect(data.totalBooks).toBe(2);
-      expect(data.message).toContain('ws/progress');
+      expect(body.data.jobId).toBe(jobId);
+      expect(body.data.status).toBe('started');
+      expect(body.data.totalBooks).toBe(2);
+      expect(body.data.message).toContain('ws/progress');
     });
 
     it('should include CORS headers', async () => {
@@ -268,11 +296,11 @@ describe('POST /api/enrichment/start (integration)', () => {
         body: JSON.stringify({ workIds, jobId })
       });
 
-      const data = await response.json();
+      const body = await response.json();
 
       // Message should tell client how to connect to WebSocket
-      expect(data.message).toContain('ws/progress');
-      expect(data.message).toContain(jobId);
+      expect(body.data.message).toContain('ws/progress');
+      expect(body.data.message).toContain(jobId);
 
       // Expected format: "Enrichment job started. Connect to /ws/progress?jobId=xxx for real-time updates."
     });
@@ -292,12 +320,12 @@ describe('POST /api/enrichment/start (integration)', () => {
         body: JSON.stringify({ workIds, jobId: 'test-job-2' })
       });
 
-      const data1 = await response1.json();
-      const data2 = await response2.json();
+      const body1 = await response1.json();
+      const body2 = await response2.json();
 
-      expect(data1.jobId).toBe('test-job-1');
-      expect(data2.jobId).toBe('test-job-2');
-      expect(data1.jobId).not.toBe(data2.jobId);
+      expect(body1.data.jobId).toBe('test-job-1');
+      expect(body2.data.jobId).toBe('test-job-2');
+      expect(body1.data.jobId).not.toBe(body2.data.jobId);
     });
   });
 

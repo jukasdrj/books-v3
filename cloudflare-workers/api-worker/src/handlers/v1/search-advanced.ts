@@ -6,7 +6,7 @@
  */
 
 import type { ApiResponse, BookSearchResponse } from '../../types/responses.js';
-import { createSuccessResponse, createErrorResponse } from '../../types/responses.js';
+import { createSuccessResponseObject, createErrorResponseObject } from '../../types/responses.js';
 import { enrichMultipleBooks } from '../../services/enrichment.ts';
 import type { AuthorDTO } from '../../types/canonical.js';
 import { normalizeTitle, normalizeAuthor } from '../../utils/normalization.js';
@@ -23,7 +23,7 @@ export async function handleSearchAdvanced(
   const hasAuthor = author && author.trim().length > 0;
 
   if (!hasTitle && !hasAuthor) {
-    return createErrorResponse(
+    return createErrorResponseObject(
       'At least one of title or author is required',
       'INVALID_QUERY',
       { title, author }
@@ -49,7 +49,7 @@ export async function handleSearchAdvanced(
 
     if (!works || works.length === 0) {
       // No books found in any provider
-      return createSuccessResponse(
+      return createSuccessResponseObject(
         { works: [], authors: [] },
         {
           processingTime: Date.now() - startTime,
@@ -70,7 +70,7 @@ export async function handleSearchAdvanced(
     });
     const authors = Array.from(authorsMap.values());
 
-    return createSuccessResponse(
+    return createSuccessResponseObject(
       { works, authors },
       {
         processingTime: Date.now() - startTime,
@@ -80,7 +80,7 @@ export async function handleSearchAdvanced(
     );
   } catch (error: any) {
     console.error('Error in v1 advanced search:', error);
-    return createErrorResponse(
+    return createErrorResponseObject(
       error.message || 'Internal server error',
       'INTERNAL_ERROR',
       { error: error.toString() },

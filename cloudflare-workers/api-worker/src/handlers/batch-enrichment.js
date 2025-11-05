@@ -1,6 +1,7 @@
 // src/handlers/batch-enrichment.js
 import { enrichBooksParallel } from '../services/parallel-enrichment.js';
 import { enrichSingleBook } from '../services/enrichment.ts';
+import { createSuccessResponse, createErrorResponse } from '../utils/api-responses.js';
 
 /**
  * Handle batch enrichment request (POST /api/enrichment/batch)
@@ -20,11 +21,15 @@ export async function handleBatchEnrichment(request, env) {
     const { books, jobId } = await request.json();
 
     if (!books || !Array.isArray(books)) {
-      return Response.json({ error: 'Invalid books array' }, { status: 400 });
+      return createErrorResponse('Invalid books array', 400, 'E_INVALID_REQUEST');
     }
 
     if (!jobId) {
-      return Response.json({ error: 'Missing jobId' }, { status: 400 });
+      return createErrorResponse('Missing jobId', 400, 'E_INVALID_REQUEST');
+    }
+
+    if (books.length === 0) {
+      return createErrorResponse('Empty books array', 400, 'E_EMPTY_BATCH');
     }
 
     // Get WebSocket DO stub
@@ -34,10 +39,10 @@ export async function handleBatchEnrichment(request, env) {
     // Start background enrichment
     env.ctx.waitUntil(processBatchEnrichment(books, doStub, env));
 
-    return Response.json({ jobId });
+    return createSuccessResponse({ jobId }, {}, 202);
 
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    return createErrorResponse(error.message, 500, 'E_INTERNAL');
   }
 }
 

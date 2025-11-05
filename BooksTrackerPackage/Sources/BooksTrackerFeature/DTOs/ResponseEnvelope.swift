@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - Response Metadata
 
-/// Response metadata included in every response
+/// Response metadata included in every response (LEGACY - use ResponseMetadata for new endpoints)
 public struct ResponseMeta: Codable, Sendable {
     /// ISO 8601 timestamp
     public let timestamp: String
@@ -28,6 +28,24 @@ public struct ResponseMeta: Codable, Sendable {
 
     /// Request ID for distributed tracing (future)
     public let requestId: String?
+}
+
+/// Response metadata for new envelope format
+public struct ResponseMetadata: Codable, Sendable {
+    /// ISO 8601 timestamp
+    public let timestamp: String
+
+    /// Request tracing ID for distributed systems
+    public let traceId: String?
+
+    /// Processing time in milliseconds
+    public let processingTime: Int?
+
+    /// Data provider used
+    public let provider: String?
+
+    /// Whether response was cached
+    public let cached: Bool?
 }
 
 // MARK: - API Response (Discriminated Union)
@@ -87,6 +105,27 @@ public enum ApiResponse<T: Codable>: Codable {
     }
 }
 
+// MARK: - New Response Envelope
+
+/// Universal response envelope for new endpoints
+/// Mirrors TypeScript ResponseEnvelope in api-worker/src/types/responses.ts
+public struct ResponseEnvelope<T: Codable>: Codable {
+    /// Response payload (null on error)
+    public let data: T?
+
+    /// Response metadata (always present)
+    public let metadata: ResponseMetadata
+
+    /// Error information (present on failure)
+    public let error: ApiErrorInfo?
+
+    public struct ApiErrorInfo: Codable, Sendable {
+        public let message: String
+        public let code: String?
+        public let details: AnyCodable?
+    }
+}
+
 // MARK: - Domain-Specific Response Types
 
 /// Book search response
@@ -119,6 +158,60 @@ public struct BookshelfScanResponse: Codable, Sendable {
         public let confidence: Double
     }
 }
+
+// MARK: - ResponseEnvelope Contract Documentation
+
+/// # ResponseEnvelope Contract
+///
+/// The ResponseEnvelope provides a standardized wrapper for all API responses, enabling
+/// consistent error handling and type-safe response parsing across the entire application.
+///
+/// ## Type Safety Contract
+///
+/// When decoding a ResponseEnvelope<T>, the following guarantees apply:
+///
+/// ### Success Case (.success)
+/// - `data` is guaranteed to be non-nil and of type T
+/// - `error` is guaranteed to be nil
+/// - `meta` contains response metadata (timestamp, processing time, etc.)
+///
+/// ### Failure Case (.failure)
+/// - `data` is guaranteed to be nil
+/// - `error` is guaranteed to be non-nil with a message and optional code
+/// - `meta` contains response metadata
+///
+/// ## Usage Pattern
+///
+/// ```swift
+/// let response = try decoder.decode(ApiResponse<BookSearchResponse>.self, from: data)
+///
+/// switch response {
+/// case .success(let searchData, let meta):
+///     // searchData is BookSearchResponse, guaranteed non-nil
+///     print("Found \(searchData.works.count) works")
+///
+/// case .failure(let error, let meta):
+///     // error contains message and optional code
+///     print("Error: \(error.message), Code: \(error.code ?? "none")")
+/// }
+/// ```
+///
+/// ## Error Handling
+///
+/// All errors from the API include:
+/// - `message`: Human-readable error description
+/// - `code`: Optional DTOApiErrorCode for programmatic handling
+/// - `details`: Optional additional context (use `detailsAs(_:)` for type-safe extraction)
+///
+/// ## Backend Contract
+///
+/// The TypeScript backend must ensure:
+/// 1. Success responses have non-null `data` field
+/// 2. Error responses have null `data` field and non-null `error` field
+/// 3. Both cases include `meta` with at minimum a timestamp
+///
+/// This contract is enforced by the discriminated union pattern in both TypeScript
+/// and Swift, preventing invalid response states at compile time.
 
 // MARK: - AnyCodable Helper
 

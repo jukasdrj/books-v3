@@ -3,6 +3,7 @@ import { validateCSV } from '../utils/csv-validator.js';
 import { buildCSVParserPrompt, PROMPT_VERSION } from '../prompts/csv-parser-prompt.js';
 import { generateCSVCacheKey } from '../utils/cache-keys.js';
 import { parseCSVWithGemini } from '../providers/gemini-csv-provider.js';
+import { createSuccessResponse, createErrorResponse } from '../utils/api-responses.js';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -19,15 +20,17 @@ export async function handleCSVImport(request, env) {
     const csvFile = formData.get('file');
 
     if (!csvFile) {
-      return Response.json({ error: 'No file provided' }, { status: 400 });
+      return createErrorResponse('No file provided', 400, 'E_MISSING_FILE');
     }
 
     // Check file size
     if (csvFile.size > MAX_FILE_SIZE) {
-      return Response.json({
-        error: 'CSV file too large (max 10MB)',
-        suggestion: 'Split into smaller files or use batch import'
-      }, { status: 413 });
+      return createErrorResponse(
+        'CSV file too large (max 10MB)',
+        413,
+        'E_FILE_TOO_LARGE',
+        { suggestion: 'Try splitting your CSV into smaller files or removing unnecessary columns' }
+      );
     }
 
     // Generate jobId
@@ -40,10 +43,10 @@ export async function handleCSVImport(request, env) {
     // Start background processing
     env.ctx.waitUntil(processCSVImport(csvFile, jobId, doStub, env));
 
-    return Response.json({ jobId });
+    return createSuccessResponse({ jobId }, {}, 202);
 
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    return createErrorResponse(error.message, 500, 'E_INTERNAL');
   }
 }
 
