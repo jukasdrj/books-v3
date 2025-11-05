@@ -78,9 +78,16 @@ actor GeminiCSVImportService {
     /// - Returns: JobId for progress tracking
     /// - Throws: GeminiCSVImportError on failure
     func uploadCSV(csvText: String) async throws -> String {
+        #if DEBUG
+        print("[CSV Upload] Starting upload, size: \(csvText.utf8.count) bytes")
+        #endif
+
         // Validate file size
         let dataSize = csvText.utf8.count
         guard dataSize <= maxFileSize else {
+            #if DEBUG
+            print("[CSV Upload] ❌ File too large: \(dataSize) bytes")
+            #endif
             throw GeminiCSVImportError.fileTooLarge(dataSize)
         }
 
@@ -89,6 +96,17 @@ actor GeminiCSVImportService {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        // Timeout rationale:
+        // The timeout is set to 120 seconds (2 minutes) to accommodate uploading files up to the maximum allowed size (10MB, see `maxFileSize`)
+        // under typical network conditions. This value should be sufficient for most users on modern networks.
+        // If the backend's MAX_FILE_SIZE is increased, or if users frequently experience timeouts on slow connections,
+        // consider increasing this value or scaling it based on file size.
+        request.timeoutInterval = 120 // 2 minute timeout for files up to 10MB
+
+        #if DEBUG
+        print("[CSV Upload] Request configured, endpoint: \(endpoint)")
+        #endif
 
         var body = Data()
 
@@ -104,9 +122,19 @@ actor GeminiCSVImportService {
 
         request.httpBody = body
 
+        #if DEBUG
+        print("[CSV Upload] Multipart body constructed, size: \(body.count) bytes")
+        #endif
+        #if DEBUG
+        print("[CSV Upload] Sending request to backend...")
+        #endif
+
         // Execute request
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
+            #if DEBUG
+            print("[CSV Upload] ✅ Received response from backend")
+            #endif
 
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw GeminiCSVImportError.invalidResponse
@@ -126,25 +154,34 @@ actor GeminiCSVImportService {
                 throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessage)
             }
 
-            // Decode ResponseEnvelope<GeminiCSVImportResponse>
+            // Decode canonical ApiResponse<GeminiCSVImportResponse>
             let decoder = JSONDecoder()
-            let envelope = try decoder.decode(ResponseEnvelope<GeminiCSVImportResponse>.self, from: data)
+            let envelope = try decoder.decode(ApiResponse<GeminiCSVImportResponse>.self, from: data)
 
-            // Check for errors
-            if let error = envelope.error {
+            // Check response type
+            switch envelope {
+            case .success(let importResponse, _):
+                #if DEBUG
+                print("[CSV Upload] ✅ Got jobId: \(importResponse.jobId)")
+                #endif
+                return importResponse.jobId
+
+            case .failure(let error, _):
+                #if DEBUG
+                print("[CSV Upload] ❌ API error: \(error.message)")
+                #endif
                 throw GeminiCSVImportError.serverError(httpResponse.statusCode, error.message)
             }
 
-            // Unwrap data
-            guard let importResponse = envelope.data else {
-                throw GeminiCSVImportError.invalidResponse
-            }
-
-            return importResponse.jobId
-
         } catch let error as GeminiCSVImportError {
+            #if DEBUG
+            print("[CSV Upload] ❌ CSV Import Error: \(error.localizedDescription)")
+            #endif
             throw error
         } catch {
+            #if DEBUG
+            print("[CSV Upload] ❌ Network Error: \(error.localizedDescription)")
+            #endif
             throw GeminiCSVImportError.networkError(error)
         }
     }

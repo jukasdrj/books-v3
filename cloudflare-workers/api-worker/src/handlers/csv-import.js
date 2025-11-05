@@ -3,7 +3,7 @@ import { validateCSV } from '../utils/csv-validator.js';
 import { buildCSVParserPrompt, PROMPT_VERSION } from '../prompts/csv-parser-prompt.js';
 import { generateCSVCacheKey } from '../utils/cache-keys.js';
 import { parseCSVWithGemini } from '../providers/gemini-csv-provider.js';
-import { createSuccessResponse, createErrorResponse } from '../utils/api-responses.js';
+import { createSuccessResponseObject, createErrorResponseObject } from '../types/responses.js';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -21,16 +21,19 @@ export async function handleCSVImport(request, env, ctx) {
     const csvFile = formData.get('file');
 
     if (!csvFile) {
-      return createErrorResponse('No file provided', 400, 'E_MISSING_FILE');
+      return Response.json(
+        createErrorResponseObject('No file provided', 'E_MISSING_FILE'),
+        { status: 400 }
+      );
     }
 
     // Check file size
     if (csvFile.size > MAX_FILE_SIZE) {
-      return createErrorResponse(
-        'CSV file too large (max 10MB)',
-        413,
-        'E_FILE_TOO_LARGE',
-        { suggestion: 'Try splitting your CSV into smaller files or removing unnecessary columns' }
+      return Response.json(
+        createErrorResponseObject('CSV file too large (max 10MB)', 'E_FILE_TOO_LARGE', {
+          suggestion: 'Try splitting your CSV into smaller files or removing unnecessary columns'
+        }),
+        { status: 413 }
       );
     }
 
@@ -41,13 +44,19 @@ export async function handleCSVImport(request, env, ctx) {
     const doId = env.PROGRESS_WEBSOCKET_DO.idFromName(jobId);
     const doStub = env.PROGRESS_WEBSOCKET_DO.get(doId);
 
-    // Start background processing
+    // Start background processing immediately (no waitForReady here - handled in background)
     ctx.waitUntil(processCSVImport(csvFile, jobId, doStub, env));
 
-    return createSuccessResponse({ jobId }, {}, 202);
+    return Response.json(
+      createSuccessResponseObject({ jobId }, {}),
+      { status: 202 }
+    );
 
   } catch (error) {
-    return createErrorResponse(error.message, 500, 'E_INTERNAL');
+    return Response.json(
+      createErrorResponseObject(error.message, 'E_INTERNAL'),
+      { status: 500 }
+    );
   }
 }
 
@@ -69,11 +78,14 @@ export async function processCSVImport(csvFile, jobId, doStub, env) {
     // Read CSV content
     const csvText = await csvFile.text();
 
-    // CRITICAL: Wait for WebSocket ready signal before processing
-    // This prevents race condition where we send updates before client connects
-    console.log(`[CSV Import] Waiting for WebSocket ready signal for job ${jobId}`);
+    // Give the client a predictable window to establish the WebSocket connection.
+    // This is a temporary workaround for the race condition where ctx.waitUntil()
+    // starts background processing immediately, before iOS can receive HTTP 202
+    // response and connect WebSocket. 200ms provides reliable buffer for connection.
+    await new Promise(resolve => setTimeout(resolve, 200));
 
-    const readyResult = await doStub.waitForReady(5000); // 5 second timeout
+    console.log(`[CSV Import] Waiting for WebSocket ready signal for job ${jobId}`);
+    const readyResult = await doStub.waitForReady(10000); // 10 second timeout
 
     if (readyResult.timedOut || readyResult.disconnected) {
       const reason = readyResult.timedOut ? 'timeout' : 'WebSocket not connected';
@@ -94,38 +106,31 @@ export async function processCSVImport(csvFile, jobId, doStub, env) {
     await doStub.updateProgress(0.05, 'Uploading CSV to Gemini...');
 
     const cacheKey = await generateCSVCacheKey(csvText, PROMPT_VERSION);
-    let parsedBooks = await env.CACHE_KV.get(cacheKey, 'json');
+    let parsedBooks = await env.KV_CACHE.get(cacheKey, 'json');
 
     if (!parsedBooks) {
-      // Keep-alive interval
-      const keepAliveInterval = setInterval(async () => {
-        await doStub.updateProgress(0.25, 'Gemini is parsing your file...', true);
-      }, 5000);
+      // NOTE: setInterval keep-alive removed - it doesn't prevent waitUntil() timeout
+      // because async callbacks don't register as I/O activity in Workers runtime.
+      // Gemini 2.0 Flash typically responds in <20 seconds for CSV parsing.
+      const prompt = buildCSVParserPrompt();
+      parsedBooks = await callGemini(csvText, prompt, env);
 
-      try {
-        const prompt = buildCSVParserPrompt();
-        parsedBooks = await callGemini(csvText, prompt, env);
-
-        // Validate Gemini response
-        if (!Array.isArray(parsedBooks) || parsedBooks.length === 0) {
-          throw new Error('Gemini returned invalid format');
-        }
-
-        const validBooks = parsedBooks.filter(b => b.title && b.author);
-        if (validBooks.length === 0) {
-          throw new Error('No valid books found in CSV');
-        }
-
-        parsedBooks = validBooks;
-
-        // Cache for 7 days
-        await env.CACHE_KV.put(cacheKey, JSON.stringify(parsedBooks), {
-          expirationTtl: 604800
-        });
-
-      } finally {
-        clearInterval(keepAliveInterval);
+      // Validate Gemini response
+      if (!Array.isArray(parsedBooks) || parsedBooks.length === 0) {
+        throw new Error('Gemini returned invalid format');
       }
+
+      const validBooks = parsedBooks.filter(b => b.title && b.author);
+      if (validBooks.length === 0) {
+        throw new Error('No valid books found in CSV');
+      }
+
+      parsedBooks = validBooks;
+
+      // Cache for 7 days
+      await env.KV_CACHE.put(cacheKey, JSON.stringify(parsedBooks), {
+        expirationTtl: 604800
+      });
     }
 
     // Stage 2: Validation (50-100%)
@@ -160,6 +165,8 @@ export async function processCSVImport(csvFile, jobId, doStub, env) {
       suggestion: 'Try manual CSV import instead'
     });
   }
+  // NOTE: No finally block! complete() and fail() handle WebSocket cleanup with
+  // delayed closeConnection() to ensure final messages are delivered to client.
 }
 
 /**
@@ -171,7 +178,23 @@ export async function processCSVImport(csvFile, jobId, doStub, env) {
  * @returns {Promise<Array<Object>>} Parsed book data
  */
 async function callGemini(csvText, prompt, env) {
-  const apiKey = env.GEMINI_API_KEY;
+  /**
+   * GEMINI_API_KEY binding supports two patterns:
+   *   1. Secrets Store binding (recommended for production): env.GEMINI_API_KEY is a SecretsStore binding and requires .get() to retrieve the value.
+   *   2. Plain string binding (for local development/testing): env.GEMINI_API_KEY is a string.
+   *
+   * This dynamic resolution allows local development with a plaintext key (e.g., via wrangler.toml)
+   * while ensuring production uses the more secure Secrets Store.
+   *
+   * - Use Secrets Store in production for security: `[[secrets]]` in wrangler.toml, or dashboard binding.
+   * - Use plain string only for local/dev/testing: `GEMINI_API_KEY = "sk-..."` in wrangler.toml `[vars]`.
+   *
+   * If neither is configured, an error will be thrown.
+   */
+  const apiKey = env.GEMINI_API_KEY?.get
+    ? await env.GEMINI_API_KEY.get()
+    : env.GEMINI_API_KEY;
+
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY not configured');
   }
