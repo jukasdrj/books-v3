@@ -6,6 +6,60 @@ All notable changes, achievements, and debugging victories for this project.
 
 ## [Unreleased]
 
+### Backend 🔧 - ResponseEnvelope API Migration (November 5, 2025)
+
+**Migrated backend endpoints to canonical ResponseEnvelope format for consistent error handling and future iOS integration.**
+
+#### Changes
+
+**Backend Utilities:**
+- ✅ Added `createSuccessResponse()` and `createErrorResponse()` utilities
+- ✅ Standardized error codes: `E_INVALID_REQUEST`, `E_INVALID_IMAGES`, `E_INTERNAL`
+- ✅ All responses wrapped in `{ data, metadata, error? }` envelope
+
+**Migrated Endpoints:**
+- ✅ `/api/scan-bookshelf/batch` (batch bookshelf scanning)
+  - Handler: 40-line simplification (10 insertions, 50 deletions)
+  - Tests: Updated all 6 test cases for envelope validation
+
+**Not Migrated (See Issue #230):**
+- ⏸️ iOS BookshelfAIService (endpoint is `/api/*` not `/v1/*`)
+- ⏸️ No iOS code changes required (Phase 4.3-4.4 deferred)
+
+#### Validation Results
+
+- ✅ Backend unit tests: 128 passed
+- ✅ ResponseEnvelope utility tests: 4/4 passed
+- ✅ Deployed to production
+- ✅ Smoke test: Envelope structure verified in live responses
+
+#### Example Response
+
+```json
+{
+  "data": null,
+  "error": {
+    "message": "At least one image required",
+    "code": "E_INVALID_IMAGES"
+  },
+  "metadata": {
+    "timestamp": "2025-11-05T02:21:16.271Z"
+  }
+}
+```
+
+#### Commits
+
+- `34d1913` - refactor(backend): migrate batch-scan handlers to ResponseEnvelope
+- `f591bcc` - test(backend): update batch-scan tests for ResponseEnvelope
+
+#### Related
+
+- Plan: `docs/plans/2025-11-04-api-contract-envelope-refactoring.md`
+- Issue: [#230](https://github.com/jukasdrj/books-tracker-v1/issues/230) - Future `/v1/batch-scan` migration
+
+---
+
 ### Performance 🚀 - App Launch Optimization: 60% Faster Cold Launch (November 4, 2025)
 
 **Reduced app launch time from 1500ms to 600ms through lazy initialization and background task deferral.**
