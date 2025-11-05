@@ -2,12 +2,12 @@
  * GET /v1/search/isbn
  *
  * Search for books by ISBN using canonical response format
- * Refactored to use shared enrichSingleBook() service (Task 2)
+ * Refactored to use shared enrichMultipleBooks() service for consistency
  */
 
 import type { ApiResponse, BookSearchResponse } from '../../types/responses.js';
 import { createSuccessResponseObject, createErrorResponseObject } from '../../types/responses.js';
-import { enrichSingleBook } from '../../services/enrichment.ts';
+import { enrichMultipleBooks } from '../../services/enrichment.ts';
 import type { AuthorDTO } from '../../types/canonical.js';
 import { normalizeISBN } from '../../utils/normalization.js';
 
@@ -56,12 +56,12 @@ export async function handleSearchISBN(
   try {
     // Normalize ISBN for consistent cache keys
     const normalizedISBN = normalizeISBN(isbn);
-    console.log(`v1 ISBN search for "${isbn}" (normalized: "${normalizedISBN}") (using enrichSingleBook)`);
+    console.log(`v1 ISBN search for "${isbn}" (normalized: "${normalizedISBN}") (using enrichMultipleBooks)`);
 
-    // Use shared enrichment service (DRY - multi-provider fallback included)
-    const result = await enrichSingleBook({ isbn: normalizedISBN }, env);
+    // Use enrichMultipleBooks for consistency with other v1 search endpoints
+    const result = await enrichMultipleBooks({ isbn: normalizedISBN }, env, { maxResults: 1 });
 
-    if (!result) {
+    if (!result || !result.works || result.works.length === 0) {
       // Book not found in any provider
       return createSuccessResponseObject(
         { works: [], editions: [], authors: [] },
@@ -73,19 +73,28 @@ export async function handleSearchISBN(
       );
     }
 
-    // enrichSingleBook returns a single WorkDTO with embedded authors
-    // Extract authors from the work for the canonical response format
-    const authors: AuthorDTO[] = result.authors || [];
-    
-    // Remove authors property from work (not part of canonical WorkDTO)
-    const { authors: _, ...cleanWork } = result;
+    // Extract all unique authors from works
+    const authorsMap = new Map<string, AuthorDTO>();
+    result.works.forEach(work => {
+      (work.authors || []).forEach((author: AuthorDTO) => {
+        if (!authorsMap.has(author.name)) {
+          authorsMap.set(author.name, author);
+        }
+      });
+    });
+    const authors = Array.from(authorsMap.values());
 
-    // TODO: Extract edition from enrichSingleBook result when available
+    // Remove authors property from works (not part of canonical WorkDTO)
+    const cleanWorks = result.works.map(work => {
+      const { authors: _, ...cleanWork } = work;
+      return cleanWork;
+    });
+
     return createSuccessResponseObject(
-      { works: [cleanWork], editions: [], authors },
+      { works: cleanWorks, editions: result.editions, authors },
       {
         processingTime: Date.now() - startTime,
-        provider: result.primaryProvider || 'google-books',
+        provider: result.works[0]?.primaryProvider || 'google-books',
         cached: false,
       }
     );

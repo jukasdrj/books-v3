@@ -119,10 +119,41 @@ export async function enrichMultipleBooks(
 
 	// ISBN search returns single result (ISBNs are unique)
 	if (isbn) {
-		const result = await enrichSingleBook({ isbn }, env);
-		return result 
-			? { works: [result], editions: [], authors: [] }
-			: { works: [], editions: [], authors: [] };
+		try {
+			// Try Google Books ISBN search first
+			console.log(`enrichMultipleBooks: Searching Google Books by ISBN "${isbn}"`);
+			const googleResult: ApiResponse = await externalApis.searchGoogleBooksByISBN(isbn, env);
+
+			if (googleResult.success && googleResult.works && googleResult.works.length > 0) {
+				// Add provenance fields to all works
+				return {
+					works: googleResult.works.map((work: WorkDTO) => addProvenanceFields(work, 'google-books')),
+					editions: googleResult.editions || [],
+					authors: googleResult.authors || []
+				};
+			}
+
+			// Fallback to OpenLibrary ISBN search
+			console.log(`enrichMultipleBooks: Google Books returned no results, trying OpenLibrary`);
+			const olResult: ApiResponse = await externalApis.searchOpenLibrary(isbn, { maxResults: 1, isbn }, env);
+
+			if (olResult.success && olResult.works && olResult.works.length > 0) {
+				// Add provenance fields to all works
+				return {
+					works: olResult.works.map((work: WorkDTO) => addProvenanceFields(work, 'openlibrary')),
+					editions: olResult.editions || [],
+					authors: olResult.authors || []
+				};
+			}
+
+			// No results from any provider
+			console.log(`enrichMultipleBooks: No results for ISBN "${isbn}"`);
+			return { works: [], editions: [], authors: [] };
+		} catch (error) {
+			console.error('enrichMultipleBooks ISBN search error:', error);
+			// Best-effort: API errors = empty results (don't propagate errors)
+			return { works: [], editions: [], authors: [] };
+		}
 	}
 
 	// Build search query for Google Books

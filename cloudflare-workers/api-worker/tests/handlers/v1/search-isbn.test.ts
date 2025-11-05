@@ -17,11 +17,32 @@ describe('GET /v1/search/isbn', () => {
     expect(response.meta.timestamp).toBeDefined();
     expect(response.meta.processingTime).toBeTypeOf('number');
 
-    // With fake key, we expect error
-    if (!response.success) {
+    // With fake key, we expect error or empty results
+    if (response.success) {
+      // If successful (shouldn't happen with fake key), validate structure
+      expect(response.data).toBeDefined();
+      expect(response.data.works).toBeInstanceOf(Array);
+      expect(response.data.editions).toBeInstanceOf(Array);
+      expect(response.data.authors).toBeInstanceOf(Array);
+    } else if (!response.success) {
       expect(response.error).toBeDefined();
       expect(response.error.message).toBeDefined();
       expect(response.error.code).toBe('PROVIDER_ERROR');
+    }
+  });
+
+  it('should return editions array in response structure', async () => {
+    // Test with fake key - will return empty results but correct structure
+    const mockEnv = {
+      GOOGLE_BOOKS_API_KEY: 'test-key',
+    };
+
+    const response = await handleSearchISBN('9780451524935', mockEnv);
+
+    // Even with errors, successful fallback should have correct structure
+    if (response.success) {
+      expect(response.data.editions).toBeDefined();
+      expect(response.data.editions).toBeInstanceOf(Array);
     }
   });
 
