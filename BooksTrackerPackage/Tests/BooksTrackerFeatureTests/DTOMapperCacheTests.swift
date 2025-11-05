@@ -193,4 +193,101 @@ struct DTOMapperCacheTests {
         #expect(work3.title == "Work 1 Repeat")
         #expect(work4.title == "Work 2 Repeat")
     }
+    
+    // MARK: - Persistence Tests
+    
+    @Test("Cache persists across DTOMapper instances")
+    func cachePersistsAcrossInstances() throws {
+        let container = try makeTestContainer()
+        let context = ModelContext(container)
+        
+        // Create Work with first mapper instance
+        let mapper1 = DTOMapper(modelContext: context)
+        let dto1 = makeTestWorkDTO(title: "Persistent Work", volumeIDs: ["vol-persist"])
+        let work1 = try mapper1.mapToWork(dto1)
+        let originalID = work1.persistentModelID
+        
+        // Create new mapper instance (simulates app restart)
+        let mapper2 = DTOMapper(modelContext: context)
+        
+        // Same volumeID should find existing Work via persisted cache
+        let dto2 = makeTestWorkDTO(title: "Should Find Existing", volumeIDs: ["vol-persist"])
+        let work2 = try mapper2.mapToWork(dto2)
+        
+        // Should return same Work (cache loaded from disk)
+        #expect(work2.persistentModelID == originalID)
+        #expect(work2.title == "Persistent Work")
+    }
+    
+    @Test("clearCache removes disk cache file")
+    func clearCacheRemovesDiskFile() throws {
+        let container = try makeTestContainer()
+        let context = ModelContext(container)
+        let mapper1 = DTOMapper(modelContext: context)
+        
+        // Create Work to populate cache
+        let dto1 = makeTestWorkDTO(title: "Work to Clear", volumeIDs: ["vol-clear"])
+        _ = try mapper1.mapToWork(dto1)
+        
+        // Clear cache (should delete disk file)
+        mapper1.clearCache()
+        
+        // Create new mapper instance - should have empty cache
+        let mapper2 = DTOMapper(modelContext: context)
+        
+        // Same volumeID should create NEW Work (cache was cleared)
+        let dto2 = makeTestWorkDTO(title: "New Work After Clear", volumeIDs: ["vol-clear"])
+        let work2 = try mapper2.mapToWork(dto2)
+        
+        #expect(work2.title == "New Work After Clear")
+    }
+    
+    @Test("pruneStaleCacheEntries removes deleted Works")
+    func pruneStaleCacheEntriesRemovesDeletedWorks() throws {
+        let container = try makeTestContainer()
+        let context = ModelContext(container)
+        let mapper = DTOMapper(modelContext: context)
+        
+        // Create two Works
+        let dto1 = makeTestWorkDTO(title: "Work to Keep", volumeIDs: ["vol-keep"])
+        let work1 = try mapper.mapToWork(dto1)
+        
+        let dto2 = makeTestWorkDTO(title: "Work to Delete", volumeIDs: ["vol-delete"])
+        let work2 = try mapper.mapToWork(dto2)
+        
+        // Delete second Work
+        context.delete(work2)
+        try context.save()
+        
+        // Prune cache (should remove vol-delete but keep vol-keep)
+        mapper.pruneStaleCacheEntries()
+        
+        // Create new mapper to verify persistence
+        let mapper2 = DTOMapper(modelContext: context)
+        
+        // vol-keep should still be cached
+        let dto3 = makeTestWorkDTO(title: "Should Find Kept Work", volumeIDs: ["vol-keep"])
+        let work3 = try mapper2.mapToWork(dto3)
+        #expect(work3.persistentModelID == work1.persistentModelID)
+        
+        // vol-delete should create new Work (was pruned)
+        let dto4 = makeTestWorkDTO(title: "New Work After Prune", volumeIDs: ["vol-delete"])
+        let work4 = try mapper2.mapToWork(dto4)
+        #expect(work4.title == "New Work After Prune")
+    }
+    
+    @Test("pruneStaleCacheEntries handles empty cache gracefully")
+    func pruneStaleCacheEntriesHandlesEmptyCache() throws {
+        let container = try makeTestContainer()
+        let context = ModelContext(container)
+        let mapper = DTOMapper(modelContext: context)
+        
+        // Prune empty cache - should not crash
+        mapper.pruneStaleCacheEntries()
+        
+        // Cache should still be empty
+        let dto = makeTestWorkDTO(title: "New Work", volumeIDs: ["vol-new"])
+        let work = try mapper.mapToWork(dto)
+        #expect(work.title == "New Work")
+    }
 }

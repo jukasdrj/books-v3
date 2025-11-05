@@ -16,9 +16,55 @@ public final class DTOMapper {
     private let modelContext: ModelContext
     private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "DTOMapper")
     private var workCache: [String: PersistentIdentifier] = [:] // volumeID -> PersistentIdentifier
+    
+    // Cache persistence location
+    private let cacheURL: URL = {
+        guard let directory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            // Fallback to temporary directory if caches directory unavailable
+            let tempDir = FileManager.default.temporaryDirectory
+            return tempDir.appendingPathComponent("dto_work_cache.json")
+        }
+        return directory.appendingPathComponent("dto_work_cache.json")
+    }()
 
     public init(modelContext: ModelContext) {
         self.modelContext = modelContext
+        self.workCache = loadCacheFromDisk()
+    }
+    
+    // MARK: - Cache Persistence
+    
+    /// Load cache from disk on init
+    private func loadCacheFromDisk() -> [String: PersistentIdentifier] {
+        guard let data = try? Data(contentsOf: cacheURL) else {
+            logger.info("No cached deduplication data found on disk")
+            return [:]
+        }
+        
+        let decoder = JSONDecoder()
+        guard let cache = try? decoder.decode([String: PersistentIdentifier].self, from: data) else {
+            logger.warning("Failed to decode cache from disk, starting fresh")
+            return [:]
+        }
+        
+        logger.info("Loaded \(cache.count) cache entries from disk")
+        return cache
+    }
+    
+    /// Save cache to disk after modifications
+    private func saveCacheToDisk() {
+        let encoder = JSONEncoder()
+        guard let data = try? encoder.encode(workCache) else {
+            logger.error("Failed to encode cache for persistence")
+            return
+        }
+        
+        do {
+            try data.write(to: cacheURL, options: .atomic)
+            logger.debug("Saved \(workCache.count) cache entries to disk")
+        } catch {
+            logger.error("Failed to write cache to disk: \(error)")
+        }
     }
 
     // MARK: - Author Mapping
@@ -162,6 +208,9 @@ public final class DTOMapper {
         for volumeID in dto.googleBooksVolumeIDs {
             workCache[volumeID] = work.persistentModelID
         }
+        
+        // Persist cache to disk
+        saveCacheToDisk()
 
         return work
     }
@@ -174,7 +223,52 @@ public final class DTOMapper {
     /// automatically evicted when Works are deleted.
     public func clearCache() {
         workCache.removeAll()
-        logger.info("Deduplication cache cleared.")
+        
+        // Delete cache file from disk
+        try? FileManager.default.removeItem(at: cacheURL)
+        
+        logger.info("Deduplication cache cleared (memory and disk).")
+    }
+    
+    /// Proactively prune stale cache entries by validating against current database state.
+    /// Call this on app launch to remove PersistentIdentifiers for Works that were deleted
+    /// in other sessions (e.g., via CloudKit sync).
+    ///
+    /// This is critical for persistent caches to prevent unbounded growth and stale references.
+    @MainActor
+    public func pruneStaleCacheEntries() {
+        let allCachedIDs = Array(workCache.values)
+        guard !allCachedIDs.isEmpty else {
+            logger.info("Cache is empty, no pruning needed")
+            return
+        }
+        
+        do {
+            // 1. Fetch ALL Works and filter in memory
+            // This avoids complex predicate translation and is more reliable
+            let descriptor = FetchDescriptor<Work>()
+            let allWorks = try modelContext.fetch(descriptor)
+            
+            // 2. Build Set of valid IDs from fetched Works
+            let cachedIDSet = Set(allCachedIDs)
+            let validIDSet = Set(allWorks.map { $0.persistentModelID }.filter { cachedIDSet.contains($0) })
+            
+            // 3. Filter cache to only valid IDs
+            let originalCount = workCache.count
+            workCache = workCache.filter { validIDSet.contains($0.value) }
+            let prunedCount = originalCount - workCache.count
+            
+            // 4. Save pruned cache to disk
+            if prunedCount > 0 {
+                saveCacheToDisk()
+                logger.info("Pruned \(prunedCount) stale cache entries (kept \(workCache.count))")
+            } else {
+                logger.info("No stale entries found, cache is healthy (\(workCache.count) entries)")
+            }
+            
+        } catch {
+            logger.error("Failed to prune cache: \(error)")
+        }
     }
 
     // MARK: - Deduplication & Merging
@@ -186,6 +280,8 @@ public final class DTOMapper {
     ///
     /// Issue: https://github.com/jukasdrj/books-tracker-v1/issues/168
     private func findExistingWork(by volumeIDs: [String]) throws -> Work? {
+        var didEvict = false
+        
         for volumeID in volumeIDs {
             if let persistentID = workCache[volumeID] {
                 // Fetch Work from ModelContext (returns nil if deleted)
@@ -195,10 +291,17 @@ public final class DTOMapper {
                 } else {
                     // Work was deleted - evict stale entry
                     workCache.removeValue(forKey: volumeID)
+                    didEvict = true
                     logger.info("Evicted stale cache entry for deleted Work with volumeID: \(volumeID)")
                 }
             }
         }
+        
+        // Persist cache if we evicted any entries
+        if didEvict {
+            saveCacheToDisk()
+        }
+        
         logger.info("Deduplication cache miss for volumeIDs: \(volumeIDs.joined(separator: ", "))")
         return nil
     }

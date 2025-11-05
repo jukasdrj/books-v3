@@ -76,9 +76,12 @@ export async function handleSearchISBN(
     // enrichSingleBook returns a single WorkDTO with embedded authors
     // Extract authors from the work for the canonical response format
     const authors: AuthorDTO[] = result.authors || [];
+    
+    // Remove authors property from work (not part of canonical WorkDTO)
+    const { authors: _, ...cleanWork } = result;
 
     return createSuccessResponseObject(
-      { works: [result], authors },
+      { works: [cleanWork], authors },
       {
         processingTime: Date.now() - startTime,
         provider: result.primaryProvider || 'google-books',
