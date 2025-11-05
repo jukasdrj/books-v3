@@ -111,7 +111,7 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
         // Parse canonical ApiResponse<BookSearchResponse>
         if (apiResponse.success) {
           const work = apiResponse.data.works?.[0] || null;
-          const editions = apiResponse.data.works?.[0]?.editions || [];
+          const editions = apiResponse.data.editions || [];  // FIX: Editions are at top level, not nested in works
           const authors = apiResponse.data.authors || [];
 
           return {
