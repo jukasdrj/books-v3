@@ -405,6 +405,9 @@ public struct SettingsView: View {
                 // NEW: Clear the deduplication cache
                 dtoMapper?.clearCache()
 
+                // CRITICAL: Invalidate DiversityStats cache to prevent accessing deleted authors
+                DiversityStats.invalidateCache()
+
                 // 4. Delete all Work objects (CASCADE deletes Editions & UserLibraryEntries automatically)
                 let workDescriptor = FetchDescriptor<Work>()
                 let works = try modelContext.fetch(workDescriptor)
@@ -424,9 +427,12 @@ public struct SettingsView: View {
                 // 6. Save changes to SwiftData
                 try modelContext.save()
 
-                // 7. Immediately trigger UI refresh by posting notification
-                // Views will clear cached state and refetch (now empty)
-                NotificationCenter.default.post(name: .libraryWasReset, object: nil)
+                // 7. CRITICAL: Defer notification to next RunLoop to let SwiftData update @Query observers
+                // This prevents crash from accessing deleted objects before @Query refreshes
+                // See: LibraryResetCrashTests.swift for test coverage
+                Task { @MainActor in
+                    NotificationCenter.default.post(name: .libraryWasReset, object: nil)
+                }
 
                 // 8. Clear search history from UserDefaults
                 UserDefaults.standard.removeObject(forKey: "RecentBookSearches")

@@ -69,6 +69,31 @@ struct DTOTests {
         #expect(work.primaryProvider == nil)
     }
 
+    @Test("WorkDTO decodes when backend omits required fields (contract violation)")
+    func workDTODecodesWithMissingRequiredFields() throws {
+        // Reproduces real-world API responses where backend violates TypeScript contract
+        // by omitting fields declared as required: subjectTags, isbndbQuality, reviewStatus
+        // Issue: Barcode scanning fails with "keyNotFound" decoding error
+        let json = """
+        {
+            "title": "The Scarlet Letter",
+            "goodreadsWorkIDs": [],
+            "amazonASINs": [],
+            "librarythingIDs": [],
+            "googleBooksVolumeIDs": ["vol123"]
+        }
+        """
+
+        let data = json.data(using: .utf8)!
+        let work = try JSONDecoder().decode(WorkDTO.self, from: data)
+
+        // Should decode successfully with defaults
+        #expect(work.title == "The Scarlet Letter")
+        #expect(work.subjectTags == [])              // Default: empty array
+        #expect(work.isbndbQuality == 0)             // Default: 0
+        #expect(work.reviewStatus == .verified)      // Default: verified (for API sources)
+    }
+
     // MARK: - EditionDTO Tests
 
     @Test("EditionDTO decodes from canonical JSON with editionDescription")

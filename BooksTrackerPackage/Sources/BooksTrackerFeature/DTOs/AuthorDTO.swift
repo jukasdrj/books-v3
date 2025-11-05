@@ -6,6 +6,9 @@ import Foundation
 /// Corresponds to SwiftData Author model.
 ///
 /// Design: docs/plans/2025-10-29-canonical-data-contracts-design.md
+///
+/// **DEFENSIVE DECODING:** Backend sometimes violates contract by omitting required fields.
+/// Custom `init(from decoder:)` provides defaults to prevent decoding failures.
 public struct AuthorDTO: Codable, Sendable, Equatable {
     // MARK: - Required Fields
 
@@ -40,4 +43,39 @@ public struct AuthorDTO: Codable, Sendable, Equatable {
 
     /// Number of books by this author
     public let bookCount: Int?
+
+    // MARK: - Coding Keys
+
+    private enum CodingKeys: String, CodingKey {
+        case name, gender, culturalRegion, nationality, birthYear, deathYear
+        case openLibraryID, isbndbID, googleBooksID, goodreadsID
+        case bookCount
+    }
+
+    // MARK: - Custom Decoding with Defaults
+
+    /// Custom decoder to handle backend contract violations
+    /// Provides sensible defaults for required fields that backend sometimes omits
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        // Required fields
+        name = try container.decode(String.self, forKey: .name)
+        gender = try container.decodeIfPresent(DTOAuthorGender.self, forKey: .gender) ?? .unknown
+
+        // Optional metadata
+        culturalRegion = try container.decodeIfPresent(DTOCulturalRegion.self, forKey: .culturalRegion)
+        nationality = try container.decodeIfPresent(String.self, forKey: .nationality)
+        birthYear = try container.decodeIfPresent(Int.self, forKey: .birthYear)
+        deathYear = try container.decodeIfPresent(Int.self, forKey: .deathYear)
+
+        // External IDs
+        openLibraryID = try container.decodeIfPresent(String.self, forKey: .openLibraryID)
+        isbndbID = try container.decodeIfPresent(String.self, forKey: .isbndbID)
+        googleBooksID = try container.decodeIfPresent(String.self, forKey: .googleBooksID)
+        goodreadsID = try container.decodeIfPresent(String.self, forKey: .goodreadsID)
+
+        // Statistics
+        bookCount = try container.decodeIfPresent(Int.self, forKey: .bookCount)
+    }
 }

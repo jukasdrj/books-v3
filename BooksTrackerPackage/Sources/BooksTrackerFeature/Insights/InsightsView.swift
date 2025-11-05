@@ -44,6 +44,15 @@ public struct InsightsView: View {
                     await loadStatistics()
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .libraryWasReset)) { _ in
+                // CRITICAL: Clear cached stats and reload when library is reset
+                // Prevents crash from accessing deleted Author objects
+                diversityStats = nil
+                readingStats = nil
+                Task {
+                    await loadStatistics()
+                }
+            }
         }
     }
 
