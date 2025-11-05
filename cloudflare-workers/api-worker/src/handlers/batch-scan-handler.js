@@ -4,6 +4,7 @@
  */
 
 import { scanImageWithGemini } from '../providers/gemini-provider.js';
+import { createSuccessResponse, createErrorResponse } from '../utils/api-responses.js';
 
 const MAX_PHOTOS_PER_BATCH = 5;
 const MAX_IMAGE_SIZE = 10_000_000; // 10MB per image
@@ -14,63 +15,33 @@ export async function handleBatchScan(request, env, ctx) {
 
     // Validation
     if (!jobId || !images || !Array.isArray(images)) {
-      return new Response(JSON.stringify({
-        error: 'Invalid request: jobId and images array required'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return createErrorResponse('Invalid request: jobId and images array required', 400, 'E_INVALID_REQUEST');
     }
 
     if (images.length === 0) {
-      return new Response(JSON.stringify({
-        error: 'At least one image required'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return createErrorResponse('At least one image required', 400, 'E_INVALID_IMAGES');
     }
 
     if (images.length > MAX_PHOTOS_PER_BATCH) {
-      return new Response(JSON.stringify({
-        error: `Batch size exceeds maximum ${MAX_PHOTOS_PER_BATCH} photos`
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return createErrorResponse(`Batch size exceeds maximum ${MAX_PHOTOS_PER_BATCH} photos`, 400, 'E_INVALID_IMAGES');
     }
 
     // Validate R2 binding
     if (!env.BOOKSHELF_IMAGES) {
       console.error('R2 binding BOOKSHELF_IMAGES not configured');
-      return new Response(JSON.stringify({
-        error: 'Storage not configured'
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return createErrorResponse('Storage not configured', 500, 'E_INTERNAL');
     }
 
     // Validate image structure and size
     for (const img of images) {
       if (typeof img.index !== 'number' || !img.data) {
-        return new Response(JSON.stringify({
-          error: 'Each image must have index and data fields'
-        }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        return createErrorResponse('Each image must have index and data fields', 400, 'E_INVALID_IMAGES');
       }
 
       // Validate base64 image size (4/3 of decoded size due to base64 encoding)
       const estimatedSize = (img.data.length * 3) / 4;
       if (estimatedSize > MAX_IMAGE_SIZE) {
-        return new Response(JSON.stringify({
-          error: `Image ${img.index} exceeds maximum size of ${MAX_IMAGE_SIZE / 1_000_000}MB`
-        }), {
-          status: 413,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        return createErrorResponse(`Image ${img.index} exceeds maximum size of ${MAX_IMAGE_SIZE / 1_000_000}MB`, 413, 'E_INVALID_IMAGES');
       }
     }
 
@@ -91,26 +62,15 @@ export async function handleBatchScan(request, env, ctx) {
     ctx.waitUntil(processBatchPhotos(jobId, images, env, doStub));
 
     // Return accepted response immediately
-    return new Response(JSON.stringify({
+    return createSuccessResponse({
       jobId,
       totalPhotos: images.length,
       status: 'processing'
-    }), {
-      status: 202,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
-    });
+    }, {}, 202);
 
   } catch (error) {
     console.error('Batch scan error:', error);
-    return new Response(JSON.stringify({
-      error: 'Internal server error'
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return createErrorResponse('Internal server error', 500, 'E_INTERNAL');
   }
 }
 
