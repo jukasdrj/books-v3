@@ -38,7 +38,7 @@ export async function handleSearchAdvanced(
     console.log(`v1 advanced search - title: "${title}" (normalized: "${normalizedTitle}"), author: "${author}" (normalized: "${normalizedAuthor}") (using enrichMultipleBooks, maxResults: 20)`);
 
     // Use enrichMultipleBooks for search endpoints (returns up to 20 results)
-    const works = await enrichMultipleBooks(
+    const result = await enrichMultipleBooks(
       {
         title: normalizedTitle,
         author: normalizedAuthor
@@ -47,10 +47,10 @@ export async function handleSearchAdvanced(
       { maxResults: 20 }
     );
 
-    if (!works || works.length === 0) {
+    if (!result || !result.works || result.works.length === 0) {
       // No books found in any provider
       return createSuccessResponseObject(
-        { works: [], authors: [] },
+        { works: [], editions: [], authors: [] },
         {
           processingTime: Date.now() - startTime,
           provider: 'none',
@@ -61,7 +61,7 @@ export async function handleSearchAdvanced(
 
     // Extract all unique authors from works
     const authorsMap = new Map<string, AuthorDTO>();
-    works.forEach(work => {
+    result.works.forEach(work => {
       (work.authors || []).forEach((author: AuthorDTO) => {
         if (!authorsMap.has(author.name)) {
           authorsMap.set(author.name, author);
@@ -71,16 +71,16 @@ export async function handleSearchAdvanced(
     const authors = Array.from(authorsMap.values());
 
     // Remove authors property from works (not part of canonical WorkDTO)
-    const cleanWorks = works.map(work => {
+    const cleanWorks = result.works.map(work => {
       const { authors: _, ...cleanWork } = work;
       return cleanWork;
     });
 
     return createSuccessResponseObject(
-      { works: cleanWorks, authors },
+      { works: cleanWorks, editions: result.editions, authors },
       {
         processingTime: Date.now() - startTime,
-        provider: works[0]?.primaryProvider || 'google-books',
+        provider: result.works[0]?.primaryProvider || 'google-books',
         cached: false,
       }
     );

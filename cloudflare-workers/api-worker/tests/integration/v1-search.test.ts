@@ -41,6 +41,7 @@ describe('GET /v1/search/title (integration)', () => {
 
       // Validate BookSearchResponse structure
       expect(json.data.works).toBeInstanceOf(Array);
+      expect(json.data.editions).toBeInstanceOf(Array);
       expect(json.data.authors).toBeInstanceOf(Array);
 
       // Validate WorkDTO structure
@@ -56,6 +57,17 @@ describe('GET /v1/search/title (integration)', () => {
         expect(work.reviewStatus).toBeDefined();
         expect(work.synthetic).toBe(false);
         expect(work.primaryProvider).toBe('google-books');
+      }
+
+      // Validate EditionDTO structure
+      if (json.data.editions.length > 0) {
+        const edition = json.data.editions[0];
+        expect(edition.isbns).toBeInstanceOf(Array);
+        expect(edition.format).toBeDefined();
+        expect(edition.isbndbQuality).toBeTypeOf('number');
+        expect(edition.amazonASINs).toBeInstanceOf(Array);
+        expect(edition.googleBooksVolumeIDs).toBeInstanceOf(Array);
+        expect(edition.librarythingIDs).toBeInstanceOf(Array);
       }
 
       // Validate AuthorDTO structure
