@@ -48,9 +48,13 @@ describe('Batch Scan Endpoint', () => {
 
     expect(response.status).toBe(202); // Accepted
     const body = await response.json();
-    expect(body.jobId).toBe(jobId);
-    expect(body.totalPhotos).toBe(2);
-    expect(body.status).toBe('processing');
+    expect(body.data).toBeDefined();
+    expect(body.data.jobId).toBe(jobId);
+    expect(body.data.totalPhotos).toBe(2);
+    expect(body.data.status).toBe('processing');
+    expect(body.metadata).toBeDefined();
+    expect(body.metadata.timestamp).toBeDefined();
+    expect(body.error).toBeUndefined();
   });
 
   it('rejects batches exceeding 5 photos', async () => {
@@ -68,7 +72,11 @@ describe('Batch Scan Endpoint', () => {
 
     expect(response.status).toBe(400);
     const body = await response.json();
-    expect(body.error).toContain('maximum 5 photos');
+    expect(body.data).toBeNull();
+    expect(body.error).toBeDefined();
+    expect(body.error.message).toContain('maximum 5 photos');
+    expect(body.error.code).toBe('E_INVALID_IMAGES');
+    expect(body.metadata.timestamp).toBeDefined();
   });
 
   it('rejects request without jobId', async () => {
@@ -82,7 +90,11 @@ describe('Batch Scan Endpoint', () => {
 
     expect(response.status).toBe(400);
     const body = await response.json();
-    expect(body.error).toContain('jobId');
+    expect(body.data).toBeNull();
+    expect(body.error).toBeDefined();
+    expect(body.error.message).toContain('jobId');
+    expect(body.error.code).toBe('E_INVALID_REQUEST');
+    expect(body.metadata.timestamp).toBeDefined();
   });
 
   it('rejects request without images array', async () => {
@@ -95,7 +107,11 @@ describe('Batch Scan Endpoint', () => {
 
     expect(response.status).toBe(400);
     const body = await response.json();
-    expect(body.error).toContain('images array required');
+    expect(body.data).toBeNull();
+    expect(body.error).toBeDefined();
+    expect(body.error.message).toContain('images array required');
+    expect(body.error.code).toBe('E_INVALID_REQUEST');
+    expect(body.metadata.timestamp).toBeDefined();
   });
 
   it('rejects empty images array', async () => {
@@ -108,7 +124,11 @@ describe('Batch Scan Endpoint', () => {
 
     expect(response.status).toBe(400);
     const body = await response.json();
-    expect(body.error).toContain('At least one image required');
+    expect(body.data).toBeNull();
+    expect(body.error).toBeDefined();
+    expect(body.error.message).toContain('At least one image required');
+    expect(body.error.code).toBe('E_INVALID_IMAGES');
+    expect(body.metadata.timestamp).toBeDefined();
   });
 
   it('validates image structure (index and data fields)', async () => {
@@ -124,7 +144,11 @@ describe('Batch Scan Endpoint', () => {
 
     expect(response.status).toBe(400);
     const body = await response.json();
-    expect(body.error).toContain('index and data fields');
+    expect(body.data).toBeNull();
+    expect(body.error).toBeDefined();
+    expect(body.error.message).toContain('index and data fields');
+    expect(body.error.code).toBe('E_INVALID_IMAGES');
+    expect(body.metadata.timestamp).toBeDefined();
   });
 
   it('includes CORS headers', async () => {
