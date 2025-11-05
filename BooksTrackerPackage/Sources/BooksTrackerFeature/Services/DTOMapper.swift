@@ -54,16 +54,16 @@ public final class DTOMapper {
     /// Save cache to disk after modifications
     private func saveCacheToDisk() {
         let encoder = JSONEncoder()
-        guard let data = try? encoder.encode(workCache) else {
-            logger.error("Failed to encode cache for persistence")
+        guard let data = try? encoder.encode(self.workCache) else {
+            self.logger.error("Failed to encode cache for persistence")
             return
         }
-        
+
         do {
-            try data.write(to: cacheURL, options: .atomic)
-            logger.debug("Saved \(workCache.count) cache entries to disk")
+            try data.write(to: self.cacheURL, options: .atomic)
+            self.logger.debug("Saved \(self.workCache.count) cache entries to disk")
         } catch {
-            logger.error("Failed to write cache to disk: \(error)")
+            self.logger.error("Failed to write cache to disk: \(error)")
         }
     }
 
@@ -254,20 +254,20 @@ public final class DTOMapper {
             let validIDSet = Set(allWorks.map { $0.persistentModelID }.filter { cachedIDSet.contains($0) })
             
             // 3. Filter cache to only valid IDs
-            let originalCount = workCache.count
-            workCache = workCache.filter { validIDSet.contains($0.value) }
-            let prunedCount = originalCount - workCache.count
-            
+            let originalCount = self.workCache.count
+            self.workCache = self.workCache.filter { validIDSet.contains($0.value) }
+            let prunedCount = originalCount - self.workCache.count
+
             // 4. Save pruned cache to disk
             if prunedCount > 0 {
-                saveCacheToDisk()
-                logger.info("Pruned \(prunedCount) stale cache entries (kept \(workCache.count))")
+                self.saveCacheToDisk()
+                self.logger.info("Pruned \(prunedCount) stale cache entries (kept \(self.workCache.count))")
             } else {
-                logger.info("No stale entries found, cache is healthy (\(workCache.count) entries)")
+                self.logger.info("No stale entries found, cache is healthy (\(self.workCache.count) entries)")
             }
             
         } catch {
-            logger.error("Failed to prune cache: \(error)")
+            self.logger.error("Failed to prune cache: \(error)")
         }
     }
 

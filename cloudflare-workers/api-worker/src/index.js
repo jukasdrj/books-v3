@@ -96,7 +96,7 @@ export default {
           body: JSON.stringify({ books, jobId })
         });
 
-        return handleBatchEnrichment(modifiedRequest, { ...env, ctx });
+        return handleBatchEnrichment(modifiedRequest, env, ctx);
 
       } catch (error) {
         console.error('Failed to start enrichment:', error);
@@ -217,7 +217,7 @@ export default {
       const sizeCheck = validateResourceSize(request, 10, 'CSV file');
       if (sizeCheck) return sizeCheck;
 
-      return handleCSVImport(request, { ...env, ctx });
+      return handleCSVImport(request, env, ctx);
     }
 
     // POST /api/warming/upload - Cache warming via CSV upload
@@ -238,7 +238,7 @@ export default {
       const rateLimitResponse = await checkRateLimit(request, env);
       if (rateLimitResponse) return rateLimitResponse;
 
-      return handleBatchEnrichment(request, { ...env, ctx });
+      return handleBatchEnrichment(request, env, ctx);
     }
 
     // POST /api/scan-bookshelf - AI bookshelf scanner with WebSocket progress

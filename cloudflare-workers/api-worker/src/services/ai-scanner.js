@@ -161,10 +161,24 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
     const processingTime = Date.now() - startTime;
 
     // Stage 4: Complete (100%)
-    // Extract canonical DTOs from enriched books
-    const works = enrichedBooks.map(b => b.enrichment.work).filter(Boolean);
-    const editions = enrichedBooks.flatMap(b => b.enrichment.editions || []);
-    const authors = enrichedBooks.flatMap(b => b.enrichment.authors || []);
+    // Build unified books array with embedded enrichment data (matches iOS BookPayload structure)
+    const books = enrichedBooks.map(b => ({
+      title: b.title,
+      author: b.author,
+      isbn: b.isbn || null,
+      format: b.format || 'unknown',
+      confidence: b.confidence,
+      boundingBox: b.boundingBox,
+      // Embedded enrichment data
+      enrichment: b.enrichment ? {
+        status: b.enrichment.status || 'unknown',
+        work: b.enrichment.work || null,
+        editions: b.enrichment.editions || [],
+        authors: b.enrichment.authors || [],
+        provider: b.enrichment.provider || 'unknown',
+        cachedResult: b.enrichment.cachedResult || false
+      } : null
+    }));
 
     await doStub.pushProgress({
       progress: 1.0,
@@ -176,10 +190,8 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
         totalDetected: detectedBooks.length,
         approved: approved.length,
         needsReview: review.length,
-        works,
-        editions,
-        authors,
-        detections: detectedBooks,  // Original AI detection data
+        books,  // Unified array (matches iOS expectations)
+        detections: detectedBooks,  // Original AI detection data (for debugging)
         metadata: {
           processingTime,
           enrichedCount: enrichedBooks.filter(b => b.enrichment?.status === 'success').length,

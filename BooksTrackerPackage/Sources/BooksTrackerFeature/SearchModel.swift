@@ -33,7 +33,7 @@ public enum SearchScope: String, CaseIterable, Identifiable, Sendable {
 public final class SearchModel {
     // Unified search state
     var searchText: String = ""
-    var viewState: SearchViewState = .initial(trending: [], recentSearches: [])
+    var viewState: SearchViewState = .loadingTrending(recentSearches: [])
 
     // Search suggestions (still separate - UI-specific feature)
     var searchSuggestions: [String] = []
@@ -61,6 +61,7 @@ public final class SearchModel {
         // Load recent searches from UserDefaults
         if let savedSearches = UserDefaults.standard.array(forKey: "RecentBookSearches") as? [String] {
             self.recentSearches = savedSearches
+            self.viewState = .loadingTrending(recentSearches: savedSearches)
         }
 
         Task {
@@ -511,13 +512,16 @@ public final class SearchModel {
 
     private func loadTrendingBooks() async {
         // Load trending books for initial state
+        print("🔄 SearchModel: Starting to load trending books...")
         do {
             let response = try await apiService.getTrendingBooks()
+            print("✅ SearchModel: Loaded \(response.results.count) trending books")
             // Update viewState with loaded trending books
             viewState = .initial(trending: response.results, recentSearches: recentSearches)
+            print("✅ SearchModel: Updated viewState to .initial with \(response.results.count) trending books")
         } catch {
             // Silently fail for trending books - not critical
-            print("Failed to load trending books: \(error)")
+            print("❌ SearchModel: Failed to load trending books: \(error)")
         }
     }
 }

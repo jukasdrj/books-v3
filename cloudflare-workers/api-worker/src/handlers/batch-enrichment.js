@@ -14,9 +14,10 @@ import { createSuccessResponse, createErrorResponse } from '../utils/api-respons
  *
  * @param {Request} request - Incoming request with JSON body { books, jobId }
  * @param {Object} env - Worker environment bindings
+ * @param {ExecutionContext} ctx - Execution context for waitUntil
  * @returns {Promise<Response>} Response with jobId
  */
-export async function handleBatchEnrichment(request, env) {
+export async function handleBatchEnrichment(request, env, ctx) {
   try {
     const { books, jobId } = await request.json();
 
@@ -37,7 +38,7 @@ export async function handleBatchEnrichment(request, env) {
     const doStub = env.PROGRESS_WEBSOCKET_DO.get(doId);
 
     // Start background enrichment
-    env.ctx.waitUntil(processBatchEnrichment(books, doStub, env));
+    ctx.waitUntil(processBatchEnrichment(books, doStub, env));
 
     return createSuccessResponse({ jobId }, {}, 202);
 

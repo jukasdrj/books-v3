@@ -112,7 +112,8 @@ actor GeminiCSVImportService {
                 throw GeminiCSVImportError.invalidResponse
             }
 
-            if httpResponse.statusCode != 200 {
+            // Accept both 200 (OK) and 202 (Accepted) for async job start
+            if ![200, 202].contains(httpResponse.statusCode) {
                 // Try to decode error response to extract error code
                 if let errorResponse = try? JSONDecoder().decode(ApiResponse<GeminiCSVImportResponse>.self, from: data),
                    case .failure(let apiError, _) = errorResponse {

@@ -12,9 +12,10 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
  *
  * @param {Request} request - Incoming request with FormData containing CSV file
  * @param {Object} env - Worker environment bindings
+ * @param {ExecutionContext} ctx - Execution context for waitUntil
  * @returns {Promise<Response>} Response with jobId
  */
-export async function handleCSVImport(request, env) {
+export async function handleCSVImport(request, env, ctx) {
   try {
     const formData = await request.formData();
     const csvFile = formData.get('file');
@@ -41,7 +42,7 @@ export async function handleCSVImport(request, env) {
     const doStub = env.PROGRESS_WEBSOCKET_DO.get(doId);
 
     // Start background processing
-    env.ctx.waitUntil(processCSVImport(csvFile, jobId, doStub, env));
+    ctx.waitUntil(processCSVImport(csvFile, jobId, doStub, env));
 
     return createSuccessResponse({ jobId }, {}, 202);
 

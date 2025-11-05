@@ -49,13 +49,10 @@ export async function handleBatchScan(request, env, ctx) {
     const doId = env.PROGRESS_WEBSOCKET_DO.idFromName(jobId);
     const doStub = env.PROGRESS_WEBSOCKET_DO.get(doId);
 
-    await doStub.fetch(`http://do/init-batch`, {
-      method: 'POST',
-      body: JSON.stringify({
-        jobId,
-        totalPhotos: images.length,
-        status: 'uploading'
-      })
+    await doStub.initBatch({
+      jobId,
+      totalPhotos: images.length,
+      status: 'uploading'
     });
 
     // Process batch asynchronously (don't await)
@@ -98,14 +95,8 @@ async function processBatchPhotos(jobId, images, env, doStub) {
 
     const uploadResults = await Promise.all(uploadPromises);
 
-    // Update progress after uploads
-    await doStub.fetch(`http://do/update-batch`, {
-      method: 'POST',
-      body: JSON.stringify({
-        status: 'processing',
-        uploads: uploadResults
-      })
-    });
+    // Update progress after uploads - send initial processing status
+    await doStub.updateProgress(0.1, 'Photos uploaded, starting AI processing...');
 
     // Phase 2: Process images sequentially with Gemini
     for (let i = 0; i < uploadResults.length; i++) {
@@ -146,12 +137,9 @@ async function processBatchPhotos(jobId, images, env, doStub) {
       }
 
       // Update progress: processing this photo
-      await doStub.fetch(`http://do/update-photo`, {
-        method: 'POST',
-        body: JSON.stringify({
-          photoIndex: i,
-          status: 'processing'
-        })
+      await doStub.updatePhoto({
+        photoIndex: i,
+        status: 'processing'
       });
 
       try {
@@ -170,13 +158,10 @@ async function processBatchPhotos(jobId, images, env, doStub) {
         allBooks.push(...result.books);
 
         // Update progress: photo complete
-        await doStub.fetch(`http://do/update-photo`, {
-          method: 'POST',
-          body: JSON.stringify({
-            photoIndex: i,
-            status: 'complete',
-            booksFound: result.books.length
-          })
+        await doStub.updatePhoto({
+          photoIndex: i,
+          status: 'complete',
+          booksFound: result.books.length
         });
 
       } catch (error) {
@@ -188,13 +173,10 @@ async function processBatchPhotos(jobId, images, env, doStub) {
         });
 
         // Update progress: photo error
-        await doStub.fetch(`http://do/update-photo`, {
-          method: 'POST',
-          body: JSON.stringify({
-            photoIndex: i,
-            status: 'error',
-            error: error.message
-          })
+        await doStub.updatePhoto({
+          photoIndex: i,
+          status: 'error',
+          error: error.message
         });
       }
     }
@@ -203,24 +185,18 @@ async function processBatchPhotos(jobId, images, env, doStub) {
     const uniqueBooks = deduplicateBooks(allBooks);
 
     // Send final completion
-    await doStub.fetch(`http://do/complete-batch`, {
-      method: 'POST',
-      body: JSON.stringify({
-        status: 'complete',
-        totalBooks: uniqueBooks.length,
-        photoResults,
-        books: uniqueBooks
-      })
+    await doStub.completeBatch({
+      status: 'complete',
+      totalBooks: uniqueBooks.length,
+      photoResults,
+      books: uniqueBooks
     });
 
   } catch (error) {
     console.error('Batch processing error:', error);
-    await doStub.fetch(`http://do/update-batch`, {
-      method: 'POST',
-      body: JSON.stringify({
-        status: 'error',
-        error: error.message
-      })
+    await doStub.fail({
+      error: error.message,
+      fallbackAvailable: false
     });
   }
 }

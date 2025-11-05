@@ -297,6 +297,9 @@ public struct SearchView: View {
     private func searchContentArea(searchModel: SearchModel) -> some View {
         ZStack(alignment: .bottom) {
             switch searchModel.viewState {
+            case .loadingTrending(let recentSearches):
+                loadingTrendingStateView(recentSearches: recentSearches)
+
             case .initial(let trending, let recentSearches):
                 initialStateView(trending: trending, recentSearches: recentSearches, searchModel: searchModel)
 
@@ -324,6 +327,48 @@ public struct SearchView: View {
 
     // MARK: - State Views
     // HIG: Enhanced empty states with contextual guidance
+
+    private func loadingTrendingStateView(recentSearches: [String]) -> some View {
+        ScrollView {
+            LazyVStack(spacing: 32) {
+                // Welcome section
+                VStack(spacing: 16) {
+                    Image(systemName: "books.vertical.fill")
+                        .font(.system(size: 64, weight: .ultraLight))
+                        .foregroundStyle(themeStore.primaryColor)
+                        .symbolEffect(.pulse, options: .repeating)
+
+                    VStack(spacing: 8) {
+                        Text("Discover Your Next Great Read")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .multilineTextAlignment(.center)
+
+                        Text("Search millions of books or scan a barcode to get started")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                    }
+                }
+                .padding(.top, 32)
+
+                // Loading indicator for trending books
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .scaleEffect(1.2)
+
+                    Text("Loading trending books...")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 40)
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 20)
+        }
+        .modifier(iOS26ScrollEdgeEffectModifier(edges: [.top]))
+    }
 
     private func initialStateView(trending: [SearchResult], recentSearches: [String], searchModel: SearchModel) -> some View {
         ScrollView {
@@ -929,6 +974,8 @@ public struct SearchView: View {
     // HIG: Comprehensive accessibility descriptions
     private func accessibilityDescription(for state: SearchViewState) -> String {
         switch state {
+        case .loadingTrending:
+            return "Loading trending books. Please wait."
         case .initial:
             return "Search for books. Currently showing trending books and recent searches."
         case .searching:

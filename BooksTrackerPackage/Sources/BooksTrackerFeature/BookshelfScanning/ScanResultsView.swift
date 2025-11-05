@@ -559,13 +559,16 @@ class ScanResultsModel {
     func addAllToLibrary(modelContext: ModelContext) async {
         isAdding = true
 
-        let confirmedBooks = detectedBooks.filter { $0.status == .confirmed }
+        // Include both auto-selected (.confirmed) and manually selected (.detected) books
+        // Exclude only .alreadyInLibrary and .rejected
+        let includedStatuses: Set<DetectionStatus> = [.confirmed, .detected]
+        let selectedBooks = detectedBooks.filter { includedStatuses.contains($0.status) }
         let dtoMapper = DTOMapper(modelContext: modelContext)
         var enrichedImportCount = 0
         var queuedImportCount = 0
         var addedWorksForQueue: [Work] = []
 
-        for detectedBook in confirmedBooks {
+        for detectedBook in selectedBooks {
             var importedViaPathA = false
 
             // Path A: Use pre-enriched data from backend
@@ -702,7 +705,7 @@ class ScanResultsModel {
 
         // Analytics logging
         print("📊 Import complete: \(enrichedImportCount) enriched, \(queuedImportCount) queued")
-        print("📊 Analytics: bookshelf_import_completed - total: \(confirmedBooks.count), enriched: \(enrichedImportCount), queued: \(queuedImportCount)")
+        print("📊 Analytics: bookshelf_import_completed - total: \(selectedBooks.count), enriched: \(enrichedImportCount), queued: \(queuedImportCount)")
 
         isAdding = false
     }

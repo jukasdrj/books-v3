@@ -289,6 +289,17 @@ public struct GeminiCSVImportView: View {
                 let webSocket = session.webSocketTask(with: wsURL)
                 webSocket.resume()
 
+                // Send ready signal to backend (required for processing to start)
+                let readyMessage: [String: Any] = [
+                    "type": "ready",
+                    "timestamp": Date().timeIntervalSince1970 * 1000
+                ]
+                if let messageData = try? JSONSerialization.data(withJSONObject: readyMessage),
+                   let messageString = String(data: messageData, encoding: .utf8) {
+                    try await webSocket.send(.string(messageString))
+                    print("✅ Sent ready signal to CSV import backend")
+                }
+
                 // Listen for messages
                 while !Task.isCancelled {
                     let message = try await webSocket.receive()

@@ -5,6 +5,9 @@ import Foundation
 /// Makes impossible states impossible by design
 @MainActor
 public enum SearchViewState: Equatable, Sendable {
+    /// Loading trending books on first launch
+    case loadingTrending(recentSearches: [String])
+
     /// Initial empty state with discovery content
     case initial(trending: [SearchResult], recentSearches: [String])
 
@@ -61,7 +64,7 @@ public enum SearchViewState: Equatable, Sendable {
              .noResults(let query, _),
              .error(_, let query, _, _):
             return query
-        case .initial:
+        case .loadingTrending, .initial:
             return nil
         }
     }
@@ -74,7 +77,7 @@ public enum SearchViewState: Equatable, Sendable {
              .noResults(_, let scope),
              .error(_, _, let scope, _):
             return scope
-        case .initial:
+        case .loadingTrending, .initial:
             return nil
         }
     }

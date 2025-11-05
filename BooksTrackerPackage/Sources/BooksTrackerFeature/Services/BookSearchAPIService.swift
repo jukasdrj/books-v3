@@ -105,7 +105,10 @@ public class BookSearchAPIService {
     func getTrendingBooks() async throws -> SearchResponse {
         // For now, return a curated list of trending books
         // In the future, this could be a separate API endpoint
-        return try await search(query: "bestseller 2024", maxResults: 12)
+        logger.info("📚 Loading trending books with query: 'bestseller 2024'")
+        let response = try await search(query: "bestseller 2024", maxResults: 12)
+        logger.info("✅ Trending books loaded: \(response.results.count) results")
+        return response
     }
 
     /// Advanced search with multiple criteria (author, title, ISBN)
@@ -200,15 +203,19 @@ public class BookSearchAPIService {
     private func processSearchResponse(_ envelope: ApiResponse<BookSearchResponse>) throws -> [SearchResult] {
         switch envelope {
         case .success(let searchData, let meta):
+            logger.debug("📦 Processing search response: \(searchData.works.count) works, \(searchData.authors.count) authors")
+
             // Map authors from API response (separate from works for normalization)
             let mappedAuthors = searchData.authors.compactMap { authorDTO in
                 do {
                     return try dtoMapper.mapToAuthor(authorDTO)
                 } catch {
-                    logger.warning("Failed to map Author DTO: \(String(describing: error))")
+                    logger.warning("⚠️ Failed to map Author DTO '\(authorDTO.name)': \(String(describing: error))")
                     return nil
                 }
             }
+
+            logger.debug("✅ Mapped \(mappedAuthors.count) authors successfully")
 
             // Use DTOMapper to convert DTOs → SwiftData models with deduplication
             return searchData.works.compactMap { workDTO in
@@ -233,7 +240,7 @@ public class BookSearchAPIService {
                         provider: meta.provider ?? "unknown"
                     )
                 } catch {
-                    logger.warning("Failed to map Work DTO: \(String(describing: error))")
+                    logger.warning("⚠️ Failed to map Work DTO '\(workDTO.title)': \(String(describing: error))")
                     return nil // Continue processing other works
                 }
             }

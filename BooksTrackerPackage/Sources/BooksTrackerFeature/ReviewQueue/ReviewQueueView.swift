@@ -8,6 +8,8 @@
 import SwiftUI
 import SwiftData
 
+#if canImport(UIKit)
+
 /// Review Queue for correcting low-confidence AI detections
 @MainActor
 public struct ReviewQueueView: View {
@@ -273,3 +275,5 @@ struct ReviewQueueRowView: View {
         .modelContainer(container)
         .environment(BooksTrackerFeature.iOS26ThemeStore())
 }
+
+#endif
