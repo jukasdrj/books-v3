@@ -84,7 +84,7 @@ describe('Token Usage Tracking - CSV Provider', () => {
     const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
     
     // Verify generation config includes best practices
-    expect(requestBody.generationConfig.temperature).toBe(0.2);
+    expect(requestBody.generationConfig.temperature).toBe(0.1);
     expect(requestBody.generationConfig.responseMimeType).toBe('application/json');
     expect(requestBody.generationConfig.stopSequences).toEqual(['\n\n\n']);
   });

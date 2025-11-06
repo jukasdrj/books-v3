@@ -1,13 +1,13 @@
 // src/providers/gemini-csv-provider.js
 
-const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 
 /**
- * Parse CSV file using Gemini 2.0 Flash API
+ * Parse CSV file using Gemini 2.5 Flash-Lite API
  *
  * Features:
  * - System instructions for role definition (Gemini best practice)
- * - Low temperature (0.2) for consistent, deterministic parsing
+ * - Low temperature (0.1) for maximum determinism with Flash-Lite
  * - responseMimeType for guaranteed JSON output (no markdown stripping needed)
  * - Validates JSON array output
  * - Supports large CSVs (up to 8K tokens output)
@@ -50,7 +50,7 @@ Always return ONLY a valid JSON array. Do not include explanatory text.`
         }]
       }],
       generationConfig: {
-        temperature: 0.2, // Low temperature for consistent, deterministic parsing (slightly higher than 0.1 for better inference)
+        temperature: 0.1, // Maximum determinism for structured parsing with Flash-Lite
         topP: 0.95,       // Nucleus sampling for quality
         maxOutputTokens: 8192,
         responseMimeType: 'application/json',  // Force JSON output (eliminates markdown code blocks)
