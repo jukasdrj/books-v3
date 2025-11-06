@@ -379,7 +379,7 @@ export default {
     if (url.pathname === '/v1/search/advanced' && request.method === 'GET') {
       const title = url.searchParams.get('title') || '';
       const author = url.searchParams.get('author') || '';
-      const response = await handleSearchAdvanced(title, author, env);
+      const response = await handleSearchAdvanced(title, author, env, ctx);
       return new Response(JSON.stringify(response), {
         headers: { 'Content-Type': 'application/json' },
       });

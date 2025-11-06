@@ -191,6 +191,21 @@ export async function enrichMultipleBooks(
       };
     }
 
+    // Fallback to ISBNdb (only if we have both title and author with meaningful values)
+    if (title?.trim() && author?.trim()) {
+      console.log(`enrichMultipleBooks: OpenLibrary returned no results, trying ISBNdb`);
+      const isbndbResult: ApiResponse = await externalApis.searchISBNdb(title, author, env);
+
+      if (isbndbResult.success && isbndbResult.works && isbndbResult.works.length > 0) {
+        console.log(`✅ ISBNdb SUCCESS: Found ${isbndbResult.works.length} works`);
+        return {
+          works: isbndbResult.works.map((work: WorkDTO) => addProvenanceFields(work, 'isbndb')),
+          editions: isbndbResult.editions || [],
+          authors: isbndbResult.authors || []
+        };
+      }
+    }
+
     // No results from any provider
     console.log(`enrichMultipleBooks: No results for "${searchQuery}"`);
     return { works: [], editions: [], authors: [] };
