@@ -119,7 +119,8 @@ Extract all visible book information now.`
                     topK: 40,          // Allow some variation for better book spine recognition
                     topP: 0.95,        // Nucleus sampling for quality
                     maxOutputTokens: 2048,  // Prevent truncation
-                    responseMimeType: 'application/json'  // Force JSON output
+                    responseMimeType: 'application/json',  // Force JSON output
+                    stopSequences: ['\n\n\n']  // Stop on triple newline (prevents unnecessary continuation)
                 }
             })
         }
@@ -136,6 +137,14 @@ Extract all visible book information now.`
     const geminiData = await response.json();
     console.log('[GeminiProvider] Response parsed, checking for candidates...');
 
+    // Extract token usage metrics (Gemini API best practice: cost tracking)
+    const tokenUsage = geminiData.usageMetadata || {};
+    const promptTokens = tokenUsage.promptTokenCount || 0;
+    const outputTokens = tokenUsage.candidatesTokenCount || 0;
+    const totalTokens = tokenUsage.totalTokenCount || 0;
+
+    console.log(`[GeminiProvider] Token usage - Prompt: ${promptTokens}, Output: ${outputTokens}, Total: ${totalTokens}`);
+
     // Parse response
     const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) {
@@ -147,7 +156,12 @@ Extract all visible book information now.`
                 provider: 'gemini',
                 model: 'gemini-2.0-flash-exp',
                 timestamp: new Date().toISOString(),
-                processingTimeMs: Date.now() - startTime
+                processingTimeMs: Date.now() - startTime,
+                tokenUsage: {
+                    promptTokens,
+                    outputTokens,
+                    totalTokens
+                }
             }
         };
     }
@@ -168,7 +182,12 @@ Extract all visible book information now.`
                 provider: 'gemini',
                 model: 'gemini-2.0-flash-exp',
                 timestamp: new Date().toISOString(),
-                processingTimeMs: Date.now() - startTime
+                processingTimeMs: Date.now() - startTime,
+                tokenUsage: {
+                    promptTokens,
+                    outputTokens,
+                    totalTokens
+                }
             }
         };
     }
@@ -195,7 +214,12 @@ Extract all visible book information now.`
             provider: 'gemini',
             model: 'gemini-2.0-flash-exp',
             timestamp: new Date().toISOString(),
-            processingTimeMs: Date.now() - startTime
+            processingTimeMs: Date.now() - startTime,
+            tokenUsage: {
+                promptTokens,
+                outputTokens,
+                totalTokens
+            }
         }
     };
 }

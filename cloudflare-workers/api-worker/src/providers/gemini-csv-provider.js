@@ -53,7 +53,8 @@ Always return ONLY a valid JSON array. Do not include explanatory text.`
         temperature: 0.2, // Low temperature for consistent, deterministic parsing (slightly higher than 0.1 for better inference)
         topP: 0.95,       // Nucleus sampling for quality
         maxOutputTokens: 8192,
-        responseMimeType: 'application/json'  // Force JSON output (eliminates markdown code blocks)
+        responseMimeType: 'application/json',  // Force JSON output (eliminates markdown code blocks)
+        stopSequences: ['\n\n\n']  // Stop on triple newline (prevents unnecessary continuation)
       }
     })
   });
@@ -65,6 +66,14 @@ Always return ONLY a valid JSON array. Do not include explanatory text.`
 
   const data = await response.json();
   const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+  // Extract token usage metrics (Gemini API best practice: cost tracking)
+  const tokenUsage = data.usageMetadata || {};
+  const promptTokens = tokenUsage.promptTokenCount || 0;
+  const outputTokens = tokenUsage.candidatesTokenCount || 0;
+  const totalTokens = tokenUsage.totalTokenCount || 0;
+
+  console.log(`[GeminiCSVProvider] Token usage - Prompt: ${promptTokens}, Output: ${outputTokens}, Total: ${totalTokens}`);
 
   if (!textResponse) {
     throw new Error('Gemini returned empty response');

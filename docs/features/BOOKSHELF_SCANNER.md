@@ -708,7 +708,12 @@ When the scan completes successfully (progress === 1.0), the final WebSocket mes
       "processingTime": 42350,
       "enrichedCount": 3,
       "timestamp": "2025-10-27T10:30:45.123Z",
-      "modelUsed": "gemini-2.0-flash-exp"
+      "modelUsed": "gemini-2.0-flash-exp",
+      "tokenUsage": {
+        "promptTokens": 4200,
+        "outputTokens": 500,
+        "totalTokens": 4700
+      }
     }
   }
 }
@@ -719,6 +724,10 @@ When the scan completes successfully (progress === 1.0), the final WebSocket mes
 - `enrichedCount`: Number of books successfully enriched with OpenLibrary metadata
 - `timestamp`: ISO 8601 completion timestamp
 - `modelUsed`: AI model name (always "gemini-2.0-flash-exp" in current version)
+- `tokenUsage`: **NEW (Nov 2025)** - Gemini API token consumption for cost tracking
+  - `promptTokens`: System instruction + user prompt + image tokens
+  - `outputTokens`: AI-generated book list JSON
+  - `totalTokens`: Sum of prompt + output tokens
 
 **iOS Usage:**
 
@@ -726,8 +735,15 @@ When the scan completes successfully (progress === 1.0), the final WebSocket mes
 if let metadata = result.metadata {
     print("Scan completed in \(metadata.processingTime)ms using \(metadata.modelUsed)")
     print("Enriched \(metadata.enrichedCount)/\(result.totalDetected) books")
+    
+    // NEW: Token usage tracking
+    if let tokenUsage = metadata.tokenUsage {
+        print("Token usage: \(tokenUsage.totalTokens) tokens")
+    }
 }
 ```
+
+**Token Usage Guide:** See `docs/guides/gemini-token-usage-ios-guide.md` for iOS integration details, cost calculations, and analytics tracking.
 
 ## Future Enhancements
 

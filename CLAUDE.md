@@ -295,8 +295,18 @@ struct BookDetailView: View {
 - Image size: Handles 4-5MB images natively (no resizing needed)
 - Accuracy: High (0.7-0.95 confidence scores)
 - Optimized for ISBN detection and small text on book spines
+- **Token tracking:** All responses include token usage metrics (Nov 2025+)
 
 **Note:** Cloudflare Workers AI models (Llama, LLaVA, UForm) removed due to small context windows (128K-8K tokens) that couldn't handle typical bookshelf images. See [GitHub Issue #134](https://github.com/jukasdrj/books-tracker-v1/issues/134) for details.
+
+**Best Practices (Nov 2025 Audit):**
+- ✅ System instructions separated from dynamic content
+- ✅ Image-first ordering in prompts
+- ✅ Temperature optimization (0.2 CSV, 0.4 bookshelf)
+- ✅ JSON output format via `responseMimeType`
+- ✅ Token usage logging and metadata
+- ✅ Stop sequences for cleaner termination
+- See `docs/architecture/gemini-api-best-practices-audit.md`
 
 **Architecture:**
 - Single monolith worker with direct function calls (no RPC service bindings)
