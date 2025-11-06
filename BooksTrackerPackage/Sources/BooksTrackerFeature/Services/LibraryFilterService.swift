@@ -58,6 +58,11 @@ public final class LibraryFilterService {
             // Search in author names
             if let authors = work.authors {
                 for author in authors {
+                    // DEFENSIVE: Validate author is still in context before accessing properties
+                    // During library reset, authors may be deleted while search is running
+                    guard modelContext.model(for: author.persistentModelID) as? Author != nil else {
+                        continue
+                    }
                     if author.name.lowercased().contains(lowercased) {
                         return true
                     }
@@ -89,6 +94,11 @@ public final class LibraryFilterService {
             
             guard let authors = work.authors else { continue }
             for author in authors {
+                // DEFENSIVE: Validate author is still in context before accessing properties
+                // During library reset, authors may be deleted while calculations are running
+                guard modelContext.model(for: author.persistentModelID) as? Author != nil else {
+                    continue
+                }
                 genderSet.insert(author.gender)
                 if let region = author.culturalRegion {
                     regionSet.insert(region)

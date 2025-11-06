@@ -161,7 +161,12 @@ public class LibraryRepository {
             // Search author names
             if let authors = work.authors {
                 return authors.contains { author in
-                    author.name.lowercased().contains(lowercasedQuery)
+                    // DEFENSIVE: Validate author is still in context before accessing properties
+                    // During library reset, authors may be deleted while search is running
+                    guard modelContext.model(for: author.persistentModelID) as? Author != nil else {
+                        return false
+                    }
+                    return author.name.lowercased().contains(lowercasedQuery)
                 }
             }
 
@@ -261,11 +266,22 @@ public class LibraryRepository {
         }.flatMap { $0 }
         guard !allAuthors.isEmpty else { return 0.0 }
 
-        let diverseCount = allAuthors.filter { author in
-            author.representsMarginalizedVoices() || author.representsIndigenousVoices()
-        }.count
-
-        return Double(diverseCount) / Double(allAuthors.count)
+        // DEFENSIVE: Filter deleted authors AND calculate diversity in single pass
+        var validCount = 0
+        var diverseCount = 0
+        
+        for author in allAuthors {
+            guard modelContext.model(for: author.persistentModelID) as? Author != nil else {
+                continue
+            }
+            validCount += 1
+            if author.representsMarginalizedVoices() || author.representsIndigenousVoices() {
+                diverseCount += 1
+            }
+        }
+        
+        guard validCount > 0 else { return 0.0 }
+        return Double(diverseCount) / Double(validCount)
     }
 
     /// Calculates reading statistics (completion rate, pages read, etc.).

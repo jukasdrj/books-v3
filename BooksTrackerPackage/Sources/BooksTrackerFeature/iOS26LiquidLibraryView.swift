@@ -491,6 +491,7 @@ public struct UltraOptimizedLibraryView: View {
     @Namespace private var layoutTransition
     @State private var scrollPosition = ScrollPosition()
     @Environment(\.iOS26ThemeStore) private var themeStore
+    @Environment(\.modelContext) private var modelContext
 
     // ✅ FIX 4: Memory management
     private let memoryHandler = MemoryPressureHandler.shared
@@ -875,11 +876,22 @@ public struct UltraOptimizedLibraryView: View {
         let allAuthors = works.compactMap(\.authors).flatMap { $0 }
         guard !allAuthors.isEmpty else { return 0.0 }
 
-        let diverseCount = allAuthors.filter { author in
-            author.representsMarginalizedVoices() || author.representsIndigenousVoices()
-        }.count
-
-        return Double(diverseCount) / Double(allAuthors.count)
+        // DEFENSIVE: Filter out deleted authors AND calculate diversity in single pass
+        var validCount = 0
+        var diverseCount = 0
+        
+        for author in allAuthors {
+            guard modelContext.model(for: author.persistentModelID) as? Author != nil else {
+                continue
+            }
+            validCount += 1
+            if author.representsMarginalizedVoices() || author.representsIndigenousVoices() {
+                diverseCount += 1
+            }
+        }
+        
+        guard validCount > 0 else { return 0.0 }
+        return Double(diverseCount) / Double(validCount)
     }
 }
 
@@ -890,6 +902,7 @@ struct CulturalDiversityInsightsView: View {
     let works: [Work]
     @Environment(\.dismiss) private var dismiss
     @Environment(\.iOS26ThemeStore) private var themeStore
+    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         NavigationStack {
@@ -1056,10 +1069,26 @@ struct CulturalDiversityInsightsView: View {
 
     private func calculateDiversityMetrics() -> (diversePercentage: Double, regionCount: Int, languageCount: Int) {
         let allAuthors = works.compactMap(\.authors).flatMap { $0 }
-        let diverseCount = allAuthors.filter { $0.representsMarginalizedVoices() }.count
-        let diversePercentage = allAuthors.isEmpty ? 0.0 : Double(diverseCount) / Double(allAuthors.count)
-
-        let regions = Set(allAuthors.compactMap(\.culturalRegion))
+        
+        // DEFENSIVE: Filter deleted authors AND calculate diversity in single pass
+        var validCount = 0
+        var diverseCount = 0
+        var regions = Set<CulturalRegion>()
+        
+        for author in allAuthors {
+            guard modelContext.model(for: author.persistentModelID) as? Author != nil else {
+                continue
+            }
+            validCount += 1
+            if author.representsMarginalizedVoices() {
+                diverseCount += 1
+            }
+            if let region = author.culturalRegion {
+                regions.insert(region)
+            }
+        }
+        
+        let diversePercentage = validCount > 0 ? Double(diverseCount) / Double(validCount) : 0.0
         let languages = Set(works.compactMap(\.originalLanguage))
 
         return (diversePercentage, regions.count, languages.count)
@@ -1070,6 +1099,11 @@ struct CulturalDiversityInsightsView: View {
         var regionCounts: [CulturalRegion: Int] = [:]
 
         for author in allAuthors {
+            // DEFENSIVE: Validate author is still in context before accessing properties
+            // During library reset, authors may be deleted while this view is still visible
+            guard modelContext.model(for: author.persistentModelID) as? Author != nil else {
+                continue
+            }
             if let region = author.culturalRegion {
                 regionCounts[region, default: 0] += 1
             }
@@ -1083,6 +1117,11 @@ struct CulturalDiversityInsightsView: View {
         var genderCounts: [AuthorGender: Int] = [:]
 
         for author in allAuthors {
+            // DEFENSIVE: Validate author is still in context before accessing properties
+            // During library reset, authors may be deleted while this view is still visible
+            guard modelContext.model(for: author.persistentModelID) as? Author != nil else {
+                continue
+            }
             genderCounts[author.gender, default: 0] += 1
         }
 

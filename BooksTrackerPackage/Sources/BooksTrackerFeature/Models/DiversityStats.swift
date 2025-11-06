@@ -200,9 +200,14 @@ public struct DiversityStats: Sendable {
                 continue
             }
             
-            if let primaryAuthor = work.primaryAuthor,
-               let region = primaryAuthor.culturalRegion {
-                regionCounts[region, default: 0] += 1
+            if let primaryAuthor = work.primaryAuthor {
+                // DEFENSIVE: Validate author is still in context before accessing properties
+                guard context.model(for: primaryAuthor.persistentModelID) as? Author != nil else {
+                    continue
+                }
+                if let region = primaryAuthor.culturalRegion {
+                    regionCounts[region, default: 0] += 1
+                }
             }
         }
 
@@ -214,6 +219,10 @@ public struct DiversityStats: Sendable {
         // Calculate gender stats
         var genderCounts: [AuthorGender: Int] = [:]
         for author in authors where author.bookCount > 0 {
+            // DEFENSIVE: Validate author is still in context before accessing properties
+            guard context.model(for: author.persistentModelID) as? Author != nil else {
+                continue
+            }
             genderCounts[author.gender, default: 0] += 1
         }
 
@@ -223,8 +232,20 @@ public struct DiversityStats: Sendable {
         }.filter { $0.count > 0 }
 
         // Calculate marginalized voices
-        let authorsWithWorks = authors.filter { $0.bookCount > 0 }
-        let marginalizedAuthors = authorsWithWorks.filter { $0.representsMarginalizedVoices() }
+        let authorsWithWorks = authors.filter { author in
+            // DEFENSIVE: Validate author is still in context before accessing properties
+            guard context.model(for: author.persistentModelID) as? Author != nil else {
+                return false
+            }
+            return author.bookCount > 0
+        }
+        let marginalizedAuthors = authorsWithWorks.filter { author in
+            // DEFENSIVE: Validate author is still in context before calling method that accesses properties
+            guard context.model(for: author.persistentModelID) as? Author != nil else {
+                return false
+            }
+            return author.representsMarginalizedVoices()
+        }
         let marginalizedPercentage = authorsWithWorks.isEmpty ? 0.0 :
             (Double(marginalizedAuthors.count) / Double(authorsWithWorks.count)) * 100.0
 
