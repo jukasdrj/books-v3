@@ -180,18 +180,21 @@ public struct ManualMatchView: View {
     @ViewBuilder
     private func searchResultsView(searchModel: SearchModel) -> some View {
         switch searchModel.viewState {
+        case .loadingTrending:
+            searchingStateView
+
         case .initial:
             initialStateView
-            
+
         case .searching:
             searchingStateView
-            
+
         case .results(_, _, let items, _, _):
             resultsListView(items: items)
-            
+
         case .noResults(let query, _):
             noResultsView(query: query, searchModel: searchModel)
-            
+
         case .error(let message, _, _, _):
             errorView(message: message, searchModel: searchModel)
         }
@@ -499,7 +502,7 @@ struct ManualMatchResultRow: View {
         do {
             let container = try ModelContainer(for: Work.self, Author.self, Edition.self)
             let context = container.mainContext
-            
+
             let author = Author(name: "Unknown Author")
             let work = Work(
                 title: "Unmatched Book",
@@ -507,27 +510,30 @@ struct ManualMatchResultRow: View {
                 firstPublicationYear: nil
             )
             work.reviewStatus = .needsReview
-            
+
             context.insert(author)
             context.insert(work)
             work.authors = [author]
-            
+
             return container
         } catch {
             fatalError("Failed to create preview container: \(error)")
         }
     }()
-    
+
     let context = container.mainContext
-    guard let work = try? context.fetch(FetchDescriptor<Work>()).first else {
-        return Text("Preview failed: No work found")
-    }
-    let dtoMapper = DTOMapper(modelContext: context)
-    
-    NavigationStack {
-        ManualMatchView(work: work)
-            .modelContainer(container)
-            .environment(BooksTrackerFeature.iOS26ThemeStore())
-            .environment(\.dtoMapper, dtoMapper)
+    if let work = try? context.fetch(FetchDescriptor<Work>()).first {
+        let dtoMapper = DTOMapper(modelContext: context)
+
+        return AnyView(
+            NavigationStack {
+                ManualMatchView(work: work)
+                    .modelContainer(container)
+                    .environment(BooksTrackerFeature.iOS26ThemeStore())
+                    .environment(\.dtoMapper, dtoMapper)
+            }
+        )
+    } else {
+        return AnyView(Text("Preview failed: No work found"))
     }
 }

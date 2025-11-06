@@ -275,7 +275,7 @@ public struct ReadingStats: Sendable {
             }
             return entry.readingStatus == .reading
         }
-        let paces = currentlyReading.compactMap { entry in
+        let paces: [Double] = currentlyReading.compactMap { entry in
             // Entry already validated in filter above, but still defensive
             guard context.model(for: entry.persistentModelID) as? UserLibraryEntry != nil else {
                 return nil
