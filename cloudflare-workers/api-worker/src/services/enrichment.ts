@@ -96,6 +96,16 @@ interface EnrichmentResult {
 	authors: AuthorDTO[];
 }
 
+/**
+ * Return type for enrichSingleBook
+ * Contains work, edition (with cover URL), and authors for a single book
+ */
+export interface SingleEnrichmentResult {
+	work: WorkDTO;
+	edition: EditionDTO | null;
+	authors: AuthorDTO[];
+}
+
 // ========================================================================================
 // PUBLIC FUNCTIONS
 // ========================================================================================
@@ -223,9 +233,9 @@ export async function enrichMultipleBooks(
  *
  * @param query - Search parameters
  * @param env - Worker environment bindings
- * @returns WorkDTO with editions and authors, or null if not found
+ * @returns SingleEnrichmentResult with work, edition, and authors, or null if not found
  */
-export async function enrichSingleBook(query: BookSearchQuery, env: WorkerEnv): Promise<WorkDTO | null> {
+export async function enrichSingleBook(query: BookSearchQuery, env: WorkerEnv): Promise<SingleEnrichmentResult | null> {
 	const { title, author, isbn } = query;
 
 	// Require at least one search parameter
@@ -273,13 +283,13 @@ export async function enrichSingleBook(query: BookSearchQuery, env: WorkerEnv): 
 
 /**
  * Search Google Books API with query
- * Thin wrapper around external-apis.js - just adds provenance fields
+ * Thin wrapper around external-apis.js - returns work, edition, and authors
  *
  * @param query - Search parameters
  * @param env - Worker environment bindings
- * @returns First work result or null
+ * @returns SingleEnrichmentResult with work, edition, and authors or null
  */
-async function searchGoogleBooks(query: BookSearchQuery, env: WorkerEnv): Promise<WorkDTO | null> {
+async function searchGoogleBooks(query: BookSearchQuery, env: WorkerEnv): Promise<SingleEnrichmentResult | null> {
 	const { title, author, isbn } = query;
 
 	// Build search query (title + author for better precision)
@@ -293,20 +303,23 @@ async function searchGoogleBooks(query: BookSearchQuery, env: WorkerEnv): Promis
 		return null;
 	}
 
-	// Return first work with provenance fields added
-	const work: WorkDTO = result.works[0];
-	return addProvenanceFields(work, 'google-books');
+	// Return first work with provenance fields, plus edition and authors
+	const work: WorkDTO = addProvenanceFields(result.works[0], 'google-books');
+	const edition: EditionDTO | null = (result.editions && result.editions.length > 0) ? result.editions[0] : null;
+	const authors: AuthorDTO[] = result.authors || [];
+
+	return { work, edition, authors };
 }
 
 /**
  * Search OpenLibrary API with query
- * Thin wrapper around external-apis.js - just adds provenance fields
+ * Thin wrapper around external-apis.js - returns work, edition, and authors
  *
  * @param query - Search parameters
  * @param env - Worker environment bindings
- * @returns First work result or null
+ * @returns SingleEnrichmentResult with work, edition, and authors or null
  */
-async function searchOpenLibrary(query: BookSearchQuery, env: WorkerEnv): Promise<WorkDTO | null> {
+async function searchOpenLibrary(query: BookSearchQuery, env: WorkerEnv): Promise<SingleEnrichmentResult | null> {
 	const { title, author } = query;
 
 	const searchQuery: string = [title, author].filter(Boolean).join(' ');
@@ -316,34 +329,41 @@ async function searchOpenLibrary(query: BookSearchQuery, env: WorkerEnv): Promis
 		return null;
 	}
 
-	// Return first work with provenance fields added
-	const work: WorkDTO = result.works[0];
-	return addProvenanceFields(work, 'openlibrary');
+	// Return first work with provenance fields, plus edition and authors
+	const work: WorkDTO = addProvenanceFields(result.works[0], 'openlibrary');
+	const edition: EditionDTO | null = (result.editions && result.editions.length > 0) ? result.editions[0] : null;
+	const authors: AuthorDTO[] = result.authors || [];
+
+	return { work, edition, authors };
 }
 
 /**
  * ISBN-specific search (tries Google Books, then OpenLibrary)
- * Thin wrapper around external-apis.js - just adds provenance fields
+ * Thin wrapper around external-apis.js - returns work, edition, and authors
  *
  * @param isbn - ISBN-10 or ISBN-13
  * @param env - Worker environment bindings
- * @returns Work result or null
+ * @returns SingleEnrichmentResult with work, edition, and authors or null
  */
-async function searchByISBN(isbn: string, env: WorkerEnv): Promise<WorkDTO | null> {
+async function searchByISBN(isbn: string, env: WorkerEnv): Promise<SingleEnrichmentResult | null> {
 	// Try Google Books ISBN search first
 	const googleResult: ApiResponse = await externalApis.searchGoogleBooksByISBN(isbn, env);
 
 	if (googleResult.success && googleResult.works && googleResult.works.length > 0) {
-		const work: WorkDTO = googleResult.works[0];
-		return addProvenanceFields(work, 'google-books');
+		const work: WorkDTO = addProvenanceFields(googleResult.works[0], 'google-books');
+		const edition: EditionDTO | null = (googleResult.editions && googleResult.editions.length > 0) ? googleResult.editions[0] : null;
+		const authors: AuthorDTO[] = googleResult.authors || [];
+		return { work, edition, authors };
 	}
 
 	// Fallback to OpenLibrary ISBN search
 	const olResult: ApiResponse = await externalApis.searchOpenLibrary(isbn, { maxResults: 1, isbn }, env);
 
 	if (olResult.success && olResult.works && olResult.works.length > 0) {
-		const work: WorkDTO = olResult.works[0];
-		return addProvenanceFields(work, 'openlibrary');
+		const work: WorkDTO = addProvenanceFields(olResult.works[0], 'openlibrary');
+		const edition: EditionDTO | null = (olResult.editions && olResult.editions.length > 0) ? olResult.editions[0] : null;
+		const authors: AuthorDTO[] = olResult.authors || [];
+		return { work, edition, authors };
 	}
 
 	return null;

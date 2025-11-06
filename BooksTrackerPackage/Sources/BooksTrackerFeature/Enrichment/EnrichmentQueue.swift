@@ -202,10 +202,17 @@ public final class EnrichmentQueue {
             let jobId = UUID().uuidString
             self.setCurrentJobId(jobId)
 
-            self.webSocketHandler = EnrichmentWebSocketHandler(jobId: jobId, progressHandler: { processed, total, title in
-                progressHandler(processed, total, title)
-                NotificationCoordinator.postEnrichmentProgress(completed: processed, total: total, currentTitle: title)
-            })
+            self.webSocketHandler = EnrichmentWebSocketHandler(
+                jobId: jobId,
+                progressHandler: { processed, total, title in
+                    progressHandler(processed, total, title)
+                    NotificationCoordinator.postEnrichmentProgress(completed: processed, total: total, currentTitle: title)
+                },
+                completionHandler: { [weak self] enrichedBooks in
+                    // Apply enriched data to SwiftData models
+                    self?.applyEnrichedData(enrichedBooks, in: modelContext)
+                }
+            )
             self.webSocketHandler?.connect()
 
             let result = await EnrichmentService.shared.batchEnrichWorks(works, jobId: jobId, in: modelContext)
@@ -309,6 +316,137 @@ public final class EnrichmentQueue {
         let decoder = JSONDecoder()
         if let decoded = try? decoder.decode([EnrichmentQueueItem].self, from: data) {
             queue = decoded
+        }
+    }
+
+    // MARK: - Enriched Data Application
+
+    /// Apply enriched data from backend to SwiftData models
+    /// Called when WebSocket receives complete message with enriched books
+    private func applyEnrichedData(_ enrichedBooks: [EnrichedBookPayload], in modelContext: ModelContext) {
+        print("📚 Applying enriched data for \(enrichedBooks.count) books")
+
+        var saveCounter = 0
+        for enrichedBook in enrichedBooks {
+            guard enrichedBook.success,
+                  let enrichedData = enrichedBook.enriched else {
+                print("⏭️ Skipping \(enrichedBook.title) - no enriched data")
+                continue
+            }
+
+            // Find the Work by title (best effort matching)
+            let workTitle = enrichedBook.title
+            let descriptor = FetchDescriptor<Work>(
+                predicate: #Predicate { work in
+                    work.title.localizedStandardContains(workTitle)
+                }
+            )
+
+            guard let works = try? modelContext.fetch(descriptor),
+                  let work = works.first else {
+                print("⚠️ Could not find work for '\(workTitle)'")
+                continue
+            }
+
+            // Update work metadata
+            if work.firstPublicationYear == nil, let year = enrichedData.work.firstPublicationYear {
+                work.firstPublicationYear = year
+            }
+
+            if work.openLibraryWorkID == nil, let olWorkId = enrichedData.work.openLibraryWorkID {
+                work.openLibraryWorkID = olWorkId
+            }
+
+            if work.googleBooksVolumeID == nil, let gbVolumeId = enrichedData.work.googleBooksVolumeID {
+                work.googleBooksVolumeID = gbVolumeId
+            }
+
+            // Find or create edition
+            var edition: Edition?
+
+            if let existingEditions = work.editions, !existingEditions.isEmpty {
+                edition = existingEditions.first
+            }
+
+            // Create new edition if needed and we have data
+            if edition == nil, let editionDTO = enrichedData.edition {
+                // Validate ISBN exists before creating edition
+                guard let isbn = editionDTO.isbn, !isbn.isEmpty else {
+                    print("⚠️ Skipping edition creation for '\(workTitle)' - no ISBN")
+                    continue
+                }
+
+                let newEdition = Edition(
+                    isbn: isbn,
+                    publisher: editionDTO.publisher,
+                    publicationDate: editionDTO.publicationDate,
+                    pageCount: editionDTO.pageCount,
+                    format: .paperback,
+                    coverImageURL: editionDTO.coverImageURL  // ✅ Cover image!
+                )
+                modelContext.insert(newEdition)  // Get temporary ID
+
+                // Set relationship AFTER both are inserted
+                newEdition.work = work
+
+                // CRITICAL: Save immediately to convert temporary IDs to permanent IDs
+                // This prevents "Illegal attempt to create a full future for a temporary identifier" crashes
+                do {
+                    try modelContext.save()
+                    edition = newEdition
+                    print("✅ Created edition with cover: \(editionDTO.coverImageURL ?? "nil")")
+                } catch {
+                    print("❌ Failed to save new edition: \(error)")
+                    continue
+                }
+            }
+
+            // Update existing edition with cover image
+            if let edition = edition, let editionDTO = enrichedData.edition {
+                if edition.coverImageURL == nil, let coverURL = editionDTO.coverImageURL {
+                    edition.coverImageURL = coverURL
+                    print("✅ Updated edition cover for '\(workTitle)': \(coverURL)")
+                }
+
+                if edition.pageCount == nil, let pageCount = editionDTO.pageCount {
+                    edition.pageCount = pageCount
+                }
+
+                if edition.publisher == nil, let publisher = editionDTO.publisher {
+                    edition.publisher = publisher
+                }
+
+                if let isbn = editionDTO.isbn {
+                    edition.addISBN(isbn)
+                }
+
+                edition.touch()
+            }
+
+            work.touch()
+
+            saveCounter += 1
+
+            // Incremental saves every 10 books to:
+            // 1. Convert temporary IDs to permanent IDs progressively
+            // 2. Reduce memory pressure (don't keep all 98 books dirty)
+            // 3. Allow UI to update incrementally
+            if saveCounter % 10 == 0 {
+                do {
+                    try modelContext.save()
+                    print("💾 Incremental save: \(saveCounter)/\(enrichedBooks.count) books processed")
+                } catch {
+                    print("❌ Failed incremental save at \(saveCounter) books: \(error)")
+                }
+            }
+        }
+
+        // Final save for remaining books (if total wasn't multiple of 10)
+        do {
+            try modelContext.save()
+            print("✅ Successfully applied enriched data to \(enrichedBooks.count) books")
+        } catch {
+            print("❌ Failed final save of enriched data: \(error)")
         }
     }
 }

@@ -258,9 +258,10 @@ public final class EnrichmentService {
                 score += 10
             }
 
-            // Prefer results with cover images
+            // Prefer results with cover images (increased from 5 to 30)
+            // This ensures we prioritize results with covers when title/author match is close
             if result.coverImage != nil {
-                score += 5
+                score += 30
             }
 
             return (result, score)

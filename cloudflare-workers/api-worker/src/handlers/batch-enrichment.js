@@ -74,6 +74,7 @@ async function processBatchEnrichment(books, doStub, env) {
       books,
       async (book) => {
         // Call enrichment service (multi-provider fallback: Google Books → OpenLibrary)
+        // Returns SingleEnrichmentResult { work, edition, authors } or null
         const enriched = await enrichSingleBook(
           {
             title: book.title,
@@ -84,6 +85,7 @@ async function processBatchEnrichment(books, doStub, env) {
         );
 
         if (enriched) {
+          // enriched is now SingleEnrichmentResult with work, edition (includes coverImageURL!), and authors
           return { ...book, enriched, success: true };
         } else {
           return {
