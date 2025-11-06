@@ -366,7 +366,7 @@ public struct GeminiCSVImportView: View {
         }
 
         do {
-            let message = try JSONDecoder().decode(WebSocketMessage.self, from: data)
+            let message = try JSONDecoder().decode(CSVWebSocketMessage.self, from: data)
             #if DEBUG
             print("[CSV WebSocket] Decoded message type: \(message.type)")
             #endif
@@ -514,6 +514,9 @@ public struct GeminiCSVImportView: View {
             modelContext.insert(libraryEntry)
             libraryEntry.work = work
             work.userLibraryEntries = [libraryEntry]
+            #if DEBUG
+            print("📚 [CSV Import] Created UserLibraryEntry for '\(book.title)' - userLibraryEntries count: \(work.userLibraryEntries?.count ?? 0)")
+            #endif
 
             // Create Edition ONLY if we have ISBN from Gemini
             if let isbn = book.isbn {
@@ -538,6 +541,11 @@ public struct GeminiCSVImportView: View {
             try modelContext.save()
             #if DEBUG
             print("✅ Saved \(savedCount) books (\(skippedCount) skipped as duplicates)")
+            // Verify UserLibraryEntry relationships persisted
+            for work in savedWorks {
+                let entryCount = work.userLibraryEntries?.count ?? 0
+                print("📚 [CSV Import] Post-save verification: '\(work.title)' has \(entryCount) library entries")
+            }
             #endif
 
             // Extract permanent IDs AFTER save (now they're permanent!)
@@ -582,20 +590,4 @@ public struct GeminiCSVImportView: View {
             return false
         }
     }
-<<<<<<< HEAD
-=======
-
-    // MARK: - WebSocket Message Types
-
-    struct WebSocketMessage: Codable {
-        let type: String
-        let progress: Double?
-        let status: String?
-        let error: String?
-        let data: GeminiCSVImportJob?
-
-        // Computed property for backward compatibility
-        var result: GeminiCSVImportJob? { data }
-    }
->>>>>>> origin/main
 }

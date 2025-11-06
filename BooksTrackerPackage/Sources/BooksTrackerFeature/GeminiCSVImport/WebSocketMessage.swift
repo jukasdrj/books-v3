@@ -4,7 +4,7 @@ import Foundation
 
 /// WebSocket message structure for CSV import progress tracking
 /// Matches backend message format from progress-socket.js
-public struct WebSocketMessage: Codable {
+public struct CSVWebSocketMessage: Codable {
     public let type: String
     public let jobId: String?
     public let timestamp: Double?
