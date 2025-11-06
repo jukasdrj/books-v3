@@ -30,6 +30,7 @@ export function normalizeGoogleBooksToWork(item: any): WorkDTO {
     originalLanguage: volumeInfo.language,
     firstPublicationYear: extractYear(volumeInfo.publishedDate),
     description: volumeInfo.description,
+    coverImageURL: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:'),
     synthetic: false,
     primaryProvider: 'google-books',
     contributors: ['google-books'],

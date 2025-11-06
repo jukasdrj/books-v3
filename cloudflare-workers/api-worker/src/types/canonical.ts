@@ -32,6 +32,7 @@ export interface WorkDTO {
   originalLanguage?: string;
   firstPublicationYear?: number;
   description?: string;
+  coverImageURL?: string; // Cover image URL (copied from EditionDTO for enrichment)
 
   // Provenance
   synthetic?: boolean; // True if Work was inferred from Edition data

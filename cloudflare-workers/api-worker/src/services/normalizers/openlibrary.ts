@@ -33,6 +33,9 @@ export function normalizeOpenLibraryToWork(doc: any): WorkDTO {
     originalLanguage: doc.language?.[0],
     firstPublicationYear: extractYear(doc.first_publish_year),
     description: undefined, // OpenLibrary search doesn't include descriptions
+    coverImageURL: doc.cover_i
+      ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`
+      : undefined,
     synthetic: false,
     primaryProvider: 'openlibrary',
     contributors: ['openlibrary'],
