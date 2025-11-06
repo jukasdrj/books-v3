@@ -8,6 +8,13 @@ Personal book tracking iOS app with cultural diversity insights. SwiftUI, SwiftD
 
 **📚 DOCUMENTATION HUB:** See `docs/README.md` for complete documentation navigation (PRDs, workflows, feature guides)
 
+**🤖 AI CONTEXT FILES:**
+- **This file:** Claude Code development guide (primary)
+- **`.ai/SHARED_CONTEXT.md`:** Project-wide AI context (tech stack, architecture, critical rules)
+- **`.ai/gemini-config.md`:** Gemini API configuration and usage
+- **`.github/copilot-instructions.md`:** GitHub Copilot setup
+- **`.ai/README.md`:** AI context organization guide
+
 ## Quick Start
 
 ast-grep (sg) is available and SHALL be prioritized for syntax-aware searches --lang swift

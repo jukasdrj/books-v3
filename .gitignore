@@ -111,3 +111,8 @@ cloudflare-workers/*_REPORT.md
 
 # Repomix output (auto-generated, large file)
 repomix-output.xml
+
+# AI Context - Exclude personal configs
+.ai/*-local.md
+.ai/api-keys.md
+.ai/secrets/
