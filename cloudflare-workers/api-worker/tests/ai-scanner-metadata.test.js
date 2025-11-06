@@ -87,7 +87,7 @@ describe('AI Scanner Metadata', () => {
     expect(completionUpdate).toBeDefined();
     expect(completionUpdate.result).toBeDefined();
     expect(completionUpdate.result.metadata).toBeDefined();
-    expect(completionUpdate.result.metadata.modelUsed).toBe('gemini-2.0-flash-exp');
+    expect(completionUpdate.result.metadata.modelUsed).toBe('gemini-2.5-flash');
   });
 
   it('should handle missing model metadata gracefully', async () => {
