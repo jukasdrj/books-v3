@@ -37,6 +37,21 @@ AI-powered CSV import that requires zero configuration. Gemini automatically det
 - PersistentIdentifiers enqueued to `EnrichmentQueue`
 - User can immediately browse and interact with books
 
+**Critical:** Each imported Work MUST have a `UserLibraryEntry` to appear in the library:
+
+```swift
+// GeminiCSVImportView.swift:505-510
+let libraryEntry = UserLibraryEntry(readingStatus: .toRead)
+modelContext.insert(libraryEntry)
+libraryEntry.work = work
+work.userLibraryEntries = [libraryEntry]
+```
+
+**Why:** Library filtering requires non-empty `userLibraryEntries` relationship:
+- LibraryFilterService.swift:18-22
+- Without this, books are saved to SwiftData but invisible
+- Default status: `.toRead` (user can change later)
+
 **Stage 3: Background Enrichment (1-5 minutes)**
 - `EnrichmentService` processes queue in background
 - Fetches covers, metadata, ISBNs from external APIs (Google Books + OpenLibrary)
@@ -66,7 +81,9 @@ Gemini 2.0 Flash API (Parsing Phase)
     ↓ 5-15s parsing only (no enrichment!)
 WebSocket sends parsed books
     ↓
-iOS saves to SwiftData (Work, Author, Edition models)
+iOS saves to SwiftData (Work, Author, Edition, UserLibraryEntry models)
+    ↓
+UserLibraryEntry created with .toRead status (CRITICAL for visibility!)
     ↓
 Books appear INSTANTLY in Library tab (minimal metadata)
     ↓
@@ -141,6 +158,18 @@ Library tab updates in real-time (no refresh needed)
 - Connection management with ping/pong verification
 - JSON message parsing with Codable models
 - Automatic reconnection on errors
+
+### Key Components
+
+| Component | Responsibility | File |
+|-----------|---------------|------|
+| **GeminiCSVImportView** | Upload + progress UI | `GeminiCSVImport/GeminiCSVImportView.swift` |
+| **GeminiCSVImportService** | Backend API client | `GeminiCSVImport/GeminiCSVImportService.swift` |
+| **LibraryFilterService** | Filters library books | `Library/LibraryFilterService.swift` |
+| **EnrichmentService** | Fetches book metadata | `Enrichment/EnrichmentService.swift` |
+| **EnrichmentQueue** | Manages background enrichment | `Enrichment/EnrichmentQueue.swift` |
+| **api-worker** | Gemini parsing + enrichment | `cloudflare-workers/api-worker/src/handlers/gemini-csv-import.js` |
+| **ProgressWebSocketDO** | Real-time progress updates | `cloudflare-workers/api-worker/src/durable-objects/ProgressWebSocketDO.js` |
 
 ### Backend Endpoint
 
@@ -654,6 +683,20 @@ private func saveBooks(_ books: [GeminiCSVImportJob.ParsedBook]) async {
 - **IP-based:** 5 requests/minute per IP (Cloudflare rate limiter)
 - **No User Quotas:** Unlimited imports per user
 - **Backend Quotas:** Gemini API limits handled with retries
+
+## Fixed Issues
+
+### Issue: Books Imported But Not Visible (Fixed in v3.2.0)
+
+**Symptom:** CSV import reported success but books didn't appear in library.
+
+**Root Cause:** Missing `UserLibraryEntry` creation. Library filter requires non-empty `userLibraryEntries`.
+
+**Fix:** Commit 086384b added `UserLibraryEntry` creation in import loop.
+
+**Impact:** All books now default to "To Read" status on import.
+
+**Related:** GitHub Issue #258
 
 ## Related Documentation
 

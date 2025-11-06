@@ -35,27 +35,26 @@ flowchart TD
 
     BackendParse --> ConnectWS[Connect WebSocket for progress]
 
-    ConnectWS --> ParsePhase[Phase 1: Gemini Parsing - 5-50%]
+    ConnectWS --> ParsePhase[Phase 1: Gemini Parsing - 5-100%]
     ParsePhase --> ParseComplete{Gemini Success?}
 
-    ParseComplete -->|Success| EnrichPhase[Phase 2: Enrichment - 50-100%]
+    ParseComplete -->|Success| ShowSummary[Display import summary & review screen]
     ParseComplete -->|Failed| ShowError2[Show Gemini parse error]
 
-    EnrichPhase --> ProcessBooks[Process each parsed book]
+    ShowSummary --> UserDecides{User Action}
+    UserDecides -->|'Add to Library'| SaveBooks[Client: Save books to SwiftData]
+    UserDecides -->|Cancel| End
 
-    ProcessBooks --> NextBook{More books?}
-    NextBook -->|Yes| EnrichBook[Enrich metadata via /search]
-    NextBook -->|No| Complete
+    SaveBooks --> InsertLoop{For each book}
+    InsertLoop -->|next| InsertWork[Insert Work, Author, Edition]
+    InsertWork --> InsertULE[🔥 Insert UserLibraryEntry .toRead]
+    InsertULE --> InsertLoop
+    InsertLoop -->|done| EnqueueBatch[Enqueue for Background Enrichment]
 
-    EnrichBook --> InsertWork[Insert Work + Author + Edition]
-    InsertWork --> InsertLibraryEntry[🔥 Insert UserLibraryEntry .toRead]
-    InsertLibraryEntry --> UpdateProgress[WebSocket: Update progress %]
-    UpdateProgress --> ProcessBooks
-    
-    style InsertLibraryEntry fill:#ff6b6b,stroke:#c92a2a,color:#fff
+    style InsertULE fill:#ff6b6b,stroke:#c92a2a,color:#fff
 
-    Complete --> ShowSummary[Display import summary]
-    ShowSummary --> End2([Import Complete])
+    EnqueueBatch --> BooksAppear[Books INSTANTLY appear in Library]
+    BooksAppear --> End2([Import Complete])
 
     ShowError2 --> End
 ```

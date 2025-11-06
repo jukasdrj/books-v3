@@ -340,9 +340,11 @@ Books appear in Library tab with covers
 - **Input:** Array of ParsedBook objects from Gemini
 - **Processing:**
   - Fetch ALL existing works ONCE: `let allWorks = try? modelContext.fetch(FetchDescriptor<Work>())`
-  - For each book, check: `work.title.lowercased() == book.title.lowercased() && work.authorNames.lowercased().contains(book.author.lowercased())`
-  - If duplicate: increment `skippedCount`, continue to next book
-  - If new: create Work + Author + Edition models, insert to SwiftData
+  - For each book, check for duplicates: `work.title.lowercased() == book.title.lowercased() && work.authorNames.lowercased().contains(book.author.lowercased())`
+  - If duplicate: increment `skippedCount` and continue.
+  - If new:
+    - Create Work, Author, and Edition models and insert into SwiftData.
+    - **Crucially, create a `UserLibraryEntry` with a default `.toRead` status and associate it with the new `Work`.** This relationship is a non-negotiable requirement for the book to appear in the user's library, as it signals ownership. Without it, the book data exists but is invisible in the UI.
 - **Output:** savedCount + skippedCount statistics
 - **Error Handling:** If fetch fails, assume no duplicates (prefer false negative)
 
