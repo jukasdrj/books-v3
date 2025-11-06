@@ -21,6 +21,12 @@ import {
   normalizeOpenLibraryToAuthor
 } from './normalizers/openlibrary.js';
 
+import {
+  normalizeISBNdbToWork,
+  normalizeISBNdbToEdition,
+  normalizeISBNdbToAuthor
+} from './normalizers/isbndb.js';
+
 // ============================================================================
 // Google Books API
 // ============================================================================
@@ -373,43 +379,41 @@ export async function searchISBNdb(title, authorName, env) {
     const searchResponse = await fetchWithAuth(searchUrl, env);
 
     if (!searchResponse.books || searchResponse.books.length === 0) {
-      return { success: true, works: [], totalResults: 0 };
+      return { success: true, works: [], editions: [], authors: [], totalResults: 0 };
     }
 
-    // Convert ISBNdb books to normalized work format
-    const works = searchResponse.books.map(book => ({
-      title: book.title,
-      subtitle: book.title_long !== book.title ? book.title_long : null,
-      authors: (book.authors || []).map(name => ({ name })),
-      firstPublicationYear: parseInt(book.date_published?.substring(0, 4), 10) || null,
-      subjects: normalizeGenres(book.subjects),
+    // Use canonical normalizers for ISBNdb data
+    const works = [];
+    const editions = [];
+    const authorsSet = new Set();
 
-      externalIds: {
-        openLibraryWorkId: null,
-        openLibraryEditionId: null,
-        goodreadsWorkIds: [],
-        amazonASINs: [],
-        librarythingIds: [],
-        googleBooksVolumeIds: [],
-        isbndbIds: [book.isbn13].filter(Boolean),
-      },
+    for (const book of searchResponse.books) {
+      // Normalize to canonical WorkDTO
+      const work = normalizeISBNdbToWork(book);
+      works.push(work);
 
-      editions: [{
-        isbn10: book.isbn,
-        isbn13: book.isbn13,
-        publisher: book.publisher,
-        publicationDate: book.date_published,
-        binding: book.binding,
-        pages: book.pages,
-        coverImageURL: book.image,
-        synopsis: book.synopsis,
-      }].filter(e => e.isbn13), // Only include if has ISBN
-    }));
+      // Normalize to canonical EditionDTO
+      const edition = normalizeISBNdbToEdition(book);
+      editions.push(edition);
+
+      // Extract and normalize authors
+      const authorNames = book.authors || [];
+      authorNames.forEach(name => {
+        if (name && !authorsSet.has(name)) {
+          authorsSet.add(name);
+        }
+      });
+    }
+
+    // Convert author names to AuthorDTOs
+    const authors = Array.from(authorsSet).map(name => normalizeISBNdbToAuthor(name));
 
     return {
       success: true,
       provider: 'isbndb',
-      works: works,
+      works,
+      editions,
+      authors,
       totalResults: searchResponse.total || works.length
     };
 
@@ -435,11 +439,12 @@ export async function getISBNdbEditionsForWork(title, authorName, env) {
       book.authors?.some(a => a.toLowerCase().includes(authorName.toLowerCase()))
     );
 
-    const cleanedEditions = processAndDeduplicateEditions(relevantBooks);
+    // Use canonical normalizer for editions
+    const editions = relevantBooks
+      .map(book => normalizeISBNdbToEdition(book))
+      .sort((a, b) => b.isbndbQuality - a.isbndbQuality); // Sort by quality score
 
-    cleanedEditions.sort((a, b) => b.qualityScore - a.qualityScore);
-
-    return { success: true, editions: cleanedEditions };
+    return { success: true, editions };
 
   } catch (error) {
     console.error(`Error in getEditionsForWork for "${title}":`, error);
@@ -453,95 +458,32 @@ export async function getISBNdbBookByISBN(isbn, env) {
     const url = `https://api2.isbndb.com/book/${isbn}?with_prices=0`;
     await enforceRateLimit(env);
     const response = await fetchWithAuth(url, env);
-    return { success: true, book: response.book };
+    
+    if (!response.book) {
+      return { success: false, error: 'Book not found' };
+    }
+
+    const book = response.book;
+
+    // Use canonical normalizers
+    const work = normalizeISBNdbToWork(book);
+    const edition = normalizeISBNdbToEdition(book);
+    
+    // Extract authors
+    const authorNames = book.authors || [];
+    const authors = authorNames.map(name => normalizeISBNdbToAuthor(name));
+
+    return { 
+      success: true, 
+      work,
+      edition,
+      authors,
+      book: response.book  // Keep raw book data for backward compatibility
+    };
   } catch (error) {
     console.error(`Error in getBookByISBN for "${isbn}":`, error);
     return { success: false, error: error.message };
   }
-}
-
-function processAndDeduplicateEditions(books) {
-  const unwantedTitleKeywords = [
-    'study guide', 'summary', 'workbook', 'audiobook', 'box set', 'collection',
-    'companion', 'large print', 'classroom', 'abridged', 'collectors', 'deluxe',
-    ' unabridged', 'audio cd', 'teacher', 'teaching', 'instructor', 'student edition',
-    'annotated', 'critical edition', 'sparknotes', 'cliffsnotes', 'test bank',
-    'lesson plan', 'curriculum', 'educational'
-  ];
-  const unwantedPublishers = [
-    'createspace', 'independently published', 'kdp', 'lulu.com',
-    'lightning source', 'ingramspark', 'bibliolife', 'apple books', 'smashwords'
-  ];
-
-  const editionMap = new Map();
-
-  for (const book of books) {
-    const title = (book.title || '').toLowerCase();
-    const publisher = (book.publisher || '').toLowerCase();
-    const binding = (book.binding || '').toLowerCase();
-    const isbn13 = book.isbn13;
-
-    if (!isbn13) continue;
-    if (unwantedTitleKeywords.some(keyword => title.includes(keyword))) continue;
-    if (unwantedPublishers.some(pub => publisher.includes(pub))) continue;
-    if (binding.includes('audio')) continue;
-
-    let score = 50;
-    if (book.image) score += 40;
-    if (binding.includes('hardcover')) score += 25;
-    if (binding.includes('trade paperback')) score += 20;
-    if (binding.includes('paperback')) score += 15;
-    if (binding.includes('mass market paperback')) score += 5;
-    if (binding.includes('library')) score -= 20;
-    if (['penguin', 'random house', 'harpercollins', 'simon & schuster', 'hachette', 'macmillan', 'scholastic', 'knopf', 'doubleday', 'viking'].some(p => publisher.includes(p))) {
-      score += 15;
-    }
-    if (book.pages) score += 10;
-    if (book.synopsis) score += 5;
-    const year = parseInt(book.date_published, 10);
-    if (!isNaN(year) && year > 2015) score += 5;
-
-    const currentEdition = {
-      isbn13: book.isbn13,
-      isbn10: book.isbn,
-      title: book.title,
-      publisher: book.publisher,
-      publishDate: book.date_published,
-      binding: book.binding,
-      pages: book.pages,
-      genres: normalizeGenres(book.subjects),
-      coverImageURL: book.image,
-      source: 'isbndb',
-      qualityScore: score
-    };
-
-    if (!editionMap.has(isbn13) || score > editionMap.get(isbn13).qualityScore) {
-      editionMap.set(isbn13, currentEdition);
-    }
-  }
-
-  return Array.from(editionMap.values());
-}
-
-function normalizeGenres(subjects) {
-  if (!subjects || subjects.length === 0) {
-    return [];
-  }
-
-  const genreBlacklist = new Set([
-    'fiction', 'history', 'biography & autobiography', 'juvenile fiction', 'social science'
-  ]);
-
-  const cleanedGenres = subjects
-    .map(s => s.split(' / ')[0].trim())
-    .filter(s => s.length > 2 && !genreBlacklist.has(s.toLowerCase()))
-    .map(s => s.charAt(0).toUpperCase() + s.slice(1));
-
-  if (cleanedGenres.length === 0 && subjects.some(s => s.toLowerCase().includes('juvenile fiction'))) {
-    return ['Young Adult'];
-  }
-
-  return [...new Set(cleanedGenres)].slice(0, 4);
 }
 
 async function fetchWithAuth(url, env) {
