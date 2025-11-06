@@ -26,6 +26,7 @@ public struct CorrectionView: View {
     @State private var selectedFormat: EditionFormat
     @State private var croppedImage: UIImage?
     @State private var isSaving = false
+    @State private var showingManualMatch = false
     @FocusState private var focusedField: Field?
 
     public init(work: Work, reviewModel: ReviewQueueModel) {
@@ -68,6 +69,9 @@ public struct CorrectionView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             loadCroppedImage()
+        }
+        .sheet(isPresented: $showingManualMatch) {
+            ManualMatchView(work: work)
         }
     }
 
@@ -170,6 +174,27 @@ public struct CorrectionView: View {
 
     private var actionButtonsView: some View {
         VStack(spacing: 12) {
+            // Search for Match button (new feature)
+            Button {
+                showingManualMatch = true
+            } label: {
+                HStack {
+                    Image(systemName: "magnifyingglass.circle.fill")
+                        .font(.title3)
+                    
+                    Text("Search for Match")
+                        .fontWeight(.semibold)
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.blue.gradient)
+                }
+            }
+            .disabled(isSaving)
+            
             // Save Corrections button
             Button {
                 Task {

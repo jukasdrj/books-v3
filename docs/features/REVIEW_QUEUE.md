@@ -1,7 +1,7 @@
 # Review Queue (Human-in-the-Loop) Feature
 
-**Status:** ✅ Shipped (Build 49+)
-**Last Updated:** October 23, 2025
+**Status:** ✅ Shipped (Build 49+) | ✨ Enhanced with Manual Matching (Build 50+)
+**Last Updated:** November 5, 2025
 **Related Issues:** #112, #113, #114, #115, #116, #117, #118, #119, #120
 
 ---
@@ -10,8 +10,10 @@
 
 The Review Queue allows users to review and correct AI-detected book metadata from bookshelf scans when the AI confidence is below 60%. This human-in-the-loop workflow ensures data quality while maintaining the speed benefits of automated detection.
 
+**NEW (Build 50+):** Manual matching feature allows users to search and select the correct book when enrichment fails or AI detection is incorrect, providing a complete recovery path for all failed enrichments.
+
 **Problem Solved:**
-Gemini 2.5 Flash AI can misread book spines due to blur, glare, or unusual fonts. The Review Queue surfaces these low-confidence detections for human verification, preventing incorrect data from entering the library.
+Gemini 2.5 Flash AI can misread book spines due to blur, glare, or unusual fonts. The Review Queue surfaces these low-confidence detections for human verification, preventing incorrect data from entering the library. When text editing isn't sufficient, users can now search external APIs to find and apply the correct match.
 
 ---
 
@@ -38,9 +40,17 @@ Bookshelf Scan (Gemini AI)
    Sees cropped spine image + edit fields
            ↓
    ├─ Edits title/author → Saves → .userEdited
-   └─ No changes → Mark as Verified → .verified
+   ├─ No changes → Mark as Verified → .verified
+   └─ **NEW: Taps "Search for Match" → ManualMatchView**
            ↓
-   Book removed from queue
+   **Manual Match Flow:**
+   - Searches OpenLibrary/ISBNdb/Google Books
+   - Browses results with cover previews
+   - Selects correct match
+   - Confirms replacement
+           ↓
+   Book updated with correct metadata + cover
+   Marked as .userEdited and removed from queue
            ↓
    All books reviewed → Image cleanup on next launch
 ```
@@ -91,10 +101,11 @@ public struct DetectedBook {
 |-----------|---------------|---------------|
 | **ReviewQueueModel** | State management, queue loading | 93 |
 | **ReviewQueueView** | Queue list UI, navigation | 315 |
-| **CorrectionView** | Editing interface with image cropping | 310 |
+| **CorrectionView** | Editing interface with image cropping | 335 |
+| **ManualMatchView** ✨ NEW | Search and match selection UI | 430 |
 | **ImageCleanupService** | Automatic temp file cleanup | 145 |
 
-**Total:** ~863 lines of production code
+**Total:** ~1,318 lines of production code (+455 for manual matching)
 
 ---
 
@@ -113,7 +124,50 @@ work.originalImagePath = detectedBook.originalImagePath
 work.boundingBox = detectedBook.boundingBox
 ```
 
-### 2. Visual Queue Indicator
+### 2. ✨ NEW: Manual Book Matching (Build 50+)
+
+**Location:** CorrectionView → "Search for Match" button
+
+**Purpose:** Allows users to search external APIs when text editing isn't sufficient
+
+**Architecture:**
+- Reuses existing `SearchModel` and `BookSearchAPIService`
+- Presents search UI with scope selector (All/Title/Author/ISBN)
+- Shows results with cover image previews
+- Applies selected match with confirmation dialog
+
+**Implementation:** (ManualMatchView.swift:1-430)
+
+```swift
+// User taps "Search for Match" in CorrectionView
+ManualMatchView(work: work)
+    .sheet(isPresented: $showingManualMatch)
+
+// Presents search interface
+- Pre-populated with work title
+- Search scopes: All, Title, Author, ISBN
+- Results show cover images + metadata
+- Confirmation before applying match
+
+// Applies selected match
+- Updates Work title, authors, metadata
+- Updates/creates editions with cover images
+- Preserves existing user library entries
+- Marks as .userEdited and removes from queue
+```
+
+**Integration Points:**
+1. **Review Queue:** CorrectionView "Search for Match" button
+2. **CSV Import Failures:** Future - add to failed enrichments
+3. **Work Detail View:** Future - "Find Alternative Cover" action
+
+**Benefits:**
+- 10% CSV import failures now have recovery path
+- Bookshelf scan misdetections can be corrected
+- Users can replace incorrect covers/metadata
+- No manual typing of complex metadata
+
+### 3. Visual Queue Indicator
 
 **Location:** iOS26LiquidLibraryView toolbar (iOS26LiquidLibraryView.swift:91-109)
 
@@ -275,6 +329,10 @@ See Issue #120 for toolbar button design review:
 - [ ] Tap book → CorrectionView shows cropped spine image
 - [ ] Edit title → Save → Book marked as `.userEdited`
 - [ ] No edits → Verify → Book marked as `.verified`
+- [ ] **NEW:** Tap "Search for Match" → ManualMatchView appears
+- [ ] **NEW:** Search for book → See results with covers
+- [ ] **NEW:** Select match → Confirmation dialog appears
+- [ ] **NEW:** Confirm → Work updated, removed from queue
 - [ ] Book disappears from queue after action
 - [ ] Relaunch app → Image cleanup runs (check console logs)
 - [ ] Test across all 5 themes (liquidBlue, cosmicPurple, etc.)
@@ -321,11 +379,13 @@ Verify `DetectedBook.confidence < 0.60` for low-confidence books.
 
 ### Planned (Backlog)
 
-1. **Batch Review Mode** - Swipe through multiple books without dismissing
-2. **Confidence Score Display** - Show AI confidence % in CorrectionView
-3. **Manual Recrop** - Adjust bounding box if AI cropped incorrectly
-4. **Review History** - Track accuracy improvements over time
-5. **Smart Suggestions** - Offer alternatives from OpenLibrary API
+1. **CSV Import Integration** - Add "Fix Failed Enrichments" after CSV import completion
+2. **Work Detail Alternative Covers** - Add "Find Alternative Cover" action in WorkDetailView
+3. **Library Filtering** - Filter library by "Missing Covers" → Batch match UI
+4. **Batch Review Mode** - Swipe through multiple books without dismissing
+5. **Confidence Score Display** - Show AI confidence % in CorrectionView
+6. **Manual Recrop** - Adjust bounding box if AI cropped incorrectly
+7. **Review History** - Track accuracy improvements over time
 
 ### Considered (Deferred)
 
@@ -347,6 +407,16 @@ Verify `DetectedBook.confidence < 0.60` for low-confidence books.
 
 ## Changelog
 
+**Build 50 (November 5, 2025):**
+- ✨ **NEW:** Manual book matching feature (ManualMatchView)
+- ✨ Integrated search into CorrectionView with "Search for Match" button
+- ✨ Reuses existing search infrastructure (SearchModel, BookSearchAPIService)
+- ✨ Support for all search scopes (All/Title/Author/ISBN)
+- ✨ Confirmation dialog before applying match
+- ✅ Preserves user library entries when applying match
+- ✅ Unit tests for manual matching (ManualMatchViewTests)
+- ✅ Documentation updates
+
 **Build 49 (October 23, 2025):**
 - ✅ Core workflow implementation (Issues #112-115)
 - ✅ ImageCleanupService automatic cleanup (#116)
@@ -362,4 +432,4 @@ Verify `DetectedBook.confidence < 0.60` for low-confidence books.
 ---
 
 **Maintainers:** @jukasdrj
-**Status:** Production-ready, pending HIG review (#120)
+**Status:** Production-ready with manual matching, pending HIG review (#120)
