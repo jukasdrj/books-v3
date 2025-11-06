@@ -47,15 +47,29 @@ flowchart TD
     NextBook -->|Yes| EnrichBook[Enrich metadata via /search]
     NextBook -->|No| Complete
 
-    EnrichBook --> InsertWork[Insert Work + Edition + UserLibraryEntry]
-    InsertWork --> UpdateProgress[WebSocket: Update progress %]
+    EnrichBook --> InsertWork[Insert Work + Author + Edition]
+    InsertWork --> InsertLibraryEntry[🔥 Insert UserLibraryEntry .toRead]
+    InsertLibraryEntry --> UpdateProgress[WebSocket: Update progress %]
     UpdateProgress --> ProcessBooks
+    
+    style InsertLibraryEntry fill:#ff6b6b,stroke:#c92a2a,color:#fff
 
     Complete --> ShowSummary[Display import summary]
     ShowSummary --> End2([Import Complete])
 
     ShowError2 --> End
 ```
+
+**🔥 CRITICAL: UserLibraryEntry Creation**
+
+The `UserLibraryEntry` step (highlighted in red above) is **required** for books to appear in the Library view:
+
+- **Without UserLibraryEntry:** Books are saved to SwiftData but remain invisible in the UI
+- **Why:** `LibraryFilterService.filterLibraryWorks()` filters out works with empty `userLibraryEntries`
+- **Default Status:** CSV imports create entries with `.toRead` status
+- **Code Reference:** `GeminiCSVImportView.swift:505-510`, `LibraryFilterService.swift:20-30`
+
+This step was added in commit 086384b to fix the "CSV import books not appearing in library" issue.
 
 ---
 
@@ -261,10 +275,11 @@ flowchart LR
 
 | Component | Responsibility | File |
 |-----------|---------------|------|
-| **GeminiCSVImportView** | Upload + progress UI | `GeminiCSVImport/GeminiCSVImportView.swift` |
+| **GeminiCSVImportView** | Upload + progress UI + **UserLibraryEntry creation** | `GeminiCSVImport/GeminiCSVImportView.swift` |
 | **GeminiCSVImportService** | Backend API client | `GeminiCSVImport/GeminiCSVImportService.swift` |
 | **EnrichmentService** | Fetches book metadata | `Enrichment/EnrichmentService.swift` |
 | **EnrichmentQueue** | Manages background enrichment | `Enrichment/EnrichmentQueue.swift` |
+| **LibraryFilterService** | Filters works by UserLibraryEntry (line 20-30) | `Services/LibraryFilterService.swift` |
 | **api-worker** | Gemini parsing + enrichment | `cloudflare-workers/api-worker/src/handlers/gemini-csv-import.js` |
 | **ProgressWebSocketDO** | Real-time progress updates | `cloudflare-workers/api-worker/src/durable-objects/ProgressWebSocketDO.js` |
 
