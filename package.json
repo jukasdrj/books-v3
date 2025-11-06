@@ -16,11 +16,9 @@
     "reading",
     "cloudflare-workers"
   ],
-  "devDependencies": {
-    "wrangler": "^4.45.4"
-  },
+  "devDependencies": {},
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=25.0.0"
   },
   "repository": {
     "type": "git",
