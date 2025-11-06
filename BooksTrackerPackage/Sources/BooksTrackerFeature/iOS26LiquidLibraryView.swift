@@ -405,12 +405,25 @@ public struct iOS26LiquidLibraryView: View {
         // Accessing userLibraryEntries on a deleted object triggers fault resolution and crashes
         var count = 0
         for work in cachedFilteredWorks {
-            // Check if the work is still valid in the context
+            // 1. VALIDATE: Check if the work is still valid in the context
             // model(for:) returns nil for deleted objects, preventing crashes
-            if modelContext.model(for: work.persistentModelID) as? Work != nil {
-                // Only access the relationship if the object is valid
-                if let entries = work.userLibraryEntries {
-                    count += entries.filter { $0.readingStatus == status }.count
+            guard modelContext.model(for: work.persistentModelID) as? Work != nil else {
+                continue
+            }
+            
+            // 2. ACCESS: It is now safe to access work properties and relationships
+            if let entries = work.userLibraryEntries {
+                // MUST apply the same check to UserLibraryEntry objects
+                for entry in entries {
+                    // 1. VALIDATE: Check if the entry is still valid in the context
+                    guard modelContext.model(for: entry.persistentModelID) as? UserLibraryEntry != nil else {
+                        continue
+                    }
+                    
+                    // 2. ACCESS: Now safe to access entry properties
+                    if entry.readingStatus == status {
+                        count += 1
+                    }
                 }
             }
         }
@@ -804,7 +817,15 @@ public struct UltraOptimizedLibraryView: View {
     private var optimizedProgressOverview: some View {
         HStack(spacing: 16) {
             ForEach(ReadingStatus.allCases.prefix(4), id: \.self) { status in
-                let count = libraryEntries.filter { $0.readingStatus == status }.count
+                // DEFENSIVE: Validate entries before accessing readingStatus property
+                let count = libraryEntries.filter { entry in
+                    // 1. VALIDATE: Check if the entry is still valid in the context
+                    guard modelContext.model(for: entry.persistentModelID) as? UserLibraryEntry != nil else {
+                        return false
+                    }
+                    // 2. ACCESS: Now safe to access entry.readingStatus
+                    return entry.readingStatus == status
+                }.count
 
                 VStack(spacing: 4) {
                     Image(systemName: status.systemImage)

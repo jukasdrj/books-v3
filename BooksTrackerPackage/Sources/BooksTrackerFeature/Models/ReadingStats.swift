@@ -242,18 +242,46 @@ public struct ReadingStats: Sendable {
 
         // Calculate pages read
         let pagesRead = entriesInPeriod.reduce(0) { sum, entry in
-            sum + (entry.edition?.pageCount ?? 0)
+            // DEFENSIVE: Validate entry is still in context before accessing properties
+            guard context.model(for: entry.persistentModelID) as? UserLibraryEntry != nil else {
+                return sum
+            }
+            return sum + (entry.edition?.pageCount ?? 0)
         }
 
         // Count completed books
-        let booksCompleted = entriesInPeriod.filter { $0.readingStatus == .read }.count
+        let booksCompleted = entriesInPeriod.filter { entry in
+            // DEFENSIVE: Validate entry is still in context before accessing properties
+            guard context.model(for: entry.persistentModelID) as? UserLibraryEntry != nil else {
+                return false
+            }
+            return entry.readingStatus == .read
+        }.count
 
         // Count in-progress books
-        let booksInProgress = allEntries.filter { $0.readingStatus == .reading }.count
+        let booksInProgress = allEntries.filter { entry in
+            // DEFENSIVE: Validate entry is still in context before accessing properties
+            guard context.model(for: entry.persistentModelID) as? UserLibraryEntry != nil else {
+                return false
+            }
+            return entry.readingStatus == .reading
+        }.count
 
         // Calculate reading pace
-        let currentlyReading = allEntries.filter { $0.readingStatus == .reading }
-        let paces = currentlyReading.compactMap { $0.readingPace }
+        let currentlyReading = allEntries.filter { entry in
+            // DEFENSIVE: Validate entry is still in context before accessing properties
+            guard context.model(for: entry.persistentModelID) as? UserLibraryEntry != nil else {
+                return false
+            }
+            return entry.readingStatus == .reading
+        }
+        let paces = currentlyReading.compactMap { entry in
+            // Entry already validated in filter above, but still defensive
+            guard context.model(for: entry.persistentModelID) as? UserLibraryEntry != nil else {
+                return nil
+            }
+            return entry.readingPace
+        }
         let averagePace = paces.isEmpty ? 0.0 : paces.reduce(0, +) / Double(paces.count)
         let fastestPace = paces.max() ?? 0.0
 

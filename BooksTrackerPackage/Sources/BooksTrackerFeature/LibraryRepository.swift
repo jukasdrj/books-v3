@@ -115,7 +115,25 @@ public class LibraryRepository {
         let entries = try modelContext.fetch(descriptor)
 
         // Map to Works (only loads needed Works, not entire library)
-        return entries.compactMap { $0.work }
+        // DEFENSIVE: Validate entries before accessing work relationship
+        return entries.compactMap { entry in
+            // 1. VALIDATE: Check if the entry is still valid in the context
+            guard modelContext.model(for: entry.persistentModelID) as? UserLibraryEntry != nil else {
+                return nil
+            }
+            
+            // 2. ACCESS: Now safe to access entry.work
+            guard let work = entry.work else {
+                return nil
+            }
+            
+            // 3. VALIDATE: Check if the work is still valid in the context
+            guard modelContext.model(for: work.persistentModelID) as? Work != nil else {
+                return nil
+            }
+            
+            return work
+        }
     }
 
     /// Fetches books currently being read.
