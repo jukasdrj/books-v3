@@ -172,8 +172,13 @@ Book Id,Title,Author,ISBN13
 ```json
 {
   "type": "progress",
-  "progress": 0.45,
-  "status": "Enriching: Harry Potter"
+  "jobId": "61df274b-8c8c-4388-9069-2a6e5a8916ab",
+  "timestamp": 1762383329601,
+  "data": {
+    "progress": 0.45,
+    "status": "Enriching: Harry Potter",
+    "keepAlive": false
+  }
 }
 ```
 
@@ -181,7 +186,9 @@ Book Id,Title,Author,ISBN13
 ```json
 {
   "type": "complete",
-  "result": {
+  "jobId": "61df274b-8c8c-4388-9069-2a6e5a8916ab",
+  "timestamp": 1762383329602,
+  "data": {
     "books": [
       {
         "title": "Harry Potter and the Sorcerer's Stone",

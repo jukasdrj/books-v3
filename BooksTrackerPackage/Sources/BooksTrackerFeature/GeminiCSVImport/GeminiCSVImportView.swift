@@ -382,9 +382,12 @@ public struct GeminiCSVImportView: View {
                     // initial request and will begin processing. No UI state is updated here because actual progress
                     // updates (including percentage and status) will be sent via subsequent 'progress' messages.
                     // Only log this event; UI state changes are handled in the 'progress', 'complete', and 'error' cases.
+                    // Note: ready_ack messages have no 'data' field (see progress-socket.js:102-105)
 
                 case "progress":
-                    if let progressValue = message.progress, let status = message.status {
+                    if let data = message.data,
+                       let progressValue = data.progress,
+                       let status = data.status {
                         #if DEBUG
                         print("[CSV WebSocket] Progress: \(Int(progressValue * 100))% - \(status)")
                         #endif
@@ -392,16 +395,19 @@ public struct GeminiCSVImportView: View {
                     }
 
                 case "complete":
-                    if let result = message.result {
+                    if let data = message.data,
+                       let books = data.books {
                         #if DEBUG
-                        print("[CSV WebSocket] ✅ Import complete: \(result.books.count) books")
+                        print("[CSV WebSocket] ✅ Import complete: \(books.count) books")
                         #endif
-                        importStatus = .completed(books: result.books, errors: result.errors)
+                        let errors = data.errors ?? []
+                        importStatus = .completed(books: books, errors: errors)
                     }
                     webSocketTask?.cancel()
 
                 case "error":
-                    if let error = message.error {
+                    if let data = message.data,
+                       let error = data.error {
                         #if DEBUG
                         print("[CSV WebSocket] ❌ Error from backend: \(error)")
                         #endif
@@ -576,6 +582,8 @@ public struct GeminiCSVImportView: View {
             return false
         }
     }
+<<<<<<< HEAD
+=======
 
     // MARK: - WebSocket Message Types
 
@@ -589,4 +597,5 @@ public struct GeminiCSVImportView: View {
         // Computed property for backward compatibility
         var result: GeminiCSVImportJob? { data }
     }
+>>>>>>> origin/main
 }
