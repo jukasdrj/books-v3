@@ -106,12 +106,31 @@ public final class EnrichmentService {
 
         do {
             let result = try await apiClient.startEnrichment(jobId: jobId, books: books)
+            
+            #if DEBUG
+            print("✅ Batch enrichment job accepted: \(result.totalCount) books queued for background processing")
+            #endif
+            
+            // HTTP 202 response indicates job acceptance, not completion
+            // Actual enrichment happens asynchronously via WebSocket
+            // Return 0/0 to avoid confusing "Success: 0, Failed: 48" logs
             return BatchEnrichmentResult(
-                successCount: result.processedCount,
-                failureCount: result.totalCount - result.processedCount,
+                successCount: 0,  // Job accepted, enrichment pending (not complete)
+                failureCount: 0,  // No failures yet (enrichment in progress)
                 errors: []
             )
         } catch {
+            // Enhanced error logging for debugging enrichment failures
+            print("🚨 Batch enrichment failed: \(error)")
+            print("🚨 Error type: \(type(of: error))")
+            
+            if let urlError = error as? URLError {
+                print("🚨 URLError code: \(urlError.code.rawValue), localized: \(urlError.localizedDescription)")
+            } else if let nsError = error as? NSError {
+                print("🚨 NSError domain: \(nsError.domain), code: \(nsError.code)")
+                print("🚨 NSError userInfo: \(nsError.userInfo)")
+            }
+            
             return BatchEnrichmentResult(
                 successCount: 0,
                 failureCount: works.count,

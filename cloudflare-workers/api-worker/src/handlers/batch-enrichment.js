@@ -6,16 +6,18 @@ import { createSuccessResponse, createErrorResponse } from '../utils/api-respons
 /**
  * Handle batch enrichment request (POST /api/enrichment/batch)
  *
- * This endpoint is preserved for future use but NOT called by CSV import.
- * Potential future uses:
- * - iOS batch enrichment for large libraries
- * - Background enrichment jobs
- * - Admin tools for data quality improvements
+ * Accepts a batch of books for background enrichment and returns immediately with 202 Accepted.
+ * Actual enrichment happens asynchronously via ctx.waitUntil() with progress updates pushed via WebSocket.
  *
- * @param {Request} request - Incoming request with JSON body { books, jobId }
+ * Used by:
+ * - iOS CSV import enrichment
+ * - iOS background enrichment queue
+ * - Batch enrichment for large libraries
+ *
+ * @param {Request} request - Incoming request with JSON body { books: [{ title, author, isbn }], jobId }
  * @param {Object} env - Worker environment bindings
  * @param {ExecutionContext} ctx - Execution context for waitUntil
- * @returns {Promise<Response>} Response with jobId
+ * @returns {Promise<Response>} ResponseEnvelope<{ success, processedCount, totalCount }> with 202 status
  */
 export async function handleBatchEnrichment(request, env, ctx) {
   try {
@@ -40,7 +42,18 @@ export async function handleBatchEnrichment(request, env, ctx) {
     // Start background enrichment
     ctx.waitUntil(processBatchEnrichment(books, doStub, env));
 
-    return createSuccessResponse({ jobId }, {}, 202);
+    // Return structure expected by iOS EnrichmentAPIClient
+    // iOS expects: { success: Bool, processedCount: Int, totalCount: Int }
+    // Since enrichment happens async, we return:
+    // - success: true (job accepted and started)
+    // - processedCount: 0 (no books processed yet)
+    // - totalCount: books.length (total books queued)
+    // Actual enrichment results come via WebSocket
+    return createSuccessResponse({ 
+      success: true,
+      processedCount: 0,
+      totalCount: books.length
+    }, {}, 202);
 
   } catch (error) {
     return createErrorResponse(error.message, 500, 'E_INTERNAL');

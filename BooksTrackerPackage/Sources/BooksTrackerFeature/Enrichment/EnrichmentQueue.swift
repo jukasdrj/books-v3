@@ -218,7 +218,7 @@ public final class EnrichmentQueue {
                 return
             }
 
-            print("✅ Batch enrichment complete. Success: \(result.successCount), Failed: \(result.failureCount)")
+            print("✅ Batch enrichment job accepted. \(works.count) books queued for background processing via WebSocket")
 
             self.clear()
             processing = false
