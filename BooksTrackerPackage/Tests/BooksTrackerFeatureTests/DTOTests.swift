@@ -18,6 +18,7 @@ struct DTOTests {
             "originalLanguage": "English",
             "firstPublicationYear": 1949,
             "description": "A dystopian novel",
+            "coverImageURL": "https://example.com/covers/1984.jpg",
             "synthetic": false,
             "primaryProvider": "google-books",
             "contributors": ["google-books"],
@@ -38,6 +39,7 @@ struct DTOTests {
         #expect(work.originalLanguage == "English")
         #expect(work.firstPublicationYear == 1949)
         #expect(work.description == "A dystopian novel")
+        #expect(work.coverImageURL == "https://example.com/covers/1984.jpg")
         #expect(work.synthetic == false)
         #expect(work.primaryProvider == "google-books")
         #expect(work.contributors == ["google-books"])
@@ -92,6 +94,33 @@ struct DTOTests {
         #expect(work.subjectTags == [])              // Default: empty array
         #expect(work.isbndbQuality == 0)             // Default: 0
         #expect(work.reviewStatus == .verified)      // Default: verified (for API sources)
+    }
+
+    @Test("WorkDTO decodes with coverImageURL from backend normalizers")
+    func workDTODecodesWithCoverImageURL() throws {
+        // Backend normalizers (google-books.ts, openlibrary.ts, isbndb.ts) set coverImageURL
+        // This field is copied from EditionDTO for enrichment purposes
+        let json = """
+        {
+            "title": "The Great Gatsby",
+            "subjectTags": ["Fiction", "Classic Literature"],
+            "coverImageURL": "https://books.google.com/books/content?id=abc123&printsec=frontcover&img=1",
+            "synthetic": false,
+            "primaryProvider": "google-books",
+            "goodreadsWorkIDs": [],
+            "amazonASINs": [],
+            "librarythingIDs": [],
+            "googleBooksVolumeIDs": ["abc123"],
+            "isbndbQuality": 0,
+            "reviewStatus": "verified"
+        }
+        """
+
+        let data = json.data(using: .utf8)!
+        let work = try JSONDecoder().decode(WorkDTO.self, from: data)
+
+        #expect(work.coverImageURL == "https://books.google.com/books/content?id=abc123&printsec=frontcover&img=1")
+        #expect(work.title == "The Great Gatsby")
     }
 
     // MARK: - EditionDTO Tests

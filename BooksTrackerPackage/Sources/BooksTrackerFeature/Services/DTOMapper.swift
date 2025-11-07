@@ -191,6 +191,9 @@ public final class DTOMapper {
         // Provenance
         work.contributors = dto.contributors ?? []
 
+        // Cover image (from backend normalizers)
+        work.coverImageURL = dto.coverImageURL
+
         // Review metadata
         work.reviewStatus = mapReviewStatus(dto.reviewStatus)
         work.originalImagePath = dto.originalImagePath
@@ -316,6 +319,7 @@ public final class DTOMapper {
             work.originalLanguage = dto.originalLanguage
             work.firstPublicationYear = dto.firstPublicationYear
             work.subjectTags = dto.subjectTags
+            work.coverImageURL = dto.coverImageURL
             work.reviewStatus = mapReviewStatus(dto.reviewStatus)
 
             // Update external IDs

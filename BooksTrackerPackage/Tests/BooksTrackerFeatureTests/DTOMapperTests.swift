@@ -176,6 +176,46 @@ struct DTOMapperTests {
         #expect(work.reviewStatus == .verified)
     }
 
+    @Test("WorkDTO.coverImageURL persists to Work model via DTOMapper")
+    @MainActor
+    func workCoverImageURLPersistsToModel() throws {
+        let container = try createTestContainer()
+        let context = ModelContext(container)
+        let mapper = DTOMapper(modelContext: context)
+
+        let workDTO = WorkDTO(
+            title: "The Great Gatsby",
+            subjectTags: ["Fiction", "Classic Literature"],
+            originalLanguage: "English",
+            firstPublicationYear: 1925,
+            description: "A novel about the American Dream",
+            coverImageURL: "https://example.com/covers/gatsby.jpg",
+            synthetic: false,
+            primaryProvider: "google-books",
+            contributors: ["google-books"],
+            openLibraryID: nil,
+            openLibraryWorkID: nil,
+            isbndbID: nil,
+            googleBooksVolumeID: nil,
+            goodreadsID: nil,
+            goodreadsWorkIDs: [],
+            amazonASINs: [],
+            librarythingIDs: [],
+            googleBooksVolumeIDs: ["abc123"],
+            lastISBNDBSync: nil,
+            isbndbQuality: 0,
+            reviewStatus: .verified,
+            originalImagePath: nil,
+            boundingBox: nil
+        )
+
+        let work = try mapper.mapToWork(workDTO)
+
+        // Verify coverImageURL is persisted to Work model
+        #expect(work.coverImageURL == "https://example.com/covers/gatsby.jpg")
+        #expect(work.title == "The Great Gatsby")
+    }
+
     @Test("mapToWork deduplicates by googleBooksVolumeIDs")
     @MainActor
     func mapToWorkDeduplication() throws {

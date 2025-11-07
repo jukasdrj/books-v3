@@ -29,6 +29,9 @@ public struct WorkDTO: Codable, Sendable, Equatable {
     /// Work description/synopsis
     public let description: String?
 
+    /// Cover image URL (copied from EditionDTO for enrichment)
+    public let coverImageURL: String?
+
     // MARK: - Provenance
 
     /// True if Work was inferred from Edition data (enables deduplication)
@@ -93,7 +96,7 @@ public struct WorkDTO: Codable, Sendable, Equatable {
     // MARK: - Coding Keys
 
     private enum CodingKeys: String, CodingKey {
-        case title, subjectTags, originalLanguage, firstPublicationYear, description
+        case title, subjectTags, originalLanguage, firstPublicationYear, description, coverImageURL
         case synthetic, primaryProvider, contributors
         case openLibraryID, openLibraryWorkID, isbndbID, googleBooksVolumeID, goodreadsID
         case goodreadsWorkIDs, amazonASINs, librarythingIDs, googleBooksVolumeIDs
@@ -110,6 +113,7 @@ public struct WorkDTO: Codable, Sendable, Equatable {
         originalLanguage: String? = nil,
         firstPublicationYear: Int? = nil,
         description: String? = nil,
+        coverImageURL: String? = nil,
         synthetic: Bool? = nil,
         primaryProvider: String? = nil,
         contributors: [String]? = nil,
@@ -133,6 +137,7 @@ public struct WorkDTO: Codable, Sendable, Equatable {
         self.originalLanguage = originalLanguage
         self.firstPublicationYear = firstPublicationYear
         self.description = description
+        self.coverImageURL = coverImageURL
         self.synthetic = synthetic
         self.primaryProvider = primaryProvider
         self.contributors = contributors
@@ -171,6 +176,7 @@ public struct WorkDTO: Codable, Sendable, Equatable {
         originalLanguage = try container.decodeIfPresent(String.self, forKey: .originalLanguage)
         firstPublicationYear = try container.decodeIfPresent(Int.self, forKey: .firstPublicationYear)
         description = try container.decodeIfPresent(String.self, forKey: .description)
+        coverImageURL = try container.decodeIfPresent(String.self, forKey: .coverImageURL)
 
         // Provenance
         synthetic = try container.decodeIfPresent(Bool.self, forKey: .synthetic)

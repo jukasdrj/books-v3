@@ -45,6 +45,10 @@ public final class Work {
     @Attribute(.externalStorage)
     var subjectTags: [String] = []
 
+    /// Cover image URL (copied from EditionDTO for enrichment)
+    /// Populated by backend normalizers (google-books, openlibrary, isbndb)
+    var coverImageURL: String?
+
     // External API identifiers for syncing and deduplication
     var openLibraryID: String?      // e.g., "OL123456W" (legacy, prefer openLibraryWorkID)
     var openLibraryWorkID: String?  // OpenLibrary Work ID
