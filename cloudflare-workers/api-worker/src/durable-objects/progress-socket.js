@@ -520,7 +520,7 @@ export class ProgressWebSocketDO extends DurableObject {
     // Broadcast initialization to connected clients
     this.broadcastToClients({
       type: 'batch-init',
-      jobId,
+      // No longer need top-level jobId, it's added by broadcastToClients
       totalPhotos,
       status
     });
@@ -578,7 +578,6 @@ export class ProgressWebSocketDO extends DurableObject {
     // Broadcast update to connected clients
     this.broadcastToClients({
       type: 'batch-progress',
-      jobId: batchState.jobId,
       currentPhoto: photoIndex,
       totalPhotos: batchState.totalPhotos,
       photoStatus: status,
@@ -617,7 +616,6 @@ export class ProgressWebSocketDO extends DurableObject {
     // Broadcast completion
     this.broadcastToClients({
       type: 'batch-complete',
-      jobId: batchState.jobId,
       totalBooks,
       photoResults,
       books
@@ -664,8 +662,7 @@ export class ProgressWebSocketDO extends DurableObject {
 
     // Broadcast cancellation
     this.broadcastToClients({
-      type: 'batch-canceling',
-      jobId: batchState.jobId
+      type: 'batch-canceling'
     });
 
     return { success: true };
@@ -674,13 +671,22 @@ export class ProgressWebSocketDO extends DurableObject {
   /**
    * Helper: Broadcast message to all connected WebSocket clients
    */
-  broadcastToClients(message) {
+  broadcastToClients(data) {
     if (!this.webSocket) {
       console.warn('[ProgressDO] No WebSocket connection to broadcast to');
       return;
     }
 
     try {
+      // Standardize message format to match `pushProgress` and prevent client-side parsing errors
+      // The client expects a consistent top-level structure with a `data` payload.
+      const message = {
+        type: data.type || 'progress', // The payload should always have a type
+        jobId: this.jobId,
+        timestamp: Date.now(),
+        data, // The original object is now the payload
+      };
+
       this.webSocket.send(JSON.stringify(message));
       console.log(`[ProgressDO] Broadcast sent:`, message.type);
     } catch (error) {
