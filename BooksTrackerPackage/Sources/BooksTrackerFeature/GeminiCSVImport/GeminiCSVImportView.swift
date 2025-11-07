@@ -295,6 +295,11 @@ public struct GeminiCSVImportView: View {
                 let session = URLSession.shared
                 let webSocket = session.webSocketTask(with: wsURL)
                 webSocket.resume()
+                
+                // ✅ CRITICAL: Wait for WebSocket handshake to complete
+                // Prevents POSIX error 57 "Socket is not connected"
+                try await WebSocketHelpers.waitForConnection(webSocket, timeout: 10.0)
+                
                 #if DEBUG
                 print("[CSV WebSocket] ✅ WebSocket connection established")
                 #endif

@@ -22,6 +22,13 @@ actor BatchWebSocketHandler {
         let session = URLSession(configuration: .default)
         webSocket = session.webSocketTask(with: wsURL)
         webSocket?.resume()
+        
+        // ✅ CRITICAL: Wait for WebSocket handshake to complete
+        // Prevents POSIX error 57 "Socket is not connected" when calling receive()
+        if let webSocket = webSocket {
+            try await WebSocketHelpers.waitForConnection(webSocket, timeout: 10.0)
+        }
+        
         isConnected = true
 
         print("[BatchWebSocket] Connected for job \(jobId)")

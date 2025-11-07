@@ -20,13 +20,24 @@ final class EnrichmentWebSocketHandler {
     }
 
     /// Connect to WebSocket and start listening for messages.
-    func connect() {
+    func connect() async {
         guard let url = URL(string: "\(EnrichmentConfig.webSocketBaseURL)/ws/progress?jobId=\(jobId)") else { return }
         let session = URLSession(configuration: .default)
         webSocket = session.webSocketTask(with: url)
         webSocket?.resume()
-        isConnected = true
-        listenForMessages()
+        
+        // ✅ CRITICAL: Wait for WebSocket handshake to complete
+        // Prevents POSIX error 57 "Socket is not connected" when calling receive()
+        if let webSocket = webSocket {
+            do {
+                try await WebSocketHelpers.waitForConnection(webSocket, timeout: 10.0)
+                isConnected = true
+                listenForMessages()
+            } catch {
+                print("EnrichmentWebSocket connection failed: \(error)")
+                isConnected = false
+            }
+        }
     }
 
     /// Listen for incoming WebSocket messages.

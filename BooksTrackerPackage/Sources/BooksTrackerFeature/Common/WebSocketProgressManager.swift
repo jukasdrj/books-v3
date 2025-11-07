@@ -83,7 +83,7 @@ public final class WebSocketProgressManager: ObservableObject {
         task.resume()
 
         // Wait for successful connection (by sending/receiving ping)
-        try await waitForConnection(task, timeout: connectionTimeout)
+        try await WebSocketHelpers.waitForConnection(task, timeout: connectionTimeout)
 
         self.webSocketTask = task
         self.isConnected = true
@@ -180,40 +180,6 @@ public final class WebSocketProgressManager: ObservableObject {
     }
 
     // MARK: - Private Methods
-
-    /// Wait for WebSocket connection to be established
-    /// Uses exponential backoff to verify connection is working
-    private func waitForConnection(_ task: URLSessionWebSocketTask, timeout: TimeInterval) async throws {
-        let startTime = Date()
-
-        // Try a few ping/pong cycles to confirm connection
-        var attempts = 0
-        let maxAttempts = 5
-
-        while attempts < maxAttempts {
-            if Date().timeIntervalSince(startTime) > timeout {
-                throw URLError(.timedOut)
-            }
-
-            do {
-                // Send ping message to confirm connection is working
-                try await task.send(.string("PING"))
-
-                // Wait for any response (with timeout)
-                _ = Task {
-                    try await task.receive()
-                }
-
-                try await Task.sleep(for: .milliseconds(100 * (attempts + 1)))
-
-                attempts += 1
-            } catch {
-                throw error
-            }
-        }
-
-        print("✅ WebSocket connection verified after \(attempts) attempts")
-    }
 
     /// Send ready signal to server via WebSocket message
     /// This prevents race condition where server processes before client is listening

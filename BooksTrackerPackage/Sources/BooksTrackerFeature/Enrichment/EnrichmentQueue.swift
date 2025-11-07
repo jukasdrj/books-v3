@@ -213,7 +213,7 @@ public final class EnrichmentQueue {
                     self?.applyEnrichedData(enrichedBooks, in: modelContext)
                 }
             )
-            self.webSocketHandler?.connect()
+            await self.webSocketHandler?.connect()
 
             let result = await EnrichmentService.shared.batchEnrichWorks(works, jobId: jobId, in: modelContext)
 
