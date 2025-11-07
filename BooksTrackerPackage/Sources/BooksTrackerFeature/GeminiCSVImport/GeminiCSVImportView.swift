@@ -292,7 +292,10 @@ public struct GeminiCSVImportView: View {
 
         webSocketTask = Task {
             do {
-                let session = URLSession.shared
+                // Use a new URLSession with default configuration, which is more reliable for
+                // WebSockets than the shared session. This mirrors the implementation in
+                // EnrichmentWebSocketHandler.
+                let session = URLSession(configuration: .default)
                 let webSocket = session.webSocketTask(with: wsURL)
                 webSocket.resume()
                 
@@ -352,11 +355,14 @@ public struct GeminiCSVImportView: View {
                 #endif
 
             } catch {
+                // Per best practices, use String(describing:) for detailed internal logging
+                // This provides more context than error.localizedDescription for debugging
+                let errorMessage = String(describing: error)
                 #if DEBUG
-                print("[CSV WebSocket] ❌ Error: \(error.localizedDescription)")
+                print("[CSV WebSocket] ❌ Error: \(errorMessage)")
                 #endif
                 if !Task.isCancelled {
-                    importStatus = .failed("Connection lost: \(error.localizedDescription)")
+                    importStatus = .failed("Connection lost: \(errorMessage)")
                 }
             }
         }
