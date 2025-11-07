@@ -21,13 +21,9 @@ enum WebSocketHelpers {
         timeout: TimeInterval = 10.0
     ) async throws {
         let startTime = Date()
-        
+
         // Try a few ping/pong cycles to confirm connection
         let maxAttempts = 5
-        guard maxAttempts > 0 else {
-            throw URLError(.unknown, userInfo: [NSLocalizedDescriptionKey: "Invalid maxAttempts value"])
-        }
-        
         var attempts = 0
         var lastError: Error?
         
@@ -35,29 +31,36 @@ enum WebSocketHelpers {
             if Date().timeIntervalSince(startTime) > timeout {
                 throw URLError(.timedOut)
             }
-            
+
             do {
-                // Send ping message to confirm connection is working
-                try await task.send(.string("PING"))
-                
-                // Wait for response with proper timeout handling
-                try await withTimeout(seconds: 1.0) {
-                    _ = try await task.receive()
+                // Use URLSessionWebSocketTask's native ping mechanism
+                // This sends a WebSocket PING frame (not a string message)
+                // The server automatically responds with a PONG frame
+                try await withTimeout(seconds: 2.0) {
+                    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                        task.sendPing { error in
+                            if let error = error {
+                                continuation.resume(throwing: error)
+                            } else {
+                                continuation.resume(returning: ())
+                            }
+                        }
+                    }
                 }
-                
-                // Success! Connection is established
+
+                // Success! Connection is established and server responded to ping
                 print("✅ WebSocket connection verified after \(attempts + 1) attempts")
                 return
-                
+
             } catch {
                 lastError = error
                 attempts += 1
-                
+
                 // If we've exhausted all attempts, throw the last error
                 if attempts >= maxAttempts {
                     throw lastError ?? URLError(.cannotConnectToHost)
                 }
-                
+
                 // Wait before retrying (exponential backoff)
                 try await Task.sleep(for: .milliseconds(100 * attempts))
             }
@@ -65,24 +68,24 @@ enum WebSocketHelpers {
     }
     
     /// Helper to add timeout to async operations
-    private static func withTimeout<T>(
+    private static func withTimeout<T: Sendable>(
         seconds: TimeInterval,
-        operation: @escaping () async throws -> T
+        operation: @escaping @Sendable () async throws -> T
     ) async throws -> T {
         try await withThrowingTaskGroup(of: T.self) { group in
             group.addTask {
                 try await operation()
             }
-            
+
             group.addTask {
                 try await Task.sleep(for: .seconds(seconds))
                 throw URLError(.timedOut)
             }
-            
+
             guard let result = try await group.next() else {
                 throw URLError(.unknown)
             }
-            
+
             group.cancelAll()
             return result
         }

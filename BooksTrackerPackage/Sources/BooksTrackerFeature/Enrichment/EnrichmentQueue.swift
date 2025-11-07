@@ -215,7 +215,7 @@ public final class EnrichmentQueue {
             )
             await self.webSocketHandler?.connect()
 
-            let result = await EnrichmentService.shared.batchEnrichWorks(works, jobId: jobId, in: modelContext)
+            _ = await EnrichmentService.shared.batchEnrichWorks(works, jobId: jobId, in: modelContext)
 
             self.webSocketHandler?.disconnect()
             self.webSocketHandler = nil
@@ -369,12 +369,8 @@ public final class EnrichmentQueue {
             }
 
             // Create new edition if needed and we have data
-            if edition == nil, let editionDTO = enrichedData.edition {
-                // Validate ISBN exists before creating edition
-                guard let isbn = editionDTO.isbn, !isbn.isEmpty else {
-                    print("⚠️ Skipping edition creation for '\(workTitle)' - no ISBN")
-                    continue
-                }
+            if edition == nil, let editionDTO = enrichedData.edition, let isbn = editionDTO.isbn, !isbn.isEmpty {
+                // Only create edition if we have a valid ISBN
 
                 let newEdition = Edition(
                     isbn: isbn,
@@ -421,6 +417,18 @@ public final class EnrichmentQueue {
                 }
 
                 edition.touch()
+            }
+
+            // Fallback: If no edition exists, use Work-level cover image (added in PR #290)
+            // This handles books enriched without ISBNs (e.g., from CSV imports)
+            if edition == nil, work.coverImageURL == nil {
+                if let workCoverURL = enrichedData.work.coverImageURL {
+                    work.coverImageURL = workCoverURL
+                    print("✅ Updated Work-level cover for '\(workTitle)' (no edition): \(workCoverURL)")
+                } else if let editionCoverURL = enrichedData.edition?.coverImageURL {
+                    work.coverImageURL = editionCoverURL
+                    print("✅ Updated Work-level cover for '\(workTitle)' (from edition data): \(editionCoverURL)")
+                }
             }
 
             work.touch()

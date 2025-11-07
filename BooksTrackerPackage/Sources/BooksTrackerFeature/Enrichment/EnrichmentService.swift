@@ -123,10 +123,12 @@ public final class EnrichmentService {
             // Enhanced error logging for debugging enrichment failures
             print("🚨 Batch enrichment failed: \(error)")
             print("🚨 Error type: \(type(of: error))")
-            
+
             if let urlError = error as? URLError {
                 print("🚨 URLError code: \(urlError.code.rawValue), localized: \(urlError.localizedDescription)")
-            } else if let nsError = error as? NSError {
+            } else {
+                // Bridge to NSError for detailed diagnostics
+                let nsError = error as NSError
                 print("🚨 NSError domain: \(nsError.domain), code: \(nsError.code)")
                 print("🚨 NSError userInfo: \(nsError.userInfo)")
             }

@@ -415,6 +415,7 @@ public struct GeminiCSVImportView: View {
                         importStatus = .completed(books: books, errors: errors)
                     }
                     webSocketTask?.cancel()
+                    return  // Exit message loop - job is complete
 
                 case "error":
                     if let data = message.data,
@@ -425,6 +426,7 @@ public struct GeminiCSVImportView: View {
                         importStatus = .failed(error)
                     }
                     webSocketTask?.cancel()
+                    return  // Exit message loop - job failed
 
                 default:
                     #if DEBUG
