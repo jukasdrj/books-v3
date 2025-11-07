@@ -45,12 +45,14 @@ public struct InsightsView: View {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .libraryWasReset)) { _ in
-                // CRITICAL: Clear cached stats and reload when library is reset
-                // Prevents crash from accessing deleted Author objects
-                diversityStats = nil
-                readingStats = nil
-                // Don't reload stats immediately - library is empty after reset
-                // Stats will reload automatically via .onAppear when user adds books
+                // CRITICAL: Immediately clear stats and reload.
+                // The `reset: true` flag handles nil-ing out the data, preventing
+                // the view from trying to render with stale, deleted objects.
+                // The load might "fail" if the library is empty, but it will
+                // correctly reflect the new empty state.
+                Task {
+                    await loadStatistics(reset: true)
+                }
             }
         }
     }
@@ -135,10 +137,16 @@ public struct InsightsView: View {
 
     // MARK: - Data Loading
 
-    private func loadStatistics() async {
+    private func loadStatistics(reset: Bool = false) async {
         #if DEBUG
         let startTime = Date()
         #endif
+
+        // If resetting, clear existing data immediately
+        if reset {
+            diversityStats = nil
+            readingStats = nil
+        }
 
         isLoading = true
         errorMessage = nil
