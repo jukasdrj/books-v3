@@ -236,10 +236,10 @@ export async function enrichMultipleBooks(
  * @returns SingleEnrichmentResult with work, edition, and authors, or null if not found
  */
 export async function enrichSingleBook(query: BookSearchQuery, env: WorkerEnv): Promise<SingleEnrichmentResult | null> {
-	const { title, author, isbn } = query;
+	const { title, author, isbn, openLibraryId, googleBooksId } = query;
 
 	// Require at least one search parameter
-	if (!title && !isbn && !author) {
+	if (!title && !isbn && !author && !openLibraryId && !googleBooksId) {
     console.warn('enrichSingleBook: No search parameters provided');
     return null;
   }
@@ -250,28 +250,43 @@ export async function enrichSingleBook(query: BookSearchQuery, env: WorkerEnv): 
       const result: WorkDTO | null = await searchByISBN(isbn, env);
       if (result) return result;
 
-      // If ISBN search failed but we have title/author, fall back to text search
-      // Don't continue to Strategy 2/3 if we only have ISBN (nothing else to search)
-      if (!title && !author) {
+      // If ISBN search failed but we have other identifiers, fall back.
+      if (!title && !author && !openLibraryId && !googleBooksId) {
         console.log(`enrichSingleBook: No results for ISBN "${isbn}"`);
         return null;
       }
     }
 
-    // Strategy 2: Try Google Books with title+author (not ISBN - already tried above)
+    // Strategy 2: Use other specific identifiers if available
+    if (googleBooksId) {
+      const result: WorkDTO | null = await searchGoogleBooksById(googleBooksId, env);
+      if (result) return result;
+    }
+
+    if (openLibraryId) {
+      const result: WorkDTO | null = await searchOpenLibraryById(openLibraryId, env);
+      if (result) return result;
+    }
+
+    if (query.goodreadsId) {
+      const result: WorkDTO | null = await searchOpenLibraryByGoodreadsId(query.goodreadsId, env);
+      if (result) return result;
+    }
+
+    // Strategy 3: Try Google Books with title+author (if no specific IDs were successful)
     const googleResult: WorkDTO | null = await searchGoogleBooks({ title, author }, env);
     if (googleResult) {
       return googleResult;
     }
 
-    // Strategy 3: Fallback to OpenLibrary
+    // Strategy 4: Fallback to OpenLibrary with title+author
     const openLibResult: WorkDTO | null = await searchOpenLibrary({ title, author }, env);
     if (openLibResult) {
       return openLibResult;
     }
 
     // Book not found in any provider
-    console.log(`enrichSingleBook: No results for "${title}" by "${author || 'unknown'}"`);
+    console.log(`enrichSingleBook: No results for query:`, query);
     return null;
 
   } catch (error) {

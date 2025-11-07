@@ -33,6 +33,51 @@ import {
 
 const GOOGLE_BOOKS_USER_AGENT = 'BooksTracker/1.0 (nerd@ooheynerds.com) GoogleBooksWorker/1.0.0';
 
+export async function searchGoogleBooksById(volumeId, env) {
+  const startTime = Date.now();
+  try {
+    console.log(`GoogleBooks ID search for "${volumeId}"`);
+
+    const apiKey = env.GOOGLE_BOOKS_API_KEY?.get
+      ? await env.GOOGLE_BOOKS_API_KEY.get()
+      : env.GOOGLE_BOOKS_API_KEY;
+
+    if (!apiKey) {
+      return { success: false, error: "Google Books API key not configured." };
+    }
+
+    const searchUrl = `https://www.googleapis.com/books/v1/volumes/${volumeId}?key=${apiKey}`;
+
+    const response = await fetch(searchUrl, {
+      headers: {
+        'User-Agent': GOOGLE_BOOKS_USER_AGENT,
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Google Books API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    // Wrap the single volume result in an `items` array to reuse the normalization logic
+    const normalizedData = normalizeGoogleBooksResponse({ items: [data] });
+
+    const processingTime = Date.now() - startTime;
+
+    return {
+      success: true,
+      provider: 'google-books',
+      processingTime,
+      ...normalizedData,
+    };
+  } catch (error) {
+    const processingTime = Date.now() - startTime;
+    console.error(`Error in GoogleBooks ID search:`, error);
+    return { success: false, error: error.message, processingTime };
+  }
+}
+
 export async function searchGoogleBooks(query, params = {}, env) {
   const startTime = Date.now();
   try {
@@ -220,6 +265,64 @@ function normalizeGoogleBooksResponse(apiResponse) {
 // ============================================================================
 
 const OPENLIBRARY_USER_AGENT = 'BooksTracker/1.0 (nerd@ooheynerds.com) OpenLibraryWorker/1.1.0';
+
+export async function searchOpenLibraryByGoodreadsId(goodreadsId, env) {
+  try {
+    console.log(`OpenLibrary Goodreads ID search for "${goodreadsId}"`);
+
+    // OpenLibrary's Search API supports querying by Goodreads ID
+    const searchUrl = `https://openlibrary.org/search.json?goodreads=${goodreadsId}&limit=1`;
+    const response = await fetch(searchUrl, { headers: { 'User-Agent': OPENLIBRARY_USER_AGENT } });
+
+    if (!response.ok) {
+      throw new Error(`OpenLibrary search API failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!data.docs || data.docs.length === 0) {
+      return { success: true, works: [], editions: [], authors: [] };
+    }
+
+    // We get a search result, not a direct work, so we normalize the search result
+    const normalized = normalizeOpenLibrarySearchResults(data.docs);
+
+    return {
+      success: true,
+      provider: 'openlibrary',
+      ...normalized,
+    };
+  } catch (error) {
+    console.error(`Error in OpenLibrary Goodreads ID search for "${goodreadsId}":`, error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function searchOpenLibraryById(workId, env) {
+  try {
+    console.log(`OpenLibrary ID search for "${workId}"`);
+
+    const workUrl = `https://openlibrary.org/works/${workId}.json`;
+    const workResponse = await fetch(workUrl, { headers: { 'User-Agent': OPENLIBRARY_USER_AGENT } });
+
+    if (!workResponse.ok) {
+      throw new Error(`OpenLibrary work API failed: ${workResponse.status}`);
+    }
+
+    const workData = await workResponse.json();
+    const normalized = normalizeOpenLibrarySearchResults([workData]);
+
+    return {
+      success: true,
+      provider: 'openlibrary',
+      works: normalized.works,
+      editions: normalized.editions,
+      authors: normalized.authors,
+    };
+  } catch (error) {
+    console.error(`Error in OpenLibrary ID search for "${workId}":`, error);
+    return { success: false, error: error.message };
+  }
+}
 
 export async function searchOpenLibrary(query, params = {}, env) {
   try {
