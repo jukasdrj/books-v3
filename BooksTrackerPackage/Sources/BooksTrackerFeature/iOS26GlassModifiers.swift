@@ -80,47 +80,9 @@ enum GlassVariant {
 }
 
 // MARK: - Glass Button Styles
-
-@available(iOS 26.0, *)
-struct GlassButtonStyle: ButtonStyle {
-    let variant: GlassVariant
-    let tint: Color?
-
-    init(variant: GlassVariant = .regular, tint: Color? = nil) {
-        self.variant = variant
-        self.tint = tint
-    }
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .frame(minHeight: 44)
-            .glassEffect(.regular, tint: tint ?? .clear, in: RoundedRectangle(cornerRadius: 12))
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
-            .contentShape(RoundedRectangle(cornerRadius: 12))
-    }
-}
-
-@available(iOS 26.0, *)
-struct GlassProminentButtonStyle: ButtonStyle {
-    let tint: Color
-
-    init(tint: Color = .blue) {
-        self.tint = tint
-    }
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundColor(.white)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
-            .glassEffect(.prominent, tint: tint, in: RoundedRectangle(cornerRadius: 12))
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
-    }
-}
+// ✅ MIGRATED: Custom GlassButtonStyle and GlassProminentButtonStyle removed
+// Now using native iOS 26 APIs: .buttonStyle(.glass) and .buttonStyle(.glassProminent)
+// Native APIs provide automatic animations, hit targets, and accessibility support
 
 // MARK: - iOS 26 Navigation Glass
 
@@ -209,28 +171,8 @@ extension View {
 }
 
 // MARK: - Button Style Extensions
-
-@available(iOS 26.0, *)
-extension ButtonStyle where Self == GlassButtonStyle {
-    static var glass: GlassButtonStyle {
-        GlassButtonStyle()
-    }
-
-    static func glass(variant: GlassVariant = .regular, tint: Color? = nil) -> GlassButtonStyle {
-        GlassButtonStyle(variant: variant, tint: tint)
-    }
-}
-
-@available(iOS 26.0, *)
-extension ButtonStyle where Self == GlassProminentButtonStyle {
-    static var glassProminent: GlassProminentButtonStyle {
-        GlassProminentButtonStyle()
-    }
-
-    static func glassProminent(tint: Color = .blue) -> GlassProminentButtonStyle {
-        GlassProminentButtonStyle(tint: tint)
-    }
-}
+// ✅ REMOVED: Custom button style extensions no longer needed
+// Native iOS 26 provides .buttonStyle(.glass) and .buttonStyle(.glassProminent)
 
 // MARK: - Type-erased Shape
 
@@ -302,10 +244,10 @@ extension View {
 
                     HStack(spacing: 16) {
                         Button("Glass Button") {}
-                            .buttonStyle(GlassButtonStyle())
+                            .buttonStyle(.glass)
 
                         Button("Prominent") {}
-                            .buttonStyle(GlassProminentButtonStyle())
+                            .buttonStyle(.glassProminent)
                     }
                 }
                 .padding()

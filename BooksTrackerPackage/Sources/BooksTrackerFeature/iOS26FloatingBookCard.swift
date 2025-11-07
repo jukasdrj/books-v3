@@ -893,7 +893,7 @@ struct QuickActionsSheet: View {
                     Button("Done") {
                         dismiss()
                     }
-                    .buttonStyle(GlassButtonStyle())
+                    .buttonStyle(.glass)
                 }
             }
         }
@@ -924,21 +924,15 @@ struct QuickActionButton: View {
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
             // .glassEffect(.regular.tint(color.opacity(0.1)))
         }
-        .buttonStyle(PressedButtonStyle())
+        .buttonStyle(.plain) // Native press animation with system timing
     }
 }
 
 // MARK: - Press Events Modifier (Removed - using simultaneousGesture instead)
 
 // MARK: - Pressed Button Style
-
-struct PressedButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
-    }
-}
+// ✅ REMOVED: PressedButtonStyle migrated to native .buttonStyle(.plain)
+// Native .plain button style provides automatic press animations with system timing
 
 // MARK: - Preview
 

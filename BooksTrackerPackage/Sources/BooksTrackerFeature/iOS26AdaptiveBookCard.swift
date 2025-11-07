@@ -270,7 +270,8 @@ struct iOS26AdaptiveBookCard: View {
                     Button("Add to Library") {
                         addToLibrary()
                     }
-                    .buttonStyle(GlassProminentButtonStyle(tint: themeStore.primaryColor))
+                    .buttonStyle(.glassProminent)
+                    .tint(themeStore.primaryColor)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -444,7 +445,8 @@ struct iOS26AdaptiveBookCard: View {
                 Button(status.displayName) {
                     // Quick status change
                 }
-                .buttonStyle(GlassButtonStyle(tint: status.color))
+                .buttonStyle(.glass)
+                .tint(status.color)
             }
         }
     }

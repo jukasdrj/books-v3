@@ -313,7 +313,7 @@ struct iOS26LiquidListRow: View {
                 .background(.quaternary, in: Circle())
                 .glassEffect(.subtle, interactive: true)
         }
-        .buttonStyle(PressedButtonStyle())
+        .buttonStyle(.plain) // Native press animation
     }
 
     // MARK: - Background

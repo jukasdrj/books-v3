@@ -112,7 +112,8 @@ public struct iOS26LiquidLibraryView: View {
                             }
                         }
                         .labelStyle(.iconOnly)
-                        .buttonStyle(GlassProminentButtonStyle(tint: .orange))
+                        .buttonStyle(.glassProminent)
+                        .tint(.orange)
                         .foregroundStyle(.white)
                         .symbolEffect(.bounce, value: reviewQueueCount)
                         .accessibilityLabel("Review Queue")
@@ -128,7 +129,7 @@ public struct iOS26LiquidLibraryView: View {
                     } label: {
                         Image(systemName: "chart.bar.xaxis")
                     }
-                    .buttonStyle(GlassButtonStyle())
+                    .buttonStyle(.glass)
                     .foregroundStyle(.primary)
                     .accessibilityLabel("Diversity Insights")
                     .accessibilityHint("View reading diversity and cultural statistics")
@@ -143,7 +144,7 @@ public struct iOS26LiquidLibraryView: View {
                     } label: {
                         Image(systemName: "square.grid.2x2")
                     }
-                    .buttonStyle(GlassButtonStyle())
+                    .buttonStyle(.glass)
                     .foregroundStyle(.primary)
                     .accessibilityLabel("Change layout")
                     .accessibilityHint("Switch between grid, cards, and list views")
@@ -153,7 +154,7 @@ public struct iOS26LiquidLibraryView: View {
                     } label: {
                         Image(systemName: "gearshape")
                     }
-                    .buttonStyle(GlassButtonStyle())
+                    .buttonStyle(.glass)
                     .foregroundStyle(themeStore.primaryColor)
                     .accessibilityLabel("Settings")
                 }
@@ -334,8 +335,8 @@ public struct iOS26LiquidLibraryView: View {
                             print("Enriching from library view: \(completed)/\(total) - \(bookTitle)")
                         }
                     }
-                    .buttonStyle(GlassProminentButtonStyle())
-                    .foregroundStyle(.purple)
+                    .buttonStyle(.glassProminent)
+                    .tint(.purple)
                 }
             }
             .padding()
@@ -534,7 +535,7 @@ public struct UltraOptimizedLibraryView: View {
                 } label: {
                     Image(systemName: "chart.bar.xaxis")
                 }
-                .buttonStyle(GlassButtonStyle())
+                .buttonStyle(.glass)
                 .foregroundStyle(.primary)
                 .accessibilityLabel("Diversity Insights")
                 .accessibilityHint("View reading diversity and cultural statistics")
@@ -549,7 +550,7 @@ public struct UltraOptimizedLibraryView: View {
                 } label: {
                     Image(systemName: "square.grid.2x2")
                 }
-                .buttonStyle(GlassButtonStyle())
+                .buttonStyle(.glass)
                 .foregroundStyle(.primary)
                 .accessibilityLabel("Change layout")
                 .accessibilityHint("Switch between grid, cards, and list views")
@@ -952,7 +953,7 @@ struct CulturalDiversityInsightsView: View {
                     Button("Done") {
                         dismiss()
                     }
-                    .buttonStyle(GlassProminentButtonStyle())
+                    .buttonStyle(.glassProminent)
                 }
             }
         }

@@ -610,10 +610,10 @@ struct ThemeCardButtonStyle: ButtonStyle {
 
                         HStack(spacing: 16) {
                             Button("Primary Action") {}
-                                .buttonStyle(GlassButtonStyle())
+                                .buttonStyle(.glass)
 
                             Button("Secondary") {}
-                                .buttonStyle(GlassButtonStyle())
+                                .buttonStyle(.glass)
                         }
 
                         Text("This content uses themed glass effects")
