@@ -5,6 +5,8 @@
  * Uses Gemini 2.5 Flash (production-stable) for high-accuracy bookshelf scanning
  */
 
+import { BOOKSHELF_RESPONSE_SCHEMA } from '../types/gemini-schemas.js';
+
 /**
  * Scan bookshelf image using Gemini AI
  * @param {ArrayBuffer} imageData - Raw JPEG image data
@@ -120,6 +122,7 @@ Extract all visible book information now.`
                     topP: 0.95,        // Nucleus sampling for quality
                     maxOutputTokens: 2048,  // Prevent truncation
                     responseMimeType: 'application/json',  // Force JSON output
+                    responseSchema: BOOKSHELF_RESPONSE_SCHEMA,  // Schema-enforced validation (guarantees structure)
                     stopSequences: ['\n\n\n']  // Stop on triple newline (prevents unnecessary continuation)
                 }
             })
@@ -166,15 +169,13 @@ Extract all visible book information now.`
         };
     }
 
-    // With responseMimeType='application/json', text should be clean JSON
-    // Keep markdown stripping as fallback for older API versions
-    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-    const jsonText = jsonMatch ? jsonMatch[1] : text;
+    // With structured output, response is guaranteed to be valid JSON matching schema
+    const books = JSON.parse(text);
 
-    const books = JSON.parse(jsonText);
-
+    // Lightweight defensive check: Catches API bugs, not schema violations
+    // (Schema guarantees array structure, but we verify to catch unexpected API changes)
     if (!Array.isArray(books)) {
-        console.error('[GeminiProvider] Response is not an array');
+        console.error('[GeminiProvider] Schema violation: Expected array, got', typeof books);
         return {
             books: [],
             suggestions: [],
@@ -192,19 +193,15 @@ Extract all visible book information now.`
         };
     }
 
-    // Normalize book data
+    // Trust schema for normalization - no validation needed
+    // Schema enforces: confidence (0-1), boundingBox coords (0-1), format enum
     const normalizedBooks = books.map(book => ({
-        title: book.title || '',
+        title: book.title,
         author: book.author || '',
-        isbn: book.isbn || null,  // Gemini rarely detects ISBNs, but include field
-        format: book.format || 'unknown',  // NEW: Format detection (hardcover, paperback, mass-market, unknown)
-        confidence: Math.max(0, Math.min(1, parseFloat(book.confidence) || 0.5)),
-        boundingBox: {
-            x1: Math.max(0, Math.min(1, parseFloat(book.boundingBox?.x1) || 0)),
-            y1: Math.max(0, Math.min(1, parseFloat(book.boundingBox?.y1) || 0)),
-            x2: Math.max(0, Math.min(1, parseFloat(book.boundingBox?.x2) || 1)),
-            y2: Math.max(0, Math.min(1, parseFloat(book.boundingBox?.y2) || 1))
-        }
+        isbn: book.isbn || null,
+        format: book.format,         // Enum enforced by schema
+        confidence: book.confidence,  // Range enforced by schema (0.0-1.0)
+        boundingBox: book.boundingBox // Coordinates enforced by schema (0.0-1.0)
     })).filter(book => book.title.length > 0);
 
     return {
