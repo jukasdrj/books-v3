@@ -247,42 +247,44 @@ export async function enrichSingleBook(query: BookSearchQuery, env: WorkerEnv): 
   try {
     // Strategy 1: If ISBN provided, use ISBN search (most accurate)
     if (isbn) {
-      const result: WorkDTO | null = await searchByISBN(isbn, env);
-      if (result) return result;
-
-      // If ISBN search failed but we have other identifiers, fall back.
-      if (!title && !author && !openLibraryId && !googleBooksId) {
-        console.log(`enrichSingleBook: No results for ISBN "${isbn}"`);
-        return null;
+      const result: SingleEnrichmentResult | null = await searchByISBN(isbn, env);
+      // If we have a result with a cover, we're done
+      if (result && (result.work.coverImageURL || result.edition?.coverImageURL)) {
+        return result;
       }
     }
 
     // Strategy 2: Use other specific identifiers if available
     if (googleBooksId) {
-      const result: WorkDTO | null = await searchGoogleBooksById(googleBooksId, env);
-      if (result) return result;
+      const result: SingleEnrichmentResult | null = await searchGoogleBooksById(googleBooksId, env);
+      if (result && (result.work.coverImageURL || result.edition?.coverImageURL)) return result;
     }
 
     if (openLibraryId) {
-      const result: WorkDTO | null = await searchOpenLibraryById(openLibraryId, env);
-      if (result) return result;
+      const result: SingleEnrichmentResult | null = await searchOpenLibraryById(openLibraryId, env);
+      if (result && (result.work.coverImageURL || result.edition?.coverImageURL)) return result;
     }
 
     if (query.goodreadsId) {
-      const result: WorkDTO | null = await searchOpenLibraryByGoodreadsId(query.goodreadsId, env);
-      if (result) return result;
+      const result: SingleEnrichmentResult | null = await searchOpenLibraryByGoodreadsId(query.goodreadsId, env);
+      if (result && (result.work.coverImageURL || result.edition?.coverImageURL)) return result;
     }
 
-    // Strategy 3: Try Google Books with title+author (if no specific IDs were successful)
-    const googleResult: WorkDTO | null = await searchGoogleBooks({ title, author }, env);
-    if (googleResult) {
+    // Strategy 3: Try Google Books with title+author
+    const googleResult: SingleEnrichmentResult | null = await searchGoogleBooks({ title, author }, env);
+    if (googleResult && (googleResult.work.coverImageURL || googleResult.edition?.coverImageURL)) {
       return googleResult;
     }
 
     // Strategy 4: Fallback to OpenLibrary with title+author
-    const openLibResult: WorkDTO | null = await searchOpenLibrary({ title, author }, env);
+    const openLibResult: SingleEnrichmentResult | null = await searchOpenLibrary({ title, author }, env);
     if (openLibResult) {
       return openLibResult;
+    }
+
+    // If Google Books found a result but it had no cover, return that partial result
+    if (googleResult) {
+      return googleResult;
     }
 
     // Book not found in any provider
@@ -362,24 +364,21 @@ async function searchOpenLibrary(query: BookSearchQuery, env: WorkerEnv): Promis
  */
 async function searchByISBN(isbn: string, env: WorkerEnv): Promise<SingleEnrichmentResult | null> {
 	// Try Google Books ISBN search first
-	const googleResult: ApiResponse = await externalApis.searchGoogleBooksByISBN(isbn, env);
-
-	if (googleResult.success && googleResult.works && googleResult.works.length > 0) {
-		const work: WorkDTO = addProvenanceFields(googleResult.works[0], 'google-books');
-		const edition: EditionDTO | null = (googleResult.editions && googleResult.editions.length > 0) ? googleResult.editions[0] : null;
-		const authors: AuthorDTO[] = googleResult.authors || [];
-		return { work, edition, authors };
-	}
+	const googleResult: SingleEnrichmentResult | null = await searchGoogleBooks({ isbn }, env);
+  if (googleResult && (googleResult.work.coverImageURL || googleResult.edition?.coverImageURL)) {
+    return googleResult;
+  }
 
 	// Fallback to OpenLibrary ISBN search
-	const olResult: ApiResponse = await externalApis.searchOpenLibrary(isbn, { maxResults: 1, isbn }, env);
+	const olResult: SingleEnrichmentResult | null = await searchOpenLibrary({ isbn }, env);
+  if (olResult) {
+    return olResult;
+  }
 
-	if (olResult.success && olResult.works && olResult.works.length > 0) {
-		const work: WorkDTO = addProvenanceFields(olResult.works[0], 'openlibrary');
-		const edition: EditionDTO | null = (olResult.editions && olResult.editions.length > 0) ? olResult.editions[0] : null;
-		const authors: AuthorDTO[] = olResult.authors || [];
-		return { work, edition, authors };
-	}
+  // If Google Books found a result but it had no cover, return that partial result
+  if (googleResult) {
+    return googleResult;
+  }
 
 	return null;
 }
