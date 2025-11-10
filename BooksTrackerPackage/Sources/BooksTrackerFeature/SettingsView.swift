@@ -41,10 +41,10 @@ public struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(FeatureFlags.self) private var featureFlags
     @Environment(\.dtoMapper) private var dtoMapper
+    @Environment(LibraryRepository.self) private var libraryRepository
 
     // MARK: - State Management
 
-    @State private var showingResetConfirmation = false
     @State private var showingGeminiCSVImporter = false
     @State private var showingCloudKitHelp = false
     @State private var showingAcknowledgements = false
@@ -361,7 +361,9 @@ public struct SettingsView: View {
             titleVisibility: .visible
         ) {
             Button("Reset Library", role: .destructive) {
-                resetLibrary()
+                Task {
+                    await libraryRepository.resetLibrary()
+                }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
@@ -388,81 +390,6 @@ public struct SettingsView: View {
     }
 
     // MARK: - Actions
-
-    private func resetLibrary() {
-        // STEP 1: Perform deletion in background task
-        // Use regular Task (not detached) to maintain actor context for ModelContext
-        Task(priority: .userInitiated) { @MainActor in
-
-            do {
-                // STEP 2: Cancel enrichment queue operations first
-                await EnrichmentQueue.shared.cancelBackendJob()
-                EnrichmentQueue.shared.stopProcessing()
-                EnrichmentQueue.shared.clear()
-
-                // STEP 3: Delete all models using modelContext
-                // Use predicate-based deletion for efficiency and clarity
-                try self.modelContext.delete(
-                    model: Work.self,
-                    where: #Predicate { _ in true }
-                )
-                try self.modelContext.delete(
-                    model: Author.self,
-                    where: #Predicate { _ in true }
-                )
-
-                // STEP 4: Save to persistent store
-                try self.modelContext.save()
-
-                // STEP 5: Clear caches
-                self.dtoMapper?.clearCache()
-                DiversityStats.invalidateCache()
-
-                // STEP 6: Invalidate reading stats (async operation)
-                await ReadingStats.invalidateCache()
-
-                // STEP 7: Post notification and cleanup
-                NotificationCenter.default.post(
-                    name: .libraryWasReset,
-                    object: nil
-                )
-
-                // STEP 8: Cleanup UserDefaults and settings
-                UserDefaults.standard.removeObject(forKey: "RecentBookSearches")
-                SampleDataGenerator(modelContext: self.modelContext).resetSampleDataFlag()
-                self.featureFlags.resetToDefaults()
-
-                // Success haptic feedback
-                let generator = UINotificationFeedbackGenerator()
-                generator.notificationOccurred(.success)
-
-                print("✅ Library reset complete - All works, settings, and queue cleared")
-                
-            } catch {
-                print("❌ Failed to reset library: \(error)")
-                
-                await MainActor.run {
-                    // Error haptic
-                    let generator = UINotificationFeedbackGenerator()
-                    generator.notificationOccurred(.error)
-                }
-            }
-        }
-    }
-
-    private func checkCloudKitStatus() {
-        // Simplified CloudKit status check
-        // In a real implementation, use CKContainer.default().accountStatus
-        Task {
-            do {
-                // Simulate status check
-                try await Task.sleep(for: .milliseconds(500))
-                cloudKitStatus = .available
-            } catch {
-                cloudKitStatus = .unavailable
-            }
-        }
-    }
 
     private func enrichAllBooks() {
         Task {

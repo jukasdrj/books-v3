@@ -32,6 +32,8 @@ public struct ContentView: View {
     @State private var selectedTab: MainTab = .library
     @State private var searchCoordinator = SearchCoordinator()
     @State private var notificationCoordinator = NotificationCoordinator()
+    @State private var libraryRepository: LibraryRepository?
+
 
     // Enrichment progress tracking (no Live Activity required!)
     @State private var isEnriching = false
@@ -89,6 +91,7 @@ public struct ContentView: View {
                         .tag(MainTab.insights)
                 }
                 .environment(\.dtoMapper, dtoMapper)  // Safely unwrapped above
+                .environment(libraryRepository)
                 .tint(themeStore.primaryColor)
                 #if os(iOS)
                 .tabBarMinimizeBehavior(
@@ -98,6 +101,9 @@ public struct ContentView: View {
             })
             .themedBackground()
             .onAppear {
+                if libraryRepository == nil {
+                    libraryRepository = LibraryRepository(modelContext: modelContext, dtoMapper: dtoMapper, featureFlags: featureFlags)
+                }
                 LaunchMetrics.shared.recordMilestone("UI fully interactive")
 
                 // Print full launch report after a short delay (let everything settle)
