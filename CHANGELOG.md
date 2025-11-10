@@ -6,6 +6,88 @@ All notable changes, achievements, and debugging victories for this project.
 
 ## [Unreleased]
 
+### iOS 🐛 - Fix Missing Cover Images: UI Display Layer Bug (November 9, 2025)
+
+**Fixed cover images not displaying despite correct backend data by adding CoverImageService with Edition → Work fallback logic.**
+
+#### Root Cause
+
+Despite 4 previous commits fixing the backend/enrichment pipeline (commits 9b00123, f9eb3b7, 48adb9e, 974ba07), covers remained missing due to **UI display layer bugs** that all previous fixes overlooked:
+
+1. **Bug #1:** Display views used naive `.availableEditions.first` instead of cover-aware `work.primaryEdition`
+2. **Bug #2:** No fallback from `edition.coverImageURL` to `work.coverImageURL` when edition exists without cover
+
+#### Solution: CoverImageService
+
+**New Service:** `BooksTrackerPackage/Sources/BooksTrackerFeature/Services/CoverImageService.swift`
+- Centralizes cover URL resolution logic
+- Intelligent fallback chain: Edition → Work → nil
+- Delegates to `EditionSelectionStrategy` (AutoStrategy prioritizes covers +10 points)
+- Zero side effects (pure function, @MainActor)
+
+#### Views Fixed (4 total)
+
+All display views updated to use `CoverImageService.coverURL(for: work)`:
+
+1. ✅ `iOS26LiquidListRow.swift` - List view (Library tab)
+2. ✅ `iOS26FloatingBookCard.swift` - Grid card view
+3. ✅ `iOS26AdaptiveBookCard.swift` - Responsive card
+4. ✅ `WorkDetailView.swift` - Detail view (3 instances fixed)
+
+**Pattern Applied:**
+```swift
+// BEFORE (❌ WRONG):
+private var primaryEdition: Edition? {
+    userEntry?.edition ?? work.availableEditions.first  // Bypasses AutoStrategy
+}
+CachedAsyncImage(url: primaryEdition?.coverURL)  // No fallback
+
+// AFTER (✅ FIXED):
+private var primaryEdition: Edition? {
+    work.primaryEdition  // Uses AutoStrategy (+10 for covers)
+}
+CachedAsyncImage(url: CoverImageService.coverURL(for: work))  // Edition → Work fallback
+```
+
+#### Impact
+
+- ✅ Books with Work-level covers now display correctly (post-enrichment)
+- ✅ Books with Edition covers continue working
+- ✅ AutoStrategy prioritizes editions with covers (+10 point bonus)
+- ✅ Fixes books imported before Nov 6, 2025 (pre-enrichment fixes)
+- ✅ Fixes CSV imports without ISBNs (Work-level covers only)
+
+#### Why Previous Commits Missed This
+
+**All 4 previous commits focused on data pipeline only:**
+1. ✅ Backend generates covers
+2. ✅ Backend sends covers in API responses
+3. ✅ iOS decodes covers into DTOs
+4. ✅ iOS saves covers to SwiftData models
+5. ❌ **iOS DISPLAYS covers** ← NEVER CHECKED
+
+**Critical Oversight:** Commit 48adb9e's data flow diagram stopped at "UI: Work.primaryEdition.coverImageURL displays" and assumed UI was using `work.primaryEdition` (3 of 4 views weren't). No display layer audit was performed.
+
+#### Documentation
+
+- **Analysis:** `docs/architecture/2025-11-09-cover-image-display-bug-analysis.md` - Comprehensive root cause analysis
+- **Pattern:** `CLAUDE.md` - Cover Image Display Pattern section (line 381)
+- **Related Issues:** #287 (closed by 48adb9e but not actually fixed until now)
+
+#### Commits
+
+- `[TBD]` - feat: Add CoverImageService with Edition → Work fallback logic
+- `[TBD]` - fix: Update all 4 display views to use CoverImageService
+
+#### Prevention Strategy
+
+1. **Centralize Logic** - CoverImageService is now single source of truth
+2. **End-to-End Tests** - Future fixes must test complete flow API → UI
+3. **UI Audits** - Always check display layer when fixing data issues
+4. **Code Review** - "Did you verify the UI displays the data?"
+
+---
+
 ### Backend 🔧 - ResponseEnvelope API Migration (November 5, 2025)
 
 **Migrated backend endpoints to canonical ResponseEnvelope format for consistent error handling and future iOS integration.**

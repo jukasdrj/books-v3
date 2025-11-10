@@ -163,6 +163,10 @@ public final class BatchCaptureModel {
         } catch {
             print("[BatchCapture] Cancel batch failed: \(error)")
         }
+
+        // CRITICAL: Re-enable idle timer to prevent battery drain (#311)
+        UIApplication.shared.isIdleTimerDisabled = false
+        print("🔓 Idle timer re-enabled (batch canceled)")
     }
 }
 

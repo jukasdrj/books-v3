@@ -113,6 +113,28 @@ struct BatchCaptureUITests {
         // For now, just verify the method exists and can be called
         #expect(model.batchProgress != nil)
     }
+
+    @Test("Cancel batch re-enables idle timer to prevent battery drain")
+    func cancelBatchReEnablesIdleTimer() async throws {
+        let model = BatchCaptureModel()
+
+        model.addPhoto(createBatchCaptureTestImage())
+        model.addPhoto(createBatchCaptureTestImage())
+
+        // Set up batch progress for testing
+        let jobId = UUID().uuidString
+        let progress = BatchProgress(jobId: jobId, totalPhotos: 2)
+        model.batchProgress = progress
+
+        // Disable idle timer to simulate batch submission state
+        UIApplication.shared.isIdleTimerDisabled = true
+
+        // Cancel the batch
+        await model.cancelBatch()
+
+        // CRITICAL: Verify idle timer is re-enabled (fixes #311)
+        #expect(UIApplication.shared.isIdleTimerDisabled == false)
+    }
 }
 
 // MARK: - Helper

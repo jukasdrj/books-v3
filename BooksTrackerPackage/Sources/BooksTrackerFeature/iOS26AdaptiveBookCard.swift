@@ -19,7 +19,7 @@ struct iOS26AdaptiveBookCard: View {
 
     // Primary edition for display
     private var primaryEdition: Edition? {
-        userEntry?.edition ?? work.availableEditions.first
+        work.primaryEdition  // ✅ FIXED: Uses AutoStrategy
     }
 
     init(work: Work, displayMode: AdaptiveDisplayMode = .automatic) {
@@ -285,7 +285,7 @@ struct iOS26AdaptiveBookCard: View {
     // MARK: - Shared Components
 
     private var coverImage: some View {
-        CachedAsyncImage(url: primaryEdition?.coverImageURL.flatMap(URL.init)) { image in
+        CachedAsyncImage(url: CoverImageService.coverURL(for: work)) { image in  // ✅ FIXED: Fallback logic
             image
                 .resizable()
                 .aspectRatio(2/3, contentMode: .fill)

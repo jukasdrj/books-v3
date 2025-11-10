@@ -378,6 +378,41 @@ let result = try await tracker.start(
 
 **See:** `docs/CONCURRENCY_GUIDE.md` for full patterns + `docs/SWIFT6_COMPILER_BUG.md` for lessons learned.
 
+### Cover Image Display Pattern (Nov 2025)
+
+**Always use `CoverImageService` for cover URLs** - Provides intelligent Edition → Work fallback logic.
+
+```swift
+// ✅ CORRECT: Centralized service with fallback
+import SwiftUI
+
+struct BookCard: View {
+    let work: Work
+
+    var body: some View {
+        CachedAsyncImage(url: CoverImageService.coverURL(for: work)) {
+            image in image.resizable()
+        } placeholder: {
+            PlaceholderView()
+        }
+    }
+}
+
+// ❌ WRONG: Direct access without fallback
+CachedAsyncImage(url: work.primaryEdition?.coverURL)  // Misses Work-level covers!
+```
+
+**Why This Matters:**
+- Covers can exist at Edition level OR Work level (enrichment populates both)
+- Direct access bypasses fallback logic → missing covers
+- Service delegates to `EditionSelectionStrategy` (AutoStrategy prioritizes editions with covers +10 points)
+
+**Related:**
+- `CoverImageService.swift` - Service implementation
+- `EditionSelectionStrategy.swift` - Edition selection logic
+- `EnrichmentQueue.applyEnrichedData()` - Populates Work.coverImageURL as fallback
+- `docs/architecture/2025-11-09-cover-image-display-bug-analysis.md` - Root cause analysis
+
 ### iOS 26 HIG Compliance
 
 **🚨 CRITICAL: Don't Mix @FocusState with .searchable()**

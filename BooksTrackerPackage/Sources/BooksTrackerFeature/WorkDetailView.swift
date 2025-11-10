@@ -89,7 +89,7 @@ struct WorkDetailView: View {
         GeometryReader { geometry in
             ZStack {
                 // Blurred cover art background
-                CachedAsyncImage(url: primaryEdition.coverImageURL.flatMap(URL.init)) { image in
+                CachedAsyncImage(url: CoverImageService.coverURL(for: work)) { image in  // ✅ FIXED
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -157,7 +157,7 @@ struct WorkDetailView: View {
     private var bookCoverHero: some View {
         VStack(spacing: 16) {
             // Large cover image
-            CachedAsyncImage(url: primaryEdition.coverImageURL.flatMap(URL.init)) { image in
+            CachedAsyncImage(url: CoverImageService.coverURL(for: work)) { image in  // ✅ FIXED
                 image
                     .resizable()
                     .aspectRatio(2/3, contentMode: .fill)
@@ -231,7 +231,7 @@ struct WorkDetailView: View {
         GroupBox {
         Picker("Display Edition", selection: $selectedEditionID) {
                 ForEach(work.availableEditions) { edition in
-                    EditionRow(edition: edition)
+                    EditionRow(edition: edition, work: work)
                         .tag(edition.id)
                 }
             }
@@ -523,10 +523,12 @@ struct AuthorSearchResultsView: View {
 // MARK: - EditionRow View
 private struct EditionRow: View {
     let edition: Edition
+    let work: Work
 
     var body: some View {
         HStack(spacing: 12) {
-            CachedAsyncImage(url: edition.coverImageURL.flatMap(URL.init)) { image in
+            // ✅ FIXED: Uses CoverImageService with Work fallback for edition picker
+            CachedAsyncImage(url: CoverImageService.coverURL(for: edition, work: work)) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
