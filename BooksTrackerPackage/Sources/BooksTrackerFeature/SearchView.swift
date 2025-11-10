@@ -408,7 +408,6 @@ public struct SearchView: View {
                 // HIG: Helpful tips for first-time users
                 if recentSearches.isEmpty {
                     quickTipsSection
-                        .padding(.top, 20)
                 }
             }
             .padding(.horizontal, 20)

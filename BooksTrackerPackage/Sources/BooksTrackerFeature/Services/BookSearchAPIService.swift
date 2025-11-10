@@ -102,12 +102,68 @@ public class BookSearchAPIService {
     }
 
     func getTrendingBooks() async throws -> SearchResponse {
-        // For now, return a curated list of trending books
-        // In the future, this could be a separate API endpoint
-        logger.info("📚 Loading trending books with query: 'bestseller 2024'")
-        let response = try await search(query: "bestseller 2024", maxResults: 12, persist: false)
-        logger.info("✅ Trending books loaded: \(response.results.count) results")
-        return response
+        // Curated list of high-quality, culturally diverse books
+        // These books are selected for their literary merit and global representation
+        logger.info("📚 Loading curated trending books...")
+
+        let startTime = Date()
+
+        let curatedTitles = [
+            "The Martian",
+            "Beloved",
+            "Things Fall Apart",
+            "One Hundred Years of Solitude",
+            "The Kite Runner",
+            "Pachinko",
+            "Homegoing",
+            "Americanah",
+            "The God of Small Things",
+            "The Handmaid's Tale",
+            "A Thousand Splendid Suns",
+            "The Brief Wondrous Life of Oscar Wao"
+        ]
+
+        // Fetch all books concurrently for better performance
+        var allResults: [SearchResult] = []
+        var cacheHits = 0
+        var totalRequests = 0
+
+        await withTaskGroup(of: (SearchResult?, Double)?.self) { group in
+            for title in curatedTitles {
+                group.addTask {
+                    do {
+                        let response = try await self.search(query: title, maxResults: 1, persist: false)
+                        return (response.results.first, response.cacheHitRate)
+                    } catch {
+                        // Skip books that fail to load - continue with others
+                        self.logger.warning("⚠️ Failed to load trending book '\(title)': \(error)")
+                        return nil
+                    }
+                }
+            }
+
+            for await result in group {
+                if let (searchResult, cacheHitRate) = result, let searchResult = searchResult {
+                    allResults.append(searchResult)
+                    totalRequests += 1
+                    if cacheHitRate > 0.5 {
+                        cacheHits += 1
+                    }
+                }
+            }
+        }
+
+        let responseTime = Date().timeIntervalSince(startTime) * 1000
+        let averageCacheHitRate = totalRequests > 0 ? Double(cacheHits) / Double(totalRequests) : 0.0
+
+        logger.info("✅ Trending books loaded: \(allResults.count) curated results in \(Int(responseTime))ms")
+        return SearchResponse(
+            results: allResults,
+            cacheHitRate: averageCacheHitRate,
+            provider: "curated",
+            responseTime: responseTime,
+            totalItems: allResults.count
+        )
     }
 
     /// Advanced search with multiple criteria (author, title, ISBN)

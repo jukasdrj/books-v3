@@ -48,6 +48,9 @@ public final class SearchModel {
     var lastSearchTime: TimeInterval = 0
     var cacheHitRate: Double = 0.0
 
+    // Trending books cache (loaded once per session)
+    private var cachedTrendingBooks: [SearchResult]?
+
     // Dependencies
     private let apiService: BookSearchAPIService
     private var searchTask: Task<Void, Never>?
@@ -511,17 +514,30 @@ public final class SearchModel {
     }
 
     private func loadTrendingBooks() async {
-        // Load trending books for initial state
-        print("🔄 SearchModel: Starting to load trending books...")
+        // Check cache first - only load once per session
+        if let cached = cachedTrendingBooks {
+            print("✅ SearchModel: Using cached trending books (\(cached.count) items)")
+            viewState = .initial(trending: cached, recentSearches: recentSearches)
+            return
+        }
+
+        // Load curated trending books from API (first time only)
+        print("🔄 SearchModel: Loading curated trending books...")
         do {
             let response = try await apiService.getTrendingBooks()
-            print("✅ SearchModel: Loaded \(response.results.count) trending books")
+            print("✅ SearchModel: Loaded \(response.results.count) curated trending books")
+
+            // Cache the results for the session
+            cachedTrendingBooks = response.results
+
             // Update viewState with loaded trending books
             viewState = .initial(trending: response.results, recentSearches: recentSearches)
             print("✅ SearchModel: Updated viewState to .initial with \(response.results.count) trending books")
         } catch {
             // Silently fail for trending books - not critical
             print("❌ SearchModel: Failed to load trending books: \(error)")
+            // Show initial state without trending books
+            viewState = .initial(trending: [], recentSearches: recentSearches)
         }
     }
 }
@@ -572,6 +588,16 @@ public struct SearchResult: Identifiable, Hashable, @unchecked Sendable {
 
     public var culturalRegion: CulturalRegion? {
         work.culturalRegion
+    }
+
+    // MARK: - Equatable & Hashable Conformance
+
+    public static func == (lhs: SearchResult, rhs: SearchResult) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 }
 

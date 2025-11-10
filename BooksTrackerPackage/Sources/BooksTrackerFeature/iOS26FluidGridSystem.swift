@@ -2,6 +2,19 @@ import SwiftUI
 
 // MARK: - iOS 26 Fluid Grid System
 
+/// Height constants for iOS26FloatingBookCard used in grid estimation
+private enum CardDimensions {
+    /// Cover image height from iOS26FloatingBookCard.swift:102
+    static let coverHeight: CGFloat = 240
+    /// VStack spacing + info card height (author, title, etc.)
+    static let infoAreaHeight: CGFloat = 50
+    /// Total card height: cover + spacing + info area
+    static let totalCardHeight: CGFloat = coverHeight + infoAreaHeight // 290pt
+
+    /// Buffer for shadows and glass material effects (added once at bottom of grid)
+    static let visualEffectsBuffer: CGFloat = 16
+}
+
 /// Advanced fluid grid that adapts to screen size and content
 /// V1.0 Specification: 2 columns on phone, more on tablet with smooth transitions
 struct iOS26FluidGridSystem<Item: Identifiable, Content: View>: View {
@@ -37,23 +50,24 @@ struct iOS26FluidGridSystem<Item: Identifiable, Content: View>: View {
                 }
             }
             .animation(.smooth(duration: 0.6), value: adaptiveColumns(for: geometry.size).count)
+            .frame(height: estimatedHeight(for: items.count, in: geometry.size))
         }
-        .frame(height: estimatedHeight(for: items.count))
+        .clipped()  // Prevent shadow bleed into next section
     }
 
     // MARK: - Height Estimation
 
     /// Estimates grid height based on item count and column configuration
     /// Prevents GeometryReader collapse in ScrollView contexts
-    private func estimatedHeight(for itemCount: Int) -> CGFloat {
+    private func estimatedHeight(for itemCount: Int, in size: CGSize) -> CGFloat {
         guard itemCount > 0 else { return 0 }
 
-        // Estimate based on typical book card height (~250pt) + spacing
-        let estimatedCardHeight: CGFloat = 250
-        let columnCount = max(columns.count, 2)  // Default to 2 columns minimum
+        // Use actual adaptive column logic instead of static columns.count
+        let columnCount = calculateOptimalColumns(for: size)
         let rowCount = ceil(Double(itemCount) / Double(columnCount))
 
-        return CGFloat(rowCount) * (estimatedCardHeight + spacing) - spacing
+        // Calculate total height: rows × (card + spacing) - last spacing + buffer
+        return CGFloat(rowCount) * (CardDimensions.totalCardHeight + spacing) - spacing + CardDimensions.visualEffectsBuffer
     }
 
     // MARK: - Adaptive Column Logic
