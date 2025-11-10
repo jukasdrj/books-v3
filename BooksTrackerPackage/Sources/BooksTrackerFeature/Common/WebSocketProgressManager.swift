@@ -51,9 +51,7 @@ public final class WebSocketProgressManager: ObservableObject {
 
     // Backend configuration
     // UNIFIED: All WebSocket progress tracking goes to api-worker (monolith architecture)
-    private let baseURL = "wss://api-worker.jukasdrj.workers.dev"
     private let connectionTimeout: TimeInterval = 10.0  // 10 seconds for initial handshake
-    private let readySignalEndpoint = "https://api-worker.jukasdrj.workers.dev"
 
     // MARK: - Public Methods
 
@@ -71,9 +69,7 @@ public final class WebSocketProgressManager: ObservableObject {
         }
 
         // Create connection endpoint with client-provided jobId
-        guard let url = URL(string: "\(baseURL)/ws/progress?jobId=\(jobId)") else {
-            throw URLError(.badURL)
-        }
+        let url = EnrichmentConfig.webSocketURL(jobId: jobId)
 
         // Create URLSession with WebSocket configuration
         let session = URLSession(configuration: .default)

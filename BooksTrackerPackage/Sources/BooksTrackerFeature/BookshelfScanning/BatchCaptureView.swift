@@ -136,7 +136,7 @@ public final class BatchCaptureModel {
 
         do {
             // POST to cancel endpoint
-            let endpoint = URL(string: "https://api-worker.jukasdrj.workers.dev/api/scan-bookshelf/cancel")!
+            let endpoint = EnrichmentConfig.scanCancelURL
 
             var request = URLRequest(url: endpoint)
             request.httpMethod = "POST"

@@ -285,7 +285,7 @@ public struct GeminiCSVImportView: View {
     }
 
     private func startWebSocketProgress(jobId: String) {
-        let wsURL = URL(string: "wss://api-worker.jukasdrj.workers.dev/ws/progress?jobId=\(jobId)")!
+        let wsURL = EnrichmentConfig.webSocketURL(jobId: jobId)
         #if DEBUG
         print("[CSV WebSocket] Connecting to: \(wsURL)")
         #endif

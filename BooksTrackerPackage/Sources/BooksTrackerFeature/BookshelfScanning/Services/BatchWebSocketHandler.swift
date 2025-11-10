@@ -17,7 +17,7 @@ actor BatchWebSocketHandler {
 
     /// Connect to WebSocket and start listening
     func connect() async throws {
-        let wsURL = URL(string: "wss://api-worker.jukasdrj.workers.dev/ws/progress?jobId=\(jobId)")!
+        let wsURL = EnrichmentConfig.webSocketURL(jobId: jobId)
 
         let session = URLSession(configuration: .default)
         webSocket = session.webSocketTask(with: wsURL)

@@ -62,7 +62,7 @@ public struct GeminiCSVImportJob: Codable, Sendable {
 actor GeminiCSVImportService {
     // MARK: - Configuration
 
-    private let endpoint = URL(string: "https://api-worker.jukasdrj.workers.dev/api/import/csv-gemini")!
+    private let endpoint = EnrichmentConfig.csvImportURL
     private let maxFileSize: Int = 10_000_000 // 10MB max
 
     // MARK: - Singleton

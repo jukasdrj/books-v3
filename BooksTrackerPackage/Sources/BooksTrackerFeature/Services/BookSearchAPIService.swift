@@ -7,7 +7,6 @@ import OSLog
 
 @MainActor
 public class BookSearchAPIService {
-    private let baseURL = "https://api-worker.jukasdrj.workers.dev"
     private let urlSession: URLSession
     private let modelContext: ModelContext
     private let dtoMapper: DTOMapper
@@ -39,18 +38,18 @@ public class BookSearchAPIService {
             // Smart detection: ISBN → Title search, otherwise use title search
             // Title search handles ISBNs intelligently + provides best coverage
             endpoint = "/v1/search/title"
-            urlString = "\(baseURL)\(endpoint)?q=\(encodedQuery)"
+            urlString = "\(EnrichmentConfig.baseURL)\(endpoint)?q=\(encodedQuery)"
         case .title:
             endpoint = "/v1/search/title"
-            urlString = "\(baseURL)\(endpoint)?q=\(encodedQuery)"
+            urlString = "\(EnrichmentConfig.baseURL)\(endpoint)?q=\(encodedQuery)"
         case .author:
             // Use advanced search with author-only parameter (canonical format)
             endpoint = "/v1/search/advanced"
-            urlString = "\(baseURL)\(endpoint)?author=\(encodedQuery)"
+            urlString = "\(EnrichmentConfig.baseURL)\(endpoint)?author=\(encodedQuery)"
         case .isbn:
             // Dedicated ISBN endpoint for ISBNdb lookups (7-day cache, most accurate)
             endpoint = "/v1/search/isbn"
-            urlString = "\(baseURL)\(endpoint)?isbn=\(encodedQuery)"
+            urlString = "\(EnrichmentConfig.baseURL)\(endpoint)?isbn=\(encodedQuery)"
         }
         guard let url = URL(string: urlString) else {
             throw SearchError.invalidURL
@@ -127,11 +126,11 @@ public class BookSearchAPIService {
 
         if isAuthorOnlySearch, let authorName = author {
             // Use v1 advanced search with author-only parameter
-            urlComponents = URLComponents(string: "\(baseURL)/v1/search/advanced")!
+            urlComponents = URLComponents(string: "\(EnrichmentConfig.baseURL)/v1/search/advanced")!
             queryItems.append(URLQueryItem(name: "author", value: authorName))
         } else {
             // Use v1 advanced search endpoint for multi-criteria queries
-            urlComponents = URLComponents(string: "\(baseURL)/v1/search/advanced")!
+            urlComponents = URLComponents(string: "\(EnrichmentConfig.baseURL)/v1/search/advanced")!
 
             if let author = author, !author.isEmpty {
                 queryItems.append(URLQueryItem(name: "author", value: author))

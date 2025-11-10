@@ -1,10 +1,80 @@
 import Foundation
 
 /// Centralized configuration for enrichment API endpoints
+/// All API URLs should be accessed through this enum to ensure consistency and ease of maintenance
 enum EnrichmentConfig {
     /// Base URL for the Cloudflare Worker API
     static let baseURL = "https://api-worker.jukasdrj.workers.dev"
 
     /// WebSocket base URL for the Cloudflare Worker
     static let webSocketBaseURL = "wss://api-worker.jukasdrj.workers.dev"
+
+    // MARK: - Search Endpoints
+
+    /// Search books by title
+    static var searchTitleURL: URL {
+        URL(string: "\(baseURL)/search/title")!
+    }
+
+    /// Search books by ISBN
+    static var searchISBNURL: URL {
+        URL(string: "\(baseURL)/search/isbn")!
+    }
+
+    /// Advanced search (title + author)
+    static var searchAdvancedURL: URL {
+        URL(string: "\(baseURL)/search/advanced")!
+    }
+
+    // MARK: - Enrichment Endpoints
+
+    /// Start batch enrichment job
+    static var enrichmentStartURL: URL {
+        URL(string: "\(baseURL)/api/enrichment/start")!
+    }
+
+    /// Cancel enrichment job
+    static var enrichmentCancelURL: URL {
+        URL(string: "\(baseURL)/api/enrichment/cancel")!
+    }
+
+    // MARK: - Bookshelf Scanning Endpoints
+
+    /// AI-powered bookshelf scanning
+    static var scanBookshelfURL: URL {
+        URL(string: "\(baseURL)/api/scan-bookshelf")!
+    }
+
+    /// Batch bookshelf scanning
+    static var scanBookshelfBatchURL: URL {
+        URL(string: "\(baseURL)/api/scan-bookshelf/batch")!
+    }
+
+    /// Cancel bookshelf scan job
+    static var scanCancelURL: URL {
+        URL(string: "\(baseURL)/api/scan-bookshelf/cancel")!
+    }
+
+    // MARK: - CSV Import Endpoints
+
+    /// AI-powered CSV import with Gemini
+    static var csvImportURL: URL {
+        URL(string: "\(baseURL)/api/import/csv-gemini")!
+    }
+
+    // MARK: - WebSocket Endpoints
+
+    /// WebSocket progress tracking for background jobs
+    /// - Parameter jobId: The unique job identifier
+    /// - Returns: WebSocket URL for the specified job
+    static func webSocketURL(jobId: String) -> URL {
+        URL(string: "\(webSocketBaseURL)/ws/progress?jobId=\(jobId)")!
+    }
+
+    // MARK: - Health Check
+
+    /// Health check endpoint
+    static var healthCheckURL: URL {
+        URL(string: "\(baseURL)/health")!
+    }
 }

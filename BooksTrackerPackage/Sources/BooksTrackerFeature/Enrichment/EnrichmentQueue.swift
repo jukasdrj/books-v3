@@ -251,7 +251,7 @@ public final class EnrichmentQueue {
         print("🛑 Canceling backend job: \(jobId)")
 
         do {
-            let url = URL(string: "https://books-api-proxy.jukasdrj.workers.dev/api/enrichment/cancel")!
+            let url = EnrichmentConfig.enrichmentCancelURL
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -334,19 +334,92 @@ public final class EnrichmentQueue {
                 continue
             }
 
-            // Find the Work by title (best effort matching)
-            let workTitle = enrichedBook.title
-            let descriptor = FetchDescriptor<Work>(
-                predicate: #Predicate { work in
-                    work.title.localizedStandardContains(workTitle)
-                }
-            )
+            // Enhanced ID-based matching (Issue #313)
+            // Priority 1: openLibraryWorkID (most reliable)
+            // Priority 2: googleBooksVolumeID
+            // Priority 3: Multi-field fallback (title + author + year)
 
-            guard let works = try? modelContext.fetch(descriptor),
-                  let work = works.first else {
-                print("⚠️ Could not find work for '\(workTitle)'")
+            var work: Work?
+            var matchMethod: String = "unknown"
+
+            // Try openLibraryWorkID first
+            if let olWorkId = enrichedData.work.openLibraryWorkID {
+                let olDescriptor = FetchDescriptor<Work>(
+                    predicate: #Predicate { w in
+                        w.openLibraryWorkID == olWorkId
+                    }
+                )
+                if let works = try? modelContext.fetch(olDescriptor), let matched = works.first {
+                    work = matched
+                    matchMethod = "openLibraryWorkID"
+                }
+            }
+
+            // Fallback to googleBooksVolumeID
+            if work == nil, let gbVolumeId = enrichedData.work.googleBooksVolumeID {
+                let gbDescriptor = FetchDescriptor<Work>(
+                    predicate: #Predicate { w in
+                        w.googleBooksVolumeID == gbVolumeId
+                    }
+                )
+                if let works = try? modelContext.fetch(gbDescriptor), let matched = works.first {
+                    work = matched
+                    matchMethod = "googleBooksVolumeID"
+                }
+            }
+
+            // Final fallback: title + author + year (multi-field validation)
+            if work == nil {
+                let workTitle = enrichedBook.title
+                let titleDescriptor = FetchDescriptor<Work>(
+                    predicate: #Predicate { w in
+                        w.title.localizedStandardContains(workTitle)
+                    }
+                )
+
+                if let candidates = try? modelContext.fetch(titleDescriptor) {
+                    // Filter by author name if available
+                    let primaryAuthor = enrichedData.authors.first?.name
+                    let publicationYear = enrichedData.work.firstPublicationYear
+
+                    for candidate in candidates {
+                        var authorMatch = true
+                        var yearMatch = true
+
+                        // Check author match if we have author data
+                        if let primaryAuthor = primaryAuthor {
+                            authorMatch = candidate.authors?.contains(where: { author in
+                                author.name.localizedStandardContains(primaryAuthor) ||
+                                primaryAuthor.localizedStandardContains(author.name)
+                            }) ?? false
+                        }
+
+                        // Check year match if we have year data (allow ±1 year tolerance)
+                        if let publicationYear = publicationYear, let candidateYear = candidate.firstPublicationYear {
+                            yearMatch = abs(candidateYear - publicationYear) <= 1
+                        }
+
+                        if authorMatch && yearMatch {
+                            work = candidate
+                            matchMethod = "title+author+year"
+                            break
+                        }
+                    }
+
+                    // If no multi-field match, fall back to first title match (legacy behavior)
+                    if work == nil, let firstCandidate = candidates.first {
+                        work = firstCandidate
+                        matchMethod = "title-only (legacy)"
+                    }
+                }
+            }
+
+            guard let work = work else {
+                print("⚠️ Could not find work for '\(enrichedBook.title)' (match failed)")
                 continue
             }
+
+            print("✅ Matched '\(enrichedBook.title)' via \(matchMethod)")
 
             // Update work metadata
             if work.firstPublicationYear == nil, let year = enrichedData.work.firstPublicationYear {

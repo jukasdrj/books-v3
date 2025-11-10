@@ -81,7 +81,7 @@ public struct BookshelfAIResponse: Codable, Sendable {
 actor BookshelfAIService {
     // MARK: - Configuration
 
-    private let endpoint = URL(string: "https://api-worker.jukasdrj.workers.dev/api/scan-bookshelf")!
+    private let endpoint = EnrichmentConfig.scanBookshelfURL
     private let timeout: TimeInterval = 70.0 // 70 seconds for AI processing + enrichment (Gemini: 25-40s, enrichment: 5-10s)
     private let maxImageSize: Int = 10_000_000 // 10MB max (matches worker limit)
 
@@ -591,7 +591,7 @@ actor BookshelfAIService {
     public func submitBatch(jobId: String, photos: [CapturedPhoto]) async throws -> BatchSubmissionResponse {
         let batchRequest = try await createBatchRequest(jobId: jobId, photos: photos)
 
-        let endpoint = URL(string: "https://api-worker.jukasdrj.workers.dev/api/scan-bookshelf/batch")!
+        let endpoint = EnrichmentConfig.scanBookshelfBatchURL
 
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
