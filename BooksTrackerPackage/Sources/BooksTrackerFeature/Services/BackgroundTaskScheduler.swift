@@ -35,7 +35,9 @@ public final class BackgroundTaskScheduler {
         let count = scheduledTasks.count
         scheduledTasks.forEach { $0.cancel() }
         scheduledTasks.removeAll()
+        #if DEBUG
         print("🛑 Cancelled \(count) background tasks")
+        #endif
     }
 
     /// Wait for all background tasks to complete (for testing)

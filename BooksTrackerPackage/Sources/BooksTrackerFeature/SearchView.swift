@@ -176,9 +176,13 @@ public struct SearchView: View {
             setupSearchModel()
         }
         .sheet(isPresented: $showingScanner) {
+            #if DEBUG
             print("📷 Sheet is presenting ISBNScannerView")
+            #endif
             return ISBNScannerView { isbn in
+                #if DEBUG
                 print("📷 ISBN scanned: \(isbn.normalizedValue)")
+                #endif
                 // Handle scanned ISBN - set scope to ISBN
                 searchScope = .isbn
                 searchModel?.searchByISBN(isbn.normalizedValue)
@@ -262,9 +266,13 @@ public struct SearchView: View {
 
     private var barcodeButton: some View {
         Button(action: {
+            #if DEBUG
             print("📷 Barcode button tapped")
+            #endif
             showingScanner = true
+            #if DEBUG
             print("📷 showingScanner set to \(showingScanner)")
+            #endif
         }) {
             Image(systemName: "barcode.viewfinder")
                 .font(.title2)

@@ -180,7 +180,9 @@ public struct ReadingStats: Sendable {
     /// Invalidate cache when library changes
     public static func invalidateCache() async {
         await cache.invalidate()
+        #if DEBUG
         print("ℹ️ ReadingStats cache invalidated")
+        #endif
     }
 
     // MARK: - Calculation

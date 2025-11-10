@@ -14,12 +14,16 @@ public final class SampleDataGenerator {
     public func setupSampleDataIfNeeded() {
         // Check UserDefaults first - if sample data was added before, skip check
         if UserDefaults.standard.bool(forKey: sampleDataAddedKey) {
+            #if DEBUG
             print("✅ Sample data previously added - skipping check")
+            #endif
             return
         }
 
         guard isLibraryEmpty() else {
+            #if DEBUG
             print("✅ Library not empty - skipping sample data")
+            #endif
             return
         }
 
@@ -32,7 +36,9 @@ public final class SampleDataGenerator {
     /// Reset sample data flag (call when library is reset)
     public func resetSampleDataFlag() {
         UserDefaults.standard.removeObject(forKey: sampleDataAddedKey)
+        #if DEBUG
         print("🔄 Sample data flag reset")
+        #endif
     }
 
     // MARK: - Private Helpers
@@ -156,7 +162,9 @@ public final class SampleDataGenerator {
         do {
             try modelContext.save()
         } catch {
+            #if DEBUG
             print("Failed to save sample data: \(error)")
+            #endif
         }
     }
 }

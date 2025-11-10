@@ -126,7 +126,9 @@ public struct GenderDonutChart: View {
 
     ScrollView {
         GenderDonutChart(stats: sampleStats, totalAuthors: 100) { gender in
+            #if DEBUG
             print("Tapped gender: \(gender.displayName)")
+            #endif
         }
         .padding()
     }

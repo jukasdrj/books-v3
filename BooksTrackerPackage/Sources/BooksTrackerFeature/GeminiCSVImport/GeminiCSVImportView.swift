@@ -566,7 +566,9 @@ public struct GeminiCSVImportView: View {
             // Verify UserLibraryEntry relationships persisted
             for work in savedWorks {
                 let entryCount = work.userLibraryEntries?.count ?? 0
+                #if DEBUG
                 print("📚 [CSV Import] Post-save verification: '\(work.title)' has \(entryCount) library entries")
+                #endif
             }
             #endif
 

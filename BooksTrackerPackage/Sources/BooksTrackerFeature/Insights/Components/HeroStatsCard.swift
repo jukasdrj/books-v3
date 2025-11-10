@@ -89,7 +89,9 @@ private struct StatButton: View {
 
     ScrollView {
         HeroStatsCard(stats: sampleStats) { stat in
+            #if DEBUG
             print("Tapped: \(stat.title)")
+            #endif
         }
         .padding()
     }

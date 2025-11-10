@@ -34,7 +34,9 @@ public class ImageCleanupService {
             // Early exit if no works have images (use fetchCount for efficiency)
             let worksWithImagesCount = try modelContext.fetchCount(descriptor)
             guard worksWithImagesCount > 0 else {
+                #if DEBUG
                 print("✅ No works with images - skipping cleanup")
+                #endif
                 return
             }
 
@@ -63,10 +65,14 @@ public class ImageCleanupService {
                             work.boundingBox = nil
                         }
                         cleanedCount += 1
+                        #if DEBUG
                         print("✅ ImageCleanupService: Deleted \(imagePath) (\(works.count) books reviewed)")
+                        #endif
                     } else {
                         errorCount += 1
+                        #if DEBUG
                         print("⚠️ ImageCleanupService: Failed to delete \(imagePath)")
+                        #endif
                     }
                 }
             }
@@ -74,13 +80,19 @@ public class ImageCleanupService {
             // Save changes if any cleanup occurred
             if cleanedCount > 0 {
                 try modelContext.save()
+                #if DEBUG
                 print("🧹 ImageCleanupService: Cleaned up \(cleanedCount) image(s), \(errorCount) error(s)")
+                #endif
             } else {
+                #if DEBUG
                 print("🧹 ImageCleanupService: No images ready for cleanup")
+                #endif
             }
 
         } catch {
+            #if DEBUG
             print("❌ ImageCleanupService: Failed to cleanup images - \(error)")
+            #endif
         }
     }
 
@@ -101,7 +113,9 @@ public class ImageCleanupService {
             try fileManager.removeItem(atPath: path)
             return true
         } catch {
+            #if DEBUG
             print("❌ ImageCleanupService: File deletion error - \(error)")
+            #endif
             return false
         }
     }
@@ -124,7 +138,9 @@ public class ImageCleanupService {
             }.count
 
         } catch {
+            #if DEBUG
             print("❌ ImageCleanupService: Failed to get pending count - \(error)")
+            #endif
             return 0
         }
     }
@@ -145,7 +161,9 @@ public class ImageCleanupService {
             }.count
 
         } catch {
+            #if DEBUG
             print("❌ ImageCleanupService: Failed to get active count - \(error)")
+            #endif
             return 0
         }
     }
@@ -200,16 +218,22 @@ public class ImageCleanupService {
                     // Delete orphaned old file
                     try fileManager.removeItem(at: imageURL)
                     cleanedCount += 1
+                    #if DEBUG
                     print("🧹 ImageCleanupService: Deleted orphaned file \(imageURL.lastPathComponent) (age: \(Int(fileAge / 3600))h)")
+                    #endif
                 }
             }
 
             if cleanedCount > 0 || skippedCount > 0 {
+                #if DEBUG
                 print("🧹 ImageCleanupService: Orphaned file cleanup complete - deleted: \(cleanedCount), skipped: \(skippedCount) (referenced)")
+                #endif
             }
 
         } catch {
+            #if DEBUG
             print("❌ ImageCleanupService: Orphaned file cleanup failed - \(error)")
+            #endif
         }
     }
 }

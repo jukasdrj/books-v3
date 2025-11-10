@@ -77,15 +77,21 @@ public final class EnrichmentService {
             if let enrichmentError = error as? EnrichmentError {
                 switch enrichmentError {
                 case .httpError(let statusCode):
+                    #if DEBUG
                     print("🚨 HTTP Error \(statusCode) enriching '\(searchTitle)'")
+                    #endif
                 default:
+                    #if DEBUG
                     print("🚨 Enrichment error: \(enrichmentError)")
+                    #endif
                 }
                 return .failure(enrichmentError)
             }
 
             // Fallback for unknown errors
+            #if DEBUG
             print("🚨 Unexpected error enriching '\(searchTitle)': \(error)")
+            #endif
             return .failure(.apiError(String(describing: error)))
         }
     }
@@ -121,16 +127,26 @@ public final class EnrichmentService {
             )
         } catch {
             // Enhanced error logging for debugging enrichment failures
+            #if DEBUG
             print("🚨 Batch enrichment failed: \(error)")
+            #endif
+            #if DEBUG
             print("🚨 Error type: \(type(of: error))")
+            #endif
 
             if let urlError = error as? URLError {
+                #if DEBUG
                 print("🚨 URLError code: \(urlError.code.rawValue), localized: \(urlError.localizedDescription)")
+                #endif
             } else {
                 // Bridge to NSError for detailed diagnostics
                 let nsError = error as NSError
+                #if DEBUG
                 print("🚨 NSError domain: \(nsError.domain), code: \(nsError.code)")
+                #endif
+                #if DEBUG
                 print("🚨 NSError userInfo: \(nsError.userInfo)")
+                #endif
             }
             
             return BatchEnrichmentResult(

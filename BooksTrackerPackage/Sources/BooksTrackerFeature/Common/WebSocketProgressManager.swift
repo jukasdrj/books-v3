@@ -85,7 +85,9 @@ public final class WebSocketProgressManager {
         self.webSocketTask = task
         self.isConnected = true
 
+        #if DEBUG
         print("🔌 WebSocket established (ready for job configuration)")
+        #endif
 
         // Start receiving messages in background
         await startReceiving()
@@ -115,7 +117,9 @@ public final class WebSocketProgressManager {
 
         self.boundJobId = jobId
 
+        #if DEBUG
         print("🔌 WebSocket configured for job: \(jobId)")
+        #endif
 
         // NOTE: Ready signal is now sent explicitly via sendReadySignal()
         // This gives caller control over when to signal readiness to server
@@ -156,7 +160,9 @@ public final class WebSocketProgressManager {
             self.progressHandler = progressHandler
         } catch {
             self.lastError = error
+            #if DEBUG
             print("❌ Failed to connect: \(error)")
+            #endif
         }
     }
 
@@ -173,7 +179,9 @@ public final class WebSocketProgressManager {
         disconnectionHandler = nil
         boundJobId = nil
 
+        #if DEBUG
         print("🔌 WebSocket disconnected")
+        #endif
     }
 
     // MARK: - Private Methods
@@ -204,7 +212,9 @@ public final class WebSocketProgressManager {
         let message = URLSessionWebSocketTask.Message.string(messageString)
         try await webSocketTask.send(message)
 
+        #if DEBUG
         print("✅ Sent ready signal to server")
+        #endif
 
         // Wait for ready_ack (optional, for confirmation)
         // The server will send { "type": "ready_ack", "timestamp": ... }
@@ -218,7 +228,9 @@ public final class WebSocketProgressManager {
                     let message = try await webSocketTask.receive()
                     await handleMessage(message)
                 } catch {
+                    #if DEBUG
                     print("⚠️ WebSocket receive error: \(error)")
+                    #endif
                     self.lastError = error
 
                     // Notify continuation before disconnecting
@@ -247,7 +259,9 @@ public final class WebSocketProgressManager {
             }
 
         @unknown default:
+            #if DEBUG
             print("⚠️ Unknown WebSocket message type")
+            #endif
         }
     }
 
@@ -312,7 +326,9 @@ public final class WebSocketProgressManager {
             }
 
         } catch {
+            #if DEBUG
             print("⚠️ Failed to parse progress update: \(error)")
+            #endif
         }
     }
 }

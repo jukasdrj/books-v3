@@ -406,7 +406,9 @@ public struct ManualMatchView: View {
             
         } catch {
             // Show error to user
+            #if DEBUG
             print("❌ ManualMatchView: Failed to save - \(error)")
+            #endif
             errorAlert = ErrorAlert(message: "Failed to save changes: \(error.localizedDescription)")
             isApplyingMatch = false
         }

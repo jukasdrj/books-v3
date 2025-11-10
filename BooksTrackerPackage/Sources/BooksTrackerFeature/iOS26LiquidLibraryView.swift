@@ -94,7 +94,9 @@ public struct iOS26LiquidLibraryView: View {
                 pendingEnrichmentCount = 0
                 reviewQueueCount = 0
                 isEnriching = false
+                #if DEBUG
                 print("✅ Library view: Cleared cache after library reset")
+                #endif
             }
             .navigationTitle("My Library")
             .navigationBarTitleDisplayMode(.large)
@@ -332,7 +334,9 @@ public struct iOS26LiquidLibraryView: View {
                         EnrichmentQueue.shared.startProcessing(in: modelContext) { completed, total, bookTitle in
                             // This closure is for progress updates, but ContentView is already handling it
                             // via notifications. We can leave it empty or log to console for debugging.
+                            #if DEBUG
                             print("Enriching from library view: \(completed)/\(total) - \(bookTitle)")
+                            #endif
                         }
                     }
                     .buttonStyle(.glassProminent)

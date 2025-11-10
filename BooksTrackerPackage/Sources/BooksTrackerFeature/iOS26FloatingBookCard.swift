@@ -308,14 +308,18 @@ struct iOS26FloatingBookCard: View {
     // TODO: Fix non-functional buttons (see .github/ISSUE_DEAD_CODE_CARD_PERSISTENCE.md)
     private func addToLibrary() {
         // DISABLED: No modelContext available in this view
+        #if DEBUG
         print("⚠️ addToLibrary() called but not implemented - no persistence")
+        #endif
         triggerHapticFeedback(.warning)  // Changed to warning since action doesn't work
     }
 
     // TODO: Fix non-functional buttons (see .github/ISSUE_DEAD_CODE_CARD_PERSISTENCE.md)
     private func addToWishlist() {
         // DISABLED: No modelContext available in this view
+        #if DEBUG
         print("⚠️ addToWishlist() called but not implemented - no persistence")
+        #endif
         triggerHapticFeedback(.warning)  // Changed to warning since action doesn't work
     }
 
@@ -631,7 +635,9 @@ struct OptimizedFloatingBookCard: View {
     // TODO: Fix non-functional buttons (see .github/ISSUE_DEAD_CODE_CARD_PERSISTENCE.md)
     private func addToLibrary() {
         // DISABLED: No modelContext available in this view
+        #if DEBUG
         print("⚠️ addToLibrary() called but not implemented - no persistence")
+        #endif
         updateCachedProperties()
         triggerHapticFeedback(.warning)  // Changed to warning since action doesn't work
     }
@@ -639,7 +645,9 @@ struct OptimizedFloatingBookCard: View {
     // TODO: Fix non-functional buttons (see .github/ISSUE_DEAD_CODE_CARD_PERSISTENCE.md)
     private func addToWishlist() {
         // DISABLED: No modelContext available in this view
+        #if DEBUG
         print("⚠️ addToWishlist() called but not implemented - no persistence")
+        #endif
         updateCachedProperties()
         triggerHapticFeedback(.warning)  // Changed to warning since action doesn't work
     }
@@ -679,7 +687,9 @@ struct PerformanceMonitor: ViewModifier {
             .onDisappear {
                 let renderTime = CACurrentMediaTime() - renderStartTime
                 if renderTime > 0.016 { // Alert if slower than 60fps
+                    #if DEBUG
                     print("⚠️ PERFORMANCE: \(identifier) took \(renderTime * 1000)ms to render")
+                    #endif
                 }
             }
     }
@@ -780,7 +790,9 @@ struct MemoryPressureHandler {
     private static func cleanupImageCache() {
         // Clear NSCache when memory pressure occurs (NSCache is thread-safe)
         CachedAsyncImageCache.shared.cache.removeAllObjects()
+        #if DEBUG
         print("🧹 MEMORY: Cleared image cache due to memory pressure")
+        #endif
     }
 }
 

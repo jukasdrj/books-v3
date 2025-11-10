@@ -414,10 +414,14 @@ public class LibraryRepository {
                 let generator = UINotificationFeedbackGenerator()
                 generator.notificationOccurred(.success)
 
+                #if DEBUG
                 print("✅ Library reset complete - All works, settings, and queue cleared")
+                #endif
 
             } catch {
+                #if DEBUG
                 print("❌ Failed to reset library: \(error)")
+                #endif
 
                 await MainActor.run {
                     // Error haptic

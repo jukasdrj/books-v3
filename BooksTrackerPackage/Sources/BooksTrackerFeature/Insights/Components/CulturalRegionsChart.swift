@@ -105,7 +105,9 @@ public struct CulturalRegionsChart: View {
 
     ScrollView {
         CulturalRegionsChart(stats: sampleStats) { region in
+            #if DEBUG
             print("Tapped region: \(region.displayName)")
+            #endif
         }
         .padding()
     }

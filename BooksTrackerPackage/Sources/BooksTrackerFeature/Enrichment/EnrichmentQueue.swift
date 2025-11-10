@@ -146,14 +146,18 @@ public final class EnrichmentQueue {
     public func clear() {
         queue.removeAll()
         saveQueue()
+        #if DEBUG
         print("🧹 EnrichmentQueue cleared")
+        #endif
     }
 
     /// Validate queue on startup - remove invalid persistent IDs
     public func validateQueue(in modelContext: ModelContext) {
         // Early exit if queue is empty - avoid unnecessary work
         guard !queue.isEmpty else {
+            #if DEBUG
             print("✅ EnrichmentQueue empty - skipping validation")
+            #endif
             return
         }
 
@@ -162,7 +166,9 @@ public final class EnrichmentQueue {
         queue.removeAll { item in
             // Try to fetch the work - if it fails, remove from queue
             if modelContext.model(for: item.workPersistentID) as? Work == nil {
+                #if DEBUG
                 print("🧹 Removing invalid work ID from queue")
+                #endif
                 return true  // Remove this item
             }
             return false  // Keep this item
@@ -170,7 +176,9 @@ public final class EnrichmentQueue {
 
         let removedCount = initialCount - queue.count
         if removedCount > 0 {
+            #if DEBUG
             print("🧹 Queue cleanup: Removed \(removedCount) invalid items (was \(initialCount), now \(queue.count))")
+            #endif
             saveQueue()  // Persist cleanup
         }
     }
@@ -212,7 +220,9 @@ public final class EnrichmentQueue {
                 self.webSocketHandler?.disconnect()
                 self.webSocketHandler = nil
                 self.clearCurrentJobId()
+                #if DEBUG
                 print("🧹 Enrichment cleanup executed")
+                #endif
             }
 
             let workIDs = self.getAllPending()
@@ -249,26 +259,34 @@ public final class EnrichmentQueue {
                 try await watchdog.value
 
                 // Success - enrichment completed before timeout
+                #if DEBUG
                 print("✅ Enrichment completed successfully")
+                #endif
                 self.clear()
                 NotificationCoordinator.postEnrichmentCompleted()
 
             } catch let error as EnrichmentTimeoutError {
                 // Timeout path
                 watchdog.cancel()
+                #if DEBUG
                 print("⏱️ Enrichment timed out after \(Int(timeoutDuration))s of inactivity")
+                #endif
                 NotificationCoordinator.postEnrichmentFailed(
                     error: error.localizedDescription
                 )
             } catch is CancellationError {
                 // User cancellation path
                 watchdog.cancel()
+                #if DEBUG
                 print("🛑 Enrichment canceled by user")
+                #endif
                 NotificationCoordinator.postEnrichmentCompleted()
             } catch {
                 // Other errors
                 watchdog.cancel()
+                #if DEBUG
                 print("❌ Enrichment failed: \(error)")
+                #endif
                 NotificationCoordinator.postEnrichmentFailed(error: error.localizedDescription)
             }
         }
@@ -301,7 +319,9 @@ public final class EnrichmentQueue {
 
         _ = await EnrichmentService.shared.batchEnrichWorks(works, jobId: jobId, in: modelContext)
 
+        #if DEBUG
         print("✅ Batch enrichment job accepted. \(works.count) books queued for background processing via WebSocket")
+        #endif
     }
 
     /// Stop background processing
@@ -315,11 +335,15 @@ public final class EnrichmentQueue {
     /// Sends cancellation request to Cloudflare Worker
     public func cancelBackendJob() async {
         guard let jobId = currentJobId else {
+            #if DEBUG
             print("⚠️ No active backend job to cancel")
+            #endif
             return
         }
 
+        #if DEBUG
         print("🛑 Canceling backend job: \(jobId)")
+        #endif
 
         do {
             let url = EnrichmentConfig.enrichmentCancelURL
@@ -333,16 +357,22 @@ public final class EnrichmentQueue {
             let (_, response) = try await URLSession.shared.data(for: request)
 
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                #if DEBUG
                 print("✅ Backend job canceled successfully: \(jobId)")
+                #endif
             } else {
+                #if DEBUG
                 print("⚠️ Backend job cancellation returned non-200 status")
+                #endif
             }
 
             // Clear the job ID
             clearCurrentJobId()
 
         } catch {
+            #if DEBUG
             print("❌ Failed to cancel backend job: \(error)")
+            #endif
             // Still clear the job ID - best effort
             clearCurrentJobId()
         }
@@ -392,7 +422,9 @@ public final class EnrichmentQueue {
             let timeSinceActivity = clock().timeIntervalSince(lastActivityTime)
 
             if timeSinceActivity > timeoutDuration {
+                #if DEBUG
                 print("⏱️ Enrichment timeout: No activity for \(Int(timeSinceActivity))s (limit: \(Int(timeoutDuration))s)")
+                #endif
                 throw EnrichmentTimeoutError(timeout: timeoutDuration)
             }
 
@@ -428,13 +460,17 @@ public final class EnrichmentQueue {
     /// Apply enriched data from backend to SwiftData models
     /// Called when WebSocket receives complete message with enriched books
     private func applyEnrichedData(_ enrichedBooks: [EnrichedBookPayload], in modelContext: ModelContext) {
+        #if DEBUG
         print("📚 Applying enriched data for \(enrichedBooks.count) books")
+        #endif
 
         var saveCounter = 0
         for enrichedBook in enrichedBooks {
             guard enrichedBook.success,
                   let enrichedData = enrichedBook.enriched else {
+                #if DEBUG
                 print("⏭️ Skipping \(enrichedBook.title) - no enriched data")
+                #endif
                 continue
             }
 
@@ -519,11 +555,15 @@ public final class EnrichmentQueue {
             }
 
             guard let work = work else {
+                #if DEBUG
                 print("⚠️ Could not find work for '\(enrichedBook.title)' (match failed)")
+                #endif
                 continue
             }
 
+            #if DEBUG
             print("✅ Matched '\(enrichedBook.title)' via \(matchMethod)")
+            #endif
 
             // Update work metadata
             if work.firstPublicationYear == nil, let year = enrichedData.work.firstPublicationYear {
@@ -567,9 +607,13 @@ public final class EnrichmentQueue {
                 do {
                     try modelContext.save()
                     edition = newEdition
+                    #if DEBUG
                     print("✅ Created edition with cover: \(editionDTO.coverImageURL ?? "nil")")
+                    #endif
                 } catch {
+                    #if DEBUG
                     print("❌ Failed to save new edition: \(error)")
+                    #endif
                     continue
                 }
             }
@@ -578,7 +622,9 @@ public final class EnrichmentQueue {
             if let edition = edition, let editionDTO = enrichedData.edition {
                 if edition.coverImageURL == nil, let coverURL = editionDTO.coverImageURL {
                     edition.coverImageURL = coverURL
+                    #if DEBUG
                     print("✅ Updated edition cover for '\(work.title)': \(coverURL)")
+                    #endif
                 }
 
                 if edition.pageCount == nil, let pageCount = editionDTO.pageCount {
@@ -601,10 +647,14 @@ public final class EnrichmentQueue {
             if edition == nil, work.coverImageURL == nil {
                 if let workCoverURL = enrichedData.work.coverImageURL {
                     work.coverImageURL = workCoverURL
+                    #if DEBUG
                     print("✅ Updated Work-level cover for '\(work.title)' (no edition): \(workCoverURL)")
+                    #endif
                 } else if let editionCoverURL = enrichedData.edition?.coverImageURL {
                     work.coverImageURL = editionCoverURL
+                    #if DEBUG
                     print("✅ Updated Work-level cover for '\(work.title)' (from edition data): \(editionCoverURL)")
+                    #endif
                 }
             }
 
@@ -619,9 +669,13 @@ public final class EnrichmentQueue {
             if saveCounter % 10 == 0 {
                 do {
                     try modelContext.save()
+                    #if DEBUG
                     print("💾 Incremental save: \(saveCounter)/\(enrichedBooks.count) books processed")
+                    #endif
                 } catch {
+                    #if DEBUG
                     print("❌ Failed incremental save at \(saveCounter) books: \(error)")
+                    #endif
                 }
             }
         }
@@ -629,9 +683,13 @@ public final class EnrichmentQueue {
         // Final save for remaining books (if total wasn't multiple of 10)
         do {
             try modelContext.save()
+            #if DEBUG
             print("✅ Successfully applied enriched data to \(enrichedBooks.count) books")
+            #endif
         } catch {
+            #if DEBUG
             print("❌ Failed final save of enriched data: \(error)")
+            #endif
         }
     }
 }

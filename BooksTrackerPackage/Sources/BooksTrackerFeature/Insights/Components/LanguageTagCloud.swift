@@ -120,7 +120,9 @@ private struct LanguageTag: View {
 
     ScrollView {
         LanguageTagCloud(stats: sampleStats) { language in
+            #if DEBUG
             print("Tapped language: \(language)")
+            #endif
         }
         .padding()
     }

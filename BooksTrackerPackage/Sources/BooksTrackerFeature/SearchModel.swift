@@ -516,26 +516,36 @@ public final class SearchModel {
     private func loadTrendingBooks() async {
         // Check cache first - only load once per session
         if let cached = cachedTrendingBooks {
+            #if DEBUG
             print("✅ SearchModel: Using cached trending books (\(cached.count) items)")
+            #endif
             viewState = .initial(trending: cached, recentSearches: recentSearches)
             return
         }
 
         // Load curated trending books from API (first time only)
+        #if DEBUG
         print("🔄 SearchModel: Loading curated trending books...")
+        #endif
         do {
             let response = try await apiService.getTrendingBooks()
+            #if DEBUG
             print("✅ SearchModel: Loaded \(response.results.count) curated trending books")
+            #endif
 
             // Cache the results for the session
             cachedTrendingBooks = response.results
 
             // Update viewState with loaded trending books
             viewState = .initial(trending: response.results, recentSearches: recentSearches)
+            #if DEBUG
             print("✅ SearchModel: Updated viewState to .initial with \(response.results.count) trending books")
+            #endif
         } catch {
             // Silently fail for trending books - not critical
+            #if DEBUG
             print("❌ SearchModel: Failed to load trending books: \(error)")
+            #endif
             // Show initial state without trending books
             viewState = .initial(trending: [], recentSearches: recentSearches)
         }

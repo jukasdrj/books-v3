@@ -80,7 +80,9 @@ public struct CacheHealthDebugView: View {
                 }
 
                 Button {
+                    #if DEBUG
                     print(metrics.debugDescription)
+                    #endif
                 } label: {
                     HStack {
                         Image(systemName: "doc.text.fill")

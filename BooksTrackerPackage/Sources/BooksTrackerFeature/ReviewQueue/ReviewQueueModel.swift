@@ -50,7 +50,9 @@ public class ReviewQueueModel {
 
         } catch {
             errorMessage = "Failed to load review queue: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ ReviewQueueModel: Failed to load queue - \(error)")
+            #endif
         }
 
         isLoading = false
@@ -87,7 +89,9 @@ public class ReviewQueueModel {
 
     /// Log analytics event (placeholder for real analytics SDK)
     private func logAnalyticsEvent(_ eventName: String, properties: [String: Any] = [:]) {
+        #if DEBUG
         print("📊 Analytics: \(eventName) - \(properties)")
+        #endif
         // TODO: Replace with real analytics SDK (Firebase, Mixpanel, etc.)
     }
 }

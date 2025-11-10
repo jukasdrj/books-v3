@@ -49,7 +49,9 @@ enum WebSocketHelpers {
                 }
 
                 // Success! Connection is established and server responded to ping
+                #if DEBUG
                 print("✅ WebSocket connection verified after \(attempts + 1) attempts")
+                #endif
                 return
 
             } catch {

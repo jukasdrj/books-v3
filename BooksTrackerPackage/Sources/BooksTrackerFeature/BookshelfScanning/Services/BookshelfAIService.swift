@@ -163,7 +163,9 @@ actor BookshelfAIService {
             // NEW: Send ready signal to server
             try await wsManager.sendReadySignal()
 
+            #if DEBUG
             print("✅ WebSocket connected and ready signal sent for job \(jobId)")
+            #endif
         } catch {
             throw .networkError(error)
         }
@@ -180,7 +182,9 @@ actor BookshelfAIService {
         // STEP 3: Upload image
         do {
             _ = try await startScanJob(imageData, provider: provider, jobId: jobId)
+            #if DEBUG
             print("✅ Image uploaded with jobId: \(jobId)")
+            #endif
         } catch {
             await wsManager.disconnect()
             throw .networkError(error)
@@ -196,14 +200,18 @@ actor BookshelfAIService {
                 wsManager.setDisconnectionHandler { error in
                     guard !continuationResumed else { return }
                     continuationResumed = true
+                    #if DEBUG
                     print("⚠️ WebSocket disconnected unexpectedly, resuming continuation with error")
+                    #endif
                     continuation.resume(returning: .failure(.networkError(error)))
                 }
 
                 wsManager.setProgressHandler { jobProgress in
                     // Skip keep-alive pings
                     guard jobProgress.keepAlive != true else {
+                        #if DEBUG
                         print("🔁 Keep-alive ping received (skipping UI update)")
+                        #endif
                         return
                     }
 
@@ -216,7 +224,9 @@ actor BookshelfAIService {
 
                         // Result is now embedded in WebSocket message!
                         if let scanResult = jobProgress.scanResult {
+                            #if DEBUG
                             print("✅ Scan complete with \(scanResult.totalDetected) books (\(scanResult.approved) approved, \(scanResult.needsReview) review)")
+                            #endif
                             wsManager.disconnect()
 
                             // Convert scan result to detected books
@@ -230,7 +240,9 @@ actor BookshelfAIService {
                             continuation.resume(returning: .success((detectedBooks, suggestions)))
                         } else {
                             // No scan result in final WebSocket message - this is a backend error
+                            #if DEBUG
                             print("❌ Scan complete but no result in WebSocket message (backend error)")
+                            #endif
                             wsManager.disconnect()
                             continuation.resume(returning: .failure(.serverError(500, "Scan completed without result data")))
                         }
@@ -274,11 +286,15 @@ actor BookshelfAIService {
         let provider = getSelectedProvider()
         let jobId = UUID().uuidString
 
+        #if DEBUG
         print("[Analytics] bookshelf_scan_started - provider: \(provider.rawValue), scan_id: \(jobId)")
+        #endif
 
         // Try WebSocket first (preferred for 8ms latency)
         do {
+            #if DEBUG
             print("🔌 Attempting WebSocket connection for job \(jobId)")
+            #endif
 
             let result = try await processViaWebSocket(
                 image: image,
@@ -287,15 +303,23 @@ actor BookshelfAIService {
                 progressHandler: progressHandler
             )
 
+            #if DEBUG
             print("✅ WebSocket scan completed successfully")
+            #endif
+            #if DEBUG
             print("[Analytics] bookshelf_scan_completed - provider: \(provider.rawValue), books_detected: \(result.0.count), scan_id: \(jobId), success: true, strategy: websocket")
+            #endif
 
             return (image, result.0, result.1)
 
         } catch {
             // WebSocket failed - no fallback available (polling removed in monolith refactor)
+            #if DEBUG
             print("❌ WebSocket scan failed: \(error)")
+            #endif
+            #if DEBUG
             print("[Analytics] bookshelf_scan_failed - provider: \(provider.rawValue), scan_id: \(jobId), error: \(error)")
+            #endif
 
             // Propagate error to caller
             throw error
@@ -481,9 +505,13 @@ actor BookshelfAIService {
             detectedBook.enrichmentEditions = editions
             detectedBook.enrichmentAuthors = authors
 
+            #if DEBUG
             print("✅ Enrichment data attached to DetectedBook: \(work.title)")
+            #endif
         } else {
+            #if DEBUG
             print("⚠️ No enrichment data available for DetectedBook: \(bookPayload.title)")
+            #endif
         }
 
         return detectedBook
@@ -536,10 +564,18 @@ actor BookshelfAIService {
         request.timeoutInterval = timeout // Use same timeout as uploadImage (70s for AI + enrichment)
 
         // DIAGNOSTIC: Log outgoing request details
+        #if DEBUG
         print("[Diagnostic iOS Layer] === Outgoing Request for job \(jobId) ===")
+        #endif
+        #if DEBUG
         print("[Diagnostic iOS Layer] Provider: Gemini 2.0 Flash (optimized)")
+        #endif
+        #if DEBUG
         print("[Diagnostic iOS Layer] Full URL: \(urlWithParams.absoluteString)")
+        #endif
+        #if DEBUG
         print("[Diagnostic iOS Layer] Query items: \(components.queryItems ?? [])")
+        #endif
 
         let (data, response) = try await URLSession.shared.data(for: request)
 

@@ -198,13 +198,17 @@ struct EditionMetadataView: View {
                     get: { libraryEntry?.personalRating ?? 0 },
                     set: { newRating in
                         guard let entry = libraryEntry else {
+                            #if DEBUG
                             print("⚠️ Cannot set rating: libraryEntry is nil")
+                            #endif
                             return
                         }
                         entry.personalRating = newRating
                         entry.touch()
                         saveContext()
+                        #if DEBUG
                         print("✅ Rating set to \(newRating) for \(work.title)")
+                        #endif
                     }
                 )
             )
@@ -422,7 +426,9 @@ struct EditionMetadataView: View {
         do {
             try modelContext.save()
         } catch {
+            #if DEBUG
             print("Failed to save context: \(error)")
+            #endif
         }
     }
 

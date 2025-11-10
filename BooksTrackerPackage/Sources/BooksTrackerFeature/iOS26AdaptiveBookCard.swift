@@ -536,13 +536,17 @@ struct iOS26AdaptiveBookCard: View {
     private func addToLibrary() {
         // DISABLED: No modelContext available in this view
         // See GitHub issue for proper implementation
+        #if DEBUG
         print("⚠️ addToLibrary() called but not implemented - no persistence")
+        #endif
     }
 
     private func addToWishlist() {
         // DISABLED: No modelContext available in this view
         // See GitHub issue for proper implementation
+        #if DEBUG
         print("⚠️ addToWishlist() called but not implemented - no persistence")
+        #endif
     }
 
     private func removeFromLibrary() {

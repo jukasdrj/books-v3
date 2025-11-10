@@ -521,13 +521,17 @@ struct iOS26LiquidListRow: View {
     // TODO: Fix non-functional buttons (see .github/ISSUE_DEAD_CODE_CARD_PERSISTENCE.md)
     private func addToLibrary() {
         // DISABLED: No modelContext available in this view
+        #if DEBUG
         print("⚠️ addToLibrary() called but not implemented - no persistence")
+        #endif
     }
 
     // TODO: Fix non-functional buttons (see .github/ISSUE_DEAD_CODE_CARD_PERSISTENCE.md)
     private func addToWishlist() {
         // DISABLED: No modelContext available in this view
+        #if DEBUG
         print("⚠️ addToWishlist() called but not implemented - no persistence")
+        #endif
     }
 
     private func removeFromLibrary() {

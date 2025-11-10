@@ -90,6 +90,8 @@ public final class FeatureFlags: Sendable {
     public func resetToDefaults() {
         enableTabBarMinimize = true  // Default enabled
         coverSelectionStrategy = .auto  // Default auto
+        #if DEBUG
         print("✅ FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto)")
+        #endif
     }
 }

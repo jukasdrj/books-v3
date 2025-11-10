@@ -34,7 +34,9 @@ actor EnrichmentAPIClient {
               httpResponse.statusCode == 202 else {
             // Enhanced error logging for debugging enrichment failures
             let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+            #if DEBUG
             print("🚨 Enrichment API error: HTTP \(statusCode)")
+            #endif
             
             #if DEBUG
             if let responseString = String(data: data, encoding: .utf8) {
@@ -46,7 +48,9 @@ actor EnrichmentAPIClient {
             // Backend returns ResponseEnvelope for both success and error cases
             if let errorEnvelope = try? JSONDecoder().decode(ResponseEnvelope<EnrichmentResult>.self, from: data),
                let apiError = errorEnvelope.error {
+                #if DEBUG
                 print("🚨 API Error: \(apiError.message), Code: \(apiError.code ?? "UNKNOWN")")
+                #endif
                 // Preserve error code in NSError userInfo
                 let userInfo: [String: Any] = [
                     NSLocalizedDescriptionKey: apiError.message,
@@ -63,12 +67,16 @@ actor EnrichmentAPIClient {
 
         // Check for errors in envelope
         if let error = envelope.error {
+            #if DEBUG
             print("🚨 Enrichment envelope error: \(error.message), Code: \(error.code ?? "UNKNOWN")")
+            #endif
             throw NSError(domain: "EnrichmentAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: error.message])
         }
 
         guard let result = envelope.data else {
+            #if DEBUG
             print("🚨 Enrichment response missing data field")
+            #endif
             throw URLError(.badServerResponse)
         }
 

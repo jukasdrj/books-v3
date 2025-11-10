@@ -407,7 +407,9 @@ public struct WorkDiscoveryView: View {
                 let isCurrentlyProcessing = EnrichmentQueue.shared.isProcessing()
                 if !isCurrentlyProcessing {
                     EnrichmentQueue.shared.startProcessing(in: modelContext) { completed, total, currentTitle in
+                        #if DEBUG
                         print("📚 Enrichment Progress: \(completed)/\(total) - \(currentTitle)")
+                        #endif
                     }
                 }
             }
@@ -418,7 +420,9 @@ public struct WorkDiscoveryView: View {
 
         } catch {
             // Handle error
+            #if DEBUG
             print("Failed to add book to library: \(error)")
+            #endif
             alertMessage = "Failed to add book to library. Please try again."
             showingSuccessAlert = true
         }

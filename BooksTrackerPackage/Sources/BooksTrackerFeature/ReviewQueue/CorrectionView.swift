@@ -256,7 +256,9 @@ public struct CorrectionView: View {
     private func loadCroppedImage() {
         guard let imagePath = work.originalImagePath,
               let boundingBox = work.boundingBox else {
+            #if DEBUG
             print("⚠️ CorrectionView: Missing originalImagePath or boundingBox")
+            #endif
             return
         }
 
@@ -269,12 +271,16 @@ public struct CorrectionView: View {
     private func cropSpineImage(imagePath: String, boundingBox: CGRect) async -> UIImage? {
         // Load image from temporary storage
         guard let originalImage = UIImage(contentsOfFile: imagePath) else {
+            #if DEBUG
             print("⚠️ CorrectionView: Failed to load image from \(imagePath)")
+            #endif
             return nil
         }
 
         guard let cgImage = originalImage.cgImage else {
+            #if DEBUG
             print("⚠️ CorrectionView: Failed to get CGImage")
+            #endif
             return nil
         }
 
@@ -291,7 +297,9 @@ public struct CorrectionView: View {
 
         // Crop the image
         guard let croppedCGImage = cgImage.cropping(to: cropRect) else {
+            #if DEBUG
             print("⚠️ CorrectionView: Failed to crop image")
+            #endif
             return nil
         }
 
@@ -371,7 +379,9 @@ public struct CorrectionView: View {
             dismiss()
 
         } catch {
+            #if DEBUG
             print("❌ CorrectionView: Failed to save - \(error)")
+            #endif
         }
 
         isSaving = false
@@ -381,7 +391,9 @@ public struct CorrectionView: View {
 
     /// Log analytics event (placeholder for real analytics SDK)
     private func logAnalyticsEvent(_ eventName: String, properties: [String: Any] = [:]) {
+        #if DEBUG
         print("📊 Analytics: \(eventName) - \(properties)")
+        #endif
         // TODO: Replace with real analytics SDK (Firebase, Mixpanel, etc.)
     }
 }
