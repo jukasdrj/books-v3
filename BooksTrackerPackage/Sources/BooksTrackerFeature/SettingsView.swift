@@ -49,6 +49,7 @@ public struct SettingsView: View {
     @State private var showingCloudKitHelp = false
     @State private var showingAcknowledgements = false
     @State private var showingResetConfirmation = false
+    @State private var showingAboutMaker = false
 
     // CloudKit status (simplified for now)
     @State private var cloudKitStatus: CloudKitStatus = .unknown
@@ -278,6 +279,18 @@ public struct SettingsView: View {
                     }
                 }
 
+                Button {
+                    showingAboutMaker = true
+                } label: {
+                    HStack {
+                        Image(systemName: "person.circle.fill")
+                            .foregroundStyle(themeStore.primaryColor)
+                            .frame(width: 28)
+
+                        Text("About the Maker")
+                    }
+                }
+
                 Link(destination: URL(string: "https://www.apple.com/legal/privacy/")!) {
                     HStack {
                         Image(systemName: "hand.raised")
@@ -355,6 +368,9 @@ public struct SettingsView: View {
         }
         .sheet(isPresented: $showingAcknowledgements) {
             AcknowledgementsView()
+        }
+        .sheet(isPresented: $showingAboutMaker) {
+            AboutMakerView()
         }
         .confirmationDialog(
             "Reset Library",
