@@ -94,7 +94,8 @@ public final class NotificationCoordinator {
         onEnrichmentProgress: @escaping @MainActor (EnrichmentProgressPayload) -> Void,
         onEnrichmentCompleted: @escaping @MainActor () -> Void,
         onEnrichmentFailed: @escaping @MainActor (EnrichmentFailedPayload) -> Void,
-        onSearchForAuthor: @escaping @MainActor (SearchForAuthorPayload) -> Void
+        onSearchForAuthor: @escaping @MainActor (SearchForAuthorPayload) -> Void,
+        onLibraryWasReset: @escaping @MainActor () -> Void
     ) async {
         await withTaskGroup(of: Void.self) { group in
             group.addTask {
@@ -149,6 +150,14 @@ public final class NotificationCoordinator {
                         await MainActor.run {
                             onSearchForAuthor(payload)
                         }
+                    }
+                }
+            }
+
+            group.addTask {
+                for await _ in NotificationCenter.default.notifications(named: .libraryWasReset) {
+                    await MainActor.run {
+                        onLibraryWasReset()
                     }
                 }
             }

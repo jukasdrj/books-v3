@@ -160,6 +160,11 @@ public struct ContentView: View {
                     onSearchForAuthor: { payload in
                         selectedTab = .search
                         searchCoordinator.setPendingAuthorSearch(payload.authorName)
+                    },
+                    onLibraryWasReset: {
+                        isEnriching = false
+                        enrichmentProgress = (0, 0)
+                        currentBookTitle = ""
                     }
                 )
             }
