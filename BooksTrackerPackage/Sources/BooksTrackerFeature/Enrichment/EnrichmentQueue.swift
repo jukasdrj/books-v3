@@ -1,6 +1,19 @@
 import Foundation
 import SwiftData
 
+// MARK: - Timeout Error
+
+/// Error thrown when enrichment activity timeout is reached
+struct EnrichmentTimeoutError: Error, LocalizedError {
+    let timeout: TimeInterval
+
+    var errorDescription: String? {
+        let minutes = Int(timeout / 60)
+        let minuteString = minutes > 1 ? "minutes" : "minute"
+        return "Enrichment timed out after \(minutes) \(minuteString) of inactivity. The backend may be experiencing issues. Please try again."
+    }
+}
+
 // MARK: - Enrichment Queue
 /// Priority queue for managing background enrichment of imported books
 /// Supports FIFO ordering with ability to prioritize specific items (e.g., user scrolled to book)
@@ -17,6 +30,8 @@ public final class EnrichmentQueue {
     private var webSocketHandler: EnrichmentWebSocketHandler?
     // Track current backend job ID for cancellation
     private var currentJobId: String?
+    // Activity tracking for timeout watchdog
+    private var lastActivityTime = Date()
 
     // Persistence
     private let queueStorageKey = "EnrichmentQueueStorage"
@@ -172,13 +187,15 @@ public final class EnrichmentQueue {
 
     // MARK: - Background Processing
 
-    /// Start background enrichment process
+    /// Start background enrichment process with activity-based timeout
     /// - Parameters:
     ///   - modelContext: SwiftData model context for database operations
     ///   - progressHandler: Callback with (processed, total, currentTitle)
+    ///   - timeoutDuration: Timeout duration in seconds (default: 300 = 5 minutes)
     public func startProcessing(
         in modelContext: ModelContext,
-        progressHandler: @escaping (Int, Int, String) -> Void
+        progressHandler: @escaping (Int, Int, String) -> Void,
+        timeoutDuration: TimeInterval = 300
     ) {
         guard !processing else { return }
         guard !queue.isEmpty else { return }
@@ -189,12 +206,20 @@ public final class EnrichmentQueue {
         NotificationCoordinator.postEnrichmentStarted(totalBooks: totalCount)
 
         currentTask = Task { @MainActor in
+            // ✅ GUARANTEE cleanup on ALL exit paths (success, timeout, error, cancellation)
+            defer {
+                self.processing = false
+                self.webSocketHandler?.disconnect()
+                self.webSocketHandler = nil
+                self.clearCurrentJobId()
+                print("🧹 Enrichment cleanup executed")
+            }
+
             let workIDs = self.getAllPending()
             let works = workIDs.compactMap { modelContext.work(for: $0) }
 
             guard !works.isEmpty else {
                 self.clear()
-                processing = false
                 NotificationCoordinator.postEnrichmentCompleted()
                 return
             }
@@ -202,35 +227,85 @@ public final class EnrichmentQueue {
             let jobId = UUID().uuidString
             self.setCurrentJobId(jobId)
 
-            self.webSocketHandler = EnrichmentWebSocketHandler(
-                jobId: jobId,
-                progressHandler: { processed, total, title in
-                    progressHandler(processed, total, title)
-                    NotificationCoordinator.postEnrichmentProgress(completed: processed, total: total, currentTitle: title)
-                },
-                completionHandler: { [weak self] enrichedBooks in
-                    // Apply enriched data to SwiftData models
-                    self?.applyEnrichedData(enrichedBooks, in: modelContext)
+            // Reset activity timer at start
+            self.lastActivityTime = Date()
+
+            do {
+                // ✅ Structured concurrency: Race enrichment task vs timeout watchdog
+                try await withThrowingTaskGroup(of: Void.self) { group in
+                    // Task 1: WebSocket enrichment processing
+                    group.addTask {
+                        await self.runEnrichment(
+                            works: works,
+                            jobId: jobId,
+                            modelContext: modelContext,
+                            progressHandler: progressHandler
+                        )
+                    }
+
+                    // Task 2: Activity timeout watchdog
+                    group.addTask {
+                        try await self.activityTimeoutWatchdog(timeoutDuration: timeoutDuration)
+                    }
+
+                    // Wait for FIRST task to complete (enrichment success OR timeout)
+                    try await group.next()
+
+                    // Cancel remaining tasks
+                    group.cancelAll()
                 }
-            )
-            await self.webSocketHandler?.connect()
 
-            _ = await EnrichmentService.shared.batchEnrichWorks(works, jobId: jobId, in: modelContext)
+                // Success path
+                print("✅ Enrichment completed successfully")
+                self.clear()
+                NotificationCoordinator.postEnrichmentCompleted()
 
-            self.webSocketHandler?.disconnect()
-            self.webSocketHandler = nil
-
-            if Task.isCancelled {
-                processing = false
-                return
+            } catch let error as EnrichmentTimeoutError {
+                // Timeout path
+                print("⏱️ Enrichment timed out after \(Int(timeoutDuration))s of inactivity")
+                NotificationCoordinator.postEnrichmentFailed(
+                    error: error.localizedDescription
+                )
+            } catch is CancellationError {
+                // User cancellation path
+                print("🛑 Enrichment canceled by user")
+                NotificationCoordinator.postEnrichmentCompleted()
+            } catch {
+                // Other errors
+                print("❌ Enrichment failed: \(error)")
+                NotificationCoordinator.postEnrichmentFailed(error: error.localizedDescription)
             }
-
-            print("✅ Batch enrichment job accepted. \(works.count) books queued for background processing via WebSocket")
-
-            self.clear()
-            processing = false
-            NotificationCoordinator.postEnrichmentCompleted()
         }
+    }
+
+    /// Run the enrichment process (extracted for clarity)
+    private func runEnrichment(
+        works: [Work],
+        jobId: String,
+        modelContext: ModelContext,
+        progressHandler: @escaping (Int, Int, String) -> Void
+    ) async {
+        self.webSocketHandler = EnrichmentWebSocketHandler(
+            jobId: jobId,
+            progressHandler: { [weak self] processed, total, title in
+                // ✅ Reset activity timer on EVERY WebSocket message
+                self?.resetActivityTimer()
+                progressHandler(processed, total, title)
+                NotificationCoordinator.postEnrichmentProgress(completed: processed, total: total, currentTitle: title)
+            },
+            completionHandler: { [weak self] enrichedBooks in
+                guard let self = self else { return }
+                // ✅ Reset activity timer on completion message
+                self.resetActivityTimer()
+                // Apply enriched data to SwiftData models
+                self.applyEnrichedData(enrichedBooks, in: modelContext)
+            }
+        )
+        await self.webSocketHandler?.connect()
+
+        _ = await EnrichmentService.shared.batchEnrichWorks(works, jobId: jobId, in: modelContext)
+
+        print("✅ Batch enrichment job accepted. \(works.count) books queued for background processing via WebSocket")
     }
 
     /// Stop background processing
@@ -295,6 +370,39 @@ public final class EnrichmentQueue {
     /// Clear the current job ID (called when job completes)
     public func clearCurrentJobId() {
         currentJobId = nil
+    }
+
+    /**
+     Resets the enrichment activity timer to the current time.
+
+     - Important: This method **must** be called whenever enrichment activity occurs, such as when receiving WebSocket messages or when enrichment completions are processed. Failure to call this method will result in premature timeouts and interruption of enrichment jobs.
+
+     - Note: This method is automatically called by the WebSocket handler callbacks. If you manually trigger enrichment activity outside of those handlers, you are responsible for calling this method.
+
+     - Thread Safety: Must be called on MainActor.
+     */
+    public func resetActivityTimer() {
+        lastActivityTime = Date()
+    }
+
+    /// Activity timeout watchdog - throws TimeoutError if no activity for specified duration
+    /// - Parameter timeoutDuration: Duration in seconds before timeout (default: 300 = 5 minutes)
+    /// - Parameter clock: Injectable time provider for testing (default: Date())
+    private func activityTimeoutWatchdog(
+        timeoutDuration: TimeInterval = 300,
+        clock: @escaping @MainActor () -> Date = { Date() }
+    ) async throws {
+        while !Task.isCancelled {
+            let timeSinceActivity = clock().timeIntervalSince(lastActivityTime)
+
+            if timeSinceActivity > timeoutDuration {
+                print("⏱️ Enrichment timeout: No activity for \(Int(timeSinceActivity))s (limit: \(Int(timeoutDuration))s)")
+                throw EnrichmentTimeoutError(timeout: timeoutDuration)
+            }
+
+            // Check every 10 seconds
+            try await Task.sleep(for: .seconds(10))
+        }
     }
 
     // MARK: - Persistence
@@ -474,7 +582,7 @@ public final class EnrichmentQueue {
             if let edition = edition, let editionDTO = enrichedData.edition {
                 if edition.coverImageURL == nil, let coverURL = editionDTO.coverImageURL {
                     edition.coverImageURL = coverURL
-                    print("✅ Updated edition cover for '\(workTitle)': \(coverURL)")
+                    print("✅ Updated edition cover for '\(work.title)': \(coverURL)")
                 }
 
                 if edition.pageCount == nil, let pageCount = editionDTO.pageCount {
@@ -497,10 +605,10 @@ public final class EnrichmentQueue {
             if edition == nil, work.coverImageURL == nil {
                 if let workCoverURL = enrichedData.work.coverImageURL {
                     work.coverImageURL = workCoverURL
-                    print("✅ Updated Work-level cover for '\(workTitle)' (no edition): \(workCoverURL)")
+                    print("✅ Updated Work-level cover for '\(work.title)' (no edition): \(workCoverURL)")
                 } else if let editionCoverURL = enrichedData.edition?.coverImageURL {
                     work.coverImageURL = editionCoverURL
-                    print("✅ Updated Work-level cover for '\(workTitle)' (from edition data): \(editionCoverURL)")
+                    print("✅ Updated Work-level cover for '\(work.title)' (from edition data): \(editionCoverURL)")
                 }
             }
 

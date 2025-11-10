@@ -22,6 +22,15 @@ public struct EnrichmentProgressPayload: Sendable {
     }
 }
 
+/// Type-safe payload for enrichment failed notifications
+public struct EnrichmentFailedPayload: Sendable {
+    public let errorMessage: String
+
+    public init(errorMessage: String) {
+        self.errorMessage = errorMessage
+    }
+}
+
 /// Type-safe payload for author search notifications
 public struct SearchForAuthorPayload: Sendable {
     public let authorName: String

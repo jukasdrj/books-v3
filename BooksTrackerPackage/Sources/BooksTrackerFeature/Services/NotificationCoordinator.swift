@@ -40,6 +40,16 @@ public final class NotificationCoordinator {
     }
 
     @MainActor
+    public static func postEnrichmentFailed(error: String) {
+        let payload = EnrichmentFailedPayload(errorMessage: error)
+        NotificationCenter.default.post(
+            name: .enrichmentFailed,
+            object: nil,
+            userInfo: ["payload": payload]
+        )
+    }
+
+    @MainActor
     public static func postSearchForAuthor(authorName: String) {
         let payload = SearchForAuthorPayload(authorName: authorName)
         NotificationCenter.default.post(
@@ -71,6 +81,10 @@ public final class NotificationCoordinator {
         notification.userInfo?["payload"] as? SearchForAuthorPayload
     }
 
+    nonisolated public func extractEnrichmentFailed(from notification: Notification) -> EnrichmentFailedPayload? {
+        notification.userInfo?["payload"] as? EnrichmentFailedPayload
+    }
+
     // MARK: - Centralized Notification Handling
 
     /// Handles all app notifications in a single stream. Call from ContentView.task { }.
@@ -79,6 +93,7 @@ public final class NotificationCoordinator {
         onEnrichmentStarted: @escaping @MainActor (EnrichmentStartedPayload) -> Void,
         onEnrichmentProgress: @escaping @MainActor (EnrichmentProgressPayload) -> Void,
         onEnrichmentCompleted: @escaping @MainActor () -> Void,
+        onEnrichmentFailed: @escaping @MainActor (EnrichmentFailedPayload) -> Void,
         onSearchForAuthor: @escaping @MainActor (SearchForAuthorPayload) -> Void
     ) async {
         await withTaskGroup(of: Void.self) { group in
@@ -114,6 +129,16 @@ public final class NotificationCoordinator {
                 for await _ in NotificationCenter.default.notifications(named: .enrichmentCompleted) {
                     await MainActor.run {
                         onEnrichmentCompleted()
+                    }
+                }
+            }
+
+            group.addTask {
+                for await notification in NotificationCenter.default.notifications(named: .enrichmentFailed) {
+                    if let payload = self.extractEnrichmentFailed(from: notification) {
+                        await MainActor.run {
+                            onEnrichmentFailed(payload)
+                        }
                     }
                 }
             }

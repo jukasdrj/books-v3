@@ -152,6 +152,11 @@ public struct ContentView: View {
                         currentBookTitle = payload.currentTitle
                     },
                     onEnrichmentCompleted: { isEnriching = false },
+                    onEnrichmentFailed: { payload in
+                        isEnriching = false
+                        // TODO: Display error to user (e.g., banner or alert)
+                        print("❌ Enrichment failed: \(payload.errorMessage)")
+                    },
                     onSearchForAuthor: { payload in
                         selectedTab = .search
                         searchCoordinator.setPendingAuthorSearch(payload.authorName)
@@ -185,6 +190,7 @@ extension Notification.Name {
     static let enrichmentStarted = Notification.Name("EnrichmentStarted")
     static let enrichmentProgress = Notification.Name("EnrichmentProgress")
     static let enrichmentCompleted = Notification.Name("EnrichmentCompleted")
+    static let enrichmentFailed = Notification.Name("EnrichmentFailed")
     static let libraryWasReset = Notification.Name("LibraryWasReset")
     static let searchForAuthor = Notification.Name("SearchForAuthor")
 }
