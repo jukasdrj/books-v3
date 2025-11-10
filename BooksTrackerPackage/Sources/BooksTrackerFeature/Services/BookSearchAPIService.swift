@@ -24,7 +24,7 @@ public class BookSearchAPIService {
 
     // MARK: - Search Methods
 
-    func search(query: String, maxResults: Int = 20, scope: SearchScope = .all) async throws -> SearchResponse {
+    func search(query: String, maxResults: Int = 20, scope: SearchScope = .all, persist: Bool = true) async throws -> SearchResponse {
         guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
             throw SearchError.invalidQuery
         }
@@ -90,7 +90,7 @@ public class BookSearchAPIService {
         }
 
         // Process response using shared helper (eliminates duplication with advancedSearch)
-        let results = try processSearchResponse(envelope)
+        let results = try processSearchResponse(envelope, persist: persist)
 
         return SearchResponse(
             results: results,
@@ -105,7 +105,7 @@ public class BookSearchAPIService {
         // For now, return a curated list of trending books
         // In the future, this could be a separate API endpoint
         logger.info("📚 Loading trending books with query: 'bestseller 2024'")
-        let response = try await search(query: "bestseller 2024", maxResults: 12)
+        let response = try await search(query: "bestseller 2024", maxResults: 12, persist: false)
         logger.info("✅ Trending books loaded: \(response.results.count) results")
         return response
     }
@@ -184,7 +184,7 @@ public class BookSearchAPIService {
         }
 
         // Process response using shared helper (eliminates duplication with search)
-        let results = try processSearchResponse(envelope)
+        let results = try processSearchResponse(envelope, persist: true)
 
         return SearchResponse(
             results: results,
@@ -199,7 +199,7 @@ public class BookSearchAPIService {
 
     /// Process BookSearchResponse envelope and convert to SearchResult array
     /// Extracts common logic for mapping authors and works from API DTOs
-    private func processSearchResponse(_ envelope: ApiResponse<BookSearchResponse>) throws -> [SearchResult] {
+    private func processSearchResponse(_ envelope: ApiResponse<BookSearchResponse>, persist: Bool) throws -> [SearchResult] {
         switch envelope {
         case .success(let searchData, let meta):
             logger.debug("📦 Processing search response: \(searchData.works.count) works, \(searchData.editions.count) editions, \(searchData.authors.count) authors")
@@ -207,7 +207,7 @@ public class BookSearchAPIService {
             // Map authors from API response
             let mappedAuthors = searchData.authors.compactMap { authorDTO in
                 do {
-                    return try dtoMapper.mapToAuthor(authorDTO)
+                    return try dtoMapper.mapToAuthor(authorDTO, persist: persist)
                 } catch {
                     logger.warning("⚠️ Failed to map Author DTO '\(authorDTO.name)': \(String(describing: error))")
                     return nil
@@ -219,7 +219,7 @@ public class BookSearchAPIService {
             // Map editions with DTOMapper
             let mappedEditions = searchData.editions.compactMap { editionDTO in
                 do {
-                    return try dtoMapper.mapToEdition(editionDTO)
+                    return try dtoMapper.mapToEdition(editionDTO, persist: persist)
                 } catch {
                     logger.warning("⚠️ Failed to map Edition DTO: \(String(describing: error))")
                     return nil
@@ -231,7 +231,7 @@ public class BookSearchAPIService {
             // Use DTOMapper to convert DTOs → SwiftData models with deduplication
             return searchData.works.enumerated().compactMap { (index, workDTO) in
                 do {
-                    let work = try dtoMapper.mapToWork(workDTO)
+                    let work = try dtoMapper.mapToWork(workDTO, persist: persist)
 
                     // Get corresponding edition (1:1 mapping by index)
                     let edition = index < mappedEditions.count ? mappedEditions[index] : nil

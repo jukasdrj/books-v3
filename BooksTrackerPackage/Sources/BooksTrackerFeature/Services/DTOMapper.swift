@@ -70,8 +70,8 @@ public final class DTOMapper {
     // MARK: - Author Mapping
 
     /// Maps AuthorDTO to Author SwiftData model
-    /// Creates new Author and inserts into context
-    public func mapToAuthor(_ dto: AuthorDTO) throws -> Author {
+    /// Creates new Author and optionally inserts into context
+    public func mapToAuthor(_ dto: AuthorDTO, persist: Bool = true) throws -> Author {
         let author = Author(
             name: dto.name,
             nationality: dto.nationality,
@@ -91,7 +91,9 @@ public final class DTOMapper {
         author.bookCount = dto.bookCount ?? 0
 
         // CRITICAL: Insert before any relationships
-        modelContext.insert(author)
+        if persist {
+            modelContext.insert(author)
+        }
 
         return author
     }
@@ -99,9 +101,9 @@ public final class DTOMapper {
     // MARK: - Edition Mapping
 
     /// Maps EditionDTO to Edition SwiftData model
-    /// Creates new Edition and inserts into context
+    /// Creates new Edition and optionally inserts into context
     /// Does NOT set Work relationship - caller must handle that
-    public func mapToEdition(_ dto: EditionDTO) throws -> Edition {
+    public func mapToEdition(_ dto: EditionDTO, persist: Bool = true) throws -> Edition {
         let edition = Edition(
             isbn: dto.isbn,
             publisher: dto.publisher,
@@ -140,7 +142,9 @@ public final class DTOMapper {
         edition.contributors = dto.contributors ?? []
 
         // CRITICAL: Insert before any relationships
-        modelContext.insert(edition)
+        if persist {
+            modelContext.insert(edition)
+        }
 
         return edition
     }
@@ -150,7 +154,7 @@ public final class DTOMapper {
     /// Maps WorkDTO to Work SwiftData model
     /// Handles deduplication by googleBooksVolumeIDs
     /// Merges synthetic Works with real Works
-    public func mapToWork(_ dto: WorkDTO) throws -> Work {
+    public func mapToWork(_ dto: WorkDTO, persist: Bool = true) throws -> Work {
         // Check for existing Work by googleBooksVolumeIDs (deduplication)
         // Note: May skip deduplication if ModelContext is invalid (store torn down)
         if let existingWork = try findExistingWork(by: dto.googleBooksVolumeIDs) {
@@ -205,15 +209,17 @@ public final class DTOMapper {
         }
 
         // CRITICAL: Insert before any relationships
-        modelContext.insert(work)
+        if persist {
+            modelContext.insert(work)
 
-        // Update cache with PersistentIdentifier
-        for volumeID in dto.googleBooksVolumeIDs {
-            workCache[volumeID] = work.persistentModelID
+            // Update cache with PersistentIdentifier
+            for volumeID in dto.googleBooksVolumeIDs {
+                workCache[volumeID] = work.persistentModelID
+            }
+
+            // Persist cache to disk
+            saveCacheToDisk()
         }
-        
-        // Persist cache to disk
-        saveCacheToDisk()
 
         return work
     }
