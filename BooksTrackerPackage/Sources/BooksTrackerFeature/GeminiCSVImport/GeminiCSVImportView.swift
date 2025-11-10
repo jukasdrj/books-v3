@@ -24,6 +24,7 @@ public struct GeminiCSVImportView: View {
     @State private var statusMessage: String = ""
     @State private var errorMessage: String?
     @State private var webSocketTask: Task<Void, Never>?
+    @State private var webSocket: URLSessionWebSocketTask?
 
     public init() {}
 
@@ -296,12 +297,13 @@ public struct GeminiCSVImportView: View {
                 // WebSockets than the shared session. This mirrors the implementation in
                 // EnrichmentWebSocketHandler.
                 let session = URLSession(configuration: .default)
-                let webSocket = session.webSocketTask(with: wsURL)
-                webSocket.resume()
+                let webSocketTask = session.webSocketTask(with: wsURL)
+                self.webSocket = webSocketTask
+                webSocketTask.resume()
                 
                 // ✅ CRITICAL: Wait for WebSocket handshake to complete
                 // Prevents POSIX error 57 "Socket is not connected"
-                try await WebSocketHelpers.waitForConnection(webSocket, timeout: 10.0)
+                try await WebSocketHelpers.waitForConnection(webSocketTask, timeout: 10.0)
                 
                 #if DEBUG
                 print("[CSV WebSocket] ✅ WebSocket connection established")
@@ -314,7 +316,7 @@ public struct GeminiCSVImportView: View {
                 ]
                 if let messageData = try? JSONSerialization.data(withJSONObject: readyMessage),
                    let messageString = String(data: messageData, encoding: .utf8) {
-                    try await webSocket.send(.string(messageString))
+                    try await webSocketTask.send(.string(messageString))
                     #if DEBUG
                     print("[CSV WebSocket] ✅ Sent ready signal to backend")
                     #endif
@@ -325,7 +327,7 @@ public struct GeminiCSVImportView: View {
                 print("[CSV WebSocket] Waiting for messages...")
                 #endif
                 while !Task.isCancelled {
-                    let message = try await webSocket.receive()
+                    let message = try await webSocketTask.receive()
                     #if DEBUG
                     print("[CSV WebSocket] 📨 Received message")
                     #endif
@@ -414,7 +416,10 @@ public struct GeminiCSVImportView: View {
                         let errors = data.errors ?? []
                         importStatus = .completed(books: books, errors: errors)
                     }
-                    webSocketTask?.cancel()
+                    // Proactively close the connection from the client side
+                    // This prevents the ENOTCONN (57) "Socket not connected" error
+                    self.webSocket?.cancel(with: .goingAway, reason: "Job complete".data(using: .utf8))
+                    self.webSocketTask?.cancel()
                     return  // Exit message loop - job is complete
 
                 case "error":
@@ -425,7 +430,8 @@ public struct GeminiCSVImportView: View {
                         #endif
                         importStatus = .failed(error)
                     }
-                    webSocketTask?.cancel()
+                    self.webSocket?.cancel(with: .goingAway, reason: "Job failed".data(using: .utf8))
+                    self.webSocketTask?.cancel()
                     return  // Exit message loop - job failed
 
                 default:
@@ -447,7 +453,10 @@ public struct GeminiCSVImportView: View {
     }
 
     private func cancelImport() {
+        // Explicitly close the WebSocket with a normal "going away" message
+        webSocket?.cancel(with: .goingAway, reason: "User canceled".data(using: .utf8))
         webSocketTask?.cancel()
+        webSocket = nil
         webSocketTask = nil
     }
 
