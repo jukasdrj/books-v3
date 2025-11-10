@@ -36,12 +36,13 @@ public struct ConnectionToken: Sendable {
 /// - Step 2: configureForJob(jobId:) - Bind to specific job after connection ready
 /// - Result: Server processes ONLY after WebSocket is listening
 @MainActor
-public final class WebSocketProgressManager: ObservableObject {
+@Observable
+public final class WebSocketProgressManager {
 
     // MARK: - Properties
 
-    @Published public private(set) var isConnected: Bool = false
-    @Published public private(set) var lastError: Error?
+    public private(set) var isConnected: Bool = false
+    public private(set) var lastError: Error?
 
     private var webSocketTask: URLSessionWebSocketTask?
     private var receiveTask: Task<Void, Never>?

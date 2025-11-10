@@ -5,12 +5,13 @@ import SwiftUI
 /// Orchestrates multi-step background jobs (CSV import, enrichment)
 /// Uses PollingUtility for backend polling and JobModels for type-safe tracking
 @MainActor
-public final class SyncCoordinator: ObservableObject {
+@Observable
+public final class SyncCoordinator {
 
-    // MARK: - Published Properties
+    // MARK: - Public Properties
 
-    @Published public private(set) var activeJobId: JobIdentifier?
-    @Published public private(set) var jobStatus: [JobIdentifier: JobStatus] = [:]
+    public private(set) var activeJobId: JobIdentifier?
+    public private(set) var jobStatus: [JobIdentifier: JobStatus] = [:]
 
     // MARK: - Singleton
 
