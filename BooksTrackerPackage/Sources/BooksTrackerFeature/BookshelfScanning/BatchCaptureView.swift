@@ -78,16 +78,26 @@ public final class BatchCaptureModel {
             print("[BatchCapture] Batch submitted: \(response.jobId), \(response.totalPhotos) photos")
 
             // Connect WebSocket for progress updates
-            let handler = BatchWebSocketHandler(jobId: jobId) { [weak self] updatedProgress in
-                guard let self = self else { return }
-                self.batchProgress = updatedProgress
+            let handler = BatchWebSocketHandler(
+                jobId: jobId,
+                onProgress: { [weak self] updatedProgress in
+                    guard let self = self else { return }
+                    self.batchProgress = updatedProgress
 
-                // Re-enable idle timer when batch completes
-                if updatedProgress.isComplete {
+                    // Re-enable idle timer when batch completes
+                    if updatedProgress.isComplete {
+                        UIApplication.shared.isIdleTimerDisabled = false
+                        print("🔓 Idle timer re-enabled (batch complete)")
+                    }
+                },
+                onDisconnect: { [weak self] in
+                    guard let self = self else { return }
+                    // CRITICAL: Re-enable idle timer on unexpected disconnection (#307)
                     UIApplication.shared.isIdleTimerDisabled = false
-                    print("🔓 Idle timer re-enabled (batch complete)")
+                    print("🔓 Idle timer re-enabled (WebSocket disconnected)")
+                    self.isSubmitting = false
                 }
-            }
+            )
             self.wsHandler = handler
 
             // Connect WebSocket in background

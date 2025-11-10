@@ -77,4 +77,17 @@ enum EnrichmentConfig {
     static var healthCheckURL: URL {
         URL(string: "\(baseURL)/health")!
     }
+
+    // MARK: - Timeout Configuration
+
+    /// WebSocket connection timeout for background jobs
+    /// - AI processing (Gemini): 25-40s
+    /// - Enrichment: 5-10s
+    /// - Network buffer: ~20s
+    /// - Total: 70s recommended for most networks
+    static let webSocketTimeout: TimeInterval = 70.0
+
+    /// Slow network timeout (2x standard)
+    /// For users on slower connections or high-latency networks
+    static let webSocketTimeoutSlow: TimeInterval = 140.0
 }

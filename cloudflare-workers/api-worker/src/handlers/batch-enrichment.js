@@ -4,6 +4,24 @@ import { enrichSingleBook } from '../services/enrichment.ts';
 import { createSuccessResponse, createErrorResponse } from '../utils/api-responses.js';
 
 /**
+ * Sanitize user input to prevent XSS attacks
+ * Escapes HTML entities: <, >, &, ", '
+ *
+ * @param {string} str - Input string to sanitize
+ * @returns {string} Sanitized string
+ */
+function sanitizeString(str) {
+  if (typeof str !== 'string') return str;
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .trim();
+}
+
+/**
  * Handle batch enrichment request (POST /api/enrichment/batch)
  *
  * Accepts a batch of books for background enrichment and returns immediately with 202 Accepted.
@@ -23,6 +41,7 @@ export async function handleBatchEnrichment(request, env, ctx) {
   try {
     const { books, jobId } = await request.json();
 
+    // Validate request structure
     if (!books || !Array.isArray(books)) {
       return createErrorResponse('Invalid books array', 400, 'E_INVALID_REQUEST');
     }
@@ -31,8 +50,78 @@ export async function handleBatchEnrichment(request, env, ctx) {
       return createErrorResponse('Missing jobId', 400, 'E_INVALID_REQUEST');
     }
 
+    // DoS Protection: Limit batch size to prevent cost explosion
     if (books.length === 0) {
       return createErrorResponse('Empty books array', 400, 'E_EMPTY_BATCH');
+    }
+
+    if (books.length > 100) {
+      return createErrorResponse(
+        'Batch size exceeds maximum of 100 books',
+        400,
+        'E_BATCH_TOO_LARGE'
+      );
+    }
+
+    // Validate and sanitize each book
+    for (let i = 0; i < books.length; i++) {
+      const book = books[i];
+
+      // Title validation
+      if (!book.title || typeof book.title !== 'string') {
+        return createErrorResponse(
+          `Invalid title for book at index ${i}`,
+          400,
+          'E_INVALID_BOOK'
+        );
+      }
+
+      // XSS Protection: Limit title length
+      if (book.title.length > 500) {
+        return createErrorResponse(
+          `Title exceeds maximum length of 500 characters at index ${i}`,
+          400,
+          'E_TITLE_TOO_LONG'
+        );
+      }
+
+      // Optional fields validation
+      if (book.author && typeof book.author !== 'string') {
+        return createErrorResponse(
+          `Invalid author for book at index ${i}`,
+          400,
+          'E_INVALID_BOOK'
+        );
+      }
+
+      if (book.author && book.author.length > 300) {
+        return createErrorResponse(
+          `Author exceeds maximum length of 300 characters at index ${i}`,
+          400,
+          'E_AUTHOR_TOO_LONG'
+        );
+      }
+
+      if (book.isbn && typeof book.isbn !== 'string') {
+        return createErrorResponse(
+          `Invalid ISBN for book at index ${i}`,
+          400,
+          'E_INVALID_BOOK'
+        );
+      }
+
+      if (book.isbn && book.isbn.length > 17) {
+        return createErrorResponse(
+          `ISBN exceeds maximum length of 17 characters at index ${i}`,
+          400,
+          'E_ISBN_TOO_LONG'
+        );
+      }
+
+      // XSS Protection: Sanitize HTML entities in title and author
+      book.title = sanitizeString(book.title);
+      if (book.author) book.author = sanitizeString(book.author);
+      if (book.isbn) book.isbn = sanitizeString(book.isbn);
     }
 
     // Get WebSocket DO stub

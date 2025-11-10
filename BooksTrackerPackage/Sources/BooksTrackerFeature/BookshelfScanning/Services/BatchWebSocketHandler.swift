@@ -8,11 +8,17 @@ actor BatchWebSocketHandler {
     private var webSocket: URLSessionWebSocketTask?
     private let jobId: String
     private let onProgress: @MainActor (BatchProgress) -> Void
+    private let onDisconnect: (@MainActor () -> Void)?
     private var isConnected = false
 
-    init(jobId: String, onProgress: @MainActor @escaping (BatchProgress) -> Void) {
+    init(
+        jobId: String,
+        onProgress: @MainActor @escaping (BatchProgress) -> Void,
+        onDisconnect: (@MainActor () -> Void)? = nil
+    ) {
         self.jobId = jobId
         self.onProgress = onProgress
+        self.onDisconnect = onDisconnect
     }
 
     /// Connect to WebSocket and start listening
@@ -59,6 +65,14 @@ actor BatchWebSocketHandler {
         } catch {
             print("[BatchWebSocket] Error: \(error)")
             isConnected = false
+
+            // CRITICAL: Notify caller of unexpected disconnection (#307)
+            // This ensures idle timer is re-enabled to prevent battery drain
+            if let onDisconnect = onDisconnect {
+                await MainActor.run {
+                    onDisconnect()
+                }
+            }
         }
     }
 
