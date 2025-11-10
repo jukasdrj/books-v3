@@ -16,7 +16,6 @@
     "reading",
     "cloudflare-workers"
   ],
-  "devDependencies": {},
   "engines": {
     "node": ">=25.0.0"
   },

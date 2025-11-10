@@ -1,37 +1,22 @@
 /**
  * Query cache access frequency from Analytics Engine
  *
+ * NOTE: Analytics Engine bindings in Workers are WRITE-ONLY.
+ * The .query() method is not available in Worker environment bindings.
+ * To query Analytics Engine, you must use the GraphQL API with authentication.
+ *
+ * For now, this function returns empty stats and logs a warning.
+ * TODO: Implement KV-based access tracking or GraphQL API integration.
+ *
  * @param {Object} env - Worker environment with CACHE_ANALYTICS binding
  * @param {number} days - Number of days to look back
  * @returns {Promise<Object>} Map of cacheKey → accessCount
  */
 export async function queryAccessFrequency(env, days) {
-  if (!env.CACHE_ANALYTICS) {
-    console.warn('CACHE_ANALYTICS binding not available');
-    return {};
-  }
+  console.warn('[Analytics] Analytics Engine bindings are write-only in Workers. Query functionality requires GraphQL API integration.');
+  console.warn('[Analytics] Returning empty access stats. Consider implementing KV-based tracking for archival decisions.');
 
-  try {
-    const query = `
-      SELECT
-        blob2 as cacheKey,
-        COUNT(*) as accessCount
-      FROM CACHE_ANALYTICS
-      WHERE timestamp > NOW() - INTERVAL '${days}' DAY
-      GROUP BY blob2
-    `;
-
-    const result = await env.CACHE_ANALYTICS.query(query);
-
-    const stats = {};
-    for (const row of result.results || []) {
-      stats[row.cacheKey] = row.accessCount;
-    }
-
-    return stats;
-
-  } catch (error) {
-    console.error('Failed to query Analytics Engine:', error);
-    return {};
-  }
+  // Return empty stats - archival process will proceed without access frequency data
+  // This means all candidates will have equal priority (no frequency-based filtering)
+  return {};
 }

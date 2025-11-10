@@ -1,0 +1,148 @@
+{
+  "version": "1.0.0",
+  "skills": {
+    "ast-grep-for-swift": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "promptTriggers": {
+        "keywords": [
+          "find",
+          "search for",
+          "locate",
+          "swift code",
+          "method",
+          "function",
+          "class",
+          "property",
+          "@mainactor",
+          "@observable",
+          "@model",
+          "force unwrap",
+          "refactor",
+          "all instances"
+        ],
+        "intentPatterns": [
+          "where.*defined",
+          "find.*swift",
+          "search.*code",
+          "locate.*function",
+          "show.*all.*methods",
+          "list.*classes"
+        ]
+      }
+    },
+    "ios-swift-dev-guidelines": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "promptTriggers": {
+        "keywords": [
+          "swiftui",
+          "swiftdata",
+          "ios",
+          "swift 6",
+          "concurrency",
+          "@mainactor",
+          "actor",
+          "async",
+          "await",
+          "hig",
+          "human interface",
+          "accessibility",
+          "navigation",
+          "ios 26"
+        ],
+        "intentPatterns": [
+          "create.*view",
+          "build.*component",
+          "implement.*feature",
+          "add.*swiftui",
+          "fix.*actor",
+          "concurrency.*issue",
+          "navigation.*pattern",
+          "ios.*best.*practice"
+        ]
+      }
+    },
+    "cloudflare-workers-dev": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "promptTriggers": {
+        "keywords": [
+          "cloudflare",
+          "worker",
+          "durable object",
+          "kv",
+          "r2",
+          "backend",
+          "api",
+          "service binding",
+          "edge",
+          "wrangler"
+        ],
+        "intentPatterns": [
+          "deploy.*worker",
+          "create.*endpoint",
+          "fix.*backend",
+          "durable.*object",
+          "cloudflare.*api",
+          "backend.*issue",
+          "worker.*error"
+        ]
+      }
+    },
+    "mcp-zen-usage": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "promptTriggers": {
+        "keywords": [
+          "debug",
+          "review",
+          "plan",
+          "analyze",
+          "architecture",
+          "investigate",
+          "complex issue",
+          "code review"
+        ],
+        "intentPatterns": [
+          "help.*debug",
+          "review.*code",
+          "plan.*feature",
+          "analyze.*problem",
+          "complex.*bug",
+          "architectural.*decision",
+          "investigate.*issue"
+        ]
+      }
+    },
+    "mcp-openmemory": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "low",
+      "promptTriggers": {
+        "keywords": [
+          "remember",
+          "save this",
+          "store",
+          "preference",
+          "my preference",
+          "i prefer",
+          "always use",
+          "note that"
+        ],
+        "intentPatterns": [
+          "remember.*that",
+          "save.*preference",
+          "store.*this",
+          "i.*prefer.*to",
+          "always.*use",
+          "keep.*in.*mind"
+        ]
+      }
+    }
+  }
+}

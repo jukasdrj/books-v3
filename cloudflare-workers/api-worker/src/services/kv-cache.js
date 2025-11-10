@@ -13,11 +13,17 @@ import { getCached, setCached } from '../utils/cache.js';
 export class KVCacheService {
   constructor(env) {
     this.env = env;
+    // Optimized TTLs based on data staleness analysis:
+    // - ISBNs never change (365 days)
+    // - Titles get new editions occasionally (7 days, was 24h)
+    // - Authors get new books (7 days, unchanged)
+    // - Enrichment metadata is very stable (180 days, was 90d)
     this.ttls = {
-      title: 24 * 60 * 60,        // 24 hours
-      isbn: 30 * 24 * 60 * 60,     // 30 days
-      author: 7 * 24 * 60 * 60,    // 7 days
-      enrichment: 90 * 24 * 60 * 60 // 90 days
+      title: 7 * 24 * 60 * 60,         // 7 days (was 24h)
+      isbn: 365 * 24 * 60 * 60,        // 365 days (was 30d)
+      author: 7 * 24 * 60 * 60,        // 7 days (unchanged)
+      enrichment: 180 * 24 * 60 * 60,  // 180 days (was 90d)
+      cover: 365 * 24 * 60 * 60        // 365 days (max practical - was Infinity which breaks KV writes)
     };
   }
 

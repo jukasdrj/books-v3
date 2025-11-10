@@ -57,33 +57,13 @@ export async function scanImageWithGemini(imageData, env) {
                     parts: [{
                         text: `You are an expert bookshelf analyzer specialized in extracting book metadata from shelf photos.
 
-Your output must be a valid JSON array with this exact schema:
-[
-  {
-    "title": "Book Title",
-    "author": "Author Name",
-    "format": "hardcover" | "paperback" | "mass-market" | "unknown",
-    "confidence": 0.0-1.0,
-    "boundingBox": {
-      "x1": 0.0-1.0,
-      "y1": 0.0-1.0,
-      "x2": 0.0-1.0,
-      "y2": 0.0-1.0
-    }
-  }
-]
+Your task is to identify every book in the provided image and extract its title, author, and physical format.
 
-Format Detection Rules:
-- "hardcover": Rigid spine, larger size, cloth/embossed texture, square corners
-- "paperback": Flexible spine, glossy cover, rounded spine edge
-- "mass-market": Small paperback (~4x7 inches), pocket-sized
-- "unknown": Cannot determine from visual cues
-
-Quality Standards:
-- Only include books where you can read at least the title
-- Skip decorative items, bookends, or non-book objects
-- confidence: Your certainty level (0.0-1.0) about the extracted text
-- boundingBox: Normalized coordinates (0.0-1.0) for the book spine location`
+- Only include books where you can clearly read at least the title.
+- Skip decorative items or any non-book objects.
+- Assign a confidence score (0.0-1.0) based on the clarity of the extracted text.
+- Provide a bounding box with normalized coordinates (0.0-1.0) for each book spine.
+- Adhere strictly to the JSON output format defined in the schema.`
                     }]
                 },
                 contents: [{
@@ -169,8 +149,32 @@ Extract all visible book information now.`
         };
     }
 
-    // With structured output, response is guaranteed to be valid JSON matching schema
-    const books = JSON.parse(text);
+    // With structured output, the response should be valid JSON.
+    // Add a try-catch block for defensive parsing in case of API deviations.
+    let books;
+    try {
+        books = JSON.parse(text);
+    } catch (error) {
+        console.error('[GeminiProvider] JSON parsing failed:', error);
+        console.error('[GeminiProvider] Raw text that failed parsing:', text);
+        // Return a default empty state to prevent downstream crashes
+        return {
+            books: [],
+            suggestions: [],
+            metadata: {
+                provider: 'gemini',
+                model: 'gemini-2.5-flash',
+                timestamp: new Date().toISOString(),
+                processingTimeMs: Date.now() - startTime,
+                tokenUsage: {
+                    promptTokens,
+                    outputTokens,
+                    totalTokens
+                },
+                error: 'Failed to parse Gemini response as JSON.'
+            }
+        };
+    }
 
     // Lightweight defensive check: Catches API bugs, not schema violations
     // (Schema guarantees array structure, but we verify to catch unexpected API changes)

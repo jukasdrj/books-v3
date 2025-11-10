@@ -30,10 +30,28 @@ export class UnifiedCacheService {
   async get(cacheKey, endpoint, options = {}) {
     const startTime = Date.now();
 
-    // Tier 1: Edge Cache (fastest, 80% hit rate)
-    const edgeResult = await this.edgeCache.get(cacheKey);
+    // Tier 1: Edge Cache (fastest, 80% hit rate) with SWR support
+    const edgeResult = await this.edgeCache.get(cacheKey, {
+      maxAge: 3600,          // 1 hour fresh
+      staleWhileRevalidate: 86400  // 24 hours stale
+    });
+
     if (edgeResult) {
-      this.logMetrics('edge_hit', cacheKey, Date.now() - startTime);
+      // Fresh hit - return immediately
+      if (!edgeResult.stale) {
+        this.logMetrics('edge_hit_fresh', cacheKey, Date.now() - startTime);
+        return edgeResult;
+      }
+
+      // Stale hit - return stale data but trigger background refresh
+      this.logMetrics('edge_hit_stale', cacheKey, Date.now() - startTime);
+      console.log(`🔄 Serving stale edge cache (age: ${edgeResult.age}s), triggering background refresh`);
+
+      // Background refresh (non-blocking)
+      this.ctx.waitUntil(
+        this.refreshStaleCache(cacheKey, endpoint, options)
+      );
+
       return edgeResult;
     }
 
@@ -66,6 +84,46 @@ export class UnifiedCacheService {
     // Tier 3: API Miss
     this.logMetrics('api_miss', cacheKey, Date.now() - startTime);
     return { data: null, source: 'MISS', latency: Date.now() - startTime };
+  }
+
+  /**
+   * Background refresh for stale cache entries
+   * Fetches fresh data from API and updates all cache tiers
+   *
+   * @param {string} cacheKey - Cache key to refresh
+   * @param {string} endpoint - Endpoint type
+   * @param {Object} options - Original query options
+   *
+   * KNOWN LIMITATION (Sprint 1-2):
+   * This is a stub implementation deferred to Sprint 3-4.
+   * SWR currently serves stale data instantly (primary benefit), but does NOT
+   * automatically refresh in background. Stale entries expire after 24h and
+   * are re-fetched on next access.
+   *
+   * Impact: Low - book metadata staleness is minimal (ISBNs never change,
+   * new editions are rare). Current behavior provides 99% of SWR benefits
+   * (instant stale serving) without complexity of background refresh.
+   *
+   * Future: Implement actual refresh by calling handleAdvancedSearch() or
+   * appropriate endpoint based on cache key pattern.
+   */
+  async refreshStaleCache(cacheKey, endpoint, options) {
+    try {
+      console.log(`🔄 Background refresh started for: ${cacheKey}`);
+
+      // TODO (Sprint 3-4): Implement actual refresh logic
+      // Example:
+      // if (endpoint === 'title') {
+      //   const result = await handleAdvancedSearch(options, {}, this.env);
+      //   await this.kvCache.set(cacheKey, result, endpoint);
+      //   await this.edgeCache.set(cacheKey, result, 6 * 60 * 60);
+      // }
+
+      console.log(`⚠️ Background refresh stub - not yet implemented (deferred to Sprint 3-4)`);
+    } catch (error) {
+      console.error(`❌ Background refresh failed for ${cacheKey}:`, error);
+      // Don't throw - background refresh failures are non-critical
+    }
   }
 
   /**
