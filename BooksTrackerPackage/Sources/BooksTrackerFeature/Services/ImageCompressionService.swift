@@ -36,8 +36,10 @@ public struct ImageCompressionService {
             for quality in qualities {
                 if let data = resizedImage.jpegData(compressionQuality: quality),
                    data.count <= maxSizeBytes {
+                    #if DEBUG
                     let compressionRatio = Double(data.count) / Double(maxSizeBytes) * 100.0
                     print("[Compression] ✅ Success: \(Int(resolution))px @ \(Int(quality * 100))% quality = \(data.count / 1000)KB (\(String(format: "%.1f", compressionRatio))% of limit)")
+                    #endif
                     return data
                 }
             }
@@ -47,11 +49,15 @@ public struct ImageCompressionService {
         // Should only reach here with extremely problematic images
         let fallbackImage = image.resizeForAI(maxDimension: 640)
         if let data = fallbackImage.jpegData(compressionQuality: 0.3) {
+            #if DEBUG
             print("[Compression] ⚠️ Fallback: 640px @ 30% quality = \(data.count / 1000)KB (last resort)")
+            #endif
             return data
         }
 
+        #if DEBUG
         print("[Compression] ❌ Failed to compress image within \(maxSizeBytes / 1_000_000)MB limit")
+        #endif
         return nil
     }
 }

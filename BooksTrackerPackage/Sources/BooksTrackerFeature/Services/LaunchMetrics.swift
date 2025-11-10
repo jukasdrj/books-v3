@@ -10,15 +10,19 @@ public final class LaunchMetrics {
 
     private init() {
         launchStartTime = CFAbsoluteTimeGetCurrent()
+        #if DEBUG
         print("🚀 Launch tracking started")
+        #endif
     }
 
     /// Record a milestone during app launch
     public func recordMilestone(_ name: String) {
         let timestamp = CFAbsoluteTimeGetCurrent()
         milestones.append((name, timestamp))
+        #if DEBUG
         let elapsed = (timestamp - launchStartTime) * 1000
         print("⏱️ \(name): +\(Int(elapsed))ms")
+        #endif
     }
 
     /// Get total launch time
@@ -29,6 +33,7 @@ public final class LaunchMetrics {
 
     /// Print full launch report
     public func printReport() {
+        #if DEBUG
         guard !milestones.isEmpty else { return }
         print("\n📊 Launch Performance Report")
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
@@ -41,5 +46,6 @@ public final class LaunchMetrics {
             print("  Total: \(Int(total))ms")
         }
         print()
+        #endif
     }
 }

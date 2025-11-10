@@ -37,7 +37,9 @@ actor BatchWebSocketHandler {
         
         isConnected = true
 
+        #if DEBUG
         print("[BatchWebSocket] Connected for job \(jobId)")
+        #endif
 
         // Start listening for messages
         await listenForMessages()
@@ -63,7 +65,9 @@ actor BatchWebSocketHandler {
                 }
             }
         } catch {
+            #if DEBUG
             print("[BatchWebSocket] Error: \(error)")
+            #endif
             isConnected = false
 
             // CRITICAL: Notify caller of unexpected disconnection (#307)
@@ -103,14 +107,18 @@ actor BatchWebSocketHandler {
                 }
 
             default:
+                #if DEBUG
                 print("[BatchWebSocket] Unknown message type: \(type)")
+                #endif
             }
         }
     }
 
     /// Handle batch initialization message
     private func processInit(_ message: BatchWebSocketMessage.BatchInitMessage) async {
+        #if DEBUG
         print("[BatchWebSocket] Batch initialized: \(message.totalPhotos) photos")
+        #endif
     }
 
     /// Update batch progress on main thread
@@ -121,7 +129,9 @@ actor BatchWebSocketHandler {
         let totalBooksFound = message.totalBooksFound
 
         await MainActor.run {
+            #if DEBUG
             print("[BatchWebSocket] Progress: Photo \(currentPhoto + 1)/\(totalPhotos) - \(totalBooksFound) books")
+            #endif
             // The callback will update the BatchProgress object
             // UI observes the BatchProgress via @Observable
         }
@@ -133,7 +143,9 @@ actor BatchWebSocketHandler {
         let totalBooks = message.totalBooks
 
         await MainActor.run {
+            #if DEBUG
             print("[BatchWebSocket] Batch complete: \(totalBooks) books found")
+            #endif
         }
 
         disconnect()
@@ -147,7 +159,9 @@ actor BatchWebSocketHandler {
         webSocket = nil
         isConnected = false
 
+        #if DEBUG
         print("[BatchWebSocket] Disconnected for job \(jobId)")
+        #endif
     }
 }
 

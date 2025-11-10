@@ -27,7 +27,9 @@ class ModelContainerFactory {
 
         #if targetEnvironment(simulator)
         // Simulator: Use persistent storage (no CloudKit on simulator)
+        #if DEBUG
         print("🧪 Running on simulator - using persistent local database")
+        #endif
         let modelConfiguration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,  // ← Persist data across launches
@@ -35,7 +37,9 @@ class ModelContainerFactory {
         )
         #else
         // Device: Enable CloudKit sync via entitlements
+        #if DEBUG
         print("📱 Running on device - CloudKit sync enabled")
+        #endif
         let modelConfiguration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false
@@ -53,12 +57,14 @@ class ModelContainerFactory {
             return container
         } catch {
             // Print detailed error for debugging
+            #if DEBUG
             print("❌ ModelContainer creation failed: \(error)")
 
             #if targetEnvironment(simulator)
             print("💡 Simulator detected - trying persistent fallback")
             #else
             print("💡 Device detected - trying local-only fallback (CloudKit disabled)")
+            #endif
             #endif
 
             // Last resort fallback: Disable CloudKit and use local-only storage

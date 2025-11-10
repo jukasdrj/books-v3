@@ -489,7 +489,9 @@ private enum SearchField: Hashable {
 @available(iOS 26.0, *)
 #Preview {
     AdvancedSearchView { criteria in
+        #if DEBUG
         print("Search triggered with:", criteria.buildSearchQuery() ?? "empty")
+        #endif
     }
     .environment(BooksTrackerFeature.iOS26ThemeStore())
 }

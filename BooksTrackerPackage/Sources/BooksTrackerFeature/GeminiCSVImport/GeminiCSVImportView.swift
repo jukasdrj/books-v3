@@ -288,7 +288,7 @@ public struct GeminiCSVImportView: View {
     private func startWebSocketProgress(jobId: String) {
         let wsURL = EnrichmentConfig.webSocketURL(jobId: jobId)
         #if DEBUG
-        print("[CSV WebSocket] Connecting to: \(wsURL)")
+        print("[CSV WebSocket] Connecting to backend")
         #endif
 
         webSocketTask = Task {

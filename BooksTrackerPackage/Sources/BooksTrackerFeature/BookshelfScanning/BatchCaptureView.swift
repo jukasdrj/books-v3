@@ -24,7 +24,9 @@ public final class BatchCaptureModel {
     @discardableResult
     public func addPhoto(_ image: UIImage) -> CapturedPhoto? {
         guard capturedPhotos.count < CapturedPhoto.maxPhotosPerBatch else {
+            #if DEBUG
             print("Cannot add more than \(CapturedPhoto.maxPhotosPerBatch) photos")
+            #endif
             return nil
         }
 
@@ -40,7 +42,9 @@ public final class BatchCaptureModel {
     @discardableResult
     public func addPhotoQuietly(_ image: UIImage) -> CapturedPhoto? {
         guard capturedPhotos.count < CapturedPhoto.maxPhotosPerBatch else {
+            #if DEBUG
             print("Cannot add more than \(CapturedPhoto.maxPhotosPerBatch) photos")
+            #endif
             return nil
         }
 
@@ -64,7 +68,9 @@ public final class BatchCaptureModel {
         // CRITICAL: Prevent device from sleeping during batch processing
         // Batch scans can take 2-5 minutes for 5 photos (25-40s per photo)
         UIApplication.shared.isIdleTimerDisabled = true
+        #if DEBUG
         print("🔒 Idle timer disabled - device won't sleep during batch scan")
+        #endif
 
         let jobId = UUID().uuidString
         let progress = BatchProgress(jobId: jobId, totalPhotos: capturedPhotos.count)
@@ -75,7 +81,9 @@ public final class BatchCaptureModel {
             let service = BookshelfAIService.shared
             let response = try await service.submitBatch(jobId: jobId, photos: capturedPhotos)
 
+            #if DEBUG
             print("[BatchCapture] Batch submitted: \(response.jobId), \(response.totalPhotos) photos")
+            #endif
 
             // Connect WebSocket for progress updates
             let handler = BatchWebSocketHandler(
@@ -87,14 +95,18 @@ public final class BatchCaptureModel {
                     // Re-enable idle timer when batch completes
                     if updatedProgress.isComplete {
                         UIApplication.shared.isIdleTimerDisabled = false
+                        #if DEBUG
                         print("🔓 Idle timer re-enabled (batch complete)")
+                        #endif
                     }
                 },
                 onDisconnect: { [weak self] in
                     guard let self = self else { return }
                     // CRITICAL: Re-enable idle timer on unexpected disconnection (#307)
                     UIApplication.shared.isIdleTimerDisabled = false
+                    #if DEBUG
                     print("🔓 Idle timer re-enabled (WebSocket disconnected)")
+                    #endif
                     self.isSubmitting = false
                 }
             )
@@ -105,10 +117,14 @@ public final class BatchCaptureModel {
                 do {
                     try await handler.connect()
                 } catch {
+                    #if DEBUG
                     print("[BatchCapture] WebSocket connection failed: \(error)")
+                    #endif
                     // Re-enable idle timer on connection failure
                     UIApplication.shared.isIdleTimerDisabled = false
+                    #if DEBUG
                     print("🔓 Idle timer re-enabled (connection error)")
+                    #endif
                 }
             }
 
@@ -116,12 +132,16 @@ public final class BatchCaptureModel {
             capturedPhotos.removeAll()
 
         } catch {
+            #if DEBUG
             print("[BatchCapture] Batch submission failed: \(error)")
+            #endif
             isSubmitting = false
 
             // CRITICAL: Re-enable idle timer on error
             UIApplication.shared.isIdleTimerDisabled = false
+            #if DEBUG
             print("🔓 Idle timer re-enabled (submission error)")
+            #endif
 
             // TODO: Show error alert to user
         }
@@ -140,7 +160,9 @@ public final class BatchCaptureModel {
     /// Cancel the current batch processing
     public func cancelBatch() async {
         guard let progress = batchProgress else {
+            #if DEBUG
             print("[BatchCapture] No batch in progress to cancel")
+            #endif
             return
         }
 
@@ -158,7 +180,9 @@ public final class BatchCaptureModel {
             let (_, response) = try await URLSession.shared.data(for: request)
 
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                #if DEBUG
                 print("[BatchCapture] Batch canceled successfully")
+                #endif
                 progress.overallStatus = "canceled"
                 isSubmitting = false
 
@@ -167,16 +191,22 @@ public final class BatchCaptureModel {
                     await handler.disconnect()
                 }
             } else {
+                #if DEBUG
                 print("[BatchCapture] Cancel request failed with status: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+                #endif
             }
 
         } catch {
+            #if DEBUG
             print("[BatchCapture] Cancel batch failed: \(error)")
+            #endif
         }
 
         // CRITICAL: Re-enable idle timer to prevent battery drain (#311)
         UIApplication.shared.isIdleTimerDisabled = false
+        #if DEBUG
         print("🔓 Idle timer re-enabled (batch canceled)")
+        #endif
     }
 }
 
@@ -421,7 +451,9 @@ public struct BatchCaptureView: View {
         for item in items {
             // Check if we've hit the limit
             guard model.capturedPhotos.count < CapturedPhoto.maxPhotosPerBatch else {
+                #if DEBUG
                 print("[BatchCapture] Reached max photo limit, skipping remaining selections")
+                #endif
                 break
             }
 
@@ -430,7 +462,9 @@ public struct BatchCaptureView: View {
                let image = UIImage(data: data) {
                 // Add to batch silently
                 model.addPhotoQuietly(image)
+                #if DEBUG
                 print("[BatchCapture] Loaded photo from library (\(model.capturedPhotos.count)/\(CapturedPhoto.maxPhotosPerBatch))")
+                #endif
             }
         }
 

@@ -34,7 +34,9 @@ final class EnrichmentWebSocketHandler {
                 isConnected = true
                 listenForMessages()
             } catch {
+                #if DEBUG
                 print("EnrichmentWebSocket connection failed: \(error)")
+                #endif
                 isConnected = false
             }
         }
@@ -50,7 +52,9 @@ final class EnrichmentWebSocketHandler {
                     self.handleMessage(message)
                     self.listenForMessages() // Continue listening for more messages
                 case .failure(let error):
+                    #if DEBUG
                     print("WebSocket error: \(error)")
+                    #endif
                     self.disconnect()
                 }
             }
