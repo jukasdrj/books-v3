@@ -6,6 +6,77 @@ All notable changes, achievements, and debugging victories for this project.
 
 ## [Unreleased]
 
+### Backend 🌾 - ISBNdb Cover Harvest Automation (January 10, 2025)
+
+**Deployed automated ISBNdb cover harvesting system to pre-populate R2 cache before paid membership expires.**
+
+#### What Was Built
+
+**Core Services:**
+- ✅ `src/utils/rate-limiter.js` - Token bucket algorithm (10 req/sec + jitter)
+- ✅ `src/services/isbndb-api.js` - Clean ISBNdb API abstraction
+- ✅ `src/handlers/scheduled-harvest.js` - Full harvest workflow
+- ✅ `scripts/test-harvest.js` - E2E test script with dry-run mode
+- ✅ Cron schedule: Daily at 3:00 AM UTC (`0 3 * * *`)
+
+**Architecture:**
+```
+Analytics Engine (popular ISBNs)
+    → Rate Limiter (10 req/sec)
+    → ISBNdb API (fetch covers)
+    → WebP Compression (85%, ~60% savings)
+    → R2 Storage (covers/{isbn13})
+    → KV Index (cover:{isbn} → R2 key)
+```
+
+#### Expected Impact
+
+- **Cache Hit Rate:** 60-70% → 85-95% (reactive → proactive)
+- **User Experience:** Instant cover display (no loading spinners)
+- **Processing:** ~100-200 covers/day (based on user activity)
+- **Cost:** < $0.50/month (daily cron + R2 storage)
+
+#### Design Decisions
+
+1. **Human-Readable R2 Keys:** `covers/{isbn13}` (not hashed) for easy debugging
+2. **Simple Error Recovery:** "Fail and retry next day" (no complex backoff logic)
+3. **Analytics-First:** Phase 1 uses Analytics Engine only (user library in Phase 2)
+4. **Conservative Rate Limiting:** 10 req/sec with jitter (leaves headroom)
+
+#### Deployment
+
+**Version ID:** `a5bb47e3-d3d8-4cf6-a7d5-e48b65abc58e`
+**Worker URL:** `https://api-worker.jukasdrj.workers.dev`
+**Cron Triggers:**
+- `0 2 * * *` - Daily archival
+- `*/15 * * * *` - Alert checks
+- `0 3 * * *` - **ISBNdb cover harvest** (NEW)
+
+**Phase 2 Update (Same Day):**
+- ✅ Added CF_ACCOUNT_ID and CF_API_TOKEN as Worker secrets
+- ✅ Redeployed with Analytics Engine integration active
+- ✅ Tested Analytics Engine query (working perfectly)
+- **New Version ID:** `174246ca-37ad-4046-8064-9b958d9aeb1c`
+
+**Next Steps:**
+- Monitor first 3 AM UTC harvest run (tomorrow)
+- Validate R2 + KV population (once analytics accumulate)
+- Phase 3: Add user library ISBNs via D1 (Sprint 5-6)
+
+#### Documentation
+
+- **Implementation:** `cloudflare-workers/api-worker/ISBNDB-HARVEST-IMPLEMENTATION.md`
+- **Test Guide:** `cloudflare-workers/api-worker/scripts/README-HARVEST-TEST.md`
+- **Multi-Model Consensus:** GPT-5-Codex (7/10) + Gemini-2.5-Pro (9/10) approval
+
+#### Related Work
+
+- Builds on Sprint 1-2 cache optimizations (negative caching, SWR, extended TTLs)
+- Complements Sprint 3-4 analytics-driven warming (author bibliography pre-warming)
+- Part of comprehensive cache strategy to maximize ISBNdb membership value
+
+---
+
 ### iOS 🐛 - Fix Missing Cover Images: UI Display Layer Bug (November 9, 2025)
 
 **Fixed cover images not displaying despite correct backend data by adding CoverImageService with Edition → Work fallback logic.**

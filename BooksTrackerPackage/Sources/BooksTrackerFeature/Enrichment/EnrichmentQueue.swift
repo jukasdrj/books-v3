@@ -230,48 +230,44 @@ public final class EnrichmentQueue {
             // Reset activity timer at start
             self.lastActivityTime = Date()
 
+            // Start watchdog in background - it will throw TimeoutError if inactive too long
+            let watchdog = Task<Void, Error> { @MainActor [weak self] in
+                guard let self = self else { return }
+                try await self.activityTimeoutWatchdog(timeoutDuration: timeoutDuration)
+            }
+
             do {
-                // ✅ Structured concurrency: Race enrichment task vs timeout watchdog
-                try await withThrowingTaskGroup(of: Void.self) { group in
-                    // Task 1: WebSocket enrichment processing
-                    group.addTask {
-                        await self.runEnrichment(
-                            works: works,
-                            jobId: jobId,
-                            modelContext: modelContext,
-                            progressHandler: progressHandler
-                        )
-                    }
+                // Run enrichment (returns immediately after starting WebSocket)
+                await self.runEnrichment(
+                    works: works,
+                    jobId: jobId,
+                    modelContext: modelContext,
+                    progressHandler: progressHandler
+                )
 
-                    // Task 2: Activity timeout watchdog
-                    group.addTask {
-                        try await self.activityTimeoutWatchdog(timeoutDuration: timeoutDuration)
-                    }
+                // Wait for watchdog to complete or throw (it monitors WebSocket activity)
+                try await watchdog.value
 
-                    // Wait for FIRST task to complete (enrichment success OR timeout)
-                    try await group.next()
-
-                    // Cancel remaining tasks
-                    group.cancelAll()
-                }
-
-                // Success path
+                // Success - enrichment completed before timeout
                 print("✅ Enrichment completed successfully")
                 self.clear()
                 NotificationCoordinator.postEnrichmentCompleted()
 
             } catch let error as EnrichmentTimeoutError {
                 // Timeout path
+                watchdog.cancel()
                 print("⏱️ Enrichment timed out after \(Int(timeoutDuration))s of inactivity")
                 NotificationCoordinator.postEnrichmentFailed(
                     error: error.localizedDescription
                 )
             } catch is CancellationError {
                 // User cancellation path
+                watchdog.cancel()
                 print("🛑 Enrichment canceled by user")
                 NotificationCoordinator.postEnrichmentCompleted()
             } catch {
                 // Other errors
+                watchdog.cancel()
                 print("❌ Enrichment failed: \(error)")
                 NotificationCoordinator.postEnrichmentFailed(error: error.localizedDescription)
             }

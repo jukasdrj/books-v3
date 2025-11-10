@@ -63,6 +63,9 @@ binding = "GEMINI_API_KEY"
 store_id = "b0562ac16fde468c8af12717a6c88400"
 secret_name = "google_gemini_oooebooks"
 
+# Note: CF_ACCOUNT_ID and CF_API_TOKEN are stored as Worker secrets (via `wrangler secret put`)
+# These are automatically available as env.CF_ACCOUNT_ID and env.CF_API_TOKEN
+
 # R2 Buckets (from books-api-proxy and bookshelf-ai-worker)
 [[r2_buckets]]
 binding = "API_CACHE_COLD"
@@ -157,8 +160,3 @@ crons = [
   "*/15 * * * *",   # Alert checks every 15 minutes
   "0 3 * * *"       # Daily ISBNdb cover harvest at 3:00 AM UTC
 ]
-
-# Harvest task for ISBNdb cover images
-[[tasks]]
-name = "harvest-covers"
-script = "src/tasks/harvest-covers.ts"

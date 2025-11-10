@@ -38,7 +38,6 @@ import SwiftData
 @MainActor
 public struct SettingsView: View {
     @Environment(\.iOS26ThemeStore) private var themeStore
-    @Environment(\.modelContainer) private var modelContainer
     @Environment(\.modelContext) private var modelContext
     @Environment(FeatureFlags.self) private var featureFlags
     @Environment(\.dtoMapper) private var dtoMapper
@@ -391,70 +390,53 @@ public struct SettingsView: View {
     // MARK: - Actions
 
     private func resetLibrary() {
-        // Capture environment values before entering detached task
-        let container = modelContainer
-        let context = modelContext
-        let mapper = dtoMapper
-        let flags = featureFlags
-        
-        // STEP 1: Perform deletion in detached background task to avoid UI/data race conditions
-        Task.detached(priority: .userInitiated) {
+        // STEP 1: Perform deletion in background task
+        // Use regular Task (not detached) to maintain actor context for ModelContext
+        Task(priority: .userInitiated) { @MainActor in
+
             do {
                 // STEP 2: Cancel enrichment queue operations first
                 await EnrichmentQueue.shared.cancelBackendJob()
-                await MainActor.run {
-                    EnrichmentQueue.shared.stopProcessing()
-                    EnrichmentQueue.shared.clear()
-                }
-                
-                // STEP 3: Create isolated background context for deletion
-                let backgroundContext = ModelContext(container)
-                
-                // STEP 4: Delete all models using background context
+                EnrichmentQueue.shared.stopProcessing()
+                EnrichmentQueue.shared.clear()
+
+                // STEP 3: Delete all models using modelContext
                 // Use predicate-based deletion for efficiency and clarity
-                try backgroundContext.delete(
+                try self.modelContext.delete(
                     model: Work.self,
                     where: #Predicate { _ in true }
                 )
-                try backgroundContext.delete(
+                try self.modelContext.delete(
                     model: Author.self,
                     where: #Predicate { _ in true }
                 )
-                
-                // STEP 5: Save to persistent store
-                try backgroundContext.save()
-                
-                // STEP 6: Reset main context on main thread to force clean refetch
-                await MainActor.run {
-                    // Clear caches before resetting context
-                    mapper?.clearCache()
-                    DiversityStats.invalidateCache()
 
-                    // Reset context - forces @Query observers to refetch
-                    context.reset()
-                }
+                // STEP 4: Save to persistent store
+                try self.modelContext.save()
 
-                // Invalidate reading stats after context reset
-                await MainActor.run {
-                    await ReadingStats.invalidateCache()
+                // STEP 5: Clear caches
+                self.dtoMapper?.clearCache()
+                DiversityStats.invalidateCache()
 
-                    // STEP 7: Post notification AFTER reset
-                    NotificationCenter.default.post(
-                        name: .libraryWasReset,
-                        object: nil
-                    )
+                // STEP 6: Invalidate reading stats (async operation)
+                await ReadingStats.invalidateCache()
 
-                    // STEP 8: Cleanup UserDefaults and settings
-                    UserDefaults.standard.removeObject(forKey: "RecentBookSearches")
-                    SampleDataGenerator(modelContext: context).resetSampleDataFlag()
-                    flags.resetToDefaults()
+                // STEP 7: Post notification and cleanup
+                NotificationCenter.default.post(
+                    name: .libraryWasReset,
+                    object: nil
+                )
 
-                    // Success haptic feedback
-                    let generator = UINotificationFeedbackGenerator()
-                    generator.notificationOccurred(.success)
+                // STEP 8: Cleanup UserDefaults and settings
+                UserDefaults.standard.removeObject(forKey: "RecentBookSearches")
+                SampleDataGenerator(modelContext: self.modelContext).resetSampleDataFlag()
+                self.featureFlags.resetToDefaults()
 
-                    print("✅ Library reset complete - All works, settings, and queue cleared")
-                }
+                // Success haptic feedback
+                let generator = UINotificationFeedbackGenerator()
+                generator.notificationOccurred(.success)
+
+                print("✅ Library reset complete - All works, settings, and queue cleared")
                 
             } catch {
                 print("❌ Failed to reset library: \(error)")

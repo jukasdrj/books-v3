@@ -11,6 +11,7 @@ import { handleBatchEnrichment } from './handlers/batch-enrichment.js';
 import { processAuthorBatch } from './consumers/author-warming-consumer.js';
 import { handleScheduledArchival } from './handlers/scheduled-archival.js';
 import { handleScheduledAlerts } from './handlers/scheduled-alerts.js';
+import { handleScheduledHarvest } from './handlers/scheduled-harvest.js';
 import { handleCacheMetrics } from './handlers/cache-metrics.js';
 import { handleMetricsRequest } from './handlers/metrics-handler.js';
 import { handleSearchTitle } from './handlers/v1/search-title.js';
@@ -937,6 +938,9 @@ export default {
     } else if (event.cron === '*/15 * * * *') {
       // Alert checks every 15 minutes
       await handleScheduledAlerts(env, ctx);
+    } else if (event.cron === '0 3 * * *') {
+      // Daily ISBNdb cover harvest at 3:00 AM UTC
+      await handleScheduledHarvest(env);
     }
   }
 };
