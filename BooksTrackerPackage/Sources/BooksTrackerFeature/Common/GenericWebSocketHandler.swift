@@ -71,6 +71,11 @@ public final class GenericWebSocketHandler {
                 #if DEBUG
                 print("✅ GenericWebSocketHandler connected (\(pipeline.rawValue))")
                 #endif
+
+                // CRITICAL FIX (Issue #378): Send ready signal to backend
+                // Backend waits for this signal before sending messages to prevent race condition
+                await sendReadySignal()
+
                 listenForMessages()
             } catch {
                 #if DEBUG
@@ -146,11 +151,37 @@ public final class GenericWebSocketHandler {
             let errorPayload = ErrorPayload(
                 code: "CLIENT_DECODING_ERROR",
                 message: "Failed to decode WebSocket message: \(error.localizedDescription)",
-                details: AnyCodable(String(data: data, encoding: .utf8)),
+                details: String(data: data, encoding: .utf8).map { AnyCodable($0) },
                 retryable: false
             )
             errorHandler(errorPayload)
             disconnect()
+        }
+    }
+
+    /// Sends the "ready" signal to backend after connection established.
+    /// Backend waits for this signal before processing job to prevent race condition.
+    private func sendReadySignal() async {
+        guard let webSocket = webSocket else { return }
+
+        let readyMessage = ["type": "ready"]
+        guard let jsonData = try? JSONEncoder().encode(readyMessage),
+              let jsonString = String(data: jsonData, encoding: .utf8) else {
+            #if DEBUG
+            print("⚠️ Failed to encode ready signal")
+            #endif
+            return
+        }
+
+        do {
+            try await webSocket.send(.string(jsonString))
+            #if DEBUG
+            print("📤 Ready signal sent to backend (\(pipeline.rawValue))")
+            #endif
+        } catch {
+            #if DEBUG
+            print("⚠️ Failed to send ready signal: \(error.localizedDescription)")
+            #endif
         }
     }
 

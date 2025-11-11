@@ -954,11 +954,13 @@ export class ProgressWebSocketDO extends DurableObject {
     } catch (error) {
       console.error(`[${jobId}] CSV processing failed in alarm:`, error);
 
-      // Send error to client
-      await this.fail({
-        error: error.message,
-        fallbackAvailable: true,
-        suggestion: 'Try manual CSV import instead'
+      // CRITICAL FIX (Issues #347, #379): Use v2 unified schema method
+      // Send error to client using sendError (v2) instead of fail (v1 legacy)
+      await this.sendError('csv_import', {
+        code: 'CSV_PROCESSING_ERROR',
+        message: error.message,
+        details: { suggestion: 'Try manual CSV import instead' },
+        retryable: true
       });
 
       // Clean up storage even on error
