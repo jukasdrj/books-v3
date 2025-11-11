@@ -358,7 +358,12 @@ public final class WebSocketProgressManager {
         for attempt in 1...maxRetries {
             do {
                 // Call backend to get current job state
-                let stateURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/job-state/\(jobId)")!
+                guard let stateURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/job-state/\(jobId)") else {
+                    #if DEBUG
+                    print("❌ Invalid URL for state sync")
+                    #endif
+                    return
+                }
                 var request = URLRequest(url: stateURL)
                 request.httpMethod = "GET"
                 request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -525,20 +530,27 @@ public final class WebSocketProgressManager {
                     self.isConnected = false
 
                     // Attempt automatic reconnection if we have jobId and token in Keychain
-                    if let jobId = boundJobId,
-                       let _ = try? KeychainHelper.getToken(for: jobId) {
-                        #if DEBUG
-                        print("🔄 Connection lost - attempting reconnection...")
-                        #endif
+                    do {
+                        if let jobId = boundJobId, try KeychainHelper.getToken(for: jobId) != nil {
+                            #if DEBUG
+                            print("🔄 Connection lost - attempting reconnection...")
+                            #endif
 
-                        // Spawn reconnection task (don't await to avoid blocking)
-                        reconnectionTask = Task {
-                            await self.attemptReconnection()
+                            // Spawn reconnection task (don't await to avoid blocking)
+                            reconnectionTask = Task {
+                                await self.attemptReconnection()
+                            }
+
+                            return  // Exit receive loop - reconnection will start a new one
+                        } else {
+                            // No reconnection info - notify and disconnect
+                            disconnectionHandler?(error)
+                            self.disconnect()
                         }
-
-                        return  // Exit receive loop - reconnection will start a new one
-                    } else {
-                        // No reconnection info - notify and disconnect
+                    } catch {
+                        #if DEBUG
+                        print("❌ Keychain error during reconnection check: \(error)")
+                        #endif
                         disconnectionHandler?(error)
                         self.disconnect()
                     }

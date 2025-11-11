@@ -14,6 +14,8 @@
  * 5. Backward compatibility via optional fields
  */
 
+import type { SingleEnrichmentResult } from '../services/enrichment.ts';
+
 // =============================================================================
 // Core Types & Enums
 // =============================================================================
@@ -97,6 +99,19 @@ export type JobCompletePayload =
   | AIScanCompletePayload;
 
 /**
+ * Single book enrichment result from backend
+ * Matches the structure returned by batch-enrichment.js
+ */
+export interface EnrichedBookPayload {
+  title: string;
+  author?: string;
+  isbn?: string;
+  success: boolean;
+  error?: string;
+  enriched?: SingleEnrichmentResult | null;
+}
+
+/**
  * Batch Enrichment Completion
  */
 export interface BatchEnrichmentCompletePayload {
@@ -106,6 +121,7 @@ export interface BatchEnrichmentCompletePayload {
   successCount: number;
   failureCount: number;
   duration: number;         // Milliseconds
+  enrichedBooks: EnrichedBookPayload[];
 }
 
 /**

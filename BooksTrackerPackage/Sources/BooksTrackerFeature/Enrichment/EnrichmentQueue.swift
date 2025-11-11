@@ -27,7 +27,7 @@ public final class EnrichmentQueue {
     private var queue: [EnrichmentQueueItem] = []
     private var processing: Bool = false
     private var currentTask: Task<Void, Never>?
-    private var webSocketHandler: EnrichmentWebSocketHandler?
+    private var webSocketHandler: GenericWebSocketHandler?
     // Track current backend job ID for cancellation
     private var currentJobId: String?
     // Activity tracking for timeout watchdog
@@ -299,20 +299,52 @@ public final class EnrichmentQueue {
         modelContext: ModelContext,
         progressHandler: @escaping (Int, Int, String) -> Void
     ) async {
-        self.webSocketHandler = EnrichmentWebSocketHandler(
-            jobId: jobId,
-            progressHandler: { [weak self] processed, total, title in
+        // Construct WebSocket URL with jobId
+        guard let wsURL = URL(string: "\(EnrichmentConfig.webSocketBaseURL)/ws/progress?jobId=\(jobId)") else {
+            #if DEBUG
+            print("❌ Invalid WebSocket URL")
+            #endif
+            return
+        }
+
+        self.webSocketHandler = GenericWebSocketHandler(
+            url: wsURL,
+            pipeline: .batchEnrichment,
+            progressHandler: { [weak self] progressPayload in
                 // ✅ Reset activity timer on EVERY WebSocket message
                 self?.resetActivityTimer()
+
+                // Extract data from JobProgressPayload
+                let processed = progressPayload.processedCount ?? 0
+                let total = works.count  // Use local total count
+                let title = progressPayload.currentItem ?? "Unknown"
+
                 progressHandler(processed, total, title)
                 NotificationCoordinator.postEnrichmentProgress(completed: processed, total: total, currentTitle: title)
             },
-            completionHandler: { [weak self] enrichedBooks in
+            completionHandler: { [weak self] completePayload in
                 guard let self = self else { return }
                 // ✅ Reset activity timer on completion message
                 self.resetActivityTimer()
+
+                // Unwrap the batch enrichment case
+                guard case .batchEnrichment(let batchPayload) = completePayload else {
+                    #if DEBUG
+                    print("⚠️ Unexpected payload type for batch enrichment")
+                    #endif
+                    return
+                }
+
+                let enrichedBooks = batchPayload.enrichedBooks
+
                 // Apply enriched data to SwiftData models
                 self.applyEnrichedData(enrichedBooks, in: modelContext)
+            },
+            errorHandler: { errorPayload in
+                #if DEBUG
+                print("❌ WebSocket enrichment error: \(errorPayload.message)")
+                #endif
+                NotificationCoordinator.postEnrichmentFailed(error: errorPayload.message)
             }
         )
         await self.webSocketHandler?.connect()

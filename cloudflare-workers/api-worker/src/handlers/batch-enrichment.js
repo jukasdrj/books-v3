@@ -129,7 +129,7 @@ export async function handleBatchEnrichment(request, env, ctx) {
     const doStub = env.PROGRESS_WEBSOCKET_DO.get(doId);
 
     // Start background enrichment
-    ctx.waitUntil(processBatchEnrichment(books, doStub, env));
+    ctx.waitUntil(processBatchEnrichment(books, doStub, env, jobId));
 
     // Return structure expected by iOS EnrichmentAPIClient
     // iOS expects: { success: Bool, processedCount: Int, totalCount: Int }
@@ -155,8 +155,10 @@ export async function handleBatchEnrichment(request, env, ctx) {
  * @param {Array<Object>} books - Books to enrich (title, author, isbn)
  * @param {Object} doStub - ProgressWebSocketDO stub
  * @param {Object} env - Worker environment bindings
+ * @param {string} jobId - The client-provided job identifier
  */
-async function processBatchEnrichment(books, doStub, env) {
+async function processBatchEnrichment(books, doStub, env, jobId) {
+  const startTime = Date.now();
   try {
     // Reuse existing enrichBooksParallel() logic
     const enrichedBooks = await enrichBooksParallel(
@@ -190,17 +192,38 @@ async function processBatchEnrichment(books, doStub, env) {
         const status = hasError
           ? `Enriching (${completed}/${total}): ${title} [failed]`
           : `Enriching (${completed}/${total}): ${title}`;
-        await doStub.updateProgress(progress, status);
+
+        // Call DO with pipeline and payload (DO constructs the message envelope)
+        await doStub.updateProgressV2('batch_enrichment', {
+          progress,
+          status,
+          processedCount: completed,
+          currentItem: title,
+        });
       },
       10 // Concurrency limit
     );
 
-    await doStub.complete({ books: enrichedBooks });
+    const totalProcessed = enrichedBooks.length;
+    const successCount = enrichedBooks.filter(b => b.success).length;
+    const failureCount = totalProcessed - successCount;
+    const duration = Date.now() - startTime;
+
+    // Call DO with pipeline and payload (DO constructs the message envelope)
+    await doStub.completeV2('batch_enrichment', {
+      totalProcessed,
+      successCount,
+      failureCount,
+      duration,
+      enrichedBooks,
+    });
 
   } catch (error) {
-    await doStub.fail({
-      error: error.message,
-      suggestion: 'Retry batch enrichment request'
+    // Call sendError on DO (DO constructs the error message)
+    await doStub.sendError('batch_enrichment', {
+      code: 'E_BATCH_PROCESSING_FAILED',
+      message: error.message,
+      retryable: true,
     });
   }
 }

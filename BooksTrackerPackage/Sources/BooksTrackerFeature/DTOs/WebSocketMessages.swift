@@ -180,6 +180,28 @@ public struct BatchEnrichmentCompletePayload: Codable, Sendable {
     public let successCount: Int
     public let failureCount: Int
     public let duration: Int                // Milliseconds
+    public let enrichedBooks: [EnrichedBookPayload]  // The actual enriched data
+}
+
+// MARK: - Enriched Book Data (Batch Enrichment)
+
+/// Single book enrichment result from backend
+/// Matches the structure returned by batch-enrichment.js
+public struct EnrichedBookPayload: Codable, Sendable {
+    public let title: String
+    public let author: String?
+    public let isbn: String?
+    public let success: Bool
+    public let error: String?
+    public let enriched: EnrichedDataPayload?
+}
+
+/// The enriched data containing work, edition, and authors
+/// Matches SingleEnrichmentResult from enrichment.ts
+public struct EnrichedDataPayload: Codable, Sendable {
+    public let work: WorkDTO
+    public let edition: EditionDTO?
+    public let authors: [AuthorDTO]
 }
 
 // MARK: - CSV Import Complete Payload

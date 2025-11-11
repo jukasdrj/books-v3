@@ -47,13 +47,19 @@ export async function handleCSVImport(request, env, ctx) {
     const doId = env.PROGRESS_WEBSOCKET_DO.idFromName(jobId);
     const doStub = env.PROGRESS_WEBSOCKET_DO.get(doId);
 
+    // SECURITY: Generate authentication token for WebSocket connection
+    const authToken = crypto.randomUUID();
+    await doStub.setAuthToken(authToken);
+
+    console.log(`[CSV Import] Auth token generated for job ${jobId}`);
+
     // Read CSV content and schedule processing via Durable Object alarm
     // This avoids ctx.waitUntil() timeout for long-running Gemini API calls
     const csvText = await csvFile.text();
     await doStub.scheduleCSVProcessing(csvText, jobId);
 
     return Response.json(
-      createSuccessResponseObject({ jobId }, {}),
+      createSuccessResponseObject({ jobId, token: authToken }, {}),
       { status: 202 }
     );
 

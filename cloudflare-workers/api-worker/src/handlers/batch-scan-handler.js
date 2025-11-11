@@ -49,6 +49,12 @@ export async function handleBatchScan(request, env, ctx) {
     const doId = env.PROGRESS_WEBSOCKET_DO.idFromName(jobId);
     const doStub = env.PROGRESS_WEBSOCKET_DO.get(doId);
 
+    // SECURITY: Generate authentication token for WebSocket connection
+    const authToken = crypto.randomUUID();
+    await doStub.setAuthToken(authToken);
+
+    console.log(`[Batch Scan] Auth token generated for job ${jobId}`);
+
     await doStub.initBatch({
       jobId,
       totalPhotos: images.length,
@@ -58,9 +64,10 @@ export async function handleBatchScan(request, env, ctx) {
     // Process batch asynchronously (don't await)
     ctx.waitUntil(processBatchPhotos(jobId, images, env, doStub));
 
-    // Return accepted response immediately
+    // Return accepted response immediately with auth token
     return createSuccessResponse({
       jobId,
+      token: authToken, // NEW: Token for WebSocket authentication
       totalPhotos: images.length,
       status: 'processing'
     }, {}, 202);

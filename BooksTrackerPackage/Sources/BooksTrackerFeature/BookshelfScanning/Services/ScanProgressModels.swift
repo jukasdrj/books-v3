@@ -19,6 +19,7 @@ public struct BookshelfScanMetadata: Sendable {
 
 public struct ScanJobResponse: Codable, Sendable {
     public let jobId: String
+    public let token: String  // NEW: Auth token for WebSocket
     public let stages: [StageMetadata]
     public let estimatedRange: [Int]  // [min, max] seconds
 

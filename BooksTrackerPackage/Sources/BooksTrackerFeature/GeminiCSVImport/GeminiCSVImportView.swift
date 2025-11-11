@@ -270,13 +270,17 @@ public struct GeminiCSVImportView: View {
 
             let csvText = try String(contentsOf: url, encoding: .utf8)
 
-            // Upload to backend
+            // Upload to backend and get auth token
             let service = GeminiCSVImportService.shared
-            let uploadedJobId = try await service.uploadCSV(csvText: csvText)
+            let (uploadedJobId, authToken) = try await service.uploadCSV(csvText: csvText)
 
-            // Start WebSocket connection
+            #if DEBUG
+            print("[CSV Upload] 🔐 Auth token received: \(authToken.prefix(8))...")
+            #endif
+
+            // Start WebSocket connection with authentication
             jobId = uploadedJobId
-            startWebSocketProgress(jobId: uploadedJobId)
+            startWebSocketProgress(jobId: uploadedJobId, token: authToken)
 
         } catch let error as GeminiCSVImportError {
             importStatus = .failed(error.localizedDescription)
@@ -285,10 +289,20 @@ public struct GeminiCSVImportView: View {
         }
     }
 
-    private func startWebSocketProgress(jobId: String) {
-        let wsURL = EnrichmentConfig.webSocketURL(jobId: jobId)
+    private func startWebSocketProgress(jobId: String, token: String) {
+        // Build WebSocket URL with authentication token
+        var components = URLComponents(string: "\(EnrichmentConfig.webSocketBaseURL)/ws/progress")!
+        components.queryItems = [
+            URLQueryItem(name: "jobId", value: jobId),
+            URLQueryItem(name: "token", value: token)
+        ]
+        guard let wsURL = components.url else {
+            importStatus = .failed("Invalid WebSocket URL")
+            return
+        }
+
         #if DEBUG
-        print("[CSV WebSocket] Connecting to backend")
+        print("[CSV WebSocket] Connecting to backend with authentication")
         #endif
 
         webSocketTask = Task {

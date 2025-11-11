@@ -3,7 +3,6 @@ import Security
 
 /// Secure storage for authentication tokens using iOS Keychain
 /// Prevents token exposure in memory dumps or crash logs
-@MainActor
 public final class KeychainHelper {
 
     // MARK: - Errors

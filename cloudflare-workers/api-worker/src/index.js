@@ -137,16 +137,28 @@ export default {
           });
         }
 
-        // Validate Bearer token (optional - for auth)
+        // Validate Bearer token (REQUIRED for auth)
         const authHeader = request.headers.get('Authorization');
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-          // Token validation can be added here if needed
-          // For now, we just accept any Bearer token
+        const providedToken = authHeader?.replace('Bearer ', '');
+        if (!providedToken) {
+          return new Response(JSON.stringify({ error: 'Missing authorization token' }), {
+            status: 401,
+            headers: { ...getCorsHeaders(request), 'Content-Type': 'application/json' }
+          });
         }
 
         // Get DO stub for this job
         const doId = env.PROGRESS_WEBSOCKET_DO.idFromName(jobId);
         const doStub = env.PROGRESS_WEBSOCKET_DO.get(doId);
+
+        // Validate token via DO
+        const isValid = await doStub.validateToken(providedToken);
+        if (!isValid) {
+          return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
+            status: 401,
+            headers: { ...getCorsHeaders(request), 'Content-Type': 'application/json' }
+          });
+        }
 
         // Fetch job state from Durable Object
         const jobState = await doStub.getJobState();

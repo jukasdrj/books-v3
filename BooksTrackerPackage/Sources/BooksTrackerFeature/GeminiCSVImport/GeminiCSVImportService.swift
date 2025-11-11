@@ -9,6 +9,7 @@ enum GeminiCSVImportError: Error, LocalizedError {
     case serverError(Int, String)
     case decodingFailed(Error)
     case parsingFailed(String)
+    case missingToken
 
     var errorDescription: String? {
         switch self {
@@ -24,6 +25,8 @@ enum GeminiCSVImportError: Error, LocalizedError {
             return "Failed to decode response: \(error.localizedDescription)"
         case .parsingFailed(let reason):
             return "CSV parsing failed: \(reason)"
+        case .missingToken:
+            return "Authentication token missing from server response"
         }
     }
 }
@@ -32,6 +35,7 @@ enum GeminiCSVImportError: Error, LocalizedError {
 
 public struct GeminiCSVImportResponse: Codable, Sendable {
     public let jobId: String
+    public let token: String  // NEW: Auth token for WebSocket
 }
 
 public struct GeminiCSVImportJob: Codable, Sendable {
@@ -73,11 +77,11 @@ actor GeminiCSVImportService {
 
     // MARK: - Upload CSV
 
-    /// Upload CSV file and receive jobId for WebSocket tracking
+    /// Upload CSV file and receive jobId and auth token for WebSocket tracking
     /// - Parameter csvText: Raw CSV content
-    /// - Returns: JobId for progress tracking
+    /// - Returns: Tuple with jobId and auth token for WebSocket authentication
     /// - Throws: GeminiCSVImportError on failure
-    func uploadCSV(csvText: String) async throws -> String {
+    func uploadCSV(csvText: String) async throws -> (jobId: String, token: String) {
         #if DEBUG
         print("[CSV Upload] Starting upload, size: \(csvText.utf8.count) bytes")
         #endif
@@ -162,9 +166,9 @@ actor GeminiCSVImportService {
             switch envelope {
             case .success(let importResponse, _):
                 #if DEBUG
-                print("[CSV Upload] ✅ Got jobId: \(importResponse.jobId)")
+                print("[CSV Upload] ✅ Got jobId: \(importResponse.jobId), token: \(importResponse.token.prefix(8))...")
                 #endif
-                return importResponse.jobId
+                return (jobId: importResponse.jobId, token: importResponse.token)
 
             case .failure(let error, _):
                 #if DEBUG

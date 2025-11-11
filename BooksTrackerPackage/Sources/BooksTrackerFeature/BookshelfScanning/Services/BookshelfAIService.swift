@@ -154,39 +154,38 @@ actor BookshelfAIService {
         provider: AIProvider,
         progressHandler: @MainActor @escaping (Double, String) -> Void
     ) async throws(BookshelfAIError) -> ([DetectedBook], [SuggestionViewModel]) {
-        // STEP 1: Connect WebSocket
+        // STEP 1: Compress image
+        let config = provider.preprocessingConfig
+        let processedImage = image.resizeForAI(maxDimension: config.maxDimension)
+
+        guard let imageData = compressImageAdaptive(processedImage, maxSizeBytes: maxImageSize) else {
+            throw .imageCompressionFailed
+        }
+
+        // STEP 2: Upload image and get auth token
+        let scanResponse: ScanJobResponse
+        do {
+            scanResponse = try await startScanJob(imageData, provider: provider, jobId: jobId)
+            #if DEBUG
+            print("✅ Image uploaded with jobId: \(jobId), token: \(scanResponse.token.prefix(8))...")
+            #endif
+        } catch {
+            throw .networkError(error)
+        }
+
+        // STEP 3: Connect WebSocket with authentication token
         let wsManager = await WebSocketProgressManager()
         do {
-            _ = try await wsManager.establishConnection(jobId: jobId)
+            _ = try await wsManager.establishConnection(jobId: jobId, token: scanResponse.token)
             try await wsManager.configureForJob(jobId: jobId)
 
             // NEW: Send ready signal to server
             try await wsManager.sendReadySignal()
 
             #if DEBUG
-            print("✅ WebSocket connected and ready signal sent for job \(jobId)")
+            print("✅ WebSocket connected with authentication and ready signal sent for job \(jobId)")
             #endif
         } catch {
-            throw .networkError(error)
-        }
-
-        // STEP 2: Compress image
-        let config = provider.preprocessingConfig
-        let processedImage = image.resizeForAI(maxDimension: config.maxDimension)
-
-        guard let imageData = compressImageAdaptive(processedImage, maxSizeBytes: maxImageSize) else {
-            await wsManager.disconnect()
-            throw .imageCompressionFailed
-        }
-
-        // STEP 3: Upload image
-        do {
-            _ = try await startScanJob(imageData, provider: provider, jobId: jobId)
-            #if DEBUG
-            print("✅ Image uploaded with jobId: \(jobId)")
-            #endif
-        } catch {
-            await wsManager.disconnect()
             throw .networkError(error)
         }
 
