@@ -959,7 +959,10 @@ export class ProgressWebSocketDO extends DurableObject {
       await this.sendError('csv_import', {
         code: 'CSV_PROCESSING_ERROR',
         message: error.message,
-        details: { suggestion: 'Try manual CSV import instead' },
+        details: {
+          fallbackAvailable: true,
+          suggestion: 'Try manual CSV import instead'
+        },
         retryable: true
       });
 

@@ -74,7 +74,7 @@ public final class GenericWebSocketHandler {
 
                 // CRITICAL FIX (Issue #378): Send ready signal to backend
                 // Backend waits for this signal before sending messages to prevent race condition
-                await sendReadySignal()
+                try await sendReadySignal()
 
                 listenForMessages()
             } catch {
@@ -161,28 +161,23 @@ public final class GenericWebSocketHandler {
 
     /// Sends the "ready" signal to backend after connection established.
     /// Backend waits for this signal before processing job to prevent race condition.
-    private func sendReadySignal() async {
+    /// - Throws: Error if encoding or sending fails
+    private func sendReadySignal() async throws {
         guard let webSocket = webSocket else { return }
 
         let readyMessage = ["type": "ready"]
-        guard let jsonData = try? JSONEncoder().encode(readyMessage),
-              let jsonString = String(data: jsonData, encoding: .utf8) else {
-            #if DEBUG
-            print("⚠️ Failed to encode ready signal")
-            #endif
-            return
+        let jsonData = try JSONEncoder().encode(readyMessage)
+        guard let jsonString = String(data: jsonData, encoding: .utf8) else {
+            struct InvalidStringDataError: Error, LocalizedError {
+                var errorDescription: String? = "Failed to convert ready signal JSON data to string."
+            }
+            throw InvalidStringDataError()
         }
 
-        do {
-            try await webSocket.send(.string(jsonString))
-            #if DEBUG
-            print("📤 Ready signal sent to backend (\(pipeline.rawValue))")
-            #endif
-        } catch {
-            #if DEBUG
-            print("⚠️ Failed to send ready signal: \(error.localizedDescription)")
-            #endif
-        }
+        try await webSocket.send(.string(jsonString))
+        #if DEBUG
+        print("📤 Ready signal sent to backend (\(pipeline.rawValue))")
+        #endif
     }
 
     /// Disconnects from the WebSocket.
