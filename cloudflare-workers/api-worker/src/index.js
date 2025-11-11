@@ -151,19 +151,10 @@ export default {
         const doId = env.PROGRESS_WEBSOCKET_DO.idFromName(jobId);
         const doStub = env.PROGRESS_WEBSOCKET_DO.get(doId);
 
-        // Validate token via DO
-        const isValid = await doStub.validateToken(providedToken);
-        if (!isValid) {
-          return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
-            status: 401,
-            headers: { ...getCorsHeaders(request), 'Content-Type': 'application/json' }
-          });
-        }
+        // Fetch job state and auth details (includes validation)
+        const result = await doStub.getJobStateAndAuth();
 
-        // Fetch job state from Durable Object
-        const jobState = await doStub.getJobState();
-
-        if (!jobState) {
+        if (!result) {
           return new Response(JSON.stringify({
             error: 'Job not found or state not initialized'
           }), {
@@ -172,6 +163,16 @@ export default {
               ...getCorsHeaders(request),
               'Content-Type': 'application/json'
             }
+          });
+        }
+
+        const { jobState, authToken, authTokenExpiration } = result;
+
+        // Validate token
+        if (!authToken || providedToken !== authToken || Date.now() > authTokenExpiration) {
+          return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
+            status: 401,
+            headers: { ...getCorsHeaders(request), 'Content-Type': 'application/json' }
           });
         }
 

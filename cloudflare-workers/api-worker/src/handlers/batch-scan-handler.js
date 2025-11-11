@@ -6,6 +6,7 @@
 import { scanImageWithGemini } from '../providers/gemini-provider.js';
 import { createSuccessResponse, createErrorResponse } from '../utils/api-responses.js';
 import { enrichBooksParallel } from '../services/parallel-enrichment.js';
+import { handleSearchAdvanced } from './v1/search-advanced.js';
 
 const MAX_PHOTOS_PER_BATCH = 5;
 const MAX_IMAGE_SIZE = 10_000_000; // 10MB per image
@@ -158,17 +159,56 @@ async function processBatchPhotos(jobId, images, env, doStub) {
         const enrichedPartialBooks = await enrichBooksParallel(
           partialBooks,
           async (book) => {
-            const enrichedCount = enrichedPartialBooks ? enrichedPartialBooks.filter(b => b.enrichment).length : 0;
-            const enrichProgress = 0.8 + (0.2 * (enrichedCount / partialBooks.length));
+            // Enrichment function: fetch metadata for this book
+            const apiResponse = await handleSearchAdvanced(
+              book.title || '',
+              book.author || '',
+              env
+            );
+
+            // Parse canonical ApiResponse<BookSearchResponse>
+            if (apiResponse.success) {
+              const work = apiResponse.data.works?.[0] || null;
+              const editions = apiResponse.data.editions || [];
+              const authors = apiResponse.data.authors || [];
+
+              return {
+                ...book,
+                enrichment: {
+                  status: work ? 'success' : 'not_found',
+                  work,
+                  editions,
+                  authors,
+                  provider: apiResponse.meta.provider,
+                  cachedResult: apiResponse.meta.cached || false
+                }
+              };
+            } else {
+              return {
+                ...book,
+                enrichment: {
+                  status: 'error',
+                  error: apiResponse.error.message,
+                  work: null,
+                  editions: [],
+                  authors: []
+                }
+              };
+            }
+          },
+          async (completed, total, title, hasError) => {
+            // Progress callback: update progress after each book
+            const enrichProgress = 0.8 + (0.2 * (completed / total));
             await doStub.updateProgressV2('ai_scan', {
               progress: enrichProgress,
-              status: `Enriching canceled job results... (${enrichedCount + 1}/${partialBooks.length})`,
-              processedCount: enrichedCount + 1,
-              currentItem: book.title || 'Unknown title'
+              status: hasError
+                ? `Enriching canceled job results... (${completed}/${total}, ${title} failed)`
+                : `Enriching canceled job results... (${completed}/${total})`,
+              processedCount: completed,
+              currentItem: title || 'Unknown title'
             });
           },
-          env,
-          10
+          10 // maxConcurrent
         );
 
         const approvedCount = enrichedPartialBooks.filter(b => b.confidence >= 0.6).length;
@@ -261,17 +301,55 @@ async function processBatchPhotos(jobId, images, env, doStub) {
     const enrichedBooks = await enrichBooksParallel(
       uniqueBooks,
       async (book) => {
-        // Progress callback for each enriched book
-        const enrichedCount = enrichedBooks ? enrichedBooks.filter(b => b.enrichment).length : 0;
-        const enrichProgress = 0.8 + (0.2 * (enrichedCount / uniqueBooks.length));
+        // Enrichment function: fetch metadata for this book
+        const apiResponse = await handleSearchAdvanced(
+          book.title || '',
+          book.author || '',
+          env
+        );
+
+        // Parse canonical ApiResponse<BookSearchResponse>
+        if (apiResponse.success) {
+          const work = apiResponse.data.works?.[0] || null;
+          const editions = apiResponse.data.editions || [];
+          const authors = apiResponse.data.authors || [];
+
+          return {
+            ...book,
+            enrichment: {
+              status: work ? 'success' : 'not_found',
+              work,
+              editions,
+              authors,
+              provider: apiResponse.meta.provider,
+              cachedResult: apiResponse.meta.cached || false
+            }
+          };
+        } else {
+          return {
+            ...book,
+            enrichment: {
+              status: 'error',
+              error: apiResponse.error.message,
+              work: null,
+              editions: [],
+              authors: []
+            }
+          };
+        }
+      },
+      async (completed, total, title, hasError) => {
+        // Progress callback: update progress after each book
+        const enrichProgress = 0.8 + (0.2 * (completed / total));
         await doStub.updateProgressV2('ai_scan', {
           progress: enrichProgress,
-          status: `Enriching books... (${enrichedCount + 1}/${uniqueBooks.length})`,
-          processedCount: enrichedCount + 1,
-          currentItem: book.title || 'Unknown title'
+          status: hasError
+            ? `Enriching books... (${completed}/${total}, ${title} failed)`
+            : `Enriching books... (${completed}/${total})`,
+          processedCount: completed,
+          currentItem: title || 'Unknown title'
         });
       },
-      env,
       10 // maxConcurrent
     );
 

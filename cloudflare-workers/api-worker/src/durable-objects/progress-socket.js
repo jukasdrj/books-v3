@@ -290,6 +290,9 @@ export class ProgressWebSocketDO extends DurableObject {
    * RPC Method: Update job state with throttling
    * Only persists every N updates or every T seconds (pipeline-specific)
    *
+   * CRITICAL FIX (Issue #2): Throttle state now persisted to Durable Storage
+   * to survive DO evictions and prevent lost state.
+   *
    * @param {Object} updates - State updates (progress, processedCount, currentItem, etc.)
    * @returns {Promise<{success: boolean, persisted: boolean}>}
    */
@@ -306,11 +309,17 @@ export class ProgressWebSocketDO extends DurableObject {
       throw new Error(`Invalid pipeline type: ${this.currentPipeline}. Valid types: ${Object.keys(THROTTLE_CONFIG).join(', ')}`);
     }
 
-    this.updatesSinceLastPersist++;
-    const timeSinceLastPersist = Date.now() - this.lastPersistTime;
+    // Load throttle state from Durable Storage (survives eviction)
+    const throttleState = await this.storage.get('throttleState') || {
+      updatesSinceLastPersist: 0,
+      lastPersistTime: Date.now()
+    };
+
+    throttleState.updatesSinceLastPersist++;
+    const timeSinceLastPersist = Date.now() - throttleState.lastPersistTime;
 
     const shouldPersist =
-      this.updatesSinceLastPersist >= config.updateCount ||
+      throttleState.updatesSinceLastPersist >= config.updateCount ||
       timeSinceLastPersist >= (config.timeSeconds * 1000);
 
     if (shouldPersist) {
@@ -322,13 +331,25 @@ export class ProgressWebSocketDO extends DurableObject {
         version: (currentState.version || 0) + 1
       };
 
-      await this.storage.put('jobState', newState);
+      // Persist both job state and throttle state atomically
+      await this.storage.put({
+        jobState: newState,
+        throttleState: {
+          updatesSinceLastPersist: 0,
+          lastPersistTime: Date.now()
+        }
+      });
+
+      // Update in-memory cache for fast access
       this.updatesSinceLastPersist = 0;
       this.lastPersistTime = Date.now();
 
       console.log(`[${this.jobId}] State persisted (version ${newState.version})`);
       return { success: true, persisted: true };
     }
+
+    // Update throttle state even if not persisting job state
+    await this.storage.put('throttleState', throttleState);
 
     return { success: true, persisted: false };
   }
@@ -345,6 +366,28 @@ export class ProgressWebSocketDO extends DurableObject {
       console.log(`[${this.jobId}] State retrieved (version ${state.version || 0})`);
     }
     return state || null;
+  }
+
+  /**
+   * RPC Method: Get job state with authentication details
+   * Used by /api/job-state endpoint for secure state sync after reconnection
+   *
+   * @returns {Promise<{jobState: Object, authToken: string, authTokenExpiration: number}|null>}
+   */
+  async getJobStateAndAuth() {
+    const [jobState, authToken, authTokenExpiration] = await Promise.all([
+      this.storage.get('jobState'),
+      this.storage.get('authToken'),
+      this.storage.get('authTokenExpiration')
+    ]);
+
+    if (!jobState) {
+      console.log(`[${this.jobId}] No job state found`);
+      return null;
+    }
+
+    console.log(`[${this.jobId}] State and auth retrieved (version ${jobState.version || 0})`);
+    return { jobState, authToken, authTokenExpiration };
   }
 
   /**

@@ -37,13 +37,15 @@ Per user instruction: Complete **backend migrations only** for Day 5, leaving iO
 **Changes:**
 - Line 59: `initializeJobState('ai_scan', images.length)` - Job initialization
 - Line 103-108: Upload progress with `updateProgressV2()`
-- Line 124-125: ✅ **CRITICAL FIX:** Changed `if (isCanceled.canceled)` to `if (isCanceled)` - Prevents TypeError crash
+- Line 124-125: ✅ **CRITICAL FIX:** Call `isBatchCanceled()` and destructure result `{ canceled }` instead of directly accessing property - Prevents TypeError crash
 - Line 134-151: ✅ **SCHEMA FIX:** Removed `canceled: true` field from completion payload
 - Line 156-162: Per-photo processing progress
 - Line 180-186: Photo completion progress
 - Line 197-203: Photo error progress
 - Line 215-230: Final completion with `AIScanCompletePayload` structure
 - Line 234-241: Error handling via `sendError('ai_scan', ...)`
+
+**Note:** See `docs/plans/2025-11-11-day5-final-completion.md` for complete implementation details and final code structure.
 
 **Pipeline:** `'ai_scan'`
 **Progress Flow:** Dynamic per photo - `(i + 1) / totalPhotos`
