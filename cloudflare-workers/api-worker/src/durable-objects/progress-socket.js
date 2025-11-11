@@ -6,6 +6,13 @@ import { DurableObject } from 'cloudflare:workers';
  *
  * Migrated from progress-websocket-durable-object/src/index.js
  */
+// Pipeline-specific throttling configuration
+const THROTTLE_CONFIG = {
+  batch_enrichment: { updateCount: 5, timeSeconds: 10 },
+  csv_import: { updateCount: 20, timeSeconds: 30 },  // Reduced writes
+  ai_scan: { updateCount: 1, timeSeconds: 60 }       // Minimal writes
+};
+
 export class ProgressWebSocketDO extends DurableObject {
   constructor(state, env) {
     super(state, env);
@@ -15,6 +22,12 @@ export class ProgressWebSocketDO extends DurableObject {
     this.isReady = false; // NEW: Track if client sent ready signal
     this.readyPromise = null; // NEW: Promise to await ready signal
     this.readyResolver = null; // NEW: Resolver for ready promise
+    this.refreshInProgress = false; // Prevents concurrent refresh race conditions
+
+    // State persistence tracking
+    this.updatesSinceLastPersist = 0;
+    this.lastPersistTime = 0;
+    this.currentPipeline = null;
   }
 
   /**
@@ -48,6 +61,35 @@ export class ProgressWebSocketDO extends DurableObject {
       console.error('[ProgressDO] Missing jobId parameter');
       return new Response('Missing jobId parameter', { status: 400 });
     }
+
+    // SECURITY: Validate authentication token
+    const providedToken = url.searchParams.get('token');
+    const storedToken = await this.storage.get('authToken');
+    const expiration = await this.storage.get('authTokenExpiration');
+
+    if (!storedToken || !providedToken || storedToken !== providedToken) {
+      console.warn(`[${jobId}] WebSocket authentication failed - invalid token`);
+      return new Response('Unauthorized', {
+        status: 401,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'text/plain'
+        }
+      });
+    }
+
+    if (Date.now() > expiration) {
+      console.warn(`[${jobId}] WebSocket authentication failed - token expired`);
+      return new Response('Token expired', {
+        status: 401,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'text/plain'
+        }
+      });
+    }
+
+    console.log(`[${jobId}] ✅ WebSocket authentication successful`);
 
     console.log(`[ProgressDO] Creating WebSocket for job ${jobId}`);
 
@@ -130,6 +172,237 @@ export class ProgressWebSocketDO extends DurableObject {
       }
     });
   }
+
+  /**
+   * RPC Method: Set authentication token for WebSocket connection
+   * Called by handlers before starting background processing
+   *
+   * @param {string} token - Authentication token (UUID)
+   * @returns {Promise<{success: boolean}>}
+   */
+  async setAuthToken(token) {
+    await this.storage.put('authToken', token);
+    // Tokens expire after 2 hours
+    await this.storage.put('authTokenExpiration', Date.now() + (2 * 60 * 60 * 1000));
+    console.log(`[${this.jobId || 'unknown'}] Auth token set (expires in 2 hours)`);
+    return { success: true };
+  }
+
+  /**
+   * RPC Method: Refresh authentication token
+   * Called by iOS client to extend token expiration for long-running jobs
+   *
+   * Security: Enforces 30-minute refresh window to prevent infinite token extension
+   * Tokens can only be refreshed in the last 30 minutes before expiration
+   *
+   * @param {string} oldToken - Current token to validate
+   * @returns {Promise<{token?: string, expiresIn?: number, error?: string}>}
+   */
+  async refreshAuthToken(oldToken) {
+    // Prevent concurrent refresh race conditions
+    if (this.refreshInProgress) {
+      console.warn(`[${this.jobId || 'unknown'}] Token refresh already in progress`);
+      return { error: 'Refresh in progress, please retry shortly' };
+    }
+
+    this.refreshInProgress = true;
+    try {
+      const storedToken = await this.storage.get('authToken');
+      const expiration = await this.storage.get('authTokenExpiration');
+
+      // Validate old token
+      if (!storedToken || !oldToken || storedToken !== oldToken) {
+        console.warn(`[${this.jobId || 'unknown'}] Token refresh failed - invalid token`);
+        return { error: 'Invalid token' };
+      }
+
+      // Check if token is expired
+      if (Date.now() > expiration) {
+        console.warn(`[${this.jobId || 'unknown'}] Token refresh failed - token expired`);
+        return { error: 'Token expired' };
+      }
+
+      // Enforce 30-minute refresh window (prevents infinite extension)
+      // Tokens can only be refreshed in the last 30 minutes before expiration
+      const REFRESH_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
+      const timeUntilExpiration = expiration - Date.now();
+      if (timeUntilExpiration > REFRESH_WINDOW_MS) {
+        const minutesRemaining = Math.floor(timeUntilExpiration / 60000);
+        console.warn(`[${this.jobId || 'unknown'}] Token refresh too early - ${minutesRemaining} minutes remaining`);
+        return {
+          error: 'Refresh not allowed yet',
+          details: `Token can be refreshed ${Math.floor((timeUntilExpiration - REFRESH_WINDOW_MS) / 60000)} minutes from now`
+        };
+      }
+
+      // Generate new token and extend expiration by 2 hours
+      const TOKEN_EXPIRATION_MS = 2 * 60 * 60 * 1000; // 2 hours
+      const newToken = crypto.randomUUID();
+      const newExpiration = Date.now() + TOKEN_EXPIRATION_MS;
+      await this.storage.put('authToken', newToken);
+      await this.storage.put('authTokenExpiration', newExpiration);
+
+      console.log(`[${this.jobId || 'unknown'}] ✅ Token refreshed successfully (expires in 2 hours)`);
+
+      return {
+        token: newToken,
+        expiresIn: 7200 // 2 hours in seconds
+      };
+    } finally {
+      this.refreshInProgress = false;
+    }
+  }
+
+  // =============================================================================
+  // State Persistence Methods (Day 3: WebSocket Enhancements)
+  // =============================================================================
+
+  /**
+   * RPC Method: Initialize job state with pipeline configuration
+   * Called by handlers when starting a background job
+   *
+   * @param {string} pipeline - Pipeline type (batch_enrichment, csv_import, ai_scan)
+   * @param {number} totalCount - Total items to process
+   * @returns {Promise<{success: boolean}>}
+   */
+  async initializeJobState(pipeline, totalCount) {
+    this.currentPipeline = pipeline;
+    const state = {
+      pipeline,
+      totalCount,
+      processedCount: 0,
+      status: 'running',
+      startTime: Date.now(),
+      version: 1
+    };
+
+    await this.storage.put('jobState', state);
+    this.lastPersistTime = Date.now();
+    console.log(`[${this.jobId}] Job state initialized for ${pipeline}`);
+
+    // NOTE: Cleanup alarm is NOT scheduled here to avoid conflicts with CSV processing alarm
+    // Cleanup alarm is scheduled in completeJobState() and failJobState() after job finishes
+
+    return { success: true };
+  }
+
+  /**
+   * RPC Method: Update job state with throttling
+   * Only persists every N updates or every T seconds (pipeline-specific)
+   *
+   * @param {Object} updates - State updates (progress, processedCount, currentItem, etc.)
+   * @returns {Promise<{success: boolean, persisted: boolean}>}
+   */
+  async updateJobState(updates) {
+    if (!this.currentPipeline) {
+      console.warn(`[${this.jobId}] Cannot update state: pipeline not initialized`);
+      return { success: false, persisted: false };
+    }
+
+    // Validate pipeline exists in THROTTLE_CONFIG
+    const config = THROTTLE_CONFIG[this.currentPipeline];
+    if (!config) {
+      console.error(`[${this.jobId}] Invalid pipeline: ${this.currentPipeline}`);
+      throw new Error(`Invalid pipeline type: ${this.currentPipeline}. Valid types: ${Object.keys(THROTTLE_CONFIG).join(', ')}`);
+    }
+
+    this.updatesSinceLastPersist++;
+    const timeSinceLastPersist = Date.now() - this.lastPersistTime;
+
+    const shouldPersist =
+      this.updatesSinceLastPersist >= config.updateCount ||
+      timeSinceLastPersist >= (config.timeSeconds * 1000);
+
+    if (shouldPersist) {
+      const currentState = await this.storage.get('jobState') || {};
+      const newState = {
+        ...currentState,
+        ...updates,
+        lastUpdate: Date.now(),
+        version: (currentState.version || 0) + 1
+      };
+
+      await this.storage.put('jobState', newState);
+      this.updatesSinceLastPersist = 0;
+      this.lastPersistTime = Date.now();
+
+      console.log(`[${this.jobId}] State persisted (version ${newState.version})`);
+      return { success: true, persisted: true };
+    }
+
+    return { success: true, persisted: false };
+  }
+
+  /**
+   * RPC Method: Get current job state
+   * Used by iOS client after reconnection to sync state
+   *
+   * @returns {Promise<Object|null>}
+   */
+  async getJobState() {
+    const state = await this.storage.get('jobState');
+    if (state) {
+      console.log(`[${this.jobId}] State retrieved (version ${state.version || 0})`);
+    }
+    return state || null;
+  }
+
+  /**
+   * RPC Method: Complete job and finalize state
+   * Called when job finishes successfully
+   *
+   * @param {Object} results - Final job results
+   * @returns {Promise<{success: boolean}>}
+   */
+  async completeJobState(results) {
+    const currentState = await this.storage.get('jobState') || {};
+    const finalState = {
+      ...currentState,
+      status: 'complete',
+      endTime: Date.now(),
+      results,
+      version: (currentState.version || 0) + 1
+    };
+
+    await this.storage.put('jobState', finalState);
+    console.log(`[${this.jobId}] Job state marked as complete`);
+
+    // Schedule cleanup alarm for 24 hours from now (only after job completes)
+    const cleanupTime = Date.now() + (24 * 60 * 60 * 1000);
+    await this.storage.setAlarm(cleanupTime);
+    console.log(`[${this.jobId}] Cleanup alarm scheduled for ${new Date(cleanupTime).toISOString()}`);
+
+    return { success: true };
+  }
+
+  /**
+   * RPC Method: Mark job as failed
+   *
+   * @param {Object} error - Error details
+   * @returns {Promise<{success: boolean}>}
+   */
+  async failJobState(error) {
+    const currentState = await this.storage.get('jobState') || {};
+    const finalState = {
+      ...currentState,
+      status: 'failed',
+      endTime: Date.now(),
+      error,
+      version: (currentState.version || 0) + 1
+    };
+
+    await this.storage.put('jobState', finalState);
+    console.log(`[${this.jobId}] Job state marked as failed`);
+
+    // Schedule cleanup alarm for 24 hours from now (only after job fails)
+    const cleanupTime = Date.now() + (24 * 60 * 60 * 1000);
+    await this.storage.setAlarm(cleanupTime);
+    console.log(`[${this.jobId}] Cleanup alarm scheduled for ${new Date(cleanupTime).toISOString()}`);
+
+    return { success: true };
+  }
+
+  // NOTE: Alarm handler is defined below at line 852 (consolidated version)
 
   /**
    * RPC Method: Push progress update to connected client
@@ -385,6 +658,171 @@ export class ProgressWebSocketDO extends DurableObject {
     return { success: true };
   }
 
+  // =============================================================================
+  // V2 Factory-Based Methods (Unified Schema)
+  // =============================================================================
+
+  /**
+   * RPC Method: Send job_started message (v2 schema)
+   *
+   * @param {string} pipeline - Pipeline type ('batch_enrichment', 'csv_import', 'ai_scan')
+   * @param {Object} payload - Job started payload (totalCount, estimatedDuration)
+   * @returns {Promise<{success: boolean}>}
+   */
+  async sendJobStarted(pipeline, payload) {
+    if (!this.webSocket) {
+      console.warn(`[${this.jobId}] No WebSocket connection available`);
+      return { success: false };
+    }
+
+    const message = {
+      type: 'job_started',
+      jobId: this.jobId,
+      pipeline,
+      timestamp: Date.now(),
+      version: '1.0.0',
+      payload: {
+        type: 'job_started',
+        ...payload
+      }
+    };
+
+    try {
+      this.webSocket.send(JSON.stringify(message));
+      console.log(`[${this.jobId}] Job started message sent (v2 schema)`);
+      return { success: true };
+    } catch (error) {
+      console.error(`[${this.jobId}] Failed to send job_started:`, error);
+      return { success: false };
+    }
+  }
+
+  /**
+   * RPC Method: Send job_progress message (v2 schema)
+   *
+   * @param {string} pipeline - Pipeline type
+   * @param {Object} payload - Progress payload (progress, status, processedCount, currentItem, keepAlive)
+   * @returns {Promise<{success: boolean}>}
+   */
+  async updateProgressV2(pipeline, payload) {
+    if (!this.webSocket) {
+      console.warn(`[${this.jobId}] No WebSocket connection available`);
+      return { success: false };
+    }
+
+    const message = {
+      type: 'job_progress',
+      jobId: this.jobId,
+      pipeline,
+      timestamp: Date.now(),
+      version: '1.0.0',
+      payload: {
+        type: 'job_progress',
+        ...payload
+      }
+    };
+
+    try {
+      this.webSocket.send(JSON.stringify(message));
+      if (!payload.keepAlive) {
+        console.log(`[${this.jobId}] Progress update sent (v2 schema): ${payload.progress}`);
+      }
+      return { success: true };
+    } catch (error) {
+      console.error(`[${this.jobId}] Failed to send job_progress:`, error);
+      return { success: false };
+    }
+  }
+
+  /**
+   * RPC Method: Send job_complete message (v2 schema)
+   *
+   * @param {string} pipeline - Pipeline type
+   * @param {Object} payload - Completion payload (pipeline-specific)
+   * @returns {Promise<{success: boolean}>}
+   */
+  async completeV2(pipeline, payload) {
+    if (!this.webSocket) {
+      console.warn(`[${this.jobId}] No WebSocket connection available`);
+      return { success: false };
+    }
+
+    const message = {
+      type: 'job_complete',
+      jobId: this.jobId,
+      pipeline,
+      timestamp: Date.now(),
+      version: '1.0.0',
+      payload: {
+        type: 'job_complete',
+        pipeline,
+        ...payload
+      }
+    };
+
+    try {
+      this.webSocket.send(JSON.stringify(message));
+      console.log(`[${this.jobId}] Job complete message sent (v2 schema)`);
+
+      // Close connection after completion
+      setTimeout(() => {
+        if (this.webSocket) {
+          this.webSocket.close(1000, 'Job completed');
+          this.cleanup();
+        }
+      }, 1000); // 1 second delay to ensure message is delivered
+
+      return { success: true };
+    } catch (error) {
+      console.error(`[${this.jobId}] Failed to send job_complete:`, error);
+      return { success: false };
+    }
+  }
+
+  /**
+   * RPC Method: Send error message (v2 schema)
+   *
+   * @param {string} pipeline - Pipeline type
+   * @param {Object} payload - Error payload (code, message, details, retryable)
+   * @returns {Promise<{success: boolean}>}
+   */
+  async sendError(pipeline, payload) {
+    if (!this.webSocket) {
+      console.warn(`[${this.jobId}] No WebSocket connection available`);
+      return { success: false };
+    }
+
+    const message = {
+      type: 'error',
+      jobId: this.jobId,
+      pipeline,
+      timestamp: Date.now(),
+      version: '1.0.0',
+      payload: {
+        type: 'error',
+        ...payload
+      }
+    };
+
+    try {
+      this.webSocket.send(JSON.stringify(message));
+      console.log(`[${this.jobId}] Error message sent (v2 schema): ${payload.code}`);
+
+      // Close connection after error
+      setTimeout(() => {
+        if (this.webSocket) {
+          this.webSocket.close(1000, 'Job failed');
+          this.cleanup();
+        }
+      }, 1000); // 1 second delay to ensure message is delivered
+
+      return { success: true };
+    } catch (error) {
+      console.error(`[${this.jobId}] Failed to send error:`, error);
+      return { success: false };
+    }
+  }
+
   /**
    * Internal cleanup
    */
@@ -422,19 +860,27 @@ export class ProgressWebSocketDO extends DurableObject {
   }
 
   /**
-   * Alarm handler: Process long-running background jobs
+   * Alarm handler: Process long-running background jobs or cleanup
    * Runs outside ctx.waitUntil() timeout limits
+   *
+   * Handles two types of alarms:
+   * 1. CSV Import Processing - jobType='csv-import', scheduled 2s after upload
+   * 2. State Cleanup - No jobType, scheduled 24h after job completion
    */
   async alarm() {
     const jobType = await this.storage.get('jobType');
     const jobId = await this.storage.get('jobId');
 
-    console.log(`[${jobId}] Alarm triggered for job type: ${jobType}`);
-
     if (jobType === 'csv-import') {
+      // CSV processing alarm (scheduled at 2s by scheduleCSVProcessing)
+      console.log(`[${jobId}] Alarm triggered for CSV import processing`);
       await this.processCSVImportAlarm();
     } else {
-      console.warn(`[${jobId}] Unknown job type in alarm: ${jobType}`);
+      // Cleanup alarm (scheduled at 24h by completeJobState/failJobState)
+      console.log(`[${jobId || 'unknown'}] Cleanup alarm triggered - removing old state`);
+      await this.storage.delete('jobState');
+      await this.storage.delete('authToken');
+      await this.storage.delete('authTokenExpiration');
     }
   }
 

@@ -52,6 +52,141 @@ export default {
       return doStub.fetch(request);
     }
 
+    // POST /api/token/refresh - Refresh authentication token for long-running jobs
+    if (url.pathname === '/api/token/refresh' && request.method === 'POST') {
+      // Rate limiting: Prevent abuse of token refresh endpoint
+      const rateLimitResponse = await checkRateLimit(request, env);
+      if (rateLimitResponse) return rateLimitResponse;
+
+      try {
+        const { jobId, oldToken } = await request.json();
+
+        if (!jobId || !oldToken) {
+          return new Response(JSON.stringify({
+            error: 'Invalid request: jobId and oldToken required'
+          }), {
+            status: 400,
+            headers: {
+              ...getCorsHeaders(request),
+              'Content-Type': 'application/json'
+            }
+          });
+        }
+
+        // Get DO stub for this job
+        const doId = env.PROGRESS_WEBSOCKET_DO.idFromName(jobId);
+        const doStub = env.PROGRESS_WEBSOCKET_DO.get(doId);
+
+        // Refresh token via Durable Object
+        const result = await doStub.refreshAuthToken(oldToken);
+
+        if (result.error) {
+          return new Response(JSON.stringify({
+            error: result.error
+          }), {
+            status: 401,
+            headers: {
+              ...getCorsHeaders(request),
+              'Content-Type': 'application/json'
+            }
+          });
+        }
+
+        // Return new token
+        return new Response(JSON.stringify({
+          jobId,
+          token: result.token,
+          expiresIn: result.expiresIn
+        }), {
+          status: 200,
+          headers: {
+            ...getCorsHeaders(request),
+            'Content-Type': 'application/json'
+          }
+        });
+
+      } catch (error) {
+        console.error('Failed to refresh token:', error);
+        return new Response(JSON.stringify({
+          error: 'Failed to refresh token',
+          message: error.message
+        }), {
+          status: 500,
+          headers: {
+            ...getCorsHeaders(request),
+            'Content-Type': 'application/json'
+          }
+        });
+      }
+    }
+
+    // GET /api/job-state/:jobId - Get current job state for reconnection sync
+    if (url.pathname.startsWith('/api/job-state/') && request.method === 'GET') {
+      try {
+        const jobId = url.pathname.split('/').pop();
+
+        if (!jobId) {
+          return new Response(JSON.stringify({
+            error: 'Invalid request: jobId required'
+          }), {
+            status: 400,
+            headers: {
+              ...getCorsHeaders(request),
+              'Content-Type': 'application/json'
+            }
+          });
+        }
+
+        // Validate Bearer token (optional - for auth)
+        const authHeader = request.headers.get('Authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          // Token validation can be added here if needed
+          // For now, we just accept any Bearer token
+        }
+
+        // Get DO stub for this job
+        const doId = env.PROGRESS_WEBSOCKET_DO.idFromName(jobId);
+        const doStub = env.PROGRESS_WEBSOCKET_DO.get(doId);
+
+        // Fetch job state from Durable Object
+        const jobState = await doStub.getJobState();
+
+        if (!jobState) {
+          return new Response(JSON.stringify({
+            error: 'Job not found or state not initialized'
+          }), {
+            status: 404,
+            headers: {
+              ...getCorsHeaders(request),
+              'Content-Type': 'application/json'
+            }
+          });
+        }
+
+        // Return job state
+        return new Response(JSON.stringify(jobState), {
+          status: 200,
+          headers: {
+            ...getCorsHeaders(request),
+            'Content-Type': 'application/json'
+          }
+        });
+
+      } catch (error) {
+        console.error('Failed to get job state:', error);
+        return new Response(JSON.stringify({
+          error: 'Failed to get job state',
+          message: error.message
+        }), {
+          status: 500,
+          headers: {
+            ...getCorsHeaders(request),
+            'Content-Type': 'application/json'
+          }
+        });
+      }
+    }
+
     // ========================================================================
     // Enrichment API Endpoint
     // ========================================================================
@@ -280,6 +415,12 @@ export default {
         const doId = env.PROGRESS_WEBSOCKET_DO.idFromName(jobId);
         const doStub = env.PROGRESS_WEBSOCKET_DO.get(doId);
 
+        // SECURITY: Generate authentication token for WebSocket connection
+        const authToken = crypto.randomUUID();
+        await doStub.setAuthToken(authToken);
+
+        console.log(`[API] Auth token generated for scan job ${jobId}`);
+
         // CRITICAL: Wait for WebSocket ready signal before processing
         // This prevents race condition where we send updates before client connects
         console.log(`[API] Waiting for WebSocket ready signal for job ${jobId}`);
@@ -312,9 +453,10 @@ export default {
         const totalDuration = stages.reduce((sum, stage) => sum + stage.typicalDuration, 0);
         const estimatedRange = [Math.floor(totalDuration * 0.8), Math.ceil(totalDuration * 1.2)];
 
-        // Return 202 Accepted immediately with stages metadata
+        // Return 202 Accepted immediately with stages metadata and auth token
         return new Response(JSON.stringify({
           jobId,
+          token: authToken, // NEW: Token for WebSocket authentication
           status: 'started',
           websocketReady: readyResult.success, // NEW: Indicates if WebSocket is ready
           message: 'AI scan started. Connect to /ws/progress?jobId=' + jobId + ' for real-time updates.',
