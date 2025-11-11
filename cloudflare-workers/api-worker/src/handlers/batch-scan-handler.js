@@ -5,9 +5,28 @@
 
 import { scanImageWithGemini } from '../providers/gemini-provider.js';
 import { createSuccessResponse, createErrorResponse } from '../utils/api-responses.js';
+import { enrichBooksParallel } from '../services/parallel-enrichment.js';
 
 const MAX_PHOTOS_PER_BATCH = 5;
 const MAX_IMAGE_SIZE = 10_000_000; // 10MB per image
+
+/**
+ * Helper function to map book objects to DetectedBook format
+ * Centralizes transformation logic to ensure consistency across all code paths
+ */
+function mapToDetectedBook(book) {
+  return {
+    title: book?.title,
+    author: book?.author,
+    isbn: book?.isbn,
+    confidence: book?.confidence,
+    boundingBox: book?.boundingBox,
+    enrichmentStatus: book?.enrichment?.status || book?.enrichmentStatus || 'pending',
+    coverUrl: book?.enrichment?.work?.coverImageURL || book?.coverUrl || null,
+    publisher: book?.enrichment?.editions?.[0]?.publisher || book?.publisher || null,
+    publicationYear: book?.enrichment?.editions?.[0]?.publicationYear || book?.publicationYear || null
+  };
+}
 
 export async function handleBatchScan(request, env, ctx) {
   try {
@@ -55,11 +74,8 @@ export async function handleBatchScan(request, env, ctx) {
 
     console.log(`[Batch Scan] Auth token generated for job ${jobId}`);
 
-    await doStub.initBatch({
-      jobId,
-      totalPhotos: images.length,
-      status: 'uploading'
-    });
+    // Initialize job state for batch scan
+    await doStub.initializeJobState('ai_scan', images.length);
 
     // Process batch asynchronously (don't await)
     ctx.waitUntil(processBatchPhotos(jobId, images, env, doStub));
@@ -103,7 +119,12 @@ async function processBatchPhotos(jobId, images, env, doStub) {
     const uploadResults = await Promise.all(uploadPromises);
 
     // Update progress after uploads - send initial processing status
-    await doStub.updateProgress(0.1, 'Photos uploaded, starting AI processing...');
+    await doStub.updateProgressV2('ai_scan', {
+      progress: 0.1,
+      status: 'Photos uploaded, starting AI processing...',
+      processedCount: 0,
+      currentItem: `Uploaded ${uploadResults.length} photos`
+    });
 
     // Phase 2: Process images sequentially with Gemini
     for (let i = 0; i < uploadResults.length; i++) {
@@ -118,35 +139,68 @@ async function processBatchPhotos(jobId, images, env, doStub) {
         continue;
       }
 
-      // Check if job canceled
-      const isCanceled = await doStub.isBatchCanceled();
-      if (isCanceled.canceled) {
+      // Check if job canceled (batch-specific cancellation check)
+      const { canceled: isCanceled } = await doStub.isBatchCanceled();
+      if (isCanceled) {
         console.log(`Job ${jobId} canceled at photo ${i}, returning partial results`);
 
         // Return partial results from completed photos
         const partialBooks = deduplicateBooks(allBooks);
 
-        await doStub.completeBatch({
-          status: 'canceled',
-          totalBooks: partialBooks.length,
-          photoResults: photoResults.concat(
-            // Mark remaining photos as skipped
-            uploadResults.slice(i).map((upload, idx) => ({
-              index: i + idx,
-              status: 'skipped',
-              booksFound: 0
-            }))
-          ),
-          books: partialBooks
+        // Enrich partial results before returning
+        await doStub.updateProgressV2('ai_scan', {
+          progress: 0.8,
+          status: `Job canceled, enriching ${partialBooks.length} partial results...`,
+          processedCount: i,
+          currentItem: 'Enrichment phase'
+        });
+
+        const enrichedPartialBooks = await enrichBooksParallel(
+          partialBooks,
+          async (book) => {
+            const enrichedCount = enrichedPartialBooks ? enrichedPartialBooks.filter(b => b.enrichment).length : 0;
+            const enrichProgress = 0.8 + (0.2 * (enrichedCount / partialBooks.length));
+            await doStub.updateProgressV2('ai_scan', {
+              progress: enrichProgress,
+              status: `Enriching canceled job results... (${enrichedCount + 1}/${partialBooks.length})`,
+              processedCount: enrichedCount + 1,
+              currentItem: book.title || 'Unknown title'
+            });
+          },
+          env,
+          10
+        );
+
+        const approvedCount = enrichedPartialBooks.filter(b => b.confidence >= 0.6).length;
+        const reviewCount = enrichedPartialBooks.filter(b => b.confidence < 0.6).length;
+
+        // Final progress update before completion
+        await doStub.updateProgressV2('ai_scan', {
+          progress: 1.0,
+          status: 'Job canceled, returning partial results...',
+          processedCount: enrichedPartialBooks.length,
+          currentItem: 'Finalizing'
+        });
+
+        // FIX: Removed non-standard 'canceled: true' field (not in AIScanCompletePayload schema)
+        // Client will know about cancellation from progress messages showing partial results
+        await doStub.completeV2('ai_scan', {
+          totalDetected: enrichedPartialBooks.length,
+          approved: approvedCount,
+          needsReview: reviewCount,
+          books: enrichedPartialBooks.map(mapToDetectedBook)
         });
 
         return; // Exit early with partial results
       }
 
       // Update progress: processing this photo
-      await doStub.updatePhoto({
-        photoIndex: i,
-        status: 'processing'
+      const progress = (i + 0.5) / uploadResults.length;
+      await doStub.updateProgressV2('ai_scan', {
+        progress,
+        status: `Processing photo ${i + 1} of ${uploadResults.length}...`,
+        processedCount: i,
+        currentItem: `Photo ${i + 1}`
       });
 
       try {
@@ -165,10 +219,12 @@ async function processBatchPhotos(jobId, images, env, doStub) {
         allBooks.push(...result.books);
 
         // Update progress: photo complete
-        await doStub.updatePhoto({
-          photoIndex: i,
-          status: 'complete',
-          booksFound: result.books.length
+        const completionProgress = (i + 1) / uploadResults.length;
+        await doStub.updateProgressV2('ai_scan', {
+          progress: completionProgress,
+          status: `Completed photo ${i + 1} of ${uploadResults.length} - Found ${result.books.length} books`,
+          processedCount: i + 1,
+          currentItem: `Photo ${i + 1}: ${result.books.length} books`
         });
 
       } catch (error) {
@@ -180,10 +236,12 @@ async function processBatchPhotos(jobId, images, env, doStub) {
         });
 
         // Update progress: photo error
-        await doStub.updatePhoto({
-          photoIndex: i,
-          status: 'error',
-          error: error.message
+        const errorProgress = (i + 1) / uploadResults.length;
+        await doStub.updateProgressV2('ai_scan', {
+          progress: errorProgress,
+          status: `Error processing photo ${i + 1}: ${error.message}`,
+          processedCount: i + 1,
+          currentItem: `Photo ${i + 1}: Error`
         });
       }
     }
@@ -191,19 +249,61 @@ async function processBatchPhotos(jobId, images, env, doStub) {
     // Phase 3: Deduplicate books by ISBN
     const uniqueBooks = deduplicateBooks(allBooks);
 
-    // Send final completion
-    await doStub.completeBatch({
-      status: 'complete',
-      totalBooks: uniqueBooks.length,
-      photoResults,
-      books: uniqueBooks
+    // Phase 4: Enrich books with metadata (parallel)
+    // Update progress to show enrichment phase starting
+    await doStub.updateProgressV2('ai_scan', {
+      progress: 0.8,
+      status: `Enriching ${uniqueBooks.length} books with metadata...`,
+      processedCount: uploadResults.length,
+      currentItem: 'Enrichment phase'
+    });
+
+    const enrichedBooks = await enrichBooksParallel(
+      uniqueBooks,
+      async (book) => {
+        // Progress callback for each enriched book
+        const enrichedCount = enrichedBooks ? enrichedBooks.filter(b => b.enrichment).length : 0;
+        const enrichProgress = 0.8 + (0.2 * (enrichedCount / uniqueBooks.length));
+        await doStub.updateProgressV2('ai_scan', {
+          progress: enrichProgress,
+          status: `Enriching books... (${enrichedCount + 1}/${uniqueBooks.length})`,
+          processedCount: enrichedCount + 1,
+          currentItem: book.title || 'Unknown title'
+        });
+      },
+      env,
+      10 // maxConcurrent
+    );
+
+    // Calculate approved vs review queue counts (threshold: 0.6 confidence)
+    const approvedCount = enrichedBooks.filter(b => b.confidence >= 0.6).length;
+    const reviewCount = enrichedBooks.filter(b => b.confidence < 0.6).length;
+
+    // Final progress update before completion (100%)
+    await doStub.updateProgressV2('ai_scan', {
+      progress: 1.0,
+      status: 'Batch scan complete, finalizing results...',
+      processedCount: uniqueBooks.length,
+      currentItem: 'Finalizing'
+    });
+
+    // Send final completion using V2 schema with enriched data
+    await doStub.completeV2('ai_scan', {
+      totalDetected: enrichedBooks.length,
+      approved: approvedCount,
+      needsReview: reviewCount,
+      books: enrichedBooks.map(mapToDetectedBook)
     });
 
   } catch (error) {
     console.error('Batch processing error:', error);
-    await doStub.fail({
-      error: error.message,
-      fallbackAvailable: false
+    await doStub.sendError('ai_scan', {
+      code: 'E_BATCH_SCAN_FAILED',
+      message: error.message,
+      retryable: true,
+      details: {
+        fallbackAvailable: false
+      }
     });
   }
 }

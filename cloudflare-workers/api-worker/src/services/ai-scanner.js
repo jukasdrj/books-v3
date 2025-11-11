@@ -31,23 +31,24 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
       console.warn(`[AI Scanner] Job ${jobId} started ${elapsedMs}ms after request - possible ready timeout`);
     }
 
+    // Initialize job state
+    await doStub.initializeJobState('ai_scan', 3); // 3 stages total
+
     // Stage 1: Image quality analysis (10% progress)
-    await doStub.pushProgress({
+    await doStub.updateProgressV2('ai_scan', {
       progress: 0.1,
-      processedItems: 0,
-      totalItems: 3,
-      currentStatus: 'Analyzing image quality...',
-      jobId
+      status: 'Analyzing image quality...',
+      processedCount: 0,
+      currentItem: 'Image quality check'
     });
     console.log(`[AI Scanner] Progress pushed: 10% (image quality analysis)`);
 
     // Stage 2: AI processing with Gemini 2.0 Flash
-    await doStub.pushProgress({
+    await doStub.updateProgressV2('ai_scan', {
       progress: 0.3,
-      processedItems: 1,
-      totalItems: 3,
-      currentStatus: 'Processing with Gemini AI...',
-      jobId
+      status: 'Processing with Gemini AI...',
+      processedCount: 1,
+      currentItem: 'Gemini AI processing'
     });
 
     console.log(`[AI Scanner] Job ${jobId} - Using Gemini 2.0 Flash`);
@@ -86,13 +87,11 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
 
     console.log(`[AI Scanner] ${detectedBooks.length} books detected (${scanResult.metadata.processingTimeMs}ms)`);
 
-    await doStub.pushProgress({
+    await doStub.updateProgressV2('ai_scan', {
       progress: 0.5,
-      processedItems: 1,
-      totalItems: 3,
-      currentStatus: `Detected ${detectedBooks.length} books, enriching data...`,
-      jobId,
-      detectedBooks
+      status: `Detected ${detectedBooks.length} books, enriching data...`,
+      processedCount: 1,
+      currentItem: `${detectedBooks.length} books detected`
     });
 
     // Stage 3: Enrichment (70% → 100% progress)
@@ -140,14 +139,13 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
       },
       async (completed, total, title, hasError) => {
         const progress = 0.7 + (0.25 * completed / total);
-        await doStub.pushProgress({
+        await doStub.updateProgressV2('ai_scan', {
           progress,
-          processedItems: 2,
-          totalItems: 3,
-          currentStatus: hasError
+          status: hasError
             ? `Enriched ${completed}/${total} books (${title} failed)`
             : `Enriched ${completed}/${total} books`,
-          jobId
+          processedCount: 2,
+          currentItem: `Enriching: ${title}`
         });
       },
       10 // 10 concurrent requests (matches CSV import concurrency)
@@ -161,44 +159,33 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
     const processingTime = Date.now() - startTime;
 
     // Stage 4: Complete (100%)
-    // Build unified books array with embedded enrichment data (matches iOS BookPayload structure)
+    // Build unified books array using AIScanCompletePayload structure
     const books = enrichedBooks.map(b => ({
       title: b.title,
       author: b.author,
       isbn: b.isbn || null,
-      format: b.format || 'unknown',
       confidence: b.confidence,
       boundingBox: b.boundingBox,
-      // Embedded enrichment data
-      enrichment: b.enrichment ? {
-        status: b.enrichment.status || 'unknown',
-        work: b.enrichment.work || null,
-        editions: b.enrichment.editions || [],
-        authors: b.enrichment.authors || [],
-        provider: b.enrichment.provider || 'unknown',
-        cachedResult: b.enrichment.cachedResult || false
-      } : null
+      enrichmentStatus: b.enrichment?.status || 'pending',
+      coverUrl: b.enrichment?.work?.coverImageURL || null,
+      publisher: b.enrichment?.editions?.[0]?.publisher || null,
+      publicationYear: b.enrichment?.editions?.[0]?.publicationYear || null
     }));
 
-    await doStub.pushProgress({
+    // Final progress update before completion (100%)
+    await doStub.updateProgressV2('ai_scan', {
       progress: 1.0,
-      processedItems: 3,
-      totalItems: 3,
-      currentStatus: 'Scan complete',
-      jobId,
-      result: {
-        totalDetected: detectedBooks.length,
-        approved: approved.length,
-        needsReview: review.length,
-        books,  // Unified array (matches iOS expectations)
-        detections: detectedBooks,  // Original AI detection data (for debugging)
-        metadata: {
-          processingTime,
-          enrichedCount: enrichedBooks.filter(b => b.enrichment?.status === 'success').length,
-          timestamp: new Date().toISOString(),
-          modelUsed: modelUsed  // Model name from AI provider (gemini-2.0-flash-exp)
-        }
-      }
+      status: 'Scan complete, finalizing results...',
+      processedCount: 3,
+      currentItem: 'Finalizing'
+    });
+
+    // Send completion using V2 schema
+    await doStub.completeV2('ai_scan', {
+      totalDetected: detectedBooks.length,
+      approved: approved.length,
+      needsReview: review.length,
+      books
     });
 
     console.log(`[AI Scanner] Scan complete for job ${jobId}: ${detectedBooks.length} books, ${processingTime}ms`);
@@ -206,17 +193,16 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
   } catch (error) {
     console.error(`[AI Scanner] Scan failed for job ${jobId}:`, error);
 
-    // Push error to WebSocket
-    await doStub.pushProgress({
-      progress: 0,
-      processedItems: 0,
-      totalItems: 3,
-      currentStatus: 'Scan failed',
-      jobId,
-      error: error.message
+    // Send error using V2 schema
+    await doStub.sendError('ai_scan', {
+      code: 'E_AI_SCAN_FAILED',
+      message: error.message,
+      retryable: true,
+      details: {
+        jobId,
+        stage: 'AI processing'
+      }
     });
-  } finally {
-    // Close WebSocket connection
-    await doStub.closeConnection(1000, 'Scan complete');
   }
+  // NOTE: No finally block needed! completeV2() and sendError() handle WebSocket cleanup
 }

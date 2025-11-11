@@ -104,7 +104,11 @@ export async function processCSVImportCore(csvText, jobId, doStub, env) {
     }
 
     // Stage 0: Validation (0-5%)
-    await doStub.updateProgress(0.02, 'Validating CSV file...');
+    await doStub.updateProgressV2('csv_import', {
+      progress: 0.02,
+      status: 'Validating CSV file...',
+      processedCount: 0
+    });
 
     const validation = validateCSV(csvText);
     if (!validation.valid) {
@@ -112,7 +116,11 @@ export async function processCSVImportCore(csvText, jobId, doStub, env) {
     }
 
     // Stage 1: Gemini Parsing (5-50%)
-    await doStub.updateProgress(0.05, 'Uploading CSV to Gemini...');
+    await doStub.updateProgressV2('csv_import', {
+      progress: 0.05,
+      status: 'Uploading CSV to Gemini...',
+      processedCount: 0
+    });
 
     const cacheKey = await generateCSVCacheKey(csvText, PROMPT_VERSION);
     let parsedBooks = await env.KV_CACHE.get(cacheKey, 'json');
@@ -137,20 +145,29 @@ export async function processCSVImportCore(csvText, jobId, doStub, env) {
     }
 
     // Stage 2: Report parsed count (no validation needed - schema enforces requirements)
-    await doStub.updateProgress(0.75, `Gemini parsed ${parsedBooks.length} books with valid title+author`);
+    // FIX: Removed redundant currentItem (duplicates processedCount info)
+    await doStub.updateProgressV2('csv_import', {
+      progress: 0.75,
+      status: `Gemini parsed ${parsedBooks.length} books with valid title+author`,
+      processedCount: parsedBooks.length
+    });
 
     // Complete immediately (no enrichment, no manual validation)
-    await doStub.complete({
+    await doStub.completeV2('csv_import', {
       books: parsedBooks,
       errors: [],
       successRate: `${parsedBooks.length}/${parsedBooks.length}`
     });
 
   } catch (error) {
-    await doStub.fail({
-      error: error.message,
-      fallbackAvailable: true,
-      suggestion: 'Try manual CSV import instead'
+    await doStub.sendError('csv_import', {
+      code: 'E_CSV_PROCESSING_FAILED',
+      message: error.message,
+      retryable: true,
+      details: {
+        fallbackAvailable: true,
+        suggestion: 'Try manual CSV import instead'
+      }
     });
   }
   // NOTE: No finally block! complete() and fail() handle WebSocket cleanup with
