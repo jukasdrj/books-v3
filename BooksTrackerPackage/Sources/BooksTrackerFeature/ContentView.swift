@@ -57,6 +57,7 @@ public struct ContentView: View {
                         // Library Tab
                         NavigationStack {
                             iOS26LiquidLibraryView()
+                                .environment(tabCoordinator)
                         }
                         .tabItem {
                             Label("Library", systemImage: selectedTab == .library ? "books.vertical.fill" : "books.vertical")

@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import os.log
 
 // Import GeminiCSVImportJob for ParsedBook type
 // Note: File is in same package, so no additional import needed beyond internal visibility
@@ -80,6 +81,7 @@ public struct ImportServiceError: Sendable, Identifiable {
 /// - Background import: UI remains responsive throughout
 public actor ImportService {
     private let modelContainer: ModelContainer
+    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "ImportService")
 
     public init(modelContainer: ModelContainer) {
         self.modelContainer = modelContainer
@@ -98,7 +100,8 @@ public actor ImportService {
     ) async throws -> ImportResult {
         let context = ModelContext(modelContainer)
         context.autosaveEnabled = false
-        context.automaticallyMergesChangesFromParent = true // CloudKit sync integrity
+        // Note: SwiftData ModelContext doesn't have automaticallyMergesChangesFromParent
+        // Background context changes are handled differently in SwiftData
 
         var successCount = 0
         var skippedCount = 0
@@ -163,11 +166,12 @@ public actor ImportService {
                 newWorks.append(work)
                 successCount += 1
             } catch {
-                // Per-book error handling: one bad book doesn't crash entire import
+                // Per-book error handling - track failure without stopping entire import
                 importErrors.append(ImportServiceError(
                     title: book.title,
                     message: "Failed to process: \(error.localizedDescription)"
                 ))
+                logger.error("Failed to import '\(book.title)': \(error.localizedDescription)")
             }
         }
 
@@ -176,6 +180,15 @@ public actor ImportService {
 
         // Extract permanent IDs after save
         let newWorkIDs = newWorks.map { $0.persistentModelID }
+
+        logger.debug("📚 [IMPORT] Saved \(newWorks.count) works, extracted \(newWorkIDs.count) permanent IDs")
+        logger.debug("📚 [IMPORT] Context: Actor isolation")
+        newWorks.prefix(3).enumerated().forEach { index, work in
+            logger.debug("  [\(index)] \(work.title) → ID: \(work.persistentModelID)")
+        }
+        if newWorks.count > 3 {
+            logger.debug("  ... and \(newWorks.count - 3) more")
+        }
 
         let duration = startTime.duration(to: ContinuousClock.now)
         return ImportResult(

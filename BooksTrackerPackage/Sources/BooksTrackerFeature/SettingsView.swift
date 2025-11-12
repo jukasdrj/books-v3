@@ -42,6 +42,7 @@ public struct SettingsView: View {
     @Environment(FeatureFlags.self) private var featureFlags
     @Environment(\.dtoMapper) private var dtoMapper
     @Environment(LibraryRepository.self) private var libraryRepository
+    @Environment(TabCoordinator.self) private var tabCoordinator
 
     // MARK: - State Management
 
@@ -360,6 +361,7 @@ public struct SettingsView: View {
         .background(backgroundView.ignoresSafeArea())
         .sheet(isPresented: $showingGeminiCSVImporter) {
             GeminiCSVImportView()
+                .environment(tabCoordinator)
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }

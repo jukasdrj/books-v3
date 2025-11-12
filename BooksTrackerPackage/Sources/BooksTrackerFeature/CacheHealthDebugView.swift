@@ -96,9 +96,13 @@ public struct CacheHealthDebugView: View {
                 Text("Reset clears all tracked metrics. Debug info prints detailed metrics to console.")
             }
         }
+        #if os(iOS)
         .listStyle(.insetGrouped)
-        .navigationTitle("Cache Health")
         .navigationBarTitleDisplayMode(.inline)
+        #else
+        .listStyle(.inset)
+        #endif
+        .navigationTitle("Cache Health")
         .background(themeStore.backgroundGradient.ignoresSafeArea())
     }
 

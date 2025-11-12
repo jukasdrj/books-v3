@@ -243,11 +243,19 @@ extension View {
                         .glassEffect(.regular, interactive: true)
 
                     HStack(spacing: 16) {
+                        #if os(iOS)
                         Button("Glass Button") {}
                             .buttonStyle(.glass)
 
                         Button("Prominent") {}
                             .buttonStyle(.glassProminent)
+                        #else
+                        Button("Glass Button") {}
+                            .buttonStyle(.borderedProminent)
+
+                        Button("Prominent") {}
+                            .buttonStyle(.borderedProminent)
+                        #endif
                     }
                 }
                 .padding()
