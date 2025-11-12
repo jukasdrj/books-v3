@@ -84,6 +84,7 @@ export function ensureWorkForEdition(edition: EditionDTO): WorkDTO {
     title: edition.title || 'Unknown',
     subjectTags: [], // No genres available from Edition data
     firstPublicationYear: extractYear(edition.publicationDate),
+    coverImageURL: edition.coverImageURL, // FIX #346: Copy cover URL from Edition
     synthetic: true, // KEY: indicates this Work was inferred
     primaryProvider: edition.primaryProvider,
     contributors: edition.contributors,

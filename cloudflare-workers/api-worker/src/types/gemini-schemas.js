@@ -33,57 +33,30 @@ export const BOOKSHELF_RESPONSE_SCHEMA = {
         description: "Book title extracted from spine"
       },
       author: {
-        type: ["string", "null"],
-        description: "Author name if visible on spine"
+        type: "string",
+        description: "Author name if visible on spine",
+        nullable: true
       },
       isbn: {
-        type: ["string", "null"],
-        description: "ISBN-10 or ISBN-13 if visible"
+        type: "string",
+        description: "ISBN-10 or ISBN-13 if visible",
+        nullable: true
       },
       format: {
         type: "string",
         enum: ["hardcover", "paperback", "mass-market", "unknown"],
-        description: "Physical format detected from visual cues (spine thickness, cover material)"
+        description: "Physical format detected from visual cues",
+        nullable: true
       },
       confidence: {
         type: "number",
-        description: "Detection confidence level (0.0 = uncertain, 1.0 = certain)",
+        description: "Detection confidence level (0.0-1.0)",
         minimum: 0.0,
-        maximum: 1.0
-      },
-      boundingBox: {
-        type: "object",
-        description: "Normalized coordinates (0.0-1.0) of book spine in image",
-        properties: {
-          x1: {
-            type: "number",
-            description: "Left edge (0.0 = left side of image)",
-            minimum: 0.0,
-            maximum: 1.0
-          },
-          y1: {
-            type: "number",
-            description: "Top edge (0.0 = top of image)",
-            minimum: 0.0,
-            maximum: 1.0
-          },
-          x2: {
-            type: "number",
-            description: "Right edge (1.0 = right side of image)",
-            minimum: 0.0,
-            maximum: 1.0
-          },
-          y2: {
-            type: "number",
-            description: "Bottom edge (1.0 = bottom of image)",
-            minimum: 0.0,
-            maximum: 1.0
-          }
-        },
-        required: ["x1", "y1", "x2", "y2"]
+        maximum: 1.0,
+        nullable: true
       }
     },
-    required: ["title", "confidence", "boundingBox", "format"]
+    required: ["title"]
   }
 };
 

@@ -4,11 +4,20 @@ description: Check Cloudflare Worker health and configuration status
 
 🏥 **Backend Health Check** 🏥
 
-Comprehensive health check for api-worker with diagnostics and configuration validation.
+Comprehensive health check for api-worker using Cloudflare MCP tools for deep diagnostics.
 
 **Tasks:**
 
-1. **HTTP Health Endpoint**
+1. **Worker Details (via MCP)**
+   - Use `mcp__cloudflare-observability__workers_get_worker` with scriptName: "api-worker"
+   - Display:
+     - Deployment status
+     - Last modified date
+     - Active bindings configuration
+     - Environment variables
+     - Routes and triggers
+
+2. **HTTP Health Endpoint**
    - Call `GET https://api-worker.jukasdrj.workers.dev/health`
    - Parse response JSON
    - Display:
@@ -17,7 +26,7 @@ Comprehensive health check for api-worker with diagnostics and configuration val
      - Binding status (KV, R2, Secrets Store, Durable Objects)
      - Available endpoints
 
-2. **Binding Validation**
+3. **Binding Validation**
    - Check Secrets Store secrets are configured:
      - GEMINI_API_KEY (google_gemini_oooebooks)
      - GOOGLE_BOOKS_API_KEY (Google_books_hardoooe)
@@ -28,21 +37,24 @@ Comprehensive health check for api-worker with diagnostics and configuration val
    - Verify Queue (AUTHOR_WARMING_QUEUE)
    - Verify Analytics Engine datasets (4 total)
 
-3. **Test Critical Endpoints**
+4. **Test Critical Endpoints**
    - **Search:** `GET /search/title?q=gatsby`
    - **WebSocket:** `GET /ws/progress?jobId=test` (should return upgrade required)
    - **Metrics:** `GET /metrics` (cache analytics)
 
-4. **Configuration Summary**
-   - Show environment variables (cache TTLs, logging config)
-   - Display cron schedules (daily archival, alert checks)
-   - List queue consumers and producers
-   - Show worker limits (CPU: 180s, Memory: 256MB)
+5. **Recent Error Check (via MCP)**
+   - Use `mcp__cloudflare-observability__query_worker_observability`
+   - Query for errors in last 10 minutes:
+     - View: events
+     - Filters: $metadata.level = "error"
+     - Timeframe: Last 10 minutes
+     - Limit: 10
+   - Display error count and recent error messages
 
-5. **Diagnostics**
-   - Check for recent errors in logs (last 10 minutes)
-   - Verify API key access (test Secrets Store `.get()` pattern)
-   - Check queue backlog (author-warming-queue)
+6. **Performance Metrics (via MCP)**
+   - Query p50/p99 response times for last hour
+   - Check request success rate
+   - Identify slow endpoints (>5s response time)
 
 **Expected Response:**
 ```json

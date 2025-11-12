@@ -137,8 +137,11 @@ public final class GenericWebSocketHandler {
             case .error(let payload):
                 errorHandler(payload)
                 disconnect() // Job failed - disconnect
-            case .jobStarted, .ping, .pong:
+            case .readyAck, .jobStarted, .ping, .pong:
                 // These messages are handled at infrastructure level or ignored
+                // readyAck: Backend acknowledgment of client ready signal (no action needed)
+                // jobStarted: Optional pre-processing notification (no action needed)
+                // ping/pong: Keep-alive messages (no action needed)
                 break
             }
         } catch {

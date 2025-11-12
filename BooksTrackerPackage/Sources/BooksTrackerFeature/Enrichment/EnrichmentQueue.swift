@@ -299,13 +299,50 @@ public final class EnrichmentQueue {
         modelContext: ModelContext,
         progressHandler: @escaping (Int, Int, String) -> Void
     ) async {
-        // Construct WebSocket URL with jobId
-        guard let wsURL = URL(string: "\(EnrichmentConfig.webSocketBaseURL)/ws/progress?jobId=\(jobId)") else {
+        // ✅ CRITICAL FIX: Send POST request FIRST to create Durable Object on backend
+        // The backend creates the DO when it receives the POST request (batch-enrichment.js:128-129)
+        // WebSocket connection will fail if DO doesn't exist yet!
+        #if DEBUG
+        print("📤 Sending batch enrichment POST request (creates DO)...")
+        #endif
+
+        let enrichmentResult = await EnrichmentService.shared.batchEnrichWorks(works, jobId: jobId, in: modelContext)
+
+        #if DEBUG
+        print("✅ Batch enrichment job accepted. \(works.count) books queued for background processing")
+        #endif
+
+        // ✅ Guard against nil/empty token (happens on enrichment API errors)
+        guard let token = enrichmentResult.token, !token.isEmpty else {
+            #if DEBUG
+            print("⚠️ No authentication token available, skipping WebSocket connection")
+            print("⚠️ Enrichment API may have returned an error")
+            #endif
+            return
+        }
+
+        // ✅ NOW connect WebSocket (DO exists on backend)
+        // Use URLComponents for proper URL encoding
+        var components = URLComponents(string: "\(EnrichmentConfig.webSocketBaseURL)/ws/progress")!
+        components.queryItems = [
+            URLQueryItem(name: "jobId", value: jobId),
+            URLQueryItem(name: "token", value: token)
+        ]
+
+        guard let wsURL = components.url else {
             #if DEBUG
             print("❌ Invalid WebSocket URL")
             #endif
             return
         }
+
+        #if DEBUG
+        print("🔐 Using auth token: [REDACTED]")
+        #endif
+
+        #if DEBUG
+        print("🔌 Connecting WebSocket for progress updates...")
+        #endif
 
         self.webSocketHandler = GenericWebSocketHandler(
             url: wsURL,
@@ -347,12 +384,12 @@ public final class EnrichmentQueue {
                 NotificationCoordinator.postEnrichmentFailed(error: errorPayload.message)
             }
         )
+
+        // Connect and wait for handshake (GenericWebSocketHandler already has waitForConnection + sendReadySignal)
         await self.webSocketHandler?.connect()
 
-        _ = await EnrichmentService.shared.batchEnrichWorks(works, jobId: jobId, in: modelContext)
-
         #if DEBUG
-        print("✅ Batch enrichment job accepted. \(works.count) books queued for background processing via WebSocket")
+        print("✅ WebSocket connected. Listening for enrichment progress updates...")
         #endif
     }
 

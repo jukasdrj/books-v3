@@ -123,7 +123,8 @@ public final class EnrichmentService {
             return BatchEnrichmentResult(
                 successCount: 0,  // Job accepted, enrichment pending (not complete)
                 failureCount: 0,  // No failures yet (enrichment in progress)
-                errors: []
+                errors: [],
+                token: result.token  // WebSocket authentication token
             )
         } catch {
             // Enhanced error logging for debugging enrichment failures
@@ -152,7 +153,8 @@ public final class EnrichmentService {
             return BatchEnrichmentResult(
                 successCount: 0,
                 failureCount: works.count,
-                errors: [EnrichmentError.apiError(String(describing: error))]
+                errors: [EnrichmentError.apiError(String(describing: error))],
+                token: nil  // No token on error
             )
         }
     }
@@ -387,6 +389,7 @@ public struct BatchEnrichmentResult: Sendable {
     public let successCount: Int
     public let failureCount: Int
     public let errors: [EnrichmentError]
+    public let token: String?  // WebSocket authentication token (nil on error)
 }
 
 public struct EnrichmentStatistics: Sendable {

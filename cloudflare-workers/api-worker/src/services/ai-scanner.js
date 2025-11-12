@@ -18,8 +18,9 @@ import { enrichBooksParallel } from './parallel-enrichment.js';
  * @param {Request} request - Request object with X-AI-Provider header
  * @param {Object} env - Worker environment bindings
  * @param {Object} doStub - ProgressWebSocketDO stub for status updates
+ * @param {ExecutionContext} ctx - Execution context for waitUntil
  */
-export async function processBookshelfScan(jobId, imageData, request, env, doStub) {
+export async function processBookshelfScan(jobId, imageData, request, env, doStub, ctx) {
   const startTime = Date.now();
 
   try {
@@ -101,10 +102,12 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
       async (book) => {
         // Direct function call - NO RPC, no circular dependency!
         // Use v1 canonical handler
+        console.log(`[AI Scanner] Enriching book: "${book.title}" by ${book.author || 'unknown'}`);
         const apiResponse = await handleSearchAdvanced(
           book.title || '',
           book.author || '',
-          env
+          env,
+          ctx  // Pass execution context for waitUntil support
         );
 
         // Parse canonical ApiResponse<BookSearchResponse>
@@ -112,6 +115,8 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
           const work = apiResponse.data.works?.[0] || null;
           const editions = apiResponse.data.editions || [];  // FIX: Editions are at top level, not nested in works
           const authors = apiResponse.data.authors || [];
+
+          console.log(`[AI Scanner] ✅ Enrichment ${work ? 'found' : 'not found'} for "${book.title}": work=${!!work}, editions=${editions.length}, authors=${authors.length}`);
 
           return {
             ...book,
@@ -125,6 +130,7 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
             }
           };
         } else {
+          console.error(`[AI Scanner] ❌ Enrichment failed for "${book.title}": ${apiResponse.error.message}`);
           return {
             ...book,
             enrichment: {
@@ -172,6 +178,10 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
       publicationYear: b.enrichment?.editions?.[0]?.publicationYear || null
     }));
 
+    console.log(`[AI Scanner] 📦 Built books array with ${books.length} books:`);
+    console.log(`[AI Scanner] Sample book 0:`, JSON.stringify(books[0], null, 2));
+    console.log(`[AI Scanner] Enrichment summary: ${enrichedBooks.filter(b => b.enrichment?.status === 'success').length} success, ${enrichedBooks.filter(b => b.enrichment?.status === 'not_found').length} not_found, ${enrichedBooks.filter(b => b.enrichment?.status === 'error').length} error`);
+
     // Final progress update before completion (100%)
     await doStub.updateProgressV2('ai_scan', {
       progress: 1.0,
@@ -181,12 +191,19 @@ export async function processBookshelfScan(jobId, imageData, request, env, doStu
     });
 
     // Send completion using V2 schema
-    await doStub.completeV2('ai_scan', {
+    const completionPayload = {
       totalDetected: detectedBooks.length,
       approved: approved.length,
       needsReview: review.length,
       books
-    });
+    };
+    console.log(`[AI Scanner] 📤 Sending completeV2 with payload:`, JSON.stringify({
+      totalDetected: completionPayload.totalDetected,
+      approved: completionPayload.approved,
+      needsReview: completionPayload.needsReview,
+      booksCount: completionPayload.books.length
+    }));
+    await doStub.completeV2('ai_scan', completionPayload);
 
     console.log(`[AI Scanner] Scan complete for job ${jobId}: ${detectedBooks.length} books, ${processingTime}ms`);
 

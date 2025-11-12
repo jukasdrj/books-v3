@@ -18,6 +18,7 @@ import Foundation
 // MARK: - Message Type Enum
 
 public enum MessageType: String, Codable, Sendable {
+    case readyAck = "ready_ack"       // Backend acknowledgment of client ready signal
     case jobStarted = "job_started"
     case jobProgress = "job_progress"
     case jobComplete = "job_complete"
@@ -53,6 +54,7 @@ public struct TypedWebSocketMessage: Codable, Sendable {
 // MARK: - Message Payload (Discriminated Union)
 
 public enum MessagePayload: Codable, Sendable {
+    case readyAck(ReadyAckPayload)
     case jobStarted(JobStartedPayload)
     case jobProgress(JobProgressPayload)
     case jobComplete(JobCompletePayload)
@@ -66,6 +68,8 @@ public enum MessagePayload: Codable, Sendable {
         let type = try container.decode(String.self, forKey: .type)
 
         switch type {
+        case "ready_ack":
+            self = .readyAck(try ReadyAckPayload(from: decoder))
         case "job_started":
             self = .jobStarted(try JobStartedPayload(from: decoder))
         case "job_progress":
@@ -89,6 +93,8 @@ public enum MessagePayload: Codable, Sendable {
 
     public func encode(to encoder: Encoder) throws {
         switch self {
+        case .readyAck(let payload):
+            try payload.encode(to: encoder)
         case .jobStarted(let payload):
             try payload.encode(to: encoder)
         case .jobProgress(let payload):
@@ -109,10 +115,17 @@ public enum MessagePayload: Codable, Sendable {
     }
 }
 
+// MARK: - Ready Acknowledgment Payload
+
+public struct ReadyAckPayload: Codable, Sendable {
+    public let type: String
+    public let timestamp: Int64             // Milliseconds since epoch
+}
+
 // MARK: - Job Started Payload
 
 public struct JobStartedPayload: Codable, Sendable {
-    public let type: String = "job_started"
+    public let type: String
     public let totalCount: Int?
     public let estimatedDuration: Int?      // Seconds
 }
@@ -120,7 +133,7 @@ public struct JobStartedPayload: Codable, Sendable {
 // MARK: - Job Progress Payload
 
 public struct JobProgressPayload: Codable, Sendable {
-    public let type: String = "job_progress"
+    public let type: String
     public let progress: Double             // 0.0 - 1.0
     public let status: String
     public let processedCount: Int?
@@ -136,21 +149,22 @@ public enum JobCompletePayload: Codable, Sendable {
     case aiScan(AIScanCompletePayload)
 
     public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let pipeline = try container.decode(String.self, forKey: .pipeline)
+        // Try decoding each pipeline-specific payload type
+        // The payload discriminator (pipeline) is at the MESSAGE level, not in the payload itself
+        // So we use the payload structure to determine which type it is
 
-        switch pipeline {
-        case "batch_enrichment":
-            self = .batchEnrichment(try BatchEnrichmentCompletePayload(from: decoder))
-        case "csv_import":
-            self = .csvImport(try CSVImportCompletePayload(from: decoder))
-        case "ai_scan":
-            self = .aiScan(try AIScanCompletePayload(from: decoder))
-        default:
-            throw DecodingError.dataCorruptedError(
-                forKey: .pipeline,
-                in: container,
-                debugDescription: "Unknown pipeline: \(pipeline)"
+        if let aiPayload = try? AIScanCompletePayload(from: decoder) {
+            self = .aiScan(aiPayload)
+        } else if let batchPayload = try? BatchEnrichmentCompletePayload(from: decoder) {
+            self = .batchEnrichment(batchPayload)
+        } else if let csvPayload = try? CSVImportCompletePayload(from: decoder) {
+            self = .csvImport(csvPayload)
+        } else {
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "Could not decode any known JobCompletePayload type"
+                )
             )
         }
     }
@@ -165,17 +179,13 @@ public enum JobCompletePayload: Codable, Sendable {
             try payload.encode(to: encoder)
         }
     }
-
-    private enum CodingKeys: String, CodingKey {
-        case pipeline
-    }
 }
 
 // MARK: - Batch Enrichment Complete Payload
 
 public struct BatchEnrichmentCompletePayload: Codable, Sendable {
-    public let type: String = "job_complete"
-    public let pipeline: String = "batch_enrichment"
+    public let type: String
+    public let pipeline: String
     public let totalProcessed: Int
     public let successCount: Int
     public let failureCount: Int
@@ -207,8 +217,8 @@ public struct EnrichedDataPayload: Codable, Sendable {
 // MARK: - CSV Import Complete Payload
 
 public struct CSVImportCompletePayload: Codable, Sendable {
-    public let type: String = "job_complete"
-    public let pipeline: String = "csv_import"
+    public let type: String
+    public let pipeline: String
     public let books: [ParsedBook]
     public let errors: [ImportError]
     public let successRate: String          // e.g., "45/50"
@@ -232,15 +242,15 @@ public struct ImportError: Codable, Sendable {
 // MARK: - AI Scan Complete Payload
 
 public struct AIScanCompletePayload: Codable, Sendable {
-    public let type: String = "job_complete"
-    public let pipeline: String = "ai_scan"
+    public let type: String
+    public let pipeline: String
     public let totalDetected: Int
     public let approved: Int
     public let needsReview: Int
-    public let books: [DetectedBook]
+    public let books: [DetectedBookPayload]
 }
 
-public struct DetectedBook: Codable, Sendable {
+public struct DetectedBookPayload: Codable, Sendable {
     public let title: String?
     public let author: String?
     public let isbn: String?
@@ -262,22 +272,30 @@ public struct BoundingBox: Codable, Sendable {
 // MARK: - Error Payload
 
 public struct ErrorPayload: Codable, Sendable {
-    public let type: String = "error"
+    public let type: String
     public let code: String
     public let message: String
     public let details: AnyCodable?         // Optional: Additional context
     public let retryable: Bool?
+
+    public init(type: String = "error", code: String, message: String, details: AnyCodable? = nil, retryable: Bool? = nil) {
+        self.type = type
+        self.code = code
+        self.message = message
+        self.details = details
+        self.retryable = retryable
+    }
 }
 
 // MARK: - Ping/Pong Payloads
 
 public struct PingPayload: Codable, Sendable {
-    public let type: String = "ping"
+    public let type: String
     public let timestamp: Int64
 }
 
 public struct PongPayload: Codable, Sendable {
-    public let type: String = "pong"
+    public let type: String
     public let timestamp: Int64
     public let latency: Int?                // Milliseconds
 }
@@ -285,7 +303,7 @@ public struct PongPayload: Codable, Sendable {
 // MARK: - AnyCodable Helper
 
 /// Helper for encoding/decoding arbitrary JSON
-public struct AnyCodable: Codable, Sendable {
+public struct AnyCodable: Codable, @unchecked Sendable {
     public let value: Any
 
     public init(_ value: Any) {

@@ -392,66 +392,100 @@ public struct GeminiCSVImportView: View {
             return
         }
 
-        do {
-            let message = try JSONDecoder().decode(CSVWebSocketMessage.self, from: data)
+        // First check for legacy ready_ack message (backend still sends this without unified schema)
+        if text.contains("\"type\":\"ready_ack\"") {
             #if DEBUG
-            print("[CSV WebSocket] Decoded message type: \(message.type)")
+            print("[CSV WebSocket] ✅ Backend acknowledged ready signal, processing will start")
             #endif
+            return
+        }
+
+        do {
+            // Use unified WebSocket schema (Phase 1 #363)
+            let message = try JSONDecoder().decode(TypedWebSocketMessage.self, from: data)
+            #if DEBUG
+            print("[CSV WebSocket] Decoded message type: \(message.type), pipeline: \(message.pipeline)")
+            #endif
+
+            // Verify this is for csv_import pipeline
+            guard message.pipeline == .csvImport else {
+                #if DEBUG
+                print("[CSV WebSocket] ⚠️ Ignoring message for different pipeline: \(message.pipeline)")
+                #endif
+                return
+            }
 
             // Dispatch UI updates to MainActor (WebSocket runs on background thread)
             Task { @MainActor in
-                switch message.type {
-                case "ready_ack":
+                switch message.payload {
+                case .jobProgress(let progressPayload):
                     #if DEBUG
-                    print("[CSV WebSocket] ✅ Backend acknowledged ready signal, processing will start")
+                    print("[CSV WebSocket] Progress: \(Int(progressPayload.progress * 100))% - \(progressPayload.status)")
                     #endif
-                    // The 'ready_ack' message is informational only: it indicates that the backend has received the
-                    // initial request and will begin processing. No UI state is updated here because actual progress
-                    // updates (including percentage and status) will be sent via subsequent 'progress' messages.
-                    // Only log this event; UI state changes are handled in the 'progress', 'complete', and 'error' cases.
-                    // Note: ready_ack messages have no 'data' field (see progress-socket.js:102-105)
+                    importStatus = .processing(progress: progressPayload.progress, message: progressPayload.status)
 
-                case "progress":
-                    if let data = message.data,
-                       let progressValue = data.progress,
-                       let status = data.status {
+                case .jobComplete(let completePayload):
+                    // Extract CSV-specific completion data
+                    guard case .csvImport(let csvPayload) = completePayload else {
                         #if DEBUG
-                        print("[CSV WebSocket] Progress: \(Int(progressValue * 100))% - \(status)")
+                        print("[CSV WebSocket] ❌ Wrong completion payload type for csv_import")
                         #endif
-                        importStatus = .processing(progress: progressValue, message: status)
+                        return
                     }
 
-                case "complete":
-                    if let data = message.data,
-                       let books = data.books {
-                        #if DEBUG
-                        print("[CSV WebSocket] ✅ Import complete: \(books.count) books")
-                        #endif
-                        let errors = data.errors ?? []
-                        importStatus = .completed(books: books, errors: errors)
+                    #if DEBUG
+                    print("[CSV WebSocket] ✅ Import complete: \(csvPayload.books.count) books, \(csvPayload.errors.count) errors")
+                    #endif
+
+                    // Convert unified schema ParsedBook to legacy GeminiCSVImportJob.ParsedBook
+                    let legacyBooks = csvPayload.books.map { book in
+                        GeminiCSVImportJob.ParsedBook(
+                            title: book.title,
+                            author: book.author,
+                            isbn: book.isbn,
+                            coverUrl: book.coverUrl,
+                            publisher: book.publisher,
+                            publicationYear: book.publicationYear,
+                            enrichmentError: book.enrichmentError
+                        )
                     }
+
+                    // Convert unified schema ImportError to legacy GeminiCSVImportJob.ImportError
+                    let legacyErrors = csvPayload.errors.map { error in
+                        GeminiCSVImportJob.ImportError(title: error.title, error: error.error)
+                    }
+
+                    importStatus = .completed(books: legacyBooks, errors: legacyErrors)
+
                     // Proactively close the connection from the client side
                     // This prevents the ENOTCONN (57) "Socket not connected" error
                     self.webSocket?.cancel(with: .goingAway, reason: "Job complete".data(using: .utf8))
                     self.webSocketTask?.cancel()
                     return  // Exit message loop - job is complete
 
-                case "error":
-                    if let data = message.data,
-                       let error = data.error {
-                        #if DEBUG
-                        print("[CSV WebSocket] ❌ Error from backend: \(error)")
-                        #endif
-                        importStatus = .failed(error)
-                    }
+                case .error(let errorPayload):
+                    #if DEBUG
+                    print("[CSV WebSocket] ❌ Error from backend: \(errorPayload.message)")
+                    #endif
+                    importStatus = .failed(errorPayload.message)
                     self.webSocket?.cancel(with: .goingAway, reason: "Job failed".data(using: .utf8))
                     self.webSocketTask?.cancel()
                     return  // Exit message loop - job failed
 
-                default:
+                case .readyAck:
                     #if DEBUG
-                    print("[CSV WebSocket] ⚠️ Unknown message type: \(message.type)")
+                    print("[CSV WebSocket] ✅ Backend acknowledged ready signal, processing will start")
                     #endif
+                    // No UI update needed, progress messages will follow
+
+                case .jobStarted:
+                    #if DEBUG
+                    print("[CSV WebSocket] Job started (informational)")
+                    #endif
+                    // No UI update needed, progress messages will follow
+
+                case .ping, .pong:
+                    // Heartbeat messages, no action needed
                     break
                 }
             }
@@ -459,8 +493,6 @@ public struct GeminiCSVImportView: View {
         } catch {
             #if DEBUG
             print("[CSV WebSocket] ❌ Failed to decode WebSocket message: \(error)")
-            #endif
-            #if DEBUG
             print("[CSV WebSocket] Raw message: \(text)")
             #endif
         }

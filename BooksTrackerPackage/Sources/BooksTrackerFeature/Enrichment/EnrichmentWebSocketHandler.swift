@@ -1,6 +1,7 @@
 import Foundation
 
 /// Handles WebSocket connection for enrichment progress updates
+/// Migrated to unified WebSocket schema (TypedWebSocketMessage v1.0.0)
 @MainActor
 final class EnrichmentWebSocketHandler {
     private var webSocket: URLSessionWebSocketTask?
@@ -25,7 +26,7 @@ final class EnrichmentWebSocketHandler {
         let session = URLSession(configuration: .default)
         webSocket = session.webSocketTask(with: url)
         webSocket?.resume()
-        
+
         // ✅ CRITICAL: Wait for WebSocket handshake to complete
         // Prevents POSIX error 57 "Socket is not connected" when calling receive()
         if let webSocket = webSocket {
@@ -61,21 +62,50 @@ final class EnrichmentWebSocketHandler {
         }
     }
 
-    /// Handle a received WebSocket message.
+    /// Handle a received WebSocket message using unified schema
     private func handleMessage(_ message: URLSessionWebSocketTask.Message) {
         guard let data = message.data else { return }
         let decoder = JSONDecoder()
 
-        guard let progressMessage = try? decoder.decode(EnrichmentProgressMessage.self, from: data) else { return }
+        // Decode unified TypedWebSocketMessage
+        guard let typedMessage = try? decoder.decode(TypedWebSocketMessage.self, from: data) else {
+            #if DEBUG
+            print("Failed to decode TypedWebSocketMessage")
+            #endif
+            return
+        }
 
-        switch progressMessage {
-        case .progress(let processedCount, let totalCount, let currentTitle):
+        // Only handle batch_enrichment pipeline messages
+        guard typedMessage.pipeline == .batchEnrichment else {
+            #if DEBUG
+            print("Ignoring non-batch-enrichment message: \(typedMessage.pipeline)")
+            #endif
+            return
+        }
+
+        switch typedMessage.payload {
+        case .jobProgress(let progress):
+            // Extract progress data
+            let processedCount = progress.processedCount ?? 0
+            let totalCount = Int(progress.progress * 100) // Approximate if needed
+            let currentTitle = progress.currentItem ?? progress.status
             progressHandler(processedCount, totalCount, currentTitle)
-        case .complete(let books):
-            // Pass enriched books to completion handler
-            completionHandler(books)
+
+        case .jobComplete(let complete):
+            // Extract enriched books from batch enrichment payload
+            if case .batchEnrichment(let batchPayload) = complete {
+                completionHandler(batchPayload.enrichedBooks)
+                disconnect()
+            }
+
+        case .error(let error):
+            #if DEBUG
+            print("WebSocket enrichment error: \(error.message)")
+            #endif
             disconnect()
-        case .unknown:
+
+        default:
+            // Ignore other message types (jobStarted, ping, pong)
             break
         }
     }

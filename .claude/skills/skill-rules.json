@@ -143,6 +143,45 @@
           "keep.*in.*mind"
         ]
       }
+    },
+    "cloudflare-observability": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "promptTriggers": {
+        "keywords": [
+          "worker logs",
+          "query logs",
+          "observability",
+          "worker metrics",
+          "worker events",
+          "cloudflare analytics",
+          "log search",
+          "error logs",
+          "worker performance",
+          "trace request",
+          "gemini calls",
+          "enrichment logs",
+          "websocket logs",
+          "cache logs",
+          "api errors"
+        ],
+        "intentPatterns": [
+          "show.*logs",
+          "find.*errors.*worker",
+          "query.*worker.*logs",
+          "search.*events",
+          "analyze.*requests",
+          "filter.*logs",
+          "investigate.*worker",
+          "check.*worker.*errors",
+          "trace.*request",
+          "find.*gemini.*calls",
+          "show.*enrichment",
+          "debug.*websocket",
+          "cache.*performance"
+        ]
+      }
     }
   }
 }

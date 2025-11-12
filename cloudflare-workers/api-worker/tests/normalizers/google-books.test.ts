@@ -123,4 +123,27 @@ describe('ensureWorkForEdition', () => {
     expect(work.title).toBe('Unknown');
     expect(work.synthetic).toBe(true);
   });
+
+  it('should copy coverImageURL from Edition to Work (Issue #346)', () => {
+    const edition: any = {
+      isbn: '9780451524935',
+      isbns: ['9780451524935'],
+      title: '1984',
+      publisher: 'Penguin',
+      publicationDate: '2021',
+      format: 'Hardcover',
+      coverImageURL: 'https://books.google.com/covers/1984.jpg',
+      primaryProvider: 'google-books',
+      contributors: ['google-books'],
+      amazonASINs: [],
+      googleBooksVolumeIDs: ['abc123'],
+      librarythingIDs: [],
+      isbndbQuality: 0,
+    };
+
+    const work = ensureWorkForEdition(edition);
+
+    expect(work.coverImageURL).toBe('https://books.google.com/covers/1984.jpg');
+    expect(work.synthetic).toBe(true);
+  });
 });

@@ -7,6 +7,7 @@ enum EnrichmentConfig {
     static let baseURL = "https://api-worker.jukasdrj.workers.dev"
 
     /// WebSocket base URL for the Cloudflare Worker
+    static let apiBaseURL = "https://api-worker.jukasdrj.workers.dev"
     static let webSocketBaseURL = "wss://api-worker.jukasdrj.workers.dev"
 
     // MARK: - Search Endpoints

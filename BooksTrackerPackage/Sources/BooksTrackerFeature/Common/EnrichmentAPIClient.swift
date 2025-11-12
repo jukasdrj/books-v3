@@ -9,6 +9,7 @@ actor EnrichmentAPIClient {
         let success: Bool
         let processedCount: Int
         let totalCount: Int
+        let token: String  // Auth token for WebSocket connection
     }
 
     /// Start enrichment job on backend
@@ -23,12 +24,22 @@ actor EnrichmentAPIClient {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30  // 30 second timeout for POST request
 
         let payload = BatchEnrichmentPayload(books: books, jobId: jobId)
 
         request.httpBody = try JSONEncoder().encode(payload)
 
+        #if DEBUG
+        print("[EnrichmentAPIClient] 📤 Sending POST to /api/enrichment/batch (jobId: \(jobId), books: \(books.count))")
+        #endif
+
         let (data, response) = try await URLSession.shared.data(for: request)
+
+        #if DEBUG
+        let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+        print("[EnrichmentAPIClient] ✅ Received HTTP \(statusCode) response")
+        #endif
 
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 202 else {

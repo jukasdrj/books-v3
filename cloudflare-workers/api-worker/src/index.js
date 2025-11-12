@@ -453,7 +453,7 @@ export default {
         }
 
         // Start AI scan in background (NOW guaranteed WebSocket is listening)
-        ctx.waitUntil(aiScanner.processBookshelfScan(jobId, imageData, request, env, doStub));
+        ctx.waitUntil(aiScanner.processBookshelfScan(jobId, imageData, request, env, doStub, ctx));
 
         // Define stages metadata for iOS client (used for progress estimation)
         const stages = [

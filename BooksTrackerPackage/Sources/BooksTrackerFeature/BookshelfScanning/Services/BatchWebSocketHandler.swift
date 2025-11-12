@@ -11,6 +11,10 @@ actor BatchWebSocketHandler {
     private let onDisconnect: (@MainActor () -> Void)?
     private var isConnected = false
 
+    // Track simple Sendable state instead of @MainActor BatchProgress
+    private var totalPhotos: Int = 0
+    private var currentOverallStatus: String = "queued"
+
     init(
         jobId: String,
         onProgress: @MainActor @escaping (BatchProgress) -> Void,
@@ -84,68 +88,145 @@ actor BatchWebSocketHandler {
     private func handleMessage(_ text: String) async {
         guard let data = text.data(using: .utf8) else { return }
 
+        // Check for legacy ready_ack message (backend still sends this without unified schema)
+        if text.contains("\"type\":\"ready_ack\"") {
+            #if DEBUG
+            print("[BatchWebSocket] ✅ Backend acknowledged ready signal")
+            #endif
+            return
+        }
+
         let decoder = JSONDecoder()
 
-        // Try to decode as generic message to determine type
-        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let type = json["type"] as? String {
+        // Use unified WebSocket schema (Phase 1 #363)
+        do {
+            let message = try decoder.decode(TypedWebSocketMessage.self, from: data)
 
-            switch type {
-            case "batch-init":
-                if let initMsg = try? decoder.decode(BatchWebSocketMessage.BatchInitMessage.self, from: data) {
-                    await processInit(initMsg)
-                }
+            #if DEBUG
+            print("[BatchWebSocket] Decoded message type: \(message.type), pipeline: \(message.pipeline)")
+            #endif
 
-            case "batch-progress":
-                if let progressMsg = try? decoder.decode(BatchWebSocketMessage.BatchProgressMessage.self, from: data) {
-                    await processProgressUpdate(progressMsg)
-                }
-
-            case "batch-complete":
-                if let completeMsg = try? decoder.decode(BatchWebSocketMessage.BatchCompleteMessage.self, from: data) {
-                    await processCompletion(completeMsg)
-                }
-
-            default:
+            // Verify this is for ai_scan pipeline
+            guard message.pipeline == .aiScan else {
                 #if DEBUG
-                print("[BatchWebSocket] Unknown message type: \(type)")
+                print("[BatchWebSocket] ⚠️ Ignoring message for different pipeline: \(message.pipeline)")
                 #endif
+                return
             }
+
+            switch message.payload {
+            case .jobStarted(let startedPayload):
+                #if DEBUG
+                print("[BatchWebSocket] Job started: \(startedPayload.totalCount ?? 0) items")
+                #endif
+                // Initialize BatchProgress with totalCount
+                await initializeBatchProgress(totalPhotos: startedPayload.totalCount ?? 0)
+
+            case .jobProgress(let progressPayload):
+                await processProgressUpdate(progressPayload)
+
+            case .jobComplete(let completePayload):
+                // Extract AI scan-specific completion data
+                guard case .aiScan(let aiPayload) = completePayload else {
+                    #if DEBUG
+                    print("[BatchWebSocket] ❌ Wrong completion payload type for ai_scan")
+                    #endif
+                    return
+                }
+                await processCompletion(aiPayload)
+
+            case .error(let errorPayload):
+                #if DEBUG
+                print("[BatchWebSocket] ❌ Error: \(errorPayload.message)")
+                #endif
+                // Notify error via callback if needed
+
+            case .readyAck, .ping, .pong:
+                // Infrastructure messages, no action needed
+                // readyAck: Backend acknowledgment of client ready signal
+                // ping/pong: Heartbeat messages
+                break
+            }
+
+        } catch {
+            #if DEBUG
+            print("[BatchWebSocket] ❌ Failed to decode message: \(error)")
+            print("[BatchWebSocket] Raw message: \(text)")
+            #endif
         }
     }
 
-    /// Handle batch initialization message
-    private func processInit(_ message: BatchWebSocketMessage.BatchInitMessage) async {
-        #if DEBUG
-        print("[BatchWebSocket] Batch initialized: \(message.totalPhotos) photos")
-        #endif
+    /// Initialize BatchProgress object
+    private func initializeBatchProgress(totalPhotos: Int) async {
+        // Store totalPhotos for later use
+        self.totalPhotos = totalPhotos
+
+        // Extract values before crossing actor boundary
+        let jobId = self.jobId
+
+        await MainActor.run {
+            let progress = BatchProgress(jobId: jobId, totalPhotos: totalPhotos)
+            onProgress(progress)
+        }
     }
 
     /// Update batch progress on main thread
-    private func processProgressUpdate(_ message: BatchWebSocketMessage.BatchProgressMessage) async {
+    private func processProgressUpdate(_ progressPayload: JobProgressPayload) async {
         // Extract values before crossing actor boundary
-        let currentPhoto = message.currentPhoto
-        let totalPhotos = message.totalPhotos
-        let totalBooksFound = message.totalBooksFound
+        let progress = progressPayload.progress
+        let status = progressPayload.status
+        let processedCount = progressPayload.processedCount ?? 0
+        let currentItem = progressPayload.currentItem
+        let jobId = self.jobId
+        let totalPhotos = self.totalPhotos
+
+        // Update stored status
+        self.currentOverallStatus = status
 
         await MainActor.run {
             #if DEBUG
-            print("[BatchWebSocket] Progress: Photo \(currentPhoto + 1)/\(totalPhotos) - \(totalBooksFound) books")
+            if let currentItem = currentItem {
+                print("[BatchWebSocket] Progress: \(Int(progress * 100))% - \(status) (Item: \(currentItem), Processed: \(processedCount))")
+            } else {
+                print("[BatchWebSocket] Progress: \(Int(progress * 100))% - \(status)")
+            }
             #endif
-            // The callback will update the BatchProgress object
-            // UI observes the BatchProgress via @Observable
+
+            // Create fresh BatchProgress instance with current state
+            let batchProgress = BatchProgress(jobId: jobId, totalPhotos: totalPhotos)
+            batchProgress.overallStatus = status
+
+            // Update current photo index if provided
+            if let currentItem = currentItem, let photoIndex = Int(currentItem) {
+                batchProgress.currentPhotoIndex = photoIndex
+                batchProgress.updatePhoto(index: photoIndex, status: .processing)
+            }
+
+            // Call the callback with updated progress
+            onProgress(batchProgress)
         }
     }
 
     /// Handle batch completion
-    private func processCompletion(_ message: BatchWebSocketMessage.BatchCompleteMessage) async {
+    private func processCompletion(_ aiPayload: AIScanCompletePayload) async {
         // Extract values before crossing actor boundary
-        let totalBooks = message.totalBooks
+        let totalDetected = aiPayload.totalDetected
+        let approved = aiPayload.approved
+        let needsReview = aiPayload.needsReview
+        let jobId = self.jobId
+        let totalPhotos = self.totalPhotos
 
         await MainActor.run {
             #if DEBUG
-            print("[BatchWebSocket] Batch complete: \(totalBooks) books found")
+            print("[BatchWebSocket] Batch complete: \(totalDetected) books detected (\(approved) approved, \(needsReview) need review)")
             #endif
+
+            // Create fresh BatchProgress instance with final state
+            let batchProgress = BatchProgress(jobId: jobId, totalPhotos: totalPhotos)
+            batchProgress.complete(totalBooks: totalDetected)
+
+            // Call the callback with final progress
+            onProgress(batchProgress)
         }
 
         disconnect()

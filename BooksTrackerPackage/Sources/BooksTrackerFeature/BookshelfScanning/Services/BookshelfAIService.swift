@@ -216,35 +216,25 @@ actor BookshelfAIService {
 
                     progressHandler(jobProgress.fractionCompleted, jobProgress.currentStatus)
 
-                    // Check for completion
-                    if jobProgress.currentStatus.lowercased().contains("complete") {
+                    // Check for completion via scanResult presence (set by WebSocketProgressManager on job_complete)
+                    if let scanResult = jobProgress.scanResult {
                         guard !continuationResumed else { return }
                         continuationResumed = true
 
-                        // Result is now embedded in WebSocket message!
-                        if let scanResult = jobProgress.scanResult {
-                            #if DEBUG
-                            print("✅ Scan complete with \(scanResult.totalDetected) books (\(scanResult.approved) approved, \(scanResult.needsReview) review)")
-                            #endif
-                            wsManager.disconnect()
+                        #if DEBUG
+                        print("✅ Scan complete with \(scanResult.totalDetected) books (\(scanResult.approved) approved, \(scanResult.needsReview) review)")
+                        #endif
+                        wsManager.disconnect()
 
-                            // Convert scan result to detected books
-                            let detectedBooks = scanResult.books.compactMap { bookPayload in
-                                self.convertPayloadToDetectedBook(bookPayload)
-                            }
-
-                            // Generate suggestions (using metadata from scan result)
-                            let suggestions = self.generateSuggestionsFromPayload(scanResult)
-
-                            continuation.resume(returning: .success((detectedBooks, suggestions)))
-                        } else {
-                            // No scan result in final WebSocket message - this is a backend error
-                            #if DEBUG
-                            print("❌ Scan complete but no result in WebSocket message (backend error)")
-                            #endif
-                            wsManager.disconnect()
-                            continuation.resume(returning: .failure(.serverError(500, "Scan completed without result data")))
+                        // Convert scan result to detected books
+                        let detectedBooks = scanResult.books.compactMap { bookPayload in
+                            self.convertPayloadToDetectedBook(bookPayload)
                         }
+
+                        // Generate suggestions (using metadata from scan result)
+                        let suggestions = self.generateSuggestionsFromPayload(scanResult)
+
+                        continuation.resume(returning: .success((detectedBooks, suggestions)))
                     }
 
                     // Check for error or failure

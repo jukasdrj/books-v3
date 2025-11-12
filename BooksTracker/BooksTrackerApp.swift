@@ -95,7 +95,7 @@ class ModelContainerFactory {
         }
 
         LaunchMetrics.shared.recordMilestone("LibraryRepository creation start")
-        let repository = LibraryRepository(modelContext: container.mainContext)
+        let repository = LibraryRepository(modelContext: container.mainContext, dtoMapper: nil, featureFlags: nil)
         LaunchMetrics.shared.recordMilestone("LibraryRepository created")
         _libraryRepository = repository
         return repository
