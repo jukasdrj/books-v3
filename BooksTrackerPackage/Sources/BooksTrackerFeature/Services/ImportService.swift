@@ -1,6 +1,5 @@
 import Foundation
 import SwiftData
-import os.log
 
 // Import GeminiCSVImportJob for ParsedBook type
 // Note: File is in same package, so no additional import needed beyond internal visibility
@@ -81,7 +80,6 @@ public struct ImportServiceError: Sendable, Identifiable {
 /// - Background import: UI remains responsive throughout
 public actor ImportService {
     private let modelContainer: ModelContainer
-    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "ImportService")
 
     public init(modelContainer: ModelContainer) {
         self.modelContainer = modelContainer
@@ -100,29 +98,43 @@ public actor ImportService {
     ) async throws -> ImportResult {
         let context = ModelContext(modelContainer)
         context.autosaveEnabled = false
-        // Note: SwiftData ModelContext doesn't have automaticallyMergesChangesFromParent
-        // Background context changes are handled differently in SwiftData
+        // Note: SwiftData automatically handles context merging via modelContainer
 
         var successCount = 0
         var skippedCount = 0
         var importErrors: [ImportServiceError] = []
-        var newWorks: [Work] = []
+        var newWorkIDs: [PersistentIdentifier] = []
         let startTime = ContinuousClock.now
 
         // Fetch existing works for deduplication (in background context)
         let descriptor = FetchDescriptor<Work>()
         let allWorks = try context.fetch(descriptor)
 
+        // Pre-compute dictionary for O(1) lookups (performance fix for large libraries)
+        // Reduces complexity from O(N×M) to O(N+M) for imports into large libraries
+        var existingBooks: [String: Set<String>] = [:]
+        for work in allWorks {
+            let titleKey = work.title.lowercased()
+            let authorKey = work.authorNames.lowercased()
+            if existingBooks[titleKey] == nil {
+                existingBooks[titleKey] = []
+            }
+            existingBooks[titleKey]?.insert(authorKey)
+        }
+
         for book in books {
             do {
-                // Check for duplicate by title + author (case-insensitive, exact match)
-                let titleLower = book.title.lowercased()
-                let authorLower = book.author.lowercased()
+                // Check for duplicate by title + author (case-insensitive)
+                let titleKey = book.title.lowercased()
+                let authorKey = book.author.lowercased()
 
-                let isDuplicate = allWorks.contains { work in
-                    let workTitleLower = work.title.lowercased()
-                    let workAuthorLower = work.authorNames.lowercased()
-                    return workTitleLower == titleLower && workAuthorLower == authorLower
+                let isDuplicate: Bool
+                if let authorsForTitle = existingBooks[titleKey] {
+                    isDuplicate = authorsForTitle.contains { existingAuthor in
+                        existingAuthor.contains(authorKey) || authorKey.contains(existingAuthor)
+                    }
+                } else {
+                    isDuplicate = false
                 }
 
                 if isDuplicate {
@@ -162,57 +174,34 @@ public actor ImportService {
                     edition.work = work
                 }
 
-                // Collect work for batch save
-                newWorks.append(work)
+                // Save work before capturing ID (ensures permanent ID)
+                try context.save()
+
+                // Collect ID for enrichment queue
+                newWorkIDs.append(work.persistentModelID)
                 successCount += 1
             } catch {
-                // Per-book error handling - track failure without stopping entire import
+                // Per-book error handling: one bad book doesn't crash entire import
                 importErrors.append(ImportServiceError(
                     title: book.title,
                     message: "Failed to process: \(error.localizedDescription)"
                 ))
-                logger.error("Failed to import '\(book.title)': \(error.localizedDescription)")
             }
         }
 
-        // Single batch save (much faster than saving in loop)
-        try context.save()
-
-        // Extract permanent IDs after save
-        let newWorkIDs = newWorks.map { $0.persistentModelID }
-
-        logger.debug("📚 [IMPORT] Saved \(newWorks.count) works, extracted \(newWorkIDs.count) permanent IDs")
-        logger.debug("📚 [IMPORT] Context: Actor isolation")
-        newWorks.prefix(3).enumerated().forEach { index, work in
-            logger.debug("  [\(index)] \(work.title) → ID: \(work.persistentModelID)")
-        }
-        if newWorks.count > 3 {
-            logger.debug("  ... and \(newWorks.count - 3) more")
-        }
-
         let duration = startTime.duration(to: ContinuousClock.now)
+        let durationSeconds = Double(duration.components.seconds) +
+                             (Double(duration.components.attoseconds) / 1_000_000_000_000_000_000)
         return ImportResult(
             successCount: successCount,
             failedCount: importErrors.count,
             skippedCount: skippedCount,
             newWorkIDs: newWorkIDs,
             errors: importErrors,
-            duration: duration.timeInterval
+            duration: durationSeconds
         )
     }
 
     // NOTE: importWorks() for WorkDTO will be added when bookshelf scanner is refactored
     // For now, only CSV import (importCSVBooks) is implemented
-}
-
-// Extension to convert Duration to TimeInterval
-private extension ContinuousClock.Duration {
-    /// Number of attoseconds in one second (1e18).
-    private static let attosecondsPerSecond: Double = 1e18
-
-    var timeInterval: TimeInterval {
-        let seconds = self.components.seconds
-        let attoseconds = self.components.attoseconds
-        return Double(seconds) + (Double(attoseconds) / Self.attosecondsPerSecond)
-    }
 }
