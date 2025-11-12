@@ -430,6 +430,26 @@ public struct SettingsView: View {
                 let workIDs = allWorks.map { $0.persistentModelID }
                 EnrichmentQueue.shared.enqueueBatch(workIDs)
 
+                #if DEBUG
+                print("📚 Queue size after enqueueBatch: \(EnrichmentQueue.shared.count())")
+                print("📚 Is already processing? \(EnrichmentQueue.shared.isProcessing())")
+                #endif
+
+                // Check if enrichment is already running
+                if EnrichmentQueue.shared.isProcessing() {
+                    #if DEBUG
+                    print("⚠️ Enrichment already in progress. Books added to queue.")
+                    #endif
+
+                    // Info haptic feedback
+                    let generator = UINotificationFeedbackGenerator()
+                    generator.notificationOccurred(.warning)
+
+                    // Note: Books are already queued and will be processed when current enrichment completes
+                    // No need to call startProcessing() again
+                    return
+                }
+
                 // Start processing with progress handler
                 EnrichmentQueue.shared.startProcessing(in: modelContext) { completed, total, currentTitle in
                     // Progress is automatically shown via EnrichmentBanner in ContentView
@@ -438,7 +458,7 @@ public struct SettingsView: View {
                     #endif
                 }
 
-                // Haptic feedback
+                // Success haptic feedback
                 let generator = UINotificationFeedbackGenerator()
                 generator.notificationOccurred(.success)
 
