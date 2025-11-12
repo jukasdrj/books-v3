@@ -31,6 +31,7 @@ public struct ContentView: View {
     @Environment(\.dtoMapper) private var dtoMapper
     @State private var selectedTab: MainTab = .library
     @State private var searchCoordinator = SearchCoordinator()
+    @State private var tabCoordinator = TabCoordinator()
     @State private var notificationCoordinator = NotificationCoordinator()
     @State private var libraryRepository: LibraryRepository?
 
@@ -75,6 +76,7 @@ public struct ContentView: View {
                         // Shelf Tab
                         NavigationStack {
                             BookshelfScannerView()
+                                .environment(tabCoordinator)
                         }
                         .tabItem {
                             Label("Shelf", systemImage: selectedTab == .shelf ? "viewfinder.circle.fill" : "viewfinder")
@@ -98,6 +100,10 @@ public struct ContentView: View {
                     voiceOverEnabled || reduceMotion ? .never : (featureFlags.enableTabBarMinimize ? .onScrollDown : .never)
                 )
                 #endif
+                // Sync tab coordinator with actual selected tab
+                .onChange(of: tabCoordinator.selectedTab) { _, newValue in
+                    selectedTab = newValue
+                }
             })
             .themedBackground()
             .onAppear {
@@ -210,7 +216,7 @@ extension Notification.Name {
 
 // MARK: - Tab Navigation
 
-enum MainTab: String, CaseIterable {
+public enum MainTab: String, CaseIterable {
     case library = "library"
     case search = "search"
     case shelf = "shelf"

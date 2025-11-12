@@ -16,6 +16,7 @@ public struct BookshelfScannerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.iOS26ThemeStore) private var themeStore
+    @Environment(TabCoordinator.self) private var tabCoordinator
 
     // MARK: - State Management
 
@@ -83,7 +84,12 @@ public struct BookshelfScannerView: View {
                     scanResult: scanModel.scanResult,
                     modelContext: modelContext,
                     onDismiss: {
+                        // ✅ Fix #383: Reset scan state and redirect to Library after adding books
                         showingResults = false
+                        // Reset scan model to initial state
+                        scanModel.resetToInitialState()
+                        // Switch to Library tab to see newly added books
+                        tabCoordinator.switchToLibrary()
                         dismiss()
                     }
                 )
@@ -437,6 +443,22 @@ class BookshelfScanModel {
             return message
         }
         return nil
+    }
+
+    /// Reset scan model to initial state (Issue #383)
+    /// Called after successfully adding books to library
+    func resetToInitialState() {
+        scanState = .idle
+        detectedCount = 0
+        confirmedCount = 0
+        uncertainCount = 0
+        scanResult = nil
+        currentProgress = 0.0
+        currentStage = ""
+        lastSavedImagePath = nil
+        #if DEBUG
+        print("🔄 Scan model reset to initial state")
+        #endif
     }
 
     /// Saves original bookshelf image to temporary storage for correction UI

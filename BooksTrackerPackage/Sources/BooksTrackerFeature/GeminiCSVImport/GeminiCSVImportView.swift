@@ -16,6 +16,7 @@ public struct GeminiCSVImportView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.iOS26ThemeStore) private var themeStore
+    @Environment(TabCoordinator.self) private var tabCoordinator
 
     @State private var showingFilePicker = false
     @State private var jobId: String?
@@ -196,6 +197,8 @@ public struct GeminiCSVImportView: View {
                 Task {
                     let success = await saveBooks(books)
                     if success {
+                        // ✅ Fix #383: Switch to Library tab after CSV import success
+                        tabCoordinator.switchToLibrary()
                         dismiss()
                     }
                     // If failed, saveBooks() already updated importStatus to .failed

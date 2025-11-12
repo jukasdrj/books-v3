@@ -100,8 +100,8 @@ public struct SearchView: View {
     public var body: some View {
         Group {
             if let searchModel = searchModel {
-                NavigationStack {
-                    searchContentArea(searchModel: searchModel)
+                // ✅ NO NavigationStack here - ContentView already provides it (#377)
+                searchContentArea(searchModel: searchModel)
                         // HIG: Standard iOS search bar placement (top of navigation)
                         // NOTE: Removed explicit displayMode to fix iOS 26 keyboard bug on physical devices
                         // displayMode: .always was blocking space bar and touch events on iPhone 17 Pro
@@ -167,7 +167,6 @@ public struct SearchView: View {
                                 performScopedSearch(query: searchModel.searchText, scope: newValue, searchModel: searchModel)
                             }
                         }
-                }
             } else {
                 ProgressView()
             }

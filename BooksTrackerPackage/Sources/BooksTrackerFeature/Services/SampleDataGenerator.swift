@@ -11,19 +11,17 @@ public final class SampleDataGenerator {
     }
 
     /// Adds sample data only if library is empty. Optimized check (fetchLimit=1).
+    /// ✅ DEBUG-ONLY: Sample data is only added in development builds (#385)
     public func setupSampleDataIfNeeded() {
+        #if DEBUG
         // Check UserDefaults first - if sample data was added before, skip check
         if UserDefaults.standard.bool(forKey: sampleDataAddedKey) {
-            #if DEBUG
             print("✅ Sample data previously added - skipping check")
-            #endif
             return
         }
 
         guard isLibraryEmpty() else {
-            #if DEBUG
             print("✅ Library not empty - skipping sample data")
-            #endif
             return
         }
 
@@ -31,6 +29,8 @@ public final class SampleDataGenerator {
 
         // Mark that sample data was added
         UserDefaults.standard.set(true, forKey: sampleDataAddedKey)
+        print("✅ Sample data added (DEBUG mode only)")
+        #endif
     }
 
     /// Reset sample data flag (call when library is reset)
