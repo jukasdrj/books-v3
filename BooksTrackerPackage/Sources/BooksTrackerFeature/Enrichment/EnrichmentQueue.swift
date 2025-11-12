@@ -93,7 +93,7 @@ public final class EnrichmentQueue {
         logger.debug("📚 [ENRICHMENT] enqueueBatch() called with \(workIDs.count) IDs")
         logger.debug("📚 [ENRICHMENT] Context: @MainActor isolation")
         workIDs.prefix(3).enumerated().forEach { index, id in
-            logger.debug("  [\(index)] ID: \(id)")
+            logger.debug("  [\(index)] ID: \(String(describing: id))")
         }
         if workIDs.count > 3 {
             logger.debug("  ... and \(workIDs.count - 3) more")
@@ -103,7 +103,7 @@ public final class EnrichmentQueue {
             enqueue(workID: workID)
         }
 
-        logger.debug("📚 [ENRICHMENT] Queue now has \(queue.count) items total")
+        logger.debug("📚 [ENRICHMENT] Queue now has \(self.queue.count) items total")
     }
 
     /// Move a specific work to the front of the queue (e.g., user viewed it)

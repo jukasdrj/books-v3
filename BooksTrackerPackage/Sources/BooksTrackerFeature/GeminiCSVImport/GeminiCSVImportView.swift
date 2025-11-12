@@ -549,15 +549,9 @@ public struct GeminiCSVImportView: View {
 
                 // Start enrichment in background
                 Task {
-                    do {
-                        try await EnrichmentQueue.shared.startProcessing(in: modelContext) { completed, total, currentTitle in
-                            #if DEBUG
-                            print("📚 Enriching (\(completed)/\(total)): \(currentTitle)")
-                            #endif
-                        }
-                    } catch {
+                    EnrichmentQueue.shared.startProcessing(in: modelContext) { completed, total, currentTitle in
                         #if DEBUG
-                        print("❌ Enrichment processing failed unexpectedly: \(error)")
+                        print("📚 Enriching (\(completed)/\(total)): \(currentTitle)")
                         #endif
                     }
                 }
