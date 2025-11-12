@@ -8,10 +8,10 @@
 import type { ApiResponse, BookSearchResponse } from '../../types/responses.js';
 import { createSuccessResponseObject, createErrorResponseObject } from '../../types/responses.js';
 import { enrichMultipleBooks } from '../../services/enrichment.ts';
-import type { AuthorDTO } from '../../types/canonical.js';
 import { normalizeTitle, normalizeAuthor } from '../../utils/normalization.js';
 import { setCached, generateCacheKey } from '../../utils/cache.js';
 import { UnifiedCacheService } from '../../services/unified-cache.js';
+import { extractUniqueAuthors, removeAuthorsFromWorks } from '../../utils/response-transformer.js';
 
 export async function handleSearchAdvanced(
   title: string,
@@ -90,27 +90,16 @@ export async function handleSearchAdvanced(
     }
 
     // Extract all unique authors from works
-    const authorsMap = new Map<string, AuthorDTO>();
-    result.works.forEach(work => {
-      (work.authors || []).forEach((author: AuthorDTO) => {
-        if (!authorsMap.has(author.name)) {
-          authorsMap.set(author.name, author);
-        }
-      });
-    });
-    const authors = Array.from(authorsMap.values());
+    const authors = extractUniqueAuthors(result.works);
 
     // Remove authors property from works (not part of canonical WorkDTO)
-    const cleanWorks = result.works.map(work => {
-      const { authors: _, ...cleanWork } = work;
-      return cleanWork;
-    });
+    const cleanWorks = removeAuthorsFromWorks(result.works);
 
     const response = createSuccessResponseObject(
       { works: cleanWorks, editions: result.editions, authors },
       {
         processingTime: Date.now() - startTime,
-        provider: result.works[0]?.primaryProvider || 'google-books',
+        provider: cleanWorks[0]?.primaryProvider, // Use actual provider from enriched work
         cached: false,
       }
     );

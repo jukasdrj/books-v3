@@ -1,7 +1,16 @@
 // src/handlers/batch-enrichment.js
+/**
+ * Batch Enrichment Handler
+ *
+ * Phase 2: Canonical API Contract Implementation
+ * - Uses EnrichmentJobInitResponse for initialization
+ * - Uses EnrichedBookDTO for flattened book structure (no nested objects)
+ */
+
 import { enrichBooksParallel } from '../services/parallel-enrichment.js';
 import { enrichSingleBook } from '../services/enrichment.ts';
 import { createSuccessResponse, createErrorResponse } from '../utils/api-responses.js';
+import type { EnrichmentJobInitResponse, EnrichedBookDTO } from '../types/responses.js';
 
 /**
  * Sanitize user input to prevent XSS attacks
@@ -137,7 +146,7 @@ export async function handleBatchEnrichment(request, env, ctx) {
     // Start background enrichment
     ctx.waitUntil(processBatchEnrichment(books, doStub, env, jobId));
 
-    // Return structure expected by iOS EnrichmentAPIClient
+    // Return typed EnrichmentJobInitResponse
     // iOS expects: { success: Bool, processedCount: Int, totalCount: Int, token: String }
     // Since enrichment happens async, we return:
     // - success: true (job accepted and started)
@@ -145,12 +154,14 @@ export async function handleBatchEnrichment(request, env, ctx) {
     // - totalCount: books.length (total books queued)
     // - token: authToken (for WebSocket authentication)
     // Actual enrichment results come via WebSocket
-    return createSuccessResponse({
+    const initResponse: EnrichmentJobInitResponse = {
       success: true,
       processedCount: 0,
       totalCount: books.length,
-      token: authToken  // Required for WebSocket connection
-    }, {}, 202);
+      token: authToken  // WebSocket authentication token
+    };
+
+    return createSuccessResponse(initResponse, {}, 202);
 
   } catch (error) {
     return createErrorResponse(error.message, 500, 'E_INTERNAL');
@@ -183,14 +194,25 @@ async function processBatchEnrichment(books, doStub, env, jobId) {
           env
         );
 
+        // Flatten to EnrichedBookDTO structure (no nested objects)
         if (enriched) {
-          // enriched is now SingleEnrichmentResult with work, edition (includes coverImageURL!), and authors
-          return { ...book, enriched, success: true };
+          // enriched is SingleEnrichmentResult with work, editions (array), and authors
+          return {
+            title: book.title,
+            author: book.author,
+            isbn: book.isbn,
+            enrichmentStatus: 'success',
+            work: enriched.work,
+            editions: enriched.editions || [], // Convert single edition to array
+            authors: enriched.authors || [],
+            provider: enriched.provider
+          };
         } else {
           return {
-            ...book,
-            enriched: null,
-            success: false,
+            title: book.title,
+            author: book.author,
+            isbn: book.isbn,
+            enrichmentStatus: 'not_found',
             error: 'Book not found in any provider'
           };
         }
@@ -213,7 +235,7 @@ async function processBatchEnrichment(books, doStub, env, jobId) {
     );
 
     const totalProcessed = enrichedBooks.length;
-    const successCount = enrichedBooks.filter(b => b.success).length;
+    const successCount = enrichedBooks.filter(b => b.enrichmentStatus === 'success').length;
     const failureCount = totalProcessed - successCount;
     const duration = Date.now() - startTime;
 

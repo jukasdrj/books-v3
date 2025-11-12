@@ -939,7 +939,7 @@ export class ProgressWebSocketDO extends DurableObject {
 
     try {
       // Import processing logic (need to inline or import)
-      const { processCSVImportCore } = await import('../handlers/csv-import.js');
+      const { processCSVImportCore } = await import('../handlers/csv-import.ts');
 
       // Process CSV with access to this (DO stub methods)
       await processCSVImportCore(csvText, jobId, this, this.env);

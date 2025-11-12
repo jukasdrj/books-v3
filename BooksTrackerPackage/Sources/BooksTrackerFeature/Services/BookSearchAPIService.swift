@@ -81,16 +81,16 @@ public class BookSearchAPIService {
         // Update cache health metrics (actor-isolated call)
         await updateCacheMetrics(headers: httpResponse.allHeaderFields, responseTime: responseTime)
 
-        // Parse canonical ApiResponse<BookSearchResponse> envelope
-        let envelope: ApiResponse<BookSearchResponse>
+        // Parse response using DTOMapper (supports both unified envelope and legacy formats)
+        let searchResponse: BookSearchResponse
         do {
-            envelope = try JSONDecoder().decode(ApiResponse<BookSearchResponse>.self, from: data)
+            searchResponse = try dtoMapper.parseSearchResponse(data)
         } catch {
             throw SearchError.decodingError(error)
         }
 
-        // Process response using shared helper (eliminates duplication with advancedSearch)
-        let results = try processSearchResponse(envelope, persist: persist)
+        // Convert parsed DTO response to SearchResult array
+        let results = try convertToSearchResults(searchResponse, persist: persist)
 
         return SearchResponse(
             results: results,
@@ -231,16 +231,16 @@ public class BookSearchAPIService {
         // Update cache health metrics (actor-isolated call)
         await updateCacheMetrics(headers: httpResponse.allHeaderFields, responseTime: responseTime)
 
-        // Parse canonical ApiResponse<BookSearchResponse> envelope
-        let envelope: ApiResponse<BookSearchResponse>
+        // Parse response using DTOMapper (supports both unified envelope and legacy formats)
+        let searchResponse: BookSearchResponse
         do {
-            envelope = try JSONDecoder().decode(ApiResponse<BookSearchResponse>.self, from: data)
+            searchResponse = try dtoMapper.parseSearchResponse(data)
         } catch {
             throw SearchError.decodingError(error)
         }
 
-        // Process response using shared helper (eliminates duplication with search)
-        let results = try processSearchResponse(envelope, persist: true)
+        // Convert parsed DTO response to SearchResult array
+        let results = try convertToSearchResults(searchResponse, persist: true)
 
         return SearchResponse(
             results: results,
@@ -253,70 +253,64 @@ public class BookSearchAPIService {
 
     // MARK: - Helper Methods
 
-    /// Process BookSearchResponse envelope and convert to SearchResult array
+    /// Convert BookSearchResponse to SearchResult array
     /// Extracts common logic for mapping authors and works from API DTOs
-    private func processSearchResponse(_ envelope: ApiResponse<BookSearchResponse>, persist: Bool) throws -> [SearchResult] {
-        switch envelope {
-        case .success(let searchData, let meta):
-            logger.debug("📦 Processing search response: \(searchData.works.count) works, \(searchData.editions.count) editions, \(searchData.authors.count) authors")
+    private func convertToSearchResults(_ searchData: BookSearchResponse, persist: Bool) throws -> [SearchResult] {
+        logger.debug("📦 Processing search response: \(searchData.works.count) works, \(searchData.editions.count) editions, \(searchData.authors.count) authors")
 
-            // Map authors from API response
-            let mappedAuthors = searchData.authors.compactMap { authorDTO in
-                do {
-                    return try dtoMapper.mapToAuthor(authorDTO, persist: persist)
-                } catch {
-                    logger.warning("⚠️ Failed to map Author DTO '\(authorDTO.name)': \(String(describing: error))")
-                    return nil
-                }
+        // Map authors from API response
+        let mappedAuthors = searchData.authors.compactMap { authorDTO in
+            do {
+                return try dtoMapper.mapToAuthor(authorDTO, persist: persist)
+            } catch {
+                logger.warning("⚠️ Failed to map Author DTO '\(authorDTO.name)': \(String(describing: error))")
+                return nil
             }
+        }
 
-            logger.debug("✅ Mapped \(mappedAuthors.count) authors successfully")
+        logger.debug("✅ Mapped \(mappedAuthors.count) authors successfully")
 
-            // Map editions with DTOMapper
-            let mappedEditions = searchData.editions.compactMap { editionDTO in
-                do {
-                    return try dtoMapper.mapToEdition(editionDTO, persist: persist)
-                } catch {
-                    logger.warning("⚠️ Failed to map Edition DTO: \(String(describing: error))")
-                    return nil
-                }
+        // Map editions with DTOMapper
+        let mappedEditions = searchData.editions.compactMap { editionDTO in
+            do {
+                return try dtoMapper.mapToEdition(editionDTO, persist: persist)
+            } catch {
+                logger.warning("⚠️ Failed to map Edition DTO: \(String(describing: error))")
+                return nil
             }
+        }
 
-            logger.debug("✅ Mapped \(mappedEditions.count) editions successfully")
+        logger.debug("✅ Mapped \(mappedEditions.count) editions successfully")
 
-            // Use DTOMapper to convert DTOs → SwiftData models with deduplication
-            return searchData.works.enumerated().compactMap { (index, workDTO) in
-                do {
-                    let work = try dtoMapper.mapToWork(workDTO, persist: persist)
+        // Use DTOMapper to convert DTOs → SwiftData models with deduplication
+        return searchData.works.enumerated().compactMap { (index, workDTO) in
+            do {
+                let work = try dtoMapper.mapToWork(workDTO, persist: persist)
 
-                    // Get corresponding edition (1:1 mapping by index)
-                    let edition = index < mappedEditions.count ? mappedEditions[index] : nil
+                // Get corresponding edition (1:1 mapping by index)
+                let edition = index < mappedEditions.count ? mappedEditions[index] : nil
 
-                    // Link edition to work if available
-                    if let edition = edition {
-                        edition.work = work
-                    }
-
-                    // Link authors to work
-                    if !mappedAuthors.isEmpty {
-                        work.authors = mappedAuthors
-                    }
-
-                    return SearchResult(
-                        work: work,
-                        editions: edition.map { [$0] } ?? [],
-                        authors: mappedAuthors,
-                        relevanceScore: 1.0,
-                        provider: meta.provider ?? "unknown"
-                    )
-                } catch {
-                    logger.warning("⚠️ Failed to map Work DTO '\(workDTO.title)': \(String(describing: error))")
-                    return nil
+                // Link edition to work if available
+                if let edition = edition {
+                    edition.work = work
                 }
-            }
 
-        case .failure(let error, _):
-            throw SearchError.apiError(error.message)
+                // Link authors to work
+                if !mappedAuthors.isEmpty {
+                    work.authors = mappedAuthors
+                }
+
+                return SearchResult(
+                    work: work,
+                    editions: edition.map { [$0] } ?? [],
+                    authors: mappedAuthors,
+                    relevanceScore: 1.0,
+                    provider: "canonical-api" // Provider tracking moved to meta envelope level
+                )
+            } catch {
+                logger.warning("⚠️ Failed to map Work DTO '\(workDTO.title)': \(String(describing: error))")
+                return nil
+            }
         }
     }
 

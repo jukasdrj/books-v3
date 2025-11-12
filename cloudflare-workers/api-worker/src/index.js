@@ -5,9 +5,9 @@ import * as aiScanner from './services/ai-scanner.js';
 import * as bookSearch from './handlers/book-search.js';
 import * as authorSearch from './handlers/author-search.js';
 import { handleAdvancedSearch } from './handlers/search-handlers.js';
-import { handleBatchScan } from './handlers/batch-scan-handler.js';
-import { handleCSVImport } from './handlers/csv-import.js';
-import { handleBatchEnrichment } from './handlers/batch-enrichment.js';
+import { handleBatchScan } from './handlers/batch-scan-handler.ts';
+import { handleCSVImport } from './handlers/csv-import.ts';
+import { handleBatchEnrichment } from './handlers/batch-enrichment.ts';
 import { processAuthorBatch } from './consumers/author-warming-consumer.js';
 import { handleScheduledArchival } from './handlers/scheduled-archival.js';
 import { handleScheduledAlerts } from './handlers/scheduled-alerts.js';
@@ -17,6 +17,7 @@ import { handleMetricsRequest } from './handlers/metrics-handler.js';
 import { handleSearchTitle } from './handlers/v1/search-title.js';
 import { handleSearchISBN } from './handlers/v1/search-isbn.js';
 import { handleSearchAdvanced } from './handlers/v1/search-advanced.js';
+import { adaptToUnifiedEnvelope } from './utils/envelope-helpers.ts';
 import { handleImageProxy } from './handlers/image-proxy.js';
 import { checkRateLimit } from './middleware/rate-limiter.js';
 import { validateRequestSize, validateResourceSize } from './middleware/size-validator.js';
@@ -517,18 +518,16 @@ export default {
     if (url.pathname === '/v1/search/title' && request.method === 'GET') {
       const query = url.searchParams.get('q');
       const response = await handleSearchTitle(query, env);
-      return new Response(JSON.stringify(response), {
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const useUnifiedEnvelope = env.ENABLE_UNIFIED_ENVELOPE === 'true';
+      return adaptToUnifiedEnvelope(response, useUnifiedEnvelope);
     }
 
     // GET /v1/search/isbn - Search books by ISBN (canonical response)
     if (url.pathname === '/v1/search/isbn' && request.method === 'GET') {
       const isbn = url.searchParams.get('isbn');
       const response = await handleSearchISBN(isbn, env);
-      return new Response(JSON.stringify(response), {
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const useUnifiedEnvelope = env.ENABLE_UNIFIED_ENVELOPE === 'true';
+      return adaptToUnifiedEnvelope(response, useUnifiedEnvelope);
     }
 
     // GET /v1/search/advanced - Advanced search by title and/or author (canonical response)
@@ -536,9 +535,8 @@ export default {
       const title = url.searchParams.get('title') || '';
       const author = url.searchParams.get('author') || '';
       const response = await handleSearchAdvanced(title, author, env, ctx);
-      return new Response(JSON.stringify(response), {
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const useUnifiedEnvelope = env.ENABLE_UNIFIED_ENVELOPE === 'true';
+      return adaptToUnifiedEnvelope(response, useUnifiedEnvelope);
     }
 
     // ========================================================================

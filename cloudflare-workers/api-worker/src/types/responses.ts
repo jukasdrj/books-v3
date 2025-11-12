@@ -122,6 +122,100 @@ export interface BookshelfScanResponse {
 }
 
 // ============================================================================
+// AI PIPELINE RESPONSE TYPES (Phase 2 - Canonical API Contract)
+// ============================================================================
+
+/**
+ * Bookshelf Scan Initialization Response
+ * Used by: POST /api/scan-bookshelf/batch
+ */
+export interface BookshelfScanInitResponse {
+  jobId: string;
+  token: string; // WebSocket authentication token
+  totalPhotos: number;
+  status: 'started' | 'processing';
+}
+
+/**
+ * BoundingBox - Rectangle coordinates for book spine in image
+ */
+export interface BoundingBox {
+  x: number;      // X coordinate (0.0-1.0, normalized)
+  y: number;      // Y coordinate (0.0-1.0, normalized)
+  width: number;  // Width (0.0-1.0, normalized)
+  height: number; // Height (0.0-1.0, normalized)
+}
+
+/**
+ * DetectedBookDTO - Book detected by AI bookshelf scan
+ *
+ * Flattened structure (no nested objects) for iOS Codable parsing.
+ * Used in WebSocket completion messages (AIScanCompletePayload).
+ */
+export interface DetectedBookDTO {
+  title?: string;
+  author?: string;
+  isbn?: string;
+  confidence?: number;  // 0.0-1.0 (AI confidence score)
+  boundingBox?: BoundingBox;
+  enrichmentStatus?: 'pending' | 'success' | 'not_found' | 'error';
+
+  // Flattened edition fields (not nested)
+  coverUrl?: string;
+  publisher?: string;
+  publicationYear?: number;
+}
+
+/**
+ * CSV Import Initialization Response
+ * Used by: POST /api/import/csv-gemini
+ */
+export interface CSVImportInitResponse {
+  jobId: string;
+  token: string; // WebSocket authentication token
+}
+
+/**
+ * ParsedBookDTO - Book parsed from CSV file
+ */
+export interface ParsedBookDTO {
+  title: string;
+  author: string;
+  isbn?: string;
+}
+
+/**
+ * Enrichment Job Initialization Response
+ * Used by: POST /api/enrichment/start
+ */
+export interface EnrichmentJobInitResponse {
+  success: boolean;
+  processedCount: number;
+  totalCount: number;
+  token: string; // WebSocket authentication token
+}
+
+/**
+ * EnrichedBookDTO - Book with enrichment data from external providers
+ *
+ * Flattened structure (no nested objects) for iOS Codable parsing.
+ * Used in WebSocket completion messages (EnrichmentCompletePayload).
+ */
+export interface EnrichedBookDTO {
+  title: string;
+  author?: string;
+  isbn?: string;
+  enrichmentStatus: 'success' | 'not_found' | 'error';
+
+  // Flattened canonical fields (not nested)
+  work?: WorkDTO;
+  editions?: EditionDTO[];
+  authors?: AuthorDTO[];
+  provider?: DataProvider;
+  error?: string;
+}
+
+// ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 

@@ -35,6 +35,9 @@ REQUEST_TIMEOUT_MS = "50000"
 CONFIDENCE_THRESHOLD = "0.7"
 MAX_SCAN_FILE_SIZE = "10485760"
 
+# Response Envelope Unification (Phase 3 - Nov 2025)
+ENABLE_UNIFIED_ENVELOPE = "false"  # Default: legacy format
+
 # KV Namespaces (consolidated from books-api-proxy and external-apis-worker)
 [[kv_namespaces]]
 binding = "CACHE"
@@ -160,3 +163,18 @@ crons = [
   "*/15 * * * *",   # Alert checks every 15 minutes
   "0 3 * * *"       # Daily ISBNdb cover harvest at 3:00 AM UTC
 ]
+
+# ====================================================================================
+# STAGING ENVIRONMENT (Phase 3 - Response Envelope Unification Testing)
+# ====================================================================================
+
+[env.staging]
+name = "books-api-proxy-staging"
+workers_dev = true
+
+[env.staging.vars]
+# Enable unified envelope format in staging for testing
+ENABLE_UNIFIED_ENVELOPE = "true"
+
+# Staging-specific log level (more verbose)
+LOG_LEVEL = "DEBUG"
