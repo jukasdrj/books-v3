@@ -134,12 +134,15 @@ public struct ContentView: View {
                     LaunchMetrics.shared.recordMilestone("ImageCleanup end")
                 }
 
+                #if DEBUG
+                // Sample data only in debug builds (Issue #385)
                 BackgroundTaskScheduler.shared.schedule(priority: .low) {
                     LaunchMetrics.shared.recordMilestone("SampleData check start")
                     let generator = SampleDataGenerator(modelContext: modelContext)
                     generator.setupSampleDataIfNeeded()
                     LaunchMetrics.shared.recordMilestone("SampleData check end")
                 }
+                #endif
                 
                 BackgroundTaskScheduler.shared.schedule(priority: .low) {
                     LaunchMetrics.shared.recordMilestone("DTOMapper cache pruning start")

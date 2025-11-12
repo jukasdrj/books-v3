@@ -30,6 +30,10 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
+    // Feature flag for unified response envelope (Issue #399)
+    // Computed once per request at fetch scope for reuse across all v1 handlers
+    const useUnifiedEnvelope = env.ENABLE_UNIFIED_ENVELOPE === 'true';
+
     // Handle OPTIONS preflight requests (CORS)
     if (request.method === 'OPTIONS') {
       return new Response(null, {
@@ -518,7 +522,6 @@ export default {
     if (url.pathname === '/v1/search/title' && request.method === 'GET') {
       const query = url.searchParams.get('q');
       const response = await handleSearchTitle(query, env);
-      const useUnifiedEnvelope = env.ENABLE_UNIFIED_ENVELOPE === 'true';
       return adaptToUnifiedEnvelope(response, useUnifiedEnvelope);
     }
 
@@ -526,7 +529,6 @@ export default {
     if (url.pathname === '/v1/search/isbn' && request.method === 'GET') {
       const isbn = url.searchParams.get('isbn');
       const response = await handleSearchISBN(isbn, env);
-      const useUnifiedEnvelope = env.ENABLE_UNIFIED_ENVELOPE === 'true';
       return adaptToUnifiedEnvelope(response, useUnifiedEnvelope);
     }
 
@@ -535,7 +537,6 @@ export default {
       const title = url.searchParams.get('title') || '';
       const author = url.searchParams.get('author') || '';
       const response = await handleSearchAdvanced(title, author, env, ctx);
-      const useUnifiedEnvelope = env.ENABLE_UNIFIED_ENVELOPE === 'true';
       return adaptToUnifiedEnvelope(response, useUnifiedEnvelope);
     }
 

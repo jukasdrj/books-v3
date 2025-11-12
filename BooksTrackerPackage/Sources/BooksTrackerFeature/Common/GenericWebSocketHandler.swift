@@ -1,4 +1,5 @@
 import Foundation
+import os.log
 
 /// Handles a generic, typed WebSocket connection for progress-based background jobs.
 ///
@@ -27,6 +28,7 @@ import Foundation
 /// - Note: Must be used from MainActor context (Swift 6 concurrency)
 @MainActor
 public final class GenericWebSocketHandler {
+    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "WebSocket")
     private var webSocket: URLSessionWebSocketTask?
     private let url: URL
     private let pipeline: PipelineType
@@ -34,6 +36,7 @@ public final class GenericWebSocketHandler {
     private let completionHandler: @MainActor (JobCompletePayload) -> Void
     private let errorHandler: @MainActor (ErrorPayload) -> Void
     private var isConnected = false
+    private var shouldContinueListening = true
 
     /// Initializes a new generic WebSocket handler.
     /// - Parameters:
@@ -68,9 +71,8 @@ public final class GenericWebSocketHandler {
             do {
                 try await WebSocketHelpers.waitForConnection(webSocket, timeout: 10.0)
                 isConnected = true
-                #if DEBUG
-                print("✅ GenericWebSocketHandler connected (\(pipeline.rawValue))")
-                #endif
+                shouldContinueListening = true
+                logger.debug("✅ GenericWebSocketHandler connected (\(self.pipeline.rawValue))")
 
                 // CRITICAL FIX (Issue #378): Send ready signal to backend
                 // Backend waits for this signal before sending messages to prevent race condition
@@ -78,27 +80,48 @@ public final class GenericWebSocketHandler {
 
                 listenForMessages()
             } catch {
-                #if DEBUG
-                print("❌ GenericWebSocketHandler connection failed (\(pipeline.rawValue)): \(error)")
-                #endif
+                logger.error("❌ GenericWebSocketHandler connection failed (\(self.pipeline.rawValue)): \(error.localizedDescription)")
                 isConnected = false
+                shouldContinueListening = false
             }
         }
     }
 
     /// Listens for incoming WebSocket messages recursively.
     private func listenForMessages() {
+        // Check if we should stop listening (job completed or error occurred)
+        guard shouldContinueListening, isConnected else {
+            logger.debug("🛑 Stopped listening for messages (\(self.pipeline.rawValue))")
+            return
+        }
+
         webSocket?.receive { [weak self] result in
             Task { @MainActor [weak self] in
-                guard let self = self, self.isConnected else { return }
+                guard let self = self else { return }
+
+                // Double-check we should still be listening
+                guard self.shouldContinueListening, self.isConnected else { return }
+
                 switch result {
                 case .success(let message):
                     self.handleMessage(message)
-                    self.listenForMessages() // Continue listening for more messages
+                    // Only continue listening if still connected
+                    if self.shouldContinueListening && self.isConnected {
+                        self.listenForMessages()
+                    }
                 case .failure(let error):
-                    #if DEBUG
-                    print("❌ WebSocket error (\(self.pipeline.rawValue)): \(error.localizedDescription)")
-                    #endif
+                    // Check if this is a normal disconnect (Code 57 after job complete)
+                    let nsError = error as NSError
+                    if nsError.domain == NSPOSIXErrorDomain && nsError.code == 57 {
+                        // Socket closed gracefully after job completion - not an error
+                        self.logger.debug("✅ WebSocket closed gracefully (\(self.pipeline.rawValue))")
+                        return
+                    }
+
+                    // Actual error - report it
+                    // Stop listening before handling transport error (prevents race condition)
+                    shouldContinueListening = false
+                    self.logger.error("❌ WebSocket error (\(self.pipeline.rawValue)): \(error.localizedDescription)")
                     let errorPayload = ErrorPayload(
                         code: "WEBSOCKET_TRANSPORT_ERROR",
                         message: error.localizedDescription,
@@ -122,9 +145,7 @@ public final class GenericWebSocketHandler {
 
             // Verify pipeline matches (safety check)
             guard typedMessage.pipeline == pipeline else {
-                #if DEBUG
-                print("⚠️ Pipeline mismatch: expected \(pipeline.rawValue), got \(typedMessage.pipeline.rawValue)")
-                #endif
+                logger.warning("⚠️ Pipeline mismatch: expected \(self.pipeline.rawValue), got \(typedMessage.pipeline.rawValue)")
                 return
             }
 
@@ -132,11 +153,18 @@ public final class GenericWebSocketHandler {
             case .jobProgress(let payload):
                 progressHandler(payload)
             case .jobComplete(let payload):
+                // CRITICAL: Stop listening BEFORE calling handler and disconnect
+                // This prevents "Socket is not connected" error (POSIX 57)
+                shouldContinueListening = false
+                logger.debug("✅ Job complete, stopping message loop (\(self.pipeline.rawValue))")
                 completionHandler(payload)
-                disconnect() // Job complete - disconnect
+                disconnect()
             case .error(let payload):
+                // Stop listening before handling error
+                shouldContinueListening = false
+                logger.warning("⚠️ Job error, stopping message loop (\(self.pipeline.rawValue))")
                 errorHandler(payload)
-                disconnect() // Job failed - disconnect
+                disconnect()
             case .readyAck, .jobStarted, .ping, .pong:
                 // These messages are handled at infrastructure level or ignored
                 // readyAck: Backend acknowledgment of client ready signal (no action needed)
@@ -145,12 +173,13 @@ public final class GenericWebSocketHandler {
                 break
             }
         } catch {
-            #if DEBUG
-            print("❌ Failed to decode WebSocket message (\(pipeline.rawValue)): \(error)")
+            logger.error("❌ Failed to decode WebSocket message (\(self.pipeline.rawValue)): \(error.localizedDescription)")
             if let jsonString = String(data: data, encoding: .utf8) {
-                print("Raw JSON: \(jsonString)")
+                logger.debug("Raw JSON: \(jsonString)")
             }
-            #endif
+
+            // Stop listening before handling decoding error
+            shouldContinueListening = false
             let errorPayload = ErrorPayload(
                 code: "CLIENT_DECODING_ERROR",
                 message: "Failed to decode WebSocket message: \(error.localizedDescription)",
@@ -178,20 +207,20 @@ public final class GenericWebSocketHandler {
         }
 
         try await webSocket.send(.string(jsonString))
-        #if DEBUG
-        print("📤 Ready signal sent to backend (\(pipeline.rawValue))")
-        #endif
+        logger.debug("📤 Ready signal sent to backend (\(self.pipeline.rawValue))")
     }
 
     /// Disconnects from the WebSocket.
     public func disconnect() {
         guard isConnected else { return }
+
+        // Stop listening first
+        shouldContinueListening = false
         isConnected = false
+
         webSocket?.cancel(with: .goingAway, reason: nil)
         webSocket = nil
-        #if DEBUG
-        print("🔌 GenericWebSocketHandler disconnected (\(pipeline.rawValue))")
-        #endif
+        logger.debug("🔌 GenericWebSocketHandler disconnected (\(self.pipeline.rawValue))")
     }
 }
 

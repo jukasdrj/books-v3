@@ -74,6 +74,7 @@ export interface ErrorResponse {
     details?: any;
   };
   meta: ResponseMeta;
+  status?: number; // Optional HTTP status code (Issue #398)
 }
 
 /**

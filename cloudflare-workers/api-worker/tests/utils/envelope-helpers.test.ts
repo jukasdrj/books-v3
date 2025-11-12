@@ -136,21 +136,50 @@ describe('Envelope Helpers', () => {
       expect(body.error.code).toBe('E_INVALID_QUERY');
     });
 
-    test('preserves error status code', async () => {
-      const legacyResponse: ErrorResponse = {
+    test('maps error codes to correct HTTP status (Issue #398)', async () => {
+      // Test INVALID_QUERY → 400
+      const invalidQuery: ErrorResponse = {
+        success: false,
+        error: {
+          message: 'Invalid query',
+          code: 'INVALID_QUERY'
+        },
+        meta: { timestamp: '2025-11-12T00:00:00Z' }
+      };
+      expect(adaptToUnifiedEnvelope(invalidQuery, true).status).toBe(400);
+
+      // Test NOT_FOUND → 404
+      const notFound: ErrorResponse = {
         success: false,
         error: {
           message: 'Not found',
-          code: 'E_NOT_FOUND'
+          code: 'NOT_FOUND'
         },
-        meta: {
-          timestamp: '2025-11-12T00:00:00Z'
-        }
+        meta: { timestamp: '2025-11-12T00:00:00Z' }
       };
+      expect(adaptToUnifiedEnvelope(notFound, true).status).toBe(404);
 
-      const response = adaptToUnifiedEnvelope(legacyResponse, true);
+      // Test INTERNAL_ERROR → 500
+      const internalError: ErrorResponse = {
+        success: false,
+        error: {
+          message: 'Internal error',
+          code: 'INTERNAL_ERROR'
+        },
+        meta: { timestamp: '2025-11-12T00:00:00Z' }
+      };
+      expect(adaptToUnifiedEnvelope(internalError, true).status).toBe(500);
 
-      expect(response.status).toBe(400);
+      // Test PROVIDER_ERROR (timeout) → 503
+      const providerTimeout: ErrorResponse = {
+        success: false,
+        error: {
+          message: 'Provider timeout',
+          code: 'PROVIDER_ERROR'
+        },
+        meta: { timestamp: '2025-11-12T00:00:00Z' }
+      };
+      expect(adaptToUnifiedEnvelope(providerTimeout, true).status).toBe(503);
     });
   });
 });

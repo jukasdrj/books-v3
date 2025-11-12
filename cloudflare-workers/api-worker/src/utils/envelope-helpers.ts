@@ -11,6 +11,7 @@ import type {
   ErrorResponse,
   ResponseMeta
 } from '../types/responses.js';
+import { statusFromError } from './error-status.js';
 
 /**
  * Create unified success response envelope
@@ -87,7 +88,7 @@ export function adaptToUnifiedEnvelope<T>(
         legacyResponse.error.code,
         legacyResponse.error.details
       ),
-      { status: 400 }
+      { status: statusFromError(legacyResponse) }
     );
   }
 }
