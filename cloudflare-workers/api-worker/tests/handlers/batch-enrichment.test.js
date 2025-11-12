@@ -13,8 +13,12 @@ const createMockEnv = () => ({
   PROGRESS_WEBSOCKET_DO: {
     idFromName: vi.fn((name) => `mock-id-${name}`),
     get: vi.fn(() => ({
+      setAuthToken: vi.fn(), // This was missing
       updateProgress: vi.fn(),
+      updateProgressV2: vi.fn(),
       complete: vi.fn(),
+      completeV2: vi.fn(),
+      sendError: vi.fn(),
       fail: vi.fn()
     }))
   }

@@ -196,14 +196,15 @@ async function processBatchEnrichment(books, doStub, env, jobId) {
 
         // Flatten to EnrichedBookDTO structure (no nested objects)
         if (enriched) {
-          // enriched is SingleEnrichmentResult with work, editions (array), and authors
+          // `enrichSingleBook` returns one `edition`, but `EnrichedBookDTO` expects `editions[]`
+          // Convert to array to match the DTO, or use empty array if no edition found
           return {
             title: book.title,
             author: book.author,
             isbn: book.isbn,
             enrichmentStatus: 'success',
             work: enriched.work,
-            editions: enriched.editions || [], // Convert single edition to array
+            editions: enriched.edition ? [enriched.edition] : [],
             authors: enriched.authors || [],
             provider: enriched.provider
           };
