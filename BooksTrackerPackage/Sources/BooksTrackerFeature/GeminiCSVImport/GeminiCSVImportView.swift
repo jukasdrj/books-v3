@@ -548,12 +548,26 @@ public struct GeminiCSVImportView: View {
                 EnrichmentQueue.shared.enqueueBatch(result.newWorkIDs)
 
                 // Start enrichment in background
-                // CRITICAL: Add delay to allow SwiftData context merging
+                // CRITICAL: Poll for SwiftData context merging
                 // ImportService uses background actor context, main view uses different context
-                // Without delay, modelContext.work(for:) returns nil for all IDs (cross-context issue)
+                // Without polling, modelContext.work(for:) returns nil for all IDs (cross-context issue)
                 Task {
-                    // Wait for SwiftData to merge changes from background context
-                    try? await Task.sleep(for: .milliseconds(500))
+                    // Poll until SwiftData merges changes from background context
+                    let workIDs = result.newWorkIDs
+                    let deadline = Date.now.addingTimeInterval(5.0) // 5-second timeout
+
+                    while Date.now < deadline {
+                        let foundCount = workIDs.compactMap { modelContext.model(for: $0) as? Work }.count
+                        if foundCount == workIDs.count {
+                            break // All works are available
+                        }
+                        try? await Task.sleep(for: .milliseconds(100))
+                    }
+
+                    #if DEBUG
+                    let finalFoundCount = workIDs.compactMap { modelContext.model(for: $0) as? Work }.count
+                    print("📚 Context merge complete: \(finalFoundCount)/\(workIDs.count) works available")
+                    #endif
 
                     EnrichmentQueue.shared.startProcessing(in: modelContext) { completed, total, currentTitle in
                         #if DEBUG

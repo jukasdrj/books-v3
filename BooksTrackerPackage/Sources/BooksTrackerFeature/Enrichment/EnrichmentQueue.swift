@@ -241,16 +241,14 @@ public final class EnrichmentQueue {
             let workIDs = self.getAllPending()
             let works = workIDs.compactMap { modelContext.work(for: $0) }
 
-            #if DEBUG
-            print("📚 [ENRICHMENT] Fetched \(works.count)/\(workIDs.count) works from context")
+            logger.debug("📚 [ENRICHMENT] Fetched \(works.count)/\(workIDs.count) works from context")
             if works.isEmpty && !workIDs.isEmpty {
-                print("⚠️ [ENRICHMENT] All persistent IDs returned nil! Possible cross-context issue.")
-                print("⚠️ [ENRICHMENT] This usually means:")
-                print("   1. Works were created in different ModelContext (actor/background)")
-                print("   2. Main context hasn't merged changes yet (need delay)")
-                print("   3. Works were deleted after queueing")
+                logger.warning("⚠️ [ENRICHMENT] All persistent IDs returned nil! Possible cross-context issue.")
+                logger.debug("⚠️ [ENRICHMENT] This usually means:")
+                logger.debug("   1. Works were created in different ModelContext (actor/background)")
+                logger.debug("   2. Main context hasn't merged changes yet (need polling)")
+                logger.debug("   3. Works were deleted after queueing")
             }
-            #endif
 
             guard !works.isEmpty else {
                 self.clear()
