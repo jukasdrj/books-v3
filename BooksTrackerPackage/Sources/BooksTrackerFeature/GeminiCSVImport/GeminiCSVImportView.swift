@@ -519,121 +519,35 @@ public struct GeminiCSVImportView: View {
         }
 
         #if DEBUG
-        print("📚 Saving \(books.count) books to library...")
+        print("📚 Saving \(books.count) books to library using background import...")
         #endif
-        var savedCount = 0
-        var skippedCount = 0
-        var savedWorks: [Work] = []  // Collect Work objects, get IDs after save
 
-        // **FIX #1: Move fetch outside loop** (100x performance improvement)
-        // Fetch all existing works ONCE instead of per-book
-        let descriptor = FetchDescriptor<Work>()
-        let allWorks: [Work]
+        // NEW: Use ImportService for background import
+        let service = ImportService(modelContainer: modelContext.container)
+
         do {
-            allWorks = try modelContext.fetch(descriptor)
-        } catch {
-            // **FIX #2: Explicit error handling** (prevent silent data loss)
+            // Import in background (UI stays responsive!)
+            // Actor fetches existing works in its own context for thread safety
+            let result = try await service.importCSVBooks(books)
+
             #if DEBUG
-            print("❌ Failed to fetch existing works: \(error)")
-            #endif
-            importStatus = .failed("Database error: \(error.localizedDescription)")
-            return false
-        }
-
-        for book in books {
-            // Check for duplicate by title + author (case-insensitive)
-            // Note: SwiftData predicates don't support lowercased(), so we filter in-memory
-            let titleLower = book.title.lowercased()
-            let authorLower = book.author.lowercased()
-
-            let isDuplicate = allWorks.contains { work in
-                let workTitleLower = work.title.lowercased()
-                let workAuthorLower = work.authorNames.lowercased()
-                return workTitleLower == titleLower &&
-                       (workAuthorLower.contains(authorLower) || authorLower.contains(workAuthorLower))
-            }
-
-            if isDuplicate {
-                #if DEBUG
-                print("⏭️ Skipping duplicate: \(book.title)")
-                #endif
-                skippedCount += 1
-                continue
-            }
-
-            // Create Author FIRST and insert
-            let author = Author(name: book.author)
-            modelContext.insert(author)
-
-            // Create Work, insert, then set relationship
-            let work = Work(
-                title: book.title,
-                originalLanguage: "Unknown",  // Gemini doesn't provide this
-                firstPublicationYear: book.publicationYear
-            )
-            modelContext.insert(work)
-
-            // NOW set relationship (both have temporary IDs, will be permanent after save)
-            work.authors = [author]
-
-            // Track work object (will extract permanent ID after save)
-            savedWorks.append(work)
-
-            // 🔥 FIX: Create UserLibraryEntry so book appears in library immediately
-            // CSV imports should add books to "To Read" status by default
-            let libraryEntry = UserLibraryEntry(readingStatus: .toRead)
-            modelContext.insert(libraryEntry)
-            libraryEntry.work = work
-            work.userLibraryEntries = [libraryEntry]
-            #if DEBUG
-            print("📚 [CSV Import] Created UserLibraryEntry for '\(book.title)' - userLibraryEntries count: \(work.userLibraryEntries?.count ?? 0)")
-            #endif
-
-            // Create Edition ONLY if we have ISBN from Gemini
-            if let isbn = book.isbn {
-                let edition = Edition(
-                    isbn: isbn,
-                    publisher: book.publisher,
-                    publicationDate: book.publicationYear.map { "\($0)" },
-                    pageCount: nil,
-                    format: .paperback,
-                    coverImageURL: nil  // No cover yet - enrichment will add it
-                )
-
-                modelContext.insert(edition)
-                edition.work = work
-            }
-
-            savedCount += 1
-        }
-
-        // Save to SwiftData
-        do {
-            try modelContext.save()
-            #if DEBUG
-            print("✅ Saved \(savedCount) books (\(skippedCount) skipped as duplicates)")
-            // Verify UserLibraryEntry relationships persisted
-            for work in savedWorks {
-                let entryCount = work.userLibraryEntries?.count ?? 0
-                #if DEBUG
-                print("📚 [CSV Import] Post-save verification: '\(work.title)' has \(entryCount) library entries")
-                #endif
+            print("✅ Background import complete: \(result.successCount) saved, \(result.skippedCount) skipped, \(result.failedCount) failed in \(String(format: "%.2f", result.duration))s")
+            if !result.errors.isEmpty {
+                print("❌ Errors:")
+                for error in result.errors {
+                    print("  - \(error.title): \(error.message)")
+                }
             }
             #endif
 
-            // Extract permanent IDs AFTER save (now they're permanent!)
-            let savedWorkIDs = savedWorks.map { $0.persistentModelID }
-
-            // Enqueue all saved works for background enrichment
-            if !savedWorkIDs.isEmpty {
+            // Enqueue saved works for enrichment using PersistentIdentifiers
+            if !result.newWorkIDs.isEmpty {
                 #if DEBUG
-                print("📚 Enqueueing \(savedWorkIDs.count) books for enrichment")
+                print("📚 Enqueueing \(result.newWorkIDs.count) books for enrichment")
                 #endif
-                EnrichmentQueue.shared.enqueueBatch(savedWorkIDs)
+                EnrichmentQueue.shared.enqueueBatch(result.newWorkIDs)
 
-                // ✅ Start enrichment in background Task
-                // Regular Task (not detached) safely captures modelContext from @MainActor context
-                // Enrichment runs asynchronously without blocking the UI
+                // Start enrichment in background
                 Task {
                     EnrichmentQueue.shared.startProcessing(in: modelContext) { completed, total, currentTitle in
                         #if DEBUG
@@ -651,7 +565,7 @@ public struct GeminiCSVImportView: View {
 
         } catch {
             #if DEBUG
-            print("❌ Failed to save books: \(error)")
+            print("❌ Background import failed: \(error)")
             #endif
 
             // Error haptic

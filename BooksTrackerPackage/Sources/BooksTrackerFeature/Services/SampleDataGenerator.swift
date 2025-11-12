@@ -47,6 +47,7 @@ public final class SampleDataGenerator {
         var descriptor = FetchDescriptor<Work>()
         descriptor.fetchLimit = 1  // Only check existence, don't fetch all Works
 
+        // Parentheses group try? operation before ?? operator is applied
         let works = (try? modelContext.fetch(descriptor)) ?? []
         return works.isEmpty
     }
