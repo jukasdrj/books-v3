@@ -48,7 +48,7 @@ describe('Edition Normalization', () => {
       expect(edition.publisher).toBe('Houghton Mifflin Harcourt');
       expect(edition.publicationDate).toBe('2017-01-25');
       expect(edition.pageCount).toBe(328);
-      expect(edition.coverImageURL).toBe('https://books.google.com/books/content?id=yklCAwAAQBAJ&printsec=frontcover&img=1&zoom=1');
+      expect(edition.coverImageURL).toBe('https://books.google.com/books/content?id=yklCAwAAQBAJ&printsec=frontcover&img=1&zoom=3');
       expect(edition.language).toBe('en');
       expect(edition.primaryProvider).toBe('google-books');
       expect(edition.googleBooksVolumeIDs).toEqual(['yklCAwAAQBAJ']);

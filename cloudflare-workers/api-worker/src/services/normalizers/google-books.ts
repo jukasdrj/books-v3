@@ -19,6 +19,18 @@ function extractYear(dateString?: string): number | undefined {
 }
 
 /**
+ * Get high-resolution cover URL from Google Books API thumbnail link
+ */
+function getHighResCoverURL(imageLinks?: { thumbnail?: string }): string | undefined {
+  const thumbnailURL = imageLinks?.thumbnail?.replace('http:', 'https:');
+  if (!thumbnailURL) return undefined;
+
+  // Request high-resolution image by changing zoom parameter.
+  // This removes any existing zoom parameter and adds our preferred one.
+  return thumbnailURL.replace(/&zoom=\d/, '') + '&zoom=3';
+}
+
+/**
  * Normalize Google Books volume to WorkDTO
  */
 export function normalizeGoogleBooksToWork(item: any): WorkDTO {
@@ -30,7 +42,7 @@ export function normalizeGoogleBooksToWork(item: any): WorkDTO {
     originalLanguage: volumeInfo.language,
     firstPublicationYear: extractYear(volumeInfo.publishedDate),
     description: volumeInfo.description,
-    coverImageURL: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:'),
+    coverImageURL: getHighResCoverURL(volumeInfo.imageLinks),
     synthetic: false,
     primaryProvider: 'google-books',
     contributors: ['google-books'],
@@ -62,7 +74,7 @@ export function normalizeGoogleBooksToEdition(item: any): EditionDTO {
     publicationDate: volumeInfo.publishedDate,
     pageCount: volumeInfo.pageCount,
     format: 'Hardcover', // Google Books doesn't provide format
-    coverImageURL: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:'),
+    coverImageURL: getHighResCoverURL(volumeInfo.imageLinks),
     editionTitle: undefined,
     editionDescription: volumeInfo.description,
     language: volumeInfo.language,
