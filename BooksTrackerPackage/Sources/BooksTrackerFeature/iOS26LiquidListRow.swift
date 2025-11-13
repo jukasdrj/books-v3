@@ -29,7 +29,7 @@ struct iOS26LiquidListRow: View {
     }
 
     var body: some View {
-        HStack(spacing: rowSpacing) {
+        HStack(alignment: .top, spacing: rowSpacing) {
             // Book cover thumbnail
             coverThumbnail
 
@@ -125,6 +125,9 @@ struct iOS26LiquidListRow: View {
                displayStyle == .detailed {
                 readingProgressSection(userEntry.readingProgress)
             }
+
+            // ✅ FIXED: Spacer prevents vertical collapse on multi-line titles
+            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
