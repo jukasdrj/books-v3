@@ -256,40 +256,124 @@ public final class EnrichmentQueue {
                 return
             }
 
-            let jobId = UUID().uuidString
-            self.setCurrentJobId(jobId)
-
             // Reset activity timer at start
             self.lastActivityTime = Date()
 
-            // Start watchdog in background - it will throw TimeoutError if inactive too long
-            let watchdog = Task<Void, Error> { @MainActor [weak self] in
-                guard let self = self else { return }
-                try await self.activityTimeoutWatchdog(timeoutDuration: timeoutDuration)
-            }
-
             do {
-                // Run enrichment (returns immediately after starting WebSocket)
-                await self.runEnrichment(
-                    works: works,
-                    jobId: jobId,
-                    modelContext: modelContext,
-                    progressHandler: progressHandler
-                )
+                try await withThrowingTaskGroup(of: Void.self) { group in
+                    // Task 1: Activity Timeout Watchdog
+                    group.addTask { @MainActor [weak self] in
+                        guard let self = self else { return }
+                        try await self.activityTimeoutWatchdog(timeoutDuration: timeoutDuration)
+                    }
 
-                // Wait for watchdog to complete or throw (it monitors WebSocket activity)
-                try await watchdog.value
+                    // Task 2: Sequential Batch Enrichment
+                    group.addTask { @MainActor [weak self] in
+                        guard let self = self else { return }
 
-                // Success - enrichment completed before timeout
+                        // Split into 100-book chunks
+                        let batchSize = 100
+                let batches = stride(from: 0, to: works.count, by: batchSize).map {
+                    Array(works[$0 ..< min($0 + batchSize, works.count)])
+                }
+                var processedCount = 0
+
+                for (index, batch) in batches.enumerated() {
+                    if Task.isCancelled { throw CancellationError() }
+
+                    logger.info("📦 Processing batch \(index + 1) of \(batches.count)...")
+
+                    let jobId = UUID().uuidString
+                    self.setCurrentJobId(jobId)
+
+                    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                        Task { @MainActor in
+                            #if DEBUG
+                            print("📤 Sending batch enrichment POST request...")
+                            #endif
+
+                            let enrichmentResult = await EnrichmentService.shared.batchEnrichWorks(batch, jobId: jobId, in: modelContext)
+
+                            guard let token = enrichmentResult.token, !token.isEmpty else {
+                                #if DEBUG
+                                print("⚠️ No authentication token available, skipping WebSocket connection")
+                                #endif
+                                continuation.resume(throwing: EnrichmentError.apiError("Failed to get enrichment token for batch \(index + 1). The backend may have rejected the request."))
+                                return
+                            }
+
+                            var components = URLComponents(string: "\(EnrichmentConfig.webSocketBaseURL)/ws/progress")!
+                            components.queryItems = [
+                                URLQueryItem(name: "jobId", value: jobId),
+                                URLQueryItem(name: "token", value: token)
+                            ]
+
+                            guard let wsURL = components.url else {
+                                continuation.resume(throwing: EnrichmentError.invalidURL)
+                                return
+                            }
+
+                            #if DEBUG
+                            print("🔌 Connecting WebSocket for batch \(index + 1)...")
+                            #endif
+
+                            self.webSocketHandler = GenericWebSocketHandler(
+                                url: wsURL,
+                                pipeline: .batchEnrichment,
+                                progressHandler: { [weak self] progressPayload in
+                                    self?.resetActivityTimer()
+                                    let batchProcessed = progressPayload.processedCount ?? 0
+                                    let totalForUI = works.count
+                                    let currentTitle = progressPayload.currentItem ?? "Unknown"
+                                    let overallProcessed = processedCount + batchProcessed
+
+                                    let progressTitle = "(\(index + 1)/\(batches.count)) \(currentTitle)"
+
+                                    progressHandler(overallProcessed, totalForUI, progressTitle)
+                                    NotificationCoordinator.postEnrichmentProgress(completed: overallProcessed, total: totalForUI, currentTitle: progressTitle)
+                                },
+                                completionHandler: { [weak self] completePayload in
+                                    guard let self = self else { return }
+                                    self.resetActivityTimer()
+                                    guard case .batchEnrichment(let batchPayload) = completePayload else {
+                                        #if DEBUG
+                                        print("⚠️ Unexpected payload type for batch enrichment completion")
+                                        #endif
+                                        continuation.resume()
+                                        return
+                                    }
+
+                                    self.applyEnrichedData(batchPayload.enrichedBooks, in: modelContext)
+                                    continuation.resume()
+                                },
+                                errorHandler: { errorPayload in
+                                    #if DEBUG
+                                    print("❌ WebSocket enrichment error for batch \(index + 1): \(errorPayload.message)")
+                                    #endif
+                                    NotificationCoordinator.postEnrichmentFailed(error: errorPayload.message)
+                                    continuation.resume(throwing: EnrichmentError.apiError(errorPayload.message))
+                                }
+                            )
+                            await self.webSocketHandler?.connect()
+                        }
+                    }
+                    processedCount += batch.count
+                }
+
+                }
+
+                // If we reach here, all batches completed successfully without the watchdog timing out.
+                // The task group will automatically cancel the watchdog task upon exiting.
+            }
+                // Success - all batches completed
                 #if DEBUG
-                print("✅ Enrichment completed successfully")
+                print("✅ All enrichment batches completed successfully")
                 #endif
                 self.clear()
                 NotificationCoordinator.postEnrichmentCompleted()
 
             } catch let error as EnrichmentTimeoutError {
                 // Timeout path
-                watchdog.cancel()
                 #if DEBUG
                 print("⏱️ Enrichment timed out after \(Int(timeoutDuration))s of inactivity")
                 #endif
@@ -312,107 +396,6 @@ public final class EnrichmentQueue {
                 NotificationCoordinator.postEnrichmentFailed(error: error.localizedDescription)
             }
         }
-    }
-
-    /// Run the enrichment process (extracted for clarity)
-    private func runEnrichment(
-        works: [Work],
-        jobId: String,
-        modelContext: ModelContext,
-        progressHandler: @escaping (Int, Int, String) -> Void
-    ) async {
-        // ✅ CRITICAL FIX: Send POST request FIRST to create Durable Object on backend
-        // The backend creates the DO when it receives the POST request (batch-enrichment.js:128-129)
-        // WebSocket connection will fail if DO doesn't exist yet!
-        #if DEBUG
-        print("📤 Sending batch enrichment POST request (creates DO)...")
-        #endif
-
-        let enrichmentResult = await EnrichmentService.shared.batchEnrichWorks(works, jobId: jobId, in: modelContext)
-
-        #if DEBUG
-        print("✅ Batch enrichment job accepted. \(works.count) books queued for background processing")
-        #endif
-
-        // ✅ Guard against nil/empty token (happens on enrichment API errors)
-        guard let token = enrichmentResult.token, !token.isEmpty else {
-            #if DEBUG
-            print("⚠️ No authentication token available, skipping WebSocket connection")
-            print("⚠️ Enrichment API may have returned an error")
-            #endif
-            return
-        }
-
-        // ✅ NOW connect WebSocket (DO exists on backend)
-        // Use URLComponents for proper URL encoding
-        var components = URLComponents(string: "\(EnrichmentConfig.webSocketBaseURL)/ws/progress")!
-        components.queryItems = [
-            URLQueryItem(name: "jobId", value: jobId),
-            URLQueryItem(name: "token", value: token)
-        ]
-
-        guard let wsURL = components.url else {
-            #if DEBUG
-            print("❌ Invalid WebSocket URL")
-            #endif
-            return
-        }
-
-        #if DEBUG
-        print("🔐 Using auth token: [REDACTED]")
-        #endif
-
-        #if DEBUG
-        print("🔌 Connecting WebSocket for progress updates...")
-        #endif
-
-        self.webSocketHandler = GenericWebSocketHandler(
-            url: wsURL,
-            pipeline: .batchEnrichment,
-            progressHandler: { [weak self] progressPayload in
-                // ✅ Reset activity timer on EVERY WebSocket message
-                self?.resetActivityTimer()
-
-                // Extract data from JobProgressPayload
-                let processed = progressPayload.processedCount ?? 0
-                let total = works.count  // Use local total count
-                let title = progressPayload.currentItem ?? "Unknown"
-
-                progressHandler(processed, total, title)
-                NotificationCoordinator.postEnrichmentProgress(completed: processed, total: total, currentTitle: title)
-            },
-            completionHandler: { [weak self] completePayload in
-                guard let self = self else { return }
-                // ✅ Reset activity timer on completion message
-                self.resetActivityTimer()
-
-                // Unwrap the batch enrichment case
-                guard case .batchEnrichment(let batchPayload) = completePayload else {
-                    #if DEBUG
-                    print("⚠️ Unexpected payload type for batch enrichment")
-                    #endif
-                    return
-                }
-
-                let enrichedBooks = batchPayload.enrichedBooks
-
-                // Apply enriched data to SwiftData models
-                self.applyEnrichedData(enrichedBooks, in: modelContext)
-            },
-            errorHandler: { errorPayload in
-                #if DEBUG
-                print("❌ WebSocket enrichment error: \(errorPayload.message)")
-                #endif
-                NotificationCoordinator.postEnrichmentFailed(error: errorPayload.message)
-            }
-        )
-
-        // Connect and wait for handshake (GenericWebSocketHandler already has waitForConnection + sendReadySignal)
-        await self.webSocketHandler?.connect()
-
-        #if DEBUG
-        print("✅ WebSocket connected. Listening for enrichment progress updates...")
-        #endif
     }
 
     /// Stop background processing
