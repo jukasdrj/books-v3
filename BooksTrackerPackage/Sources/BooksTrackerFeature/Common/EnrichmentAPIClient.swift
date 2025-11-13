@@ -16,29 +16,76 @@ actor EnrichmentAPIClient {
     /// Backend will push progress updates via WebSocket
     /// - Parameter jobId: Unique job identifier for WebSocket tracking
     /// - Returns: Enrichment result with final counts
+    /// - Note: Supports automatic fallback from /v1/enrichment/batch → /api/enrichment/batch if canonical endpoint unavailable (404/405/426/501)
     func startEnrichment(jobId: String, books: [Book]) async throws -> EnrichmentResult {
-        guard let url = URL(string: "\(baseURL)/api/enrichment/batch") else {
+        // Feature flag: Use canonical /v1 endpoint when enabled, fallback to legacy /api if unavailable
+        // Default: OFF (waiting for backend deployment of /v1/enrichment/batch)
+        // Related: GitHub Issue #425, FRONTEND_HANDOFF.md
+        let useCanonicalEndpoint = UserDefaults.standard.bool(forKey: "feature.useCanonicalEnrichment")
+
+        let primaryEndpoint = useCanonicalEndpoint ? "/v1/enrichment/batch" : "/api/enrichment/batch"
+        let fallbackEndpoint = "/api/enrichment/batch"
+
+        do {
+            return try await performEnrichment(endpoint: primaryEndpoint, jobId: jobId, books: books)
+        } catch let error as NSError where useCanonicalEndpoint && shouldFallbackToLegacy(statusCode: error.code) {
+            // Automatic fallback on endpoint-not-available errors (404, 405, 426, 501)
+            #if DEBUG
+            print("⚠️ [EnrichmentAPIClient] Canonical endpoint failed with \(error.code), falling back to legacy: \(fallbackEndpoint)")
+            #endif
+
+            // Log fallback metric for observability
+            logFallbackMetric(fromEndpoint: primaryEndpoint, toEndpoint: fallbackEndpoint, reason: "\(error.code)")
+
+            return try await performEnrichment(endpoint: fallbackEndpoint, jobId: jobId, books: books)
+        }
+    }
+
+    /// Determines if error warrants fallback to legacy endpoint
+    /// Fallback on: 404 (Not Found), 405 (Method Not Allowed), 426 (Upgrade Required), 501 (Not Implemented)
+    /// Do NOT fallback on: 4xx client errors (400, 401, 403, 422) or 5xx server errors (to avoid duplicate jobs)
+    private func shouldFallbackToLegacy(statusCode: Int) -> Bool {
+        [404, 405, 426, 501].contains(statusCode)
+    }
+
+    /// Log fallback event for observability (sends to console in DEBUG, ready for analytics integration)
+    private func logFallbackMetric(fromEndpoint: String, toEndpoint: String, reason: String) {
+        #if DEBUG
+        print("📊 [EnrichmentAPIClient] Fallback: \(fromEndpoint) → \(toEndpoint) (reason: \(reason))")
+        #endif
+        // TODO: Send to analytics/observability system (Firebase, Sentry, etc.)
+        // Example: Analytics.log("enrichment_endpoint_fallback", parameters: ["from": fromEndpoint, "to": toEndpoint, "reason": reason])
+    }
+
+    /// Performs enrichment request to specified endpoint
+    /// - Parameters:
+    ///   - endpoint: API endpoint path (e.g., "/v1/enrichment/batch")
+    ///   - jobId: Unique job identifier for WebSocket tracking
+    ///   - books: Books to enrich
+    /// - Returns: Enrichment result with job details
+    private func performEnrichment(endpoint: String, jobId: String, books: [Book]) async throws -> EnrichmentResult {
+        guard let url = URL(string: "\(baseURL)\(endpoint)") else {
             throw URLError(.badURL)
         }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("ios-v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown")", forHTTPHeaderField: "X-Client-Version")
         request.timeoutInterval = 30  // 30 second timeout for POST request
 
         let payload = BatchEnrichmentPayload(books: books, jobId: jobId)
-
         request.httpBody = try JSONEncoder().encode(payload)
 
         #if DEBUG
-        print("[EnrichmentAPIClient] 📤 Sending POST to /api/enrichment/batch (jobId: \(jobId), books: \(books.count))")
+        print("[EnrichmentAPIClient] 📤 Sending POST to \(endpoint) (jobId: \(jobId), books: \(books.count))")
         #endif
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
         #if DEBUG
         let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
-        print("[EnrichmentAPIClient] ✅ Received HTTP \(statusCode) response")
+        print("[EnrichmentAPIClient] ✅ Received HTTP \(statusCode) response from \(endpoint)")
         #endif
 
         guard let httpResponse = response as? HTTPURLResponse,
@@ -46,15 +93,15 @@ actor EnrichmentAPIClient {
             // Enhanced error logging for debugging enrichment failures
             let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
             #if DEBUG
-            print("🚨 Enrichment API error: HTTP \(statusCode)")
+            print("🚨 Enrichment API error: HTTP \(statusCode) from \(endpoint)")
             #endif
-            
+
             #if DEBUG
             if let responseString = String(data: data, encoding: .utf8) {
                 print("🚨 Response body: \(responseString)")
             }
             #endif
-            
+
             // Try to decode error response to extract error code
             // Backend returns ResponseEnvelope for both success and error cases
             if let errorEnvelope = try? JSONDecoder().decode(ResponseEnvelope<EnrichmentResult>.self, from: data),
@@ -70,7 +117,7 @@ actor EnrichmentAPIClient {
                 ]
                 throw NSError(domain: "EnrichmentAPIClient", code: statusCode, userInfo: userInfo)
             }
-            throw URLError(.badServerResponse)
+            throw NSError(domain: "EnrichmentAPIClient", code: statusCode, userInfo: [NSLocalizedDescriptionKey: "Enrichment request failed"])
         }
 
         // Decode ResponseEnvelope and unwrap data
@@ -86,7 +133,7 @@ actor EnrichmentAPIClient {
 
         guard let result = envelope.data else {
             #if DEBUG
-            print("🚨 Enrichment response missing data field")
+            print("🚨 Enrichment response missing data field from \(endpoint)")
             #endif
             throw URLError(.badServerResponse)
         }
