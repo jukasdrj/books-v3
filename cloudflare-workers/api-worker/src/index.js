@@ -36,6 +36,11 @@ export default {
     // Computed once per request at fetch scope for reuse across all v1 handlers
     const useUnifiedEnvelope = env.ENABLE_UNIFIED_ENVELOPE === 'true';
 
+    // Custom domain routing: harvest.oooefam.net root → Dashboard
+    if (url.hostname === 'harvest.oooefam.net' && url.pathname === '/') {
+      return await handleHarvestDashboard(request, env);
+    }
+
     // Handle OPTIONS preflight requests (CORS)
     if (request.method === 'OPTIONS') {
       return new Response(null, {

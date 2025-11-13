@@ -2,9 +2,13 @@ name = "api-worker"
 main = "src/index.js"
 compatibility_date = "2024-10-01"
 workers_dev = true
-
-# Compatibility flags (from all workers)
 compatibility_flags = ["nodejs_compat"]
+
+# Custom domain routes (oooefam.net)
+routes = [
+  { pattern = "api.oooefam.net/*", zone_name = "oooefam.net" },
+  { pattern = "harvest.oooefam.net/*", zone_name = "oooefam.net" }
+]
 
 # Environment variables merged from all workers
 [vars]
