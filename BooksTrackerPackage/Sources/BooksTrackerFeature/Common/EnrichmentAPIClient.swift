@@ -109,15 +109,30 @@ actor EnrichmentAPIClient {
                 #if DEBUG
                 print("🚨 API Error: \(apiError.message), Code: \(apiError.code ?? "UNKNOWN")")
                 #endif
-                // Preserve error code in NSError userInfo
-                let userInfo: [String: Any] = [
-                    NSLocalizedDescriptionKey: apiError.message,
-                    "errorCode": apiError.code ?? "UNKNOWN",
-                    "details": apiError.details?.value ?? NSNull()
-                ]
-                throw NSError(domain: "EnrichmentAPIClient", code: statusCode, userInfo: userInfo)
+
+                // Use ApiErrorCode for structured error handling (Issue #429)
+                if let errorCode = ApiErrorCode.from(code: apiError.code) {
+                    // Extract details dictionary from AnyCodable wrapper
+                    let details = apiError.details?.value as? [String: Any]
+
+                    #if DEBUG
+                    if apiError.details != nil && details == nil {
+                        print("⚠️ [EnrichmentAPIClient] Failed to cast apiError.details to [String: Any], value: \(String(describing: apiError.details?.value))")
+                    }
+                    #endif
+
+                    throw errorCode.toNSError(details: details)
+                } else {
+                    // Fallback for unknown error codes (preserve backend message)
+                    let userInfo: [String: Any] = [
+                        NSLocalizedDescriptionKey: apiError.message,
+                        "errorCode": apiError.code ?? "UNKNOWN",
+                        "details": apiError.details?.value ?? NSNull()
+                    ]
+                    throw NSError(domain: "com.bookstrack.api", code: statusCode, userInfo: userInfo)
+                }
             }
-            throw NSError(domain: "EnrichmentAPIClient", code: statusCode, userInfo: [NSLocalizedDescriptionKey: "Enrichment request failed"])
+            throw NSError(domain: "com.bookstrack.api", code: statusCode, userInfo: [NSLocalizedDescriptionKey: "Enrichment request failed"])
         }
 
         // Decode ResponseEnvelope and unwrap data
@@ -128,7 +143,22 @@ actor EnrichmentAPIClient {
             #if DEBUG
             print("🚨 Enrichment envelope error: \(error.message), Code: \(error.code ?? "UNKNOWN")")
             #endif
-            throw NSError(domain: "EnrichmentAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: error.message])
+
+            // Use ApiErrorCode for structured error handling (Issue #429)
+            if let errorCode = ApiErrorCode.from(code: error.code) {
+                let details = error.details?.value as? [String: Any]
+
+                #if DEBUG
+                if error.details != nil && details == nil {
+                    print("⚠️ [EnrichmentAPIClient] Failed to cast error.details to [String: Any], value: \(String(describing: error.details?.value))")
+                }
+                #endif
+
+                throw errorCode.toNSError(details: details)
+            } else {
+                // Fallback for unknown error codes
+                throw NSError(domain: "com.bookstrack.api", code: -1, userInfo: [NSLocalizedDescriptionKey: error.message])
+            }
         }
 
         guard let result = envelope.data else {
