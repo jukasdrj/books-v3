@@ -73,8 +73,8 @@ export class ISBNdbAPI {
    */
   async healthCheck() {
     try {
-      // Use a known good ISBN for testing
-      const testISBN = '9780545010221'; // Harry Potter
+      // Use a known good ISBN for testing (verified working: 1984 by George Orwell)
+      const testISBN = '9780451524935'; // 1984 by George Orwell
       const response = await fetch(`${this.baseUrl}/book/${testISBN}`, {
         method: 'GET',
         headers: {

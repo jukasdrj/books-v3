@@ -6,7 +6,7 @@
 
 ## Overview
 
-Automated system for pre-caching high-quality book cover images from ISBNdb API. Maximizes API quota (1000 req/day) through intelligent multi-edition discovery and Analytics Engine tracking.
+Automated system for pre-caching high-quality book cover images from ISBNdb API. Maximizes API quota (5000 req/day) through intelligent multi-edition discovery and Analytics Engine tracking.
 
 ## Architecture
 
@@ -33,7 +33,7 @@ Automated system for pre-caching high-quality book cover images from ISBNdb API.
 │ • Scheduled Cron: Daily at 3 AM UTC                          │
 │ • Rate Limiting: 10 req/sec (ISBNdb)                         │
 │ • Deduplication: Skip already-cached covers                  │
-│ • Quota Cap: 1000 ISBNs/day maximum                          │
+│ • Quota Cap: 5000 ISBNs/day maximum                          │
 └─────────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -242,7 +242,7 @@ LIMIT 500
 **Target Outcomes:**
 - ✅ 700-1050 ISBNs harvested/day (multi-edition)
 - ✅ 0-300 ISBNs from Analytics (after 24h)
-- ✅ 77-100% API quota utilization
+- ✅ 20-30% API quota utilization (1000-1500 / 5000 daily cap)
 - ✅ ~60% compression savings (WebP)
 - ✅ 75-90% cache hit rate (goal)
 
@@ -360,9 +360,10 @@ curl -X POST 'https://api-worker.jukasdrj.workers.dev/api/harvest-covers' \
 ## Cost Analysis
 
 ### ISBNdb API
-- **Plan:** $39/month (1000 req/day)
-- **Usage:** 77-100% utilization
+- **Plan:** $39/month (5000 req/day - Premium Plan)
+- **Usage:** 20-30% utilization (1000-1500 ISBNs/day)
 - **Cost per ISBN:** $0.0013
+- **Headroom:** 3500-4000 requests/day available for future expansion
 
 ### Cloudflare Resources
 - **R2 Storage:** $0.015/GB/month

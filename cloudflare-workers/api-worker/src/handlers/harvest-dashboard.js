@@ -333,11 +333,20 @@ function renderDashboard(stats) {
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">API Quota</div>
+        <div class="stat-label">ISBNdb API Quota</div>
         <div class="stat-value">${stats.apiQuotaUsed}</div>
-        <div class="stat-subtitle">1000 requests/day (ISBNdb)</div>
+        <div class="stat-subtitle">5000 requests/day (Premium Plan)</div>
         <div class="progress-bar">
           <div class="progress-fill" style="width: ${stats.apiQuotaUsed}"></div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Google Books API</div>
+        <div class="stat-value">~350</div>
+        <div class="stat-subtitle">1000 requests/day (Free Tier)</div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 35%"></div>
         </div>
       </div>
 
