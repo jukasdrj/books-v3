@@ -36,7 +36,7 @@ function clampBoundingBox(bbox?: any): BoundingBox | undefined {
 /**
  * Helper function to map book objects to DetectedBookDTO format
  * Centralizes transformation logic to ensure consistency across all code paths
- * @returns {DetectedBookDTO} Flattened book structure for iOS Codable parsing
+ * @returns {DetectedBookDTO} Hybrid structure with flat fields + nested enrichment
  */
 function mapToDetectedBook(book): DetectedBookDTO {
   return {
@@ -46,9 +46,12 @@ function mapToDetectedBook(book): DetectedBookDTO {
     confidence: book?.confidence,
     boundingBox: clampBoundingBox(book?.boundingBox), // Validate and clamp to [0,1]
     enrichmentStatus: book?.enrichment?.status || book?.enrichmentStatus || 'pending',
+    // Deprecated flat fields (kept for backwards compatibility)
     coverUrl: book?.enrichment?.work?.coverImageURL || book?.coverUrl || null,
     publisher: book?.enrichment?.editions?.[0]?.publisher || book?.publisher || null,
-    publicationYear: book?.enrichment?.editions?.[0]?.publicationYear || book?.publicationYear || null
+    publicationYear: book?.enrichment?.editions?.[0]?.publicationYear || book?.publicationYear || null,
+    // Nested enrichment data (canonical DTOs) - FIX for enrichment loss
+    enrichment: book?.enrichment || undefined
   };
 }
 

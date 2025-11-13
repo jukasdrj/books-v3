@@ -165,10 +165,17 @@ export class ProgressWebSocketDO extends DurableObject {
             this.readyResolver = null; // Prevent multiple resolves
           }
 
-          // Send acknowledgment back to client
+          // Send acknowledgment back to client (TypedWebSocketMessage envelope)
           this.webSocket.send(JSON.stringify({
             type: 'ready_ack',
-            timestamp: Date.now()
+            jobId: this.jobId,
+            pipeline: this.currentPipeline,
+            timestamp: Date.now(),
+            version: '1.0.0',
+            payload: {
+              type: 'ready_ack',
+              timestamp: Date.now()
+            }
           }));
         } else {
           console.log(`[${this.jobId}] Unknown message type: ${msg.type}`);

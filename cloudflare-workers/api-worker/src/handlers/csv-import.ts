@@ -62,6 +62,11 @@ export async function handleCSVImport(request, env, ctx) {
 
     console.log(`[CSV Import] Auth token generated for job ${jobId}`);
 
+    // Initialize job state for CSV import (CRITICAL: Must be done BEFORE returning response)
+    // This sets currentPipeline so ready_ack messages will have the correct pipeline field
+    // Note: totalCount is unknown at this stage (Gemini parses CSV in alarm), so pass 0
+    await doStub.initializeJobState('csv_import', 0);
+
     // Read CSV content and schedule processing via Durable Object alarm
     // This avoids ctx.waitUntil() timeout for long-running Gemini API calls
     const csvText = await csvFile.text();

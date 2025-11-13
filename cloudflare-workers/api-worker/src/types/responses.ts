@@ -150,7 +150,7 @@ export interface BoundingBox {
 /**
  * DetectedBookDTO - Book detected by AI bookshelf scan
  *
- * Flattened structure (no nested objects) for iOS Codable parsing.
+ * Hybrid structure: flat fields for simple data, nested enrichment for canonical DTOs.
  * Used in WebSocket completion messages (AIScanCompletePayload).
  */
 export interface DetectedBookDTO {
@@ -161,10 +161,21 @@ export interface DetectedBookDTO {
   boundingBox?: BoundingBox;
   enrichmentStatus?: 'pending' | 'success' | 'not_found' | 'error';
 
-  // Flattened edition fields (not nested)
+  // Flattened edition fields (not nested) - DEPRECATED, use enrichment below
   coverUrl?: string;
   publisher?: string;
   publicationYear?: number;
+
+  // Nested enrichment data (canonical DTOs) - Added Nov 2025 to fix enrichment loss
+  enrichment?: {
+    status: 'success' | 'not_found' | 'error';
+    work?: WorkDTO;
+    editions?: EditionDTO[];
+    authors?: AuthorDTO[];
+    provider?: string;
+    cachedResult?: boolean;
+    error?: string;
+  };
 }
 
 /**
@@ -206,14 +217,15 @@ export interface EnrichedBookDTO {
   title: string;
   author?: string;
   isbn?: string;
-  enrichmentStatus: 'success' | 'not_found' | 'error';
-
-  // Flattened canonical fields (not nested)
-  work?: WorkDTO;
-  editions?: EditionDTO[];
-  authors?: AuthorDTO[];
-  provider?: DataProvider;
+  success: boolean; // true if enrichment found data, false otherwise
   error?: string;
+
+  // Nested enrichment data (matches iOS EnrichedBookPayload)
+  enriched?: {
+    work: WorkDTO;
+    edition?: EditionDTO;
+    authors: AuthorDTO[];
+  };
 }
 
 // ============================================================================

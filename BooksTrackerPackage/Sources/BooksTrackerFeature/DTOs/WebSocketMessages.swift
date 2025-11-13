@@ -257,9 +257,22 @@ public struct DetectedBookPayload: Codable, Sendable {
     public let confidence: Double?
     public let boundingBox: BoundingBox?
     public let enrichmentStatus: String?
+    // Deprecated flat fields (use enrichment below)
     public let coverUrl: String?
     public let publisher: String?
     public let publicationYear: Int?
+    // Nested enrichment data (canonical DTOs) - Added Nov 2025
+    public let enrichment: EnrichmentData?
+}
+
+public struct EnrichmentData: Codable, Sendable {
+    public let status: String
+    public let work: WorkDTO?
+    public let editions: [EditionDTO]?
+    public let authors: [AuthorDTO]?
+    public let provider: String?
+    public let cachedResult: Bool?
+    public let error: String?
 }
 
 public struct BoundingBox: Codable, Sendable {

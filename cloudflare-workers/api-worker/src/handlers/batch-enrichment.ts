@@ -143,6 +143,10 @@ export async function handleBatchEnrichment(request, env, ctx) {
 
     console.log(`[Batch Enrichment] Auth token generated for job ${jobId}`);
 
+    // Initialize job state for batch enrichment (CRITICAL: Must be done BEFORE returning response)
+    // This sets currentPipeline so ready_ack messages will have the correct pipeline field
+    await doStub.initializeJobState('batch_enrichment', books.length);
+
     // Start background enrichment
     ctx.waitUntil(processBatchEnrichment(books, doStub, env, jobId));
 
@@ -194,26 +198,25 @@ async function processBatchEnrichment(books, doStub, env, jobId) {
           env
         );
 
-        // Flatten to EnrichedBookDTO structure (no nested objects)
+        // Return EnrichedBookDTO structure (iOS expects nested 'enriched' field)
         if (enriched) {
-          // `enrichSingleBook` returns one `edition`, but `EnrichedBookDTO` expects `editions[]`
-          // Convert to array to match the DTO, or use empty array if no edition found
           return {
             title: book.title,
             author: book.author,
             isbn: book.isbn,
-            enrichmentStatus: 'success',
-            work: enriched.work,
-            editions: enriched.edition ? [enriched.edition] : [],
-            authors: enriched.authors || [],
-            provider: enriched.provider
+            success: true,
+            enriched: {
+              work: enriched.work,
+              edition: enriched.edition,
+              authors: enriched.authors || []
+            }
           };
         } else {
           return {
             title: book.title,
             author: book.author,
             isbn: book.isbn,
-            enrichmentStatus: 'not_found',
+            success: false,
             error: 'Book not found in any provider'
           };
         }
@@ -236,7 +239,7 @@ async function processBatchEnrichment(books, doStub, env, jobId) {
     );
 
     const totalProcessed = enrichedBooks.length;
-    const successCount = enrichedBooks.filter(b => b.enrichmentStatus === 'success').length;
+    const successCount = enrichedBooks.filter(b => b.success === true).length;
     const failureCount = totalProcessed - successCount;
     const duration = Date.now() - startTime;
 
