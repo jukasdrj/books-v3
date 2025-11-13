@@ -3,12 +3,12 @@ import Foundation
 /// Centralized configuration for enrichment API endpoints
 /// All API URLs should be accessed through this enum to ensure consistency and ease of maintenance
 enum EnrichmentConfig {
-    /// Base URL for the Cloudflare Worker API
-    static let baseURL = "https://api-worker.jukasdrj.workers.dev"
+    /// Base URL for the Cloudflare Worker API (Custom Domain)
+    static let baseURL = "https://api.oooefam.net"
 
-    /// WebSocket base URL for the Cloudflare Worker
-    static let apiBaseURL = "https://api-worker.jukasdrj.workers.dev"
-    static let webSocketBaseURL = "wss://api-worker.jukasdrj.workers.dev"
+    /// WebSocket base URL for the Cloudflare Worker (Custom Domain)
+    static let apiBaseURL = "https://api.oooefam.net"
+    static let webSocketBaseURL = "wss://api.oooefam.net"
 
     // MARK: - Search Endpoints
 
