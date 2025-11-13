@@ -22,6 +22,7 @@
 
 import { ISBNdbAPI } from '../services/isbndb-api.js';
 import { RateLimiter } from '../utils/rate-limiter.js';
+import { getTopEditions } from '../services/edition-discovery.js';
 
 /**
  * Load curated ISBN list from isbn-harvest-list.txt (478 ISBNs from testImages/csv-expansion)
@@ -208,6 +209,87 @@ async function collectUserLibraryISBNs(env) {
 }
 
 /**
+ * Discover multiple editions for each Work
+ * Takes subset of curated ISBNs, queries Google Books for all editions of each Work,
+ * and returns expanded ISBN list with 2-3 editions per Work
+ *
+ * @param {string[]} seedISBNs - Initial ISBN list (e.g., 350 Works)
+ * @param {Object} env - Worker environment bindings
+ * @param {number} editionsPerWork - Max editions to discover per Work (default: 3)
+ * @returns {Promise<string[]>} Expanded ISBN list (e.g., 700-1050 ISBNs)
+ */
+async function discoverMultiEditionISBNs(seedISBNs, env, editionsPerWork = 3) {
+  console.log(`🔍 Discovering multi-edition ISBNs for ${seedISBNs.length} Works...`);
+
+  const allISBNs = new Set();
+  const rateLimiter = new RateLimiter(10); // Google Books rate limit: 10 req/sec
+
+  let worksProcessed = 0;
+  let editionsDiscovered = 0;
+
+  for (const seedISBN of seedISBNs) {
+    await rateLimiter.waitForSlot();
+
+    try {
+      // Query Google Books for this ISBN to get Work metadata
+      const metadataUrl = new URL('https://www.googleapis.com/books/v1/volumes');
+      metadataUrl.searchParams.set('q', `isbn:${seedISBN}`);
+
+      const metadataResponse = await fetch(metadataUrl.toString());
+
+      if (!metadataResponse.ok) {
+        console.warn(`Failed to fetch metadata for ${seedISBN}: ${metadataResponse.status}`);
+        allISBNs.add(seedISBN); // Fall back to seed ISBN
+        continue;
+      }
+
+      const metadataData = await metadataResponse.json();
+
+      if (!metadataData.items || metadataData.items.length === 0) {
+        console.warn(`No metadata found for ${seedISBN}`);
+        allISBNs.add(seedISBN); // Fall back to seed ISBN
+        continue;
+      }
+
+      const volumeInfo = metadataData.items[0].volumeInfo;
+      const title = volumeInfo.title;
+      const authors = volumeInfo.authors || [];
+
+      if (!title || authors.length === 0) {
+        console.warn(`Incomplete metadata for ${seedISBN}`);
+        allISBNs.add(seedISBN); // Fall back to seed ISBN
+        continue;
+      }
+
+      // Discover top editions for this Work
+      const editions = await getTopEditions({ title, authors }, env, editionsPerWork);
+
+      if (editions.length === 0) {
+        allISBNs.add(seedISBN); // Fall back to seed ISBN
+      } else {
+        editions.forEach(ed => allISBNs.add(ed.isbn));
+        editionsDiscovered += editions.length;
+      }
+
+      worksProcessed++;
+
+      // Progress logging every 50 Works
+      if (worksProcessed % 50 === 0) {
+        console.log(`  Progress: ${worksProcessed}/${seedISBNs.length} Works, ${allISBNs.size} ISBNs discovered`);
+      }
+
+    } catch (error) {
+      console.error(`Edition discovery error for ${seedISBN}:`, error);
+      allISBNs.add(seedISBN); // Fall back to seed ISBN
+    }
+  }
+
+  console.log(`✅ Multi-edition discovery complete: ${worksProcessed} Works → ${allISBNs.size} ISBNs (avg ${(allISBNs.size / worksProcessed).toFixed(1)} editions/work)`);
+
+  return Array.from(allISBNs);
+}
+
+/**
  * Check if cover already harvested
  */
 async function isCoverHarvested(isbn, env) {
@@ -363,23 +445,30 @@ export async function handleScheduledHarvest(env) {
   const curatedISBNs = await loadCuratedISBNs();
   console.log(`1️⃣ Curated ISBNs: ${curatedISBNs.length} (priority 1 - bestsellers 2015-2025)`);
 
+  // Multi-edition discovery: Take 350 Works, discover 2-3 editions each → 700-1050 ISBNs
+  console.log('');
+  console.log('🔍 Starting multi-edition discovery for top 350 Works...');
+  const seedWorks = curatedISBNs.slice(0, 350); // Take first 350 Works
+  const multiEditionISBNs = await discoverMultiEditionISBNs(seedWorks, env, 3);
+  console.log(`   📚 Multi-edition ISBNs: ${multiEditionISBNs.length} (from ${seedWorks.length} Works)`);
+
   const analyticsISBNs = await collectAnalyticsISBNs(env);
   console.log(`2️⃣ Analytics ISBNs: ${analyticsISBNs.length} (priority 2 - popular searches)`);
 
   const userLibraryISBNs = await collectUserLibraryISBNs(env);
   console.log(`3️⃣ User Library ISBNs: ${userLibraryISBNs.length} (priority 3 - user collections)`);
 
-  // Deduplicate with priority ordering (curated > analytics > user library)
+  // Deduplicate with priority ordering (multi-edition > analytics > user library)
   // Slice at 1000 to respect ISBNdb API limit
   const allISBNs = [
     ...new Set([
-      ...curatedISBNs,       // Priority 1: Always harvest bestsellers
-      ...analyticsISBNs,     // Priority 2: Popular searches from real users
+      ...multiEditionISBNs,  // Priority 1: Multi-edition bestsellers (700-1050 ISBNs)
+      ...analyticsISBNs,     // Priority 2: Popular searches (0-300 ISBNs fill remaining capacity)
       ...userLibraryISBNs    // Priority 3: User library collections (future)
     ])
   ].slice(0, 1000);  // Cap at ISBNdb API limit
 
-  const totalBeforeCap = curatedISBNs.length + analyticsISBNs.length + userLibraryISBNs.length;
+  const totalBeforeCap = multiEditionISBNs.length + analyticsISBNs.length + userLibraryISBNs.length;
   const duplicatesRemoved = totalBeforeCap - allISBNs.length;
 
   console.log('');
@@ -387,6 +476,9 @@ export async function handleScheduledHarvest(env) {
   console.log(`   Total before dedup: ${totalBeforeCap}`);
   console.log(`   Duplicates removed: ${duplicatesRemoved}`);
   console.log(`   Unique ISBNs: ${allISBNs.length}`);
+  console.log(`   Multi-edition: ${multiEditionISBNs.length}`);
+  console.log(`   Analytics: ${analyticsISBNs.length}`);
+  console.log(`   User Library: ${userLibraryISBNs.length}`);
 
   if (allISBNs.length >= 1000) {
     console.warn('⚠️ Capped at 1000 ISBNs (ISBNdb API daily limit reached)');

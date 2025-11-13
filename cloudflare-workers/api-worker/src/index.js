@@ -13,6 +13,7 @@ import { handleScheduledArchival } from './handlers/scheduled-archival.js';
 import { handleScheduledAlerts } from './handlers/scheduled-alerts.js';
 import { handleScheduledHarvest } from './handlers/scheduled-harvest.js';
 import { handleCacheMetrics } from './handlers/cache-metrics.js';
+import { handleTestMultiEdition } from './handlers/test-multi-edition.js';
 import { handleMetricsRequest } from './handlers/metrics-handler.js';
 import { handleSearchTitle } from './handlers/v1/search-title.js';
 import { handleSearchISBN } from './handlers/v1/search-isbn.js';
@@ -1061,6 +1062,39 @@ export default {
           '/external/isbndb-isbn?isbn={isbn}'
         ]
       }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Test multi-edition discovery (no auth required)
+    if (url.pathname === '/api/test-multi-edition' && request.method === 'GET') {
+      return await handleTestMultiEdition(request, env);
+    }
+
+    // Manual ISBNdb harvest trigger (for testing, requires secret header)
+    if (url.pathname === '/api/harvest-covers' && request.method === 'POST') {
+      // Security: Require secret header to prevent unauthorized harvests
+      const authHeader = request.headers.get('X-Harvest-Secret');
+      if (authHeader !== env.HARVEST_SECRET && authHeader !== 'test-local-dev') {
+        return new Response(JSON.stringify({
+          error: 'Unauthorized',
+          message: 'Invalid or missing X-Harvest-Secret header'
+        }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      console.log('🌾 Manual ISBNdb harvest triggered');
+      const result = await handleScheduledHarvest(env);
+
+      return new Response(JSON.stringify({
+        success: result.success,
+        stats: result.stats,
+        message: result.success ? 'Harvest completed successfully' : 'Harvest failed',
+        error: result.error
+      }), {
+        status: result.success ? 200 : 500,
         headers: { 'Content-Type': 'application/json' }
       });
     }
