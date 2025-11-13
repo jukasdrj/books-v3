@@ -12,23 +12,6 @@ import { enrichSingleBook } from '../services/enrichment.ts';
 import { createSuccessResponse, createErrorResponse } from '../utils/api-responses.js';
 import type { EnrichmentJobInitResponse, EnrichedBookDTO } from '../types/responses.js';
 
-/**
- * Sanitize user input to prevent XSS attacks
- * Escapes HTML entities: <, >, &, ", '
- *
- * @param {string} str - Input string to sanitize
- * @returns {string} Sanitized string
- */
-function sanitizeString(str) {
-  if (typeof str !== 'string') return str;
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .trim();
-}
 
 /**
  * Handle batch enrichment request (POST /api/enrichment/batch)
@@ -127,10 +110,11 @@ export async function handleBatchEnrichment(request, env, ctx) {
         );
       }
 
-      // XSS Protection: Sanitize HTML entities in title and author
-      book.title = sanitizeString(book.title);
-      if (book.author) book.author = sanitizeString(book.author);
-      if (book.isbn) book.isbn = sanitizeString(book.isbn);
+      // Basic sanitization: Trim whitespace only
+      // Note: No HTML entity escaping needed for JSON APIs (clients handle escaping at UI layer)
+      book.title = book.title.trim();
+      if (book.author) book.author = book.author.trim();
+      if (book.isbn) book.isbn = book.isbn.trim();
     }
 
     // Get WebSocket DO stub
