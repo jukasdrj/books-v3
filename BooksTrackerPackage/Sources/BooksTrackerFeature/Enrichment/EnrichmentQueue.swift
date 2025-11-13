@@ -276,19 +276,19 @@ public final class EnrichmentQueue {
             self.lastActivityTime = Date()
 
             do {
-                try await withThrowingTaskGroup(of: Void.self) { group in
-                    // Task 1: Activity Timeout Watchdog
-                    group.addTask { @MainActor [weak self] in
-                        guard let self = self else { return }
-                        try await self.activityTimeoutWatchdog(timeoutDuration: timeoutDuration)
-                    }
+                // Start watchdog task in background
+                let watchdogTask = Task { [weak self] in
+                    guard let self = self else { return }
+                    try await self.activityTimeoutWatchdog(timeoutDuration: timeoutDuration)
+                }
 
-                    // Task 2: Sequential Batch Enrichment
-                    group.addTask { @MainActor [weak self] in
-                        guard let self = self else { return }
+                defer {
+                    // Cancel watchdog when batch processing completes (success or error)
+                    watchdogTask.cancel()
+                }
 
-                        // Split into 100-book chunks
-                        let batchSize = 100
+                // Split into 100-book chunks
+                let batchSize = 100
                 let batches = stride(from: 0, to: works.count, by: batchSize).map {
                     Array(works[$0 ..< min($0 + batchSize, works.count)])
                 }
@@ -361,10 +361,6 @@ public final class EnrichmentQueue {
 
                                     self.applyEnrichedData(batchPayload.enrichedBooks, in: modelContext)
 
-                                    // ✅ Cancel the task group to signal successful completion
-                                    // This will cause the watchdog to be cancelled, triggering CancellationError
-                                    group.cancelAll()
-
                                     continuation.resume()
                                 },
                                 errorHandler: { errorPayload in
@@ -381,11 +377,6 @@ public final class EnrichmentQueue {
                     processedCount += batch.count
                 }
 
-                    }
-
-                    // If we reach here, all batches completed successfully without the watchdog timing out.
-                    // The task group will automatically cancel the watchdog task upon exiting.
-                }
                 // Success - all batches completed
                 #if DEBUG
                 print("✅ All enrichment batches completed successfully")
@@ -401,13 +392,6 @@ public final class EnrichmentQueue {
                 NotificationCoordinator.postEnrichmentFailed(
                     error: error.localizedDescription
                 )
-            } catch is CancellationError {
-                // Success path: Watchdog was cancelled by successful completion handler
-                #if DEBUG
-                print("✅ Enrichment completed successfully (watchdog cancelled)")
-                #endif
-                self.clear()
-                NotificationCoordinator.postEnrichmentCompleted()
             } catch {
                 // Other errors
                 #if DEBUG
