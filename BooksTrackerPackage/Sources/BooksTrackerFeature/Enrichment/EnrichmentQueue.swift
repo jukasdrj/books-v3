@@ -34,6 +34,8 @@ public final class EnrichmentQueue {
     private var currentJobId: String?
     // Activity tracking for timeout watchdog
     private var lastActivityTime = Date()
+    // Watchdog task for cancellation on successful completion
+    private var watchdogTask: Task<Void, Error>?
 
     // Persistence
     private let queueStorageKey = "EnrichmentQueueStorage"
@@ -232,6 +234,8 @@ public final class EnrichmentQueue {
                 self.processing = false
                 self.webSocketHandler?.disconnect()
                 self.webSocketHandler = nil
+                self.watchdogTask?.cancel()
+                self.watchdogTask = nil
                 self.clearCurrentJobId()
                 #if DEBUG
                 print("🧹 Enrichment cleanup executed")
@@ -356,6 +360,11 @@ public final class EnrichmentQueue {
                                     }
 
                                     self.applyEnrichedData(batchPayload.enrichedBooks, in: modelContext)
+
+                                    // ✅ Cancel the task group to signal successful completion
+                                    // This will cause the watchdog to be cancelled, triggering CancellationError
+                                    group.cancelAll()
+
                                     continuation.resume()
                                 },
                                 errorHandler: { errorPayload in
@@ -372,11 +381,11 @@ public final class EnrichmentQueue {
                     processedCount += batch.count
                 }
 
-                }
+                    }
 
-                // If we reach here, all batches completed successfully without the watchdog timing out.
-                // The task group will automatically cancel the watchdog task upon exiting.
-            }
+                    // If we reach here, all batches completed successfully without the watchdog timing out.
+                    // The task group will automatically cancel the watchdog task upon exiting.
+                }
                 // Success - all batches completed
                 #if DEBUG
                 print("✅ All enrichment batches completed successfully")
@@ -393,15 +402,14 @@ public final class EnrichmentQueue {
                     error: error.localizedDescription
                 )
             } catch is CancellationError {
-                // User cancellation path
-                watchdog.cancel()
+                // Success path: Watchdog was cancelled by successful completion handler
                 #if DEBUG
-                print("🛑 Enrichment canceled by user")
+                print("✅ Enrichment completed successfully (watchdog cancelled)")
                 #endif
+                self.clear()
                 NotificationCoordinator.postEnrichmentCompleted()
             } catch {
                 // Other errors
-                watchdog.cancel()
                 #if DEBUG
                 print("❌ Enrichment failed: \(error)")
                 #endif
