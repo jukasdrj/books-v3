@@ -4,40 +4,37 @@ import Foundation
 @MainActor
 public final class SampleDataGenerator {
     private let modelContext: ModelContext
-    private let sampleDataAddedKey = "SampleDataAdded"
+    private let firstLaunchKey = "HasPerformedFirstLaunchSetup"
 
     public init(modelContext: ModelContext) {
         self.modelContext = modelContext
     }
 
-    /// Adds sample data only if library is empty. Optimized check (fetchLimit=1).
+    /// Populates library with sample data on first launch if empty.
+    ///
+    /// **Fix for Bug #412:** This now runs *only once* and is controlled by a
+    /// persistent `UserDefaults` flag. Previously, it could run after a
+    /// library reset, causing sample books to reappear unexpectedly.
+    ///
     /// ✅ DEBUG-ONLY: Sample data is only added in development builds (#385)
     public func setupSampleDataIfNeeded() {
         #if DEBUG
-        // Check UserDefaults first - if sample data was added before, skip check
-        if UserDefaults.standard.bool(forKey: sampleDataAddedKey) {
-            print("✅ Sample data previously added - skipping check")
-            return
+        // Check if first-launch setup has already been performed
+        if UserDefaults.standard.bool(forKey: firstLaunchKey) {
+            return // Setup already done, skip.
         }
 
+        // Mark that setup has now been performed, regardless of outcome
+        UserDefaults.standard.set(true, forKey: firstLaunchKey)
+
+        // Only add sample data if the library is completely empty
         guard isLibraryEmpty() else {
-            print("✅ Library not empty - skipping sample data")
+            print("✅ Library not empty on first launch - skipping sample data")
             return
         }
 
         addSampleData()
-
-        // Mark that sample data was added
-        UserDefaults.standard.set(true, forKey: sampleDataAddedKey)
-        print("✅ Sample data added (DEBUG mode only)")
-        #endif
-    }
-
-    /// Reset sample data flag (call when library is reset)
-    public func resetSampleDataFlag() {
-        UserDefaults.standard.removeObject(forKey: sampleDataAddedKey)
-        #if DEBUG
-        print("🔄 Sample data flag reset")
+        print("✅ Sample data added on first launch (DEBUG mode only)")
         #endif
     }
 

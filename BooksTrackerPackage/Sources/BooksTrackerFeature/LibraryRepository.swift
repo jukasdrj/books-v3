@@ -463,7 +463,6 @@ public class LibraryRepository {
 
             // STEP 7: Cleanup UserDefaults and settings
             UserDefaults.standard.removeObject(forKey: "RecentBookSearches")
-            SampleDataGenerator(modelContext: modelContext).resetSampleDataFlag()
             featureFlags?.resetToDefaults()
 
             // Success haptic feedback
