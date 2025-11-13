@@ -14,6 +14,7 @@ import { handleScheduledAlerts } from './handlers/scheduled-alerts.js';
 import { handleScheduledHarvest } from './handlers/scheduled-harvest.js';
 import { handleCacheMetrics } from './handlers/cache-metrics.js';
 import { handleTestMultiEdition } from './handlers/test-multi-edition.js';
+import { handleHarvestDashboard } from './handlers/harvest-dashboard.js';
 import { handleMetricsRequest } from './handlers/metrics-handler.js';
 import { handleSearchTitle } from './handlers/v1/search-title.js';
 import { handleSearchISBN } from './handlers/v1/search-isbn.js';
@@ -1064,6 +1065,11 @@ export default {
       }), {
         headers: { 'Content-Type': 'application/json' }
       });
+    }
+
+    // Harvest Dashboard (public, no auth required)
+    if (url.pathname === '/admin/harvest-dashboard' && request.method === 'GET') {
+      return await handleHarvestDashboard(request, env);
     }
 
     // Test multi-edition discovery (no auth required)

@@ -1,7 +1,7 @@
 # Cloudflare Workers Architecture (Monolith)
 
-**Last Updated:** October 23, 2025
-**Status:** Monolith refactor completed
+**Last Updated:** November 13, 2025
+**Status:** Monolith refactor completed + Multi-Edition Harvest active
 
 ## Overview
 
@@ -30,12 +30,18 @@ api-worker/
 │   ├── services/
 │   │   ├── external-apis.js              # Google Books, OpenLibrary
 │   │   ├── enrichment.js                 # Batch book enrichment
-│   │   └── ai-scanner.js                 # Gemini AI bookshelf scanning
+│   │   ├── ai-scanner.js                 # Gemini AI bookshelf scanning
+│   │   ├── edition-discovery.js          # Multi-edition harvest (NEW)
+│   │   └── isbndb-api.js                 # ISBNdb cover images
 │   ├── handlers/
 │   │   ├── search-handlers.js            # Advanced search logic
-│   │   └── book-search.js                # Title/ISBN search
+│   │   ├── book-search.js                # Title/ISBN search
+│   │   ├── scheduled-harvest.js          # Daily cover harvest (NEW)
+│   │   ├── harvest-dashboard.js          # HTML dashboard (NEW)
+│   │   └── test-multi-edition.js         # Edition discovery test
 │   └── utils/
-│       └── cache.js                      # KV caching utilities
+│       ├── cache.js                      # KV caching utilities
+│       └── analytics.js                  # Analytics Engine logging (NEW)
 ```
 
 ### Component Roles
