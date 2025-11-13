@@ -628,6 +628,10 @@ class ScanResultsModel {
             // Path B: Minimal import + queue for enrichment (fallback or primary)
             if !importedViaPathA {
                 do {
+                    #if DEBUG
+                    print("[DEBUGGER:ScanResultsView:631] Creating minimal work for: \(detectedBook.title ?? "Unknown")")
+                    #endif
+                    
                     // Create minimal Work
                     let work = Work(
                         title: detectedBook.title ?? "Unknown Title",
@@ -680,6 +684,10 @@ class ScanResultsModel {
 
                     try modelContext.save()
 
+                    #if DEBUG
+                    print("[DEBUGGER:ScanResultsView:688] Saved work, ID: \(work.persistentModelID)")
+                    #endif
+
                     // Track for enrichment queue
                     addedWorksForQueue.append(work)
 
@@ -704,9 +712,20 @@ class ScanResultsModel {
             print("📚 Queued \(workIDs.count) books from scan for background enrichment")
             #endif
 
+            // [DEBUGGER:ScanResultsView:addAllToLibrary:707] Starting context merge wait
             // Delay enrichment to allow SwiftData to fully persist newly created works
             Task {
+                #if DEBUG
+                print("[DEBUGGER:ScanResultsView:713] Before 500ms delay - workIDs.count=\(workIDs.count)")
+                #endif
                 try? await Task.sleep(for: .milliseconds(500))
+                
+                #if DEBUG
+                print("[DEBUGGER:ScanResultsView:718] After 500ms delay - checking context availability")
+                let availableCount = workIDs.compactMap { modelContext.model(for: $0) as? Work }.count
+                print("[DEBUGGER:ScanResultsView:720] Works available in context: \(availableCount)/\(workIDs.count)")
+                #endif
+                
                 EnrichmentQueue.shared.startProcessing(in: modelContext) { _, _, _ in
                     // Silent background processing - progress shown via EnrichmentProgressBanner
                 }

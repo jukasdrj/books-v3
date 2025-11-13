@@ -241,8 +241,17 @@ public final class EnrichmentQueue {
             let workIDs = self.getAllPending()
             let works = workIDs.compactMap { modelContext.work(for: $0) }
 
+            #if DEBUG
+            print("[DEBUGGER:EnrichmentQueue:startProcessing:242] workIDs.count=\(workIDs.count), works.count=\(works.count)")
+            #endif
+            
             logger.debug("📚 [ENRICHMENT] Fetched \(works.count)/\(workIDs.count) works from context")
             if works.isEmpty && !workIDs.isEmpty {
+                #if DEBUG
+                print("[DEBUGGER:EnrichmentQueue:startProcessing:249] CONTEXT MERGE ISSUE DETECTED!")
+                print("[DEBUGGER:EnrichmentQueue:startProcessing:250] Queue has \(workIDs.count) IDs but 0 works resolved")
+                print("[DEBUGGER:EnrichmentQueue:startProcessing:251] First 3 IDs: \(workIDs.prefix(3))")
+                #endif
                 logger.warning("⚠️ [ENRICHMENT] All persistent IDs returned nil! Possible cross-context issue.")
                 logger.debug("⚠️ [ENRICHMENT] This usually means:")
                 logger.debug("   1. Works were created in different ModelContext (actor/background)")
@@ -251,6 +260,9 @@ public final class EnrichmentQueue {
             }
 
             guard !works.isEmpty else {
+                #if DEBUG
+                print("[DEBUGGER:EnrichmentQueue:startProcessing:263] EARLY EXIT - clearing queue and returning")
+                #endif
                 self.clear()
                 NotificationCoordinator.postEnrichmentCompleted()
                 return
