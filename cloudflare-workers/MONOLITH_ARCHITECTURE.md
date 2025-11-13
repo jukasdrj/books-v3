@@ -17,7 +17,10 @@ BooksTrack backend has been consolidated into a single monolith worker (`api-wor
 
 All backend logic runs in one Cloudflare Worker process. No service bindings. No circular dependencies.
 
-**Worker URL:** `https://api-worker.jukasdrj.workers.dev`
+**Worker URLs:**
+- **Primary (Custom Domain):** `https://api.oooefam.net`
+- **Harvest Dashboard:** `https://harvest.oooefam.net`
+- **Legacy Fallback:** `https://api-worker.jukasdrj.workers.dev`
 
 ### Components
 
@@ -242,6 +245,10 @@ npx wrangler dev
 ### Health Check
 
 ```bash
+# Custom domain (primary)
+curl https://api.oooefam.net/health
+
+# Legacy fallback
 curl https://api-worker.jukasdrj.workers.dev/health
 ```
 
@@ -265,14 +272,14 @@ Expected response:
 ### Search Endpoints
 
 ```bash
-# Title search
-curl "https://api-worker.jukasdrj.workers.dev/search/title?q=hamlet"
+# Title search (custom domain)
+curl "https://api.oooefam.net/search/title?q=hamlet"
 
-# ISBN search
-curl "https://api-worker.jukasdrj.workers.dev/search/isbn?isbn=9780743273565"
+# ISBN search (custom domain)
+curl "https://api.oooefam.net/search/isbn?isbn=9780743273565"
 
-# Advanced search
-curl -X POST https://api-worker.jukasdrj.workers.dev/search/advanced \
+# Advanced search (custom domain)
+curl -X POST https://api.oooefam.net/search/advanced \
   -H "Content-Type: application/json" \
   -d '{"title":"1984","author":"Orwell"}'
 ```
@@ -281,17 +288,29 @@ curl -X POST https://api-worker.jukasdrj.workers.dev/search/advanced \
 
 1. Connect to WebSocket:
 ```bash
-wscat -c "wss://api-worker.jukasdrj.workers.dev/ws/progress?jobId=test-123"
+wscat -c "wss://api.oooefam.net/ws/progress?jobId=test-123"
 ```
 
 2. Trigger background job (in another terminal):
 ```bash
-curl -X POST https://api-worker.jukasdrj.workers.dev/api/enrichment/start \
+curl -X POST https://api.oooefam.net/api/enrichment/start \
   -H "Content-Type: application/json" \
   -d '{"jobId":"test-123","workIds":["9780439708180"]}'
 ```
 
 3. Observe real-time progress in WebSocket terminal
+
+### Harvest Dashboard
+
+Beautiful Cloudflare Workers showcase with real-time harvest statistics:
+
+```bash
+# Visit in browser (custom domain)
+open https://harvest.oooefam.net
+
+# Or legacy URL
+open https://api-worker.jukasdrj.workers.dev/admin/harvest-dashboard
+```
 
 ## Monitoring
 
@@ -341,8 +360,13 @@ Expected: Cache HIT/SET logs with TTL values
 - `SCAN_JOBS` KV namespace deleted (WebSocket-only status)
 
 **iOS App Updates Required:**
-- Update API base URLs to `api-worker.jukasdrj.workers.dev`
+- Update API base URLs to `api.oooefam.net` (or keep legacy `api-worker.jukasdrj.workers.dev`)
 - Remove polling-based status checks
 - Unify WebSocket connection logic for all background jobs
+
+**Custom Domain Configuration:**
+- `api.oooefam.net` → All API endpoints
+- `harvest.oooefam.net` → Harvest dashboard showcase
+- DNS: CNAME records pointing to `api-worker.jukasdrj.workers.dev`
 
 **See:** `docs/plans/2025-10-23-cloudflare-workers-monolith-refactor.md` for full migration plan.
