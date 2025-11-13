@@ -330,6 +330,12 @@ public struct SearchView: View {
             }
             #endif
         }
+        // HIG: Safe-area-aware bottom spacing for trending books visibility (#405)
+        // Uses dynamic safe area instead of hardcoded padding to prevent layout issues
+        // across different devices, orientations, and accessibility settings
+        .safeAreaInset(edge: .bottom) {
+            Color.clear.frame(height: 16)
+        }
     }
 
     // MARK: - State Views
@@ -372,7 +378,6 @@ public struct SearchView: View {
                 .padding(.vertical, 40)
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 20)
         }
         .modifier(iOS26ScrollEdgeEffectModifier(edges: [.top]))
     }
@@ -418,7 +423,6 @@ public struct SearchView: View {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 20)
             .scrollTargetLayout()
         }
         .scrollPosition($scrollPosition)
