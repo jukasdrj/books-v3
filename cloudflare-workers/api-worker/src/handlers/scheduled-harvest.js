@@ -24,6 +24,62 @@ import { ISBNdbAPI } from '../services/isbndb-api.js';
 import { RateLimiter } from '../utils/rate-limiter.js';
 
 /**
+ * Load curated ISBN list from isbn-harvest-list.txt (478 ISBNs from testImages/csv-expansion)
+ */
+async function loadCuratedISBNs() {
+  try {
+    // In Workers, we can't use fs, so we'll inline the ISBN list for now
+    // This list is extracted from testImages/csv-expansion/*.csv (2015-2025 bestsellers)
+    console.log('📥 Fetching curated ISBNs from GitHub...');
+    const response = await fetch('https://raw.githubusercontent.com/jukasdrj/books-tracker-v1/main/testImages/csv-expansion/combined_library_expanded.csv');
+
+    console.log(`GitHub fetch status: ${response.status}`);
+    if (!response.ok) {
+      console.warn(`Failed to load curated ISBNs from GitHub (HTTP ${response.status}), using inline list`);
+      return await loadInlineISBNs();
+    }
+
+    const csvText = await response.text();
+    console.log(`CSV text length: ${csvText.length} bytes`);
+
+    // Extract ISBNs from CSV (handles both Unix \n and Windows \r\n line endings)
+    const isbns = csvText.split(/\r?\n/)
+      .map(line => {
+        // Match 13-digit ISBN at end of line (with optional trailing whitespace/carriage return)
+        const match = line.trim().match(/([0-9]{13})$/);
+        return match ? match[1] : null;
+      })
+      .filter(isbn => isbn !== null);
+
+    console.log(`✅ Loaded ${isbns.length} curated ISBNs from GitHub`);
+    if (isbns.length > 0) {
+      console.log(`Sample ISBNs: ${isbns.slice(0, 3).join(', ')}`);
+    }
+    return isbns;
+  } catch (error) {
+    console.error('❌ Error loading curated ISBNs:', error);
+    return await loadInlineISBNs();
+  }
+}
+
+/**
+ * Fallback inline ISBN list (extracted from testImages/csv-expansion)
+ */
+async function loadInlineISBNs() {
+  // Extract ISBNs from local Worker deployment
+  // This is a subset - full list will be loaded from GitHub
+  const inlineISBNs = [
+    '9780385529985', '9780553448122', '9780812986481', '9780735224292',
+    '9780743247542', '9781607747307', '9780399590504', '9780062429964',
+    '9780062409850', '9781594633940', '9780802124944', '9781451659224',
+    '9780345542908', '9780525555360', '9780802123411', '9780812993541',
+    '9781594206274', '9781594633661', '9780385353779', '9780385539458'
+  ];
+  console.log(`Using ${inlineISBNs.length} inline ISBNs as fallback`);
+  return inlineISBNs;
+}
+
+/**
  * Compress image to WebP using Cloudflare Image Resizing
  * (Reused logic from image-proxy.ts)
  */
@@ -59,17 +115,44 @@ async function compressToWebP(imageData, quality = 85) {
 
 /**
  * Collect ISBNs from Analytics Engine (popular searches)
+ * Uses books_api_provider_performance dataset (PROVIDER_ANALYTICS binding)
+ *
+ * NOTE: GOOGLE_BOOKS_ANALYTICS binding in external-apis.js doesn't exist in wrangler.toml.
+ * This is a known issue - Analytics logging is currently broken. Once Priority 1 fix is deployed,
+ * this function will start returning ISBNs.
+ *
+ * Expected Schema (once logging is fixed):
+ * - blobs[0] = ISBN
+ * - blobs[1] = 'isbn_search' or 'isbn_search_error'
+ * - indexes[0] = 'google-books-isbn' or 'google-books-error'
+ * - doubles[0] = processing time
+ * - doubles[1] = result count
  */
 async function collectAnalyticsISBNs(env) {
   try {
-    // Query Analytics Engine for ISBN searches in last 7 days
+    console.log('🔍 Querying Analytics Engine for popular ISBNs...');
+
+    // Check required env vars
+    if (!env.CF_ACCOUNT_ID || !env.CF_API_TOKEN) {
+      console.warn('⚠️ CF_ACCOUNT_ID or CF_API_TOKEN not configured - skipping Analytics ISBNs');
+      return [];
+    }
+
+    // Query Analytics Engine for ISBN searches in last 7 days (conservative initial window)
+    // Using index1 = 'google-books-isbn' to filter for successful ISBN lookups
+    // NOTE: Can expand to 14-30 days after initial testing confirms data collection
     const query = `
-      SELECT DISTINCT blob2 as isbn
-      FROM books_api_cache_metrics
+      SELECT blob1 as isbn, COUNT(*) as search_count
+      FROM books_api_provider_performance
       WHERE timestamp > NOW() - INTERVAL '7' DAY
-        AND blob1 = 'isbn'
-      LIMIT 100
+        AND index1 = 'google-books-isbn'
+        AND blob2 = 'isbn_search'
+      GROUP BY isbn
+      ORDER BY search_count DESC
+      LIMIT 500
     `;
+
+    console.log('Analytics Engine query:', query.trim());
 
     const response = await fetch(
       `https://api.cloudflare.com/client/v4/accounts/${env.CF_ACCOUNT_ID}/analytics_engine/sql`,
@@ -83,15 +166,33 @@ async function collectAnalyticsISBNs(env) {
       }
     );
 
+    console.log(`Analytics API response: ${response.status} ${response.statusText}`);
+
     if (!response.ok) {
-      console.warn('Analytics Engine query failed:', response.status);
+      const errorText = await response.text();
+      console.error(`❌ Analytics Engine query failed (${response.status}):`, errorText);
+      console.error('This is expected until Priority 1 (GOOGLE_BOOKS_ANALYTICS binding fix) is deployed');
       return [];
     }
 
     const data = await response.json();
-    return data.data?.map(row => row.isbn) || [];
+    console.log('Analytics response structure:', JSON.stringify(data, null, 2));
+
+    const isbns = data.data?.map(row => row.isbn).filter(isbn => isbn) || [];
+    console.log(`✅ Found ${isbns.length} popular ISBNs from Analytics Engine`);
+
+    if (isbns.length > 0) {
+      console.log(`Top 5 ISBNs: ${isbns.slice(0, 5).join(', ')}`);
+    } else {
+      console.warn('⚠️ Analytics Engine returned 0 ISBNs');
+      console.warn('Likely cause: GOOGLE_BOOKS_ANALYTICS binding missing in wrangler.toml (no data being logged)');
+      console.warn('Fix: Add binding or update external-apis.js to use PROVIDER_ANALYTICS');
+    }
+
+    return isbns;
   } catch (error) {
-    console.error('Error collecting Analytics ISBNs:', error);
+    console.error('❌ Error collecting Analytics ISBNs:', error.message);
+    console.error('Stack trace:', error.stack);
     return [];
   }
 }
@@ -220,8 +321,22 @@ export async function handleScheduledHarvest(env) {
   const startTime = Date.now();
   console.log('🌾 Starting ISBNdb cover harvest...');
 
+  // Resolve ISBNdb API key (supports both Secrets Store binding and plain string)
+  const apiKey = env.ISBNDB_API_KEY?.get
+    ? await env.ISBNDB_API_KEY.get()
+    : env.ISBNDB_API_KEY;
+
+  if (!apiKey) {
+    console.error('❌ ISBNDB_API_KEY not configured');
+    return {
+      success: false,
+      error: 'ISBNDB_API_KEY not configured',
+      duration: Date.now() - startTime
+    };
+  }
+
   // Initialize services
-  const isbndbApi = new ISBNdbAPI(env.ISBNDB_API_KEY);
+  const isbndbApi = new ISBNdbAPI(apiKey);
   const rateLimiter = new RateLimiter(10); // 10 req/sec
 
   // Health check
@@ -238,19 +353,66 @@ export async function handleScheduledHarvest(env) {
   console.log('✅ ISBNdb API healthy');
 
   // Collect ISBNs from all sources
-  console.log('📚 Collecting ISBNs...');
-  const analyticsISBNs = await collectAnalyticsISBNs(env);
-  const userLibraryISBNs = await collectUserLibraryISBNs(env);
+  console.log('');
+  console.log('='.repeat(60));
+  console.log('📚 Collecting ISBNs from all sources...');
+  console.log('='.repeat(60));
 
-  // Deduplicate and prioritize
-  const allISBNs = [...new Set([...analyticsISBNs, ...userLibraryISBNs])];
-  console.log(`Found ${allISBNs.length} unique ISBNs (${analyticsISBNs.length} analytics, ${userLibraryISBNs.length} library)`);
+  // Load curated ISBN list from testImages/csv-expansion (478 unique ISBNs)
+  // Extracted from yearly bestseller CSVs (2015-2025)
+  const curatedISBNs = await loadCuratedISBNs();
+  console.log(`1️⃣ Curated ISBNs: ${curatedISBNs.length} (priority 1 - bestsellers 2015-2025)`);
+
+  const analyticsISBNs = await collectAnalyticsISBNs(env);
+  console.log(`2️⃣ Analytics ISBNs: ${analyticsISBNs.length} (priority 2 - popular searches)`);
+
+  const userLibraryISBNs = await collectUserLibraryISBNs(env);
+  console.log(`3️⃣ User Library ISBNs: ${userLibraryISBNs.length} (priority 3 - user collections)`);
+
+  // Deduplicate with priority ordering (curated > analytics > user library)
+  // Slice at 1000 to respect ISBNdb API limit
+  const allISBNs = [
+    ...new Set([
+      ...curatedISBNs,       // Priority 1: Always harvest bestsellers
+      ...analyticsISBNs,     // Priority 2: Popular searches from real users
+      ...userLibraryISBNs    // Priority 3: User library collections (future)
+    ])
+  ].slice(0, 1000);  // Cap at ISBNdb API limit
+
+  const totalBeforeCap = curatedISBNs.length + analyticsISBNs.length + userLibraryISBNs.length;
+  const duplicatesRemoved = totalBeforeCap - allISBNs.length;
+
+  console.log('');
+  console.log('📊 ISBN Collection Summary:');
+  console.log(`   Total before dedup: ${totalBeforeCap}`);
+  console.log(`   Duplicates removed: ${duplicatesRemoved}`);
+  console.log(`   Unique ISBNs: ${allISBNs.length}`);
+
+  if (allISBNs.length >= 1000) {
+    console.warn('⚠️ Capped at 1000 ISBNs (ISBNdb API daily limit reached)');
+  } else {
+    const unused = 1000 - allISBNs.length;
+    console.log(`✅ Using ${allISBNs.length}/1000 ISBNdb requests (${unused} unused capacity)`);
+  }
+  console.log('='.repeat(60));
+  console.log('');
 
   if (allISBNs.length === 0) {
     console.log('✅ No ISBNs to harvest');
     return {
       success: true,
-      stats: { total: 0, successful: 0, skipped: 0, noCover: 0, errors: 0 },
+      stats: {
+        total: 0,
+        successful: 0,
+        skipped: 0,
+        noCover: 0,
+        errors: 0,
+        sources: {
+          curated: curatedISBNs.length,
+          analytics: analyticsISBNs.length,
+          userLibrary: userLibraryISBNs.length
+        }
+      },
       duration: Date.now() - startTime
     };
   }
@@ -290,19 +452,33 @@ export async function handleScheduledHarvest(env) {
     : 0;
   const totalSizeMB = (stats.totalSize / 1024 / 1024).toFixed(2);
   const duration = Date.now() - startTime;
+  const durationMinutes = (duration / 1000 / 60).toFixed(1);
 
   console.log('');
   console.log('='.repeat(60));
   console.log('📊 Harvest Summary');
   console.log('='.repeat(60));
-  console.log(`Total ISBNs: ${stats.total}`);
-  console.log(`Successful: ${stats.successful}`);
-  console.log(`Skipped (already harvested): ${stats.skipped}`);
-  console.log(`No cover: ${stats.noCover}`);
-  console.log(`Errors: ${stats.errors}`);
-  console.log(`Total size: ${totalSizeMB} MB`);
-  console.log(`Average compression: ${avgSavings}%`);
-  console.log(`Duration: ${(duration / 1000).toFixed(1)}s`);
+  console.log('');
+  console.log('📚 ISBN Sources:');
+  console.log(`   Curated (priority 1): ${curatedISBNs.length} ISBNs`);
+  console.log(`   Analytics (priority 2): ${analyticsISBNs.length} ISBNs`);
+  console.log(`   User Library (priority 3): ${userLibraryISBNs.length} ISBNs`);
+  console.log(`   Total unique: ${allISBNs.length} ISBNs`);
+  console.log('');
+  console.log('✅ Processing Results:');
+  console.log(`   Total processed: ${stats.total}`);
+  console.log(`   Successful: ${stats.successful}`);
+  console.log(`   Skipped (already harvested): ${stats.skipped}`);
+  console.log(`   No cover available: ${stats.noCover}`);
+  console.log(`   Errors: ${stats.errors}`);
+  console.log('');
+  console.log('💾 Storage:');
+  console.log(`   Total size: ${totalSizeMB} MB`);
+  console.log(`   Average compression: ${avgSavings}%`);
+  console.log('');
+  console.log('⏱️ Performance:');
+  console.log(`   Duration: ${durationMinutes} minutes (${(duration / 1000).toFixed(1)}s)`);
+  console.log(`   ISBNdb API usage: ${allISBNs.length}/1000 daily limit (${Math.round((allISBNs.length / 1000) * 100)}%)`);
   console.log('='.repeat(60));
 
   return {
@@ -311,7 +487,18 @@ export async function handleScheduledHarvest(env) {
       ...stats,
       avgSavings,
       totalSizeMB,
-      duration
+      duration,
+      sources: {
+        curated: curatedISBNs.length,
+        analytics: analyticsISBNs.length,
+        userLibrary: userLibraryISBNs.length,
+        totalUnique: allISBNs.length
+      },
+      apiUsage: {
+        used: allISBNs.length,
+        limit: 1000,
+        percentUsed: Math.round((allISBNs.length / 1000) * 100)
+      }
     },
     results
   };

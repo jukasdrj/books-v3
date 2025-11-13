@@ -10,6 +10,7 @@
 import * as externalApis from '../services/external-apis.js';
 import { setCached, generateCacheKey } from '../utils/cache.js';
 import { UnifiedCacheService } from '../services/unified-cache.js';
+import { writeCacheMetrics } from '../utils/analytics.js';
 
 /**
  * Search books by title with multi-provider orchestration
@@ -157,6 +158,7 @@ export async function searchByISBN(isbn, options, env, ctx) {
     // Write cache metrics to Analytics Engine
     ctx.waitUntil(writeCacheMetrics(env, {
       endpoint: '/search/isbn',
+      isbn: isbn, // Log actual ISBN for daily harvest
       cacheHit: true,
       responseTime: 0, // Cache hits are instant
       imageQuality: headers['X-Image-Quality'],
@@ -225,6 +227,7 @@ export async function searchByISBN(isbn, options, env, ctx) {
     // Write cache metrics to Analytics Engine
     ctx.waitUntil(writeCacheMetrics(env, {
       endpoint: '/search/isbn',
+      isbn: isbn, // Log actual ISBN for daily harvest
       cacheHit: false,
       responseTime: Date.now() - startTime,
       imageQuality: responseData._cacheHeaders['X-Image-Quality'],
@@ -430,33 +433,4 @@ function calculateDataCompleteness(items) {
   return Math.round((completeCount / items.length) * 100);
 }
 
-/**
- * Write cache metrics to Analytics Engine
- * @param {Object} env - Worker environment bindings
- * @param {Object} metrics - Metrics to write
- */
-async function writeCacheMetrics(env, metrics) {
-  if (!env.CACHE_ANALYTICS) {
-    console.warn('CACHE_ANALYTICS binding not available');
-    return;
-  }
-
-  try {
-    await env.CACHE_ANALYTICS.writeDataPoint({
-      blobs: [
-        metrics.endpoint,
-        metrics.imageQuality
-      ],
-      doubles: [
-        metrics.responseTime,
-        metrics.dataCompleteness,
-        metrics.itemCount
-      ],
-      indexes: [
-        metrics.cacheHit ? 'HIT' : 'MISS'
-      ]
-    });
-  } catch (error) {
-    console.error('Failed to write cache metrics:', error);
-  }
-}
+// writeCacheMetrics moved to src/utils/analytics.js for reuse across handlers

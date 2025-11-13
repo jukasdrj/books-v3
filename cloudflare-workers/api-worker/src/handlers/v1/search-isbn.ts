@@ -10,6 +10,7 @@ import { createSuccessResponseObject, createErrorResponseObject } from '../../ty
 import { enrichMultipleBooks } from '../../services/enrichment.ts';
 import { normalizeISBN } from '../../utils/normalization.js';
 import { extractUniqueAuthors, removeAuthorsFromWorks } from '../../utils/response-transformer.js';
+import { writeCacheMetrics } from '../../utils/analytics.js';
 
 /**
  * Validate ISBN-10 or ISBN-13 format
@@ -61,12 +62,25 @@ export async function handleSearchISBN(
     // Use enrichMultipleBooks for consistency with other v1 search endpoints
     const result = await enrichMultipleBooks({ isbn: normalizedISBN }, env, { maxResults: 1 });
 
+    const processingTime = Date.now() - startTime;
+
     if (!result || !result.works || result.works.length === 0) {
       // Book not found in any provider
+      // Still log to Analytics Engine for ISBN harvest tracking
+      await writeCacheMetrics(env, {
+        endpoint: '/v1/search/isbn',
+        isbn: normalizedISBN,
+        cacheHit: false,
+        responseTime: processingTime,
+        imageQuality: 'NONE',
+        dataCompleteness: 0,
+        itemCount: 0
+      });
+
       return createSuccessResponseObject(
         { works: [], editions: [], authors: [] },
         {
-          processingTime: Date.now() - startTime,
+          processingTime,
           provider: 'none',
           cached: false,
         }
@@ -79,11 +93,24 @@ export async function handleSearchISBN(
     // Remove authors property from works (not part of canonical WorkDTO)
     const cleanWorks = removeAuthorsFromWorks(result.works);
 
+    // Log ISBN search to Analytics Engine for daily harvest
+    const work = cleanWorks[0];
+    const hasCovers = work?.coverImageURL || result.editions?.some((e: any) => e.coverURL);
+    await writeCacheMetrics(env, {
+      endpoint: '/v1/search/isbn',
+      isbn: normalizedISBN,
+      cacheHit: false, // enrichMultipleBooks doesn't use cache (direct API calls)
+      responseTime: processingTime,
+      imageQuality: hasCovers ? 'MEDIUM' : 'NONE',
+      dataCompleteness: work ? 75 : 0, // Simplified: assume 75% completeness for found books
+      itemCount: cleanWorks.length
+    });
+
     return createSuccessResponseObject(
       { works: cleanWorks, editions: result.editions, authors },
       {
-        processingTime: Date.now() - startTime,
-        provider: cleanWorks[0]?.primaryProvider, // Use actual provider from enriched work
+        processingTime,
+        provider: work?.primaryProvider, // Use actual provider from enriched work
         cached: false,
       }
     );
