@@ -104,11 +104,50 @@ public final class LibraryFilterService {
 
     // MARK: - Diversity Metrics
 
-    /// Calculate diversity score for a collection of works.
+    /// Calculate diversity score asynchronously for a collection of works.
+    /// Runs on background thread to avoid blocking main thread during UI updates.
+    /// - Parameter works: Works to analyze
+    /// - Returns: Diversity score (0-100)
+    public func calculateDiversityScoreAsync(for works: [Work]) async -> Double {
+        // Extract Sendable data from SwiftData models on main thread
+        // Swift 6: SwiftData models are not Sendable, so we extract values first
+        let authorData: [(gender: AuthorGender, region: CulturalRegion?)] = works.flatMap { work in
+            (work.authors ?? []).map { author in
+                (author.gender, author.culturalRegion)
+            }
+        }
+
+        // Perform calculation on background thread with extracted data
+        return await Task.detached(priority: .utility) {
+            guard !authorData.isEmpty else { return 0.0 }
+
+            var genderSet: Set<AuthorGender> = []
+            var regionSet: Set<CulturalRegion> = []
+
+            for (gender, region) in authorData {
+                genderSet.insert(gender)
+                if let region = region {
+                    regionSet.insert(region)
+                }
+            }
+
+            // Simple diversity metric: (unique genders + unique regions) / max possible * 100
+            let maxGenders = 5.0 // female, male, nonBinary, other, unknown
+            let maxRegions = 10.0 // Total cultural regions
+
+            let genderDiversity = Double(genderSet.count) / maxGenders
+            let regionDiversity = Double(regionSet.count) / maxRegions
+
+            return ((genderDiversity + regionDiversity) / 2.0) * 100.0
+        }.value
+    }
+
+    /// Calculate diversity score for a collection of works (synchronous version).
     /// - Parameters:
     ///   - works: Works to analyze
     ///   - modelContext: SwiftData model context for validating object lifecycle
     /// - Returns: Diversity score (0-100)
+    /// - Note: Consider using `calculateDiversityScoreAsync` to avoid blocking the main thread
     public func calculateDiversityScore(for works: [Work], modelContext: ModelContext) -> Double {
         guard !works.isEmpty else { return 0.0 }
 

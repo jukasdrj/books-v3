@@ -450,7 +450,14 @@ public struct iOS26LiquidLibraryView: View {
         // Only update if actually changed
         if filtered.map(\.id) != cachedFilteredWorks.map(\.id) {
             cachedFilteredWorks = filtered
-            cachedDiversityScore = filterService.calculateDiversityScore(for: filtered, modelContext: modelContext)
+
+            // Async diversity calculation to avoid blocking main thread
+            Task {
+                let score = await filterService.calculateDiversityScoreAsync(for: filtered)
+                await MainActor.run {
+                    cachedDiversityScore = score
+                }
+            }
         }
     }
 

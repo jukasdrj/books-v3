@@ -431,9 +431,8 @@ struct iOS26ThemePicker: View {
     }
     
     // MARK: - Adaptive Grid Layout
-    
+
     /// iOS 26 HIG: 2-column for iPhone (comfortable tap targets), 3-column for iPad
-    @available(iOS 14.0, macOS 11.0, *)
     private var gridColumns: [GridItem] {
         switch sizeClass {
         case .compact:
@@ -572,9 +571,8 @@ struct ThemePreviewCard: View {
     }
     
     // MARK: - Accessibility Support
-    
+
     /// High contrast mode detection for WCAG AAA compliance
-    @available(iOS 13.0, macOS 10.15, *)
     private var adjustedTextColor: Color {
         #if os(iOS)
         return contrast == .increased ? .white : .white.opacity(0.95)

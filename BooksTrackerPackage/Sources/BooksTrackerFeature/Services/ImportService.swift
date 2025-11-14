@@ -106,35 +106,31 @@ public actor ImportService {
         var newWorkIDs: [PersistentIdentifier] = []
         let startTime = ContinuousClock.now
 
-        // Fetch existing works for deduplication (in background context)
-        let descriptor = FetchDescriptor<Work>()
-        let allWorks = try context.fetch(descriptor)
+        // One-time fetch of all existing works for deduplication
+        // Trade-off: Memory (all works) vs multiple DB queries (N queries for N books)
+        // For <10,000 books, memory approach is faster and simpler
+        let allWorks = try context.fetch(FetchDescriptor<Work>())
 
-        // Pre-compute dictionary for O(1) lookups (performance fix for large libraries)
-        // Reduces complexity from O(N×M) to O(N+M) for imports into large libraries
-        var existingBooks: [String: Set<String>] = [:]
+        // Build case-insensitive title → works map for O(1) lookups
+        var titleMap: [String: [Work]] = [:]
         for work in allWorks {
-            let titleKey = work.title.lowercased()
-            let authorKey = work.authorNames.lowercased()
-            if existingBooks[titleKey] == nil {
-                existingBooks[titleKey] = []
-            }
-            existingBooks[titleKey]?.insert(authorKey)
+            let normalizedTitle = work.title.lowercased()
+            titleMap[normalizedTitle, default: []].append(work)
         }
 
         for book in books {
             do {
-                // Check for duplicate by title + author (case-insensitive)
-                let titleKey = book.title.lowercased()
-                let authorKey = book.author.lowercased()
+                // Check for cancellation before processing each book
+                try Task.checkCancellation()
 
-                let isDuplicate: Bool
-                if let authorsForTitle = existingBooks[titleKey] {
-                    isDuplicate = authorsForTitle.contains { existingAuthor in
-                        existingAuthor.contains(authorKey) || authorKey.contains(existingAuthor)
-                    }
-                } else {
-                    isDuplicate = false
+                // Case-insensitive duplicate check using pre-built map
+                let normalizedTitle = book.title.lowercased()
+                let potentialMatches = titleMap[normalizedTitle] ?? []
+
+                let isDuplicate = potentialMatches.contains { work in
+                    let existingAuthor = work.authorNames.lowercased()
+                    let newAuthor = book.author.lowercased()
+                    return existingAuthor.contains(newAuthor) || newAuthor.contains(existingAuthor)
                 }
 
                 if isDuplicate {
