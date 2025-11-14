@@ -10,6 +10,7 @@ enum BookshelfAIError: Error, LocalizedError {
     case networkError(Error)
     case invalidResponse
     case serverError(Int, String)
+    case rateLimitExceeded(retryAfter: Int) // New case for HTTP 429
     case decodingFailed(Error)
     case imageQualityRejected(String)
 
@@ -23,6 +24,8 @@ enum BookshelfAIError: Error, LocalizedError {
             return "Received invalid response from AI service"
         case .serverError(let code, let message):
             return "Server error (\(code)): \(message)"
+        case .rateLimitExceeded(let retryAfter):
+            return "Too many requests. Wait \(retryAfter)s before trying again."
         case .decodingFailed(let error):
             return "Failed to decode response: \(error.localizedDescription)"
         case .imageQualityRejected(let reason):
@@ -317,6 +320,29 @@ actor BookshelfAIService {
 
     // MARK: - Private Methods
 
+    /// Parse retry-after from JSON response body (fallback when header missing)
+    /// - Parameter data: Response body data
+    /// - Returns: Retry-after seconds if found in response body
+    private func parseRetryAfterFromBody(_ data: Data) -> Int? {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let error = json["error"] as? [String: Any],
+              let details = error["details"] as? [String: Any] else {
+            return nil
+        }
+        
+        // Try to extract retryAfter from details (can be Int, Double, or String)
+        if let retryAfter = details["retryAfter"] as? Int {
+            return retryAfter
+        } else if let retryAfterDouble = details["retryAfter"] as? Double {
+            return Int(round(retryAfterDouble))
+        } else if let retryAfter = details["retryAfter"] as? String,
+                  let seconds = Int(retryAfter) {
+            return seconds
+        }
+        
+        return nil
+    }
+
     /// Upload compressed image data to Cloudflare Worker.
     private func uploadImage(_ imageData: Data) async throws -> BookshelfAIResponse {
         var request = URLRequest(url: endpoint)
@@ -334,6 +360,21 @@ actor BookshelfAIService {
 
             // Check HTTP status
             guard (200...299).contains(httpResponse.statusCode) else {
+                // Handle 429 Rate Limit separately (GitHub Issue #426)
+                if httpResponse.statusCode == 429 {
+                    // Parse Retry-After header (seconds)
+                    let retryAfter: Int
+                    if let retryAfterHeader = httpResponse.value(forHTTPHeaderField: "Retry-After"),
+                       let seconds = Int(retryAfterHeader) {
+                        retryAfter = seconds
+                    } else {
+                        // Fallback: try to parse from response body
+                        retryAfter = parseRetryAfterFromBody(data) ?? 60 // Default 60s
+                    }
+                    throw BookshelfAIError.rateLimitExceeded(retryAfter: retryAfter)
+                }
+                
+                // Other server errors
                 let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
                 throw BookshelfAIError.serverError(httpResponse.statusCode, errorMessage)
             }

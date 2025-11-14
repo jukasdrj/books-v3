@@ -41,6 +41,15 @@ public struct BookshelfScannerView: View {
                 // Main content
                 ScrollView {
                     VStack(spacing: 24) {
+                        // Rate limit banner (GitHub Issue #426)
+                        if scanModel.showRateLimitBanner {
+                            RateLimitBanner(retryAfter: scanModel.rateLimitRetryAfter) {
+                                scanModel.showRateLimitBanner = false
+                                scanModel.rateLimitRetryAfter = 0  // Reset state when dismissed
+                            }
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                        }
+                        
                         // Privacy disclosure banner
                         privacyDisclosureBanner
 
@@ -166,7 +175,7 @@ public struct BookshelfScannerView: View {
                 VStack(spacing: 12) {
                     Image(systemName: "camera.fill")
                         .font(.system(size: 48))
-                        .foregroundStyle(themeStore.primaryColor)
+                        .foregroundStyle(scanModel.showRateLimitBanner ? .gray : themeStore.primaryColor)
                         .symbolRenderingMode(.hierarchical)
 
                     Text("Scan Bookshelf")
@@ -186,13 +195,14 @@ public struct BookshelfScannerView: View {
                         .overlay {
                             RoundedRectangle(cornerRadius: 16)
                                 .strokeBorder(
-                                    themeStore.primaryColor.opacity(0.3),
+                                    scanModel.showRateLimitBanner ? Color.gray.opacity(0.3) : themeStore.primaryColor.opacity(0.3),
                                     lineWidth: 2
                                 )
                         }
                 }
             }
             .buttonStyle(.plain)
+            .disabled(scanModel.showRateLimitBanner) // Disable during rate limit
             .accessibilityLabel("Tap to capture bookshelf photo")
             .accessibilityHint("Opens camera to scan your bookshelf")
 
@@ -422,6 +432,10 @@ class BookshelfScanModel {
 
     // Original image storage for correction UI
     public var lastSavedImagePath: String?
+    
+    // Rate limit state (GitHub Issue #426)
+    var rateLimitRetryAfter: Int = 0
+    var showRateLimitBanner: Bool = false
 
     enum ScanState: Equatable {
         case idle
@@ -550,7 +564,23 @@ class BookshelfScanModel {
             #endif
 
         } catch {
-            scanState = .error(error.localizedDescription)
+            // Check for rate limit error (GitHub Issue #426)
+            if let aiError = error as? BookshelfAIError,
+               case .rateLimitExceeded(let retryAfter) = aiError {
+                // Show rate limit banner instead of generic error
+                withAnimation {
+                    rateLimitRetryAfter = retryAfter
+                    showRateLimitBanner = true
+                }
+                scanState = .idle // Reset to idle (don't show error alert)
+                
+                #if DEBUG
+                print("⏱️ Rate limit hit - retry after \(retryAfter)s")
+                #endif
+            } else {
+                // Generic error handling
+                scanState = .error(error.localizedDescription)
+            }
 
             // CRITICAL: Re-enable idle timer on error (prevent battery drain)
             UIApplication.shared.isIdleTimerDisabled = false

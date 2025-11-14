@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 
 /// Lightweight projection DTO for list views (fallback pattern for Phase 4.1).
 ///
@@ -41,7 +42,7 @@ public struct ListWorkDTO: Sendable, Identifiable, Hashable {
     /// Use in LibraryRepository methods if propertiesToFetch validation fails.
     public static func from(_ work: Work) -> ListWorkDTO {
         ListWorkDTO(
-            id: work.persistentModelID.uriRepresentation().absoluteString,
+            id: "\(work.persistentModelID)",
             title: work.title,
             authorPreview: work.authors?.first?.name,
             coverImageURL: work.coverImageURL,

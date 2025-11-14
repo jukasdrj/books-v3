@@ -52,6 +52,7 @@ public struct iOS26LiquidLibraryView: View {
     @State private var pendingEnrichmentCount = 0
     @State private var reviewQueueCount = 0
     @State private var isEnriching = false
+    @State private var isReadingStatsExpanded = false  // NEW: Collapsible reading stats
 
     // ✅ FIX 3: Performance optimizations
     @State private var cachedFilteredWorks: [Work] = []
@@ -63,6 +64,7 @@ public struct iOS26LiquidLibraryView: View {
     @State private var scrollPosition = ScrollPosition()
     @Environment(\.iOS26ThemeStore) private var themeStore
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass  // GitHub Issue #435
 
     public init() {}
 
@@ -241,16 +243,35 @@ public struct iOS26LiquidLibraryView: View {
 
     // MARK: - Optimized Layout Implementations
 
+    /// Size-class based grid columns for improved layout stability (GitHub Issue #435)
+    /// - Compact (iPhone portrait): 2 columns
+    /// - Regular (iPad, iPhone landscape): 4 columns
+    /// - Fallback (unknown): Adaptive with tighter range (160-180 vs 150-200)
+    private var gridColumns: [GridItem] {
+        switch horizontalSizeClass {
+        case .compact:
+            // iPhone portrait - always 2 columns
+            return [GridItem(.flexible()), GridItem(.flexible())]
+        case .regular:
+            // iPad or iPhone landscape - always 4 columns
+            return Array(repeating: GridItem(.flexible()), count: 4)
+        case .none:
+            // Fallback: Tighter adaptive range (20pt vs 50pt) for stability
+            return [GridItem(.adaptive(minimum: 160, maximum: 180), spacing: 16)]
+        @unknown default:
+            // Future size classes: use adaptive as safe default
+            return [GridItem(.adaptive(minimum: 160, maximum: 180), spacing: 16)]
+        }
+    }
+
     @ViewBuilder
     private var optimizedFloatingGridLayout: some View {
-        LazyVGrid(columns: [
-            GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 16)
-        ], spacing: 16) {
+        LazyVGrid(columns: gridColumns, spacing: 16) {
             ForEach(cachedFilteredWorks, id: \.id) { work in
                 NavigationLink(value: work) {
                     OptimizedFloatingBookCard(work: work, namespace: layoutTransition , uniqueID: nil)
                 }
-                .buttonStyle(.plain) // ✅ FIX: Changed from BookCardButtonStyle() to allow NavigationLink taps
+                .buttonStyle(ScaleButtonStyle()) // GitHub Issue #434: Visual press feedback
                 .id(work.id) // ✅ Explicit ID for view recycling
             }
         }
@@ -258,14 +279,12 @@ public struct iOS26LiquidLibraryView: View {
 
     @ViewBuilder
     private var optimizedAdaptiveCardsLayout: some View {
-        LazyVGrid(columns: [
-            GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 16)
-        ], spacing: 16) {
+        LazyVGrid(columns: gridColumns, spacing: 16) {
             ForEach(cachedFilteredWorks, id: \.id) { work in
                 NavigationLink(value: work) {
                     iOS26AdaptiveBookCard(work: work)
                 }
-                .buttonStyle(.plain) // ✅ FIX: Changed from BookCardButtonStyle() to allow NavigationLink taps
+                .buttonStyle(ScaleButtonStyle()) // GitHub Issue #434: Visual press feedback
                 .id(work.id)
             }
         }
@@ -278,7 +297,7 @@ public struct iOS26LiquidLibraryView: View {
                 NavigationLink(value: work) {
                     iOS26LiquidListRow(work: work)
                 }
-                .buttonStyle(.plain) // ✅ FIX: Changed from BookCardButtonStyle() to allow NavigationLink taps
+                .buttonStyle(ScaleButtonStyle()) // GitHub Issue #434: Visual press feedback
                 .id(work.id)
             }
         }
@@ -371,30 +390,86 @@ public struct iOS26LiquidLibraryView: View {
     }
 
     private var readingProgressOverview: some View {
-        HStack(spacing: 16) {
-            ForEach(ReadingStatus.allCases.prefix(4), id: \.self) { status in
-                // DEFENSIVE: Safely count entries only from non-deleted works
-                // During library reset, works may be deleted while view is rendering
-                // We must avoid accessing relationship properties on deleted SwiftData objects
-                let count = safeCountEntries(for: status)
-
-                VStack(spacing: 4) {
-                    Image(systemName: status.systemImage)
-                        .font(.title3)
-                        .foregroundColor(status.color)
-                        .glassEffect(.regular, interactive: true)
-
-                    Text("\(count)")
-                        .font(.caption.bold())
-                        .foregroundStyle(.primary)
-
-                    Text(status.displayName)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+        VStack(spacing: 12) {
+            // Collapsed state: Smart summary
+            if !isReadingStatsExpanded {
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        isReadingStatsExpanded = true
+                    }
+                }) {
+                    HStack {
+                        let readingCount = safeCountEntries(for: .reading)
+                        let toReadCount = safeCountEntries(for: .toRead)
+                        let inProgressCount = readingCount + toReadCount
+                        
+                        Text(inProgressCount == 1 ? "1 book in progress" : "\(inProgressCount) books in progress")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.down")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.vertical, 8)
                 }
-                .frame(maxWidth: .infinity)
+                .buttonStyle(.plain)
+            }
+            
+            // Expanded state: Full reading status breakdown
+            if isReadingStatsExpanded {
+                VStack(spacing: 12) {
+                    // Collapse button
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            isReadingStatsExpanded = false
+                        }
+                    }) {
+                        HStack {
+                            Text("Reading Status")
+                                .font(.subheadline.bold())
+                                .foregroundStyle(.primary)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.up")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding(.vertical, 8)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // Full status badges
+                    HStack(spacing: 16) {
+                        ForEach(ReadingStatus.allCases.prefix(4), id: \.self) { status in
+                            let count = safeCountEntries(for: status)
+
+                            VStack(spacing: 4) {
+                                Image(systemName: status.systemImage)
+                                    .font(.title3)
+                                    .foregroundColor(status.color)
+                                    .glassEffect(.regular, interactive: true)
+
+                                Text("\(count)")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.primary)
+
+                                Text(status.displayName)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                    }
+                }
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(isReadingStatsExpanded ? "Reading status expanded" : "Reading status collapsed")
+        .accessibilityHint("Double tap to \(isReadingStatsExpanded ? "collapse" : "expand") reading status details")
     }
     
     /// Safely count library entries for a given status, avoiding deleted SwiftData objects
@@ -635,7 +710,6 @@ public struct UltraOptimizedLibraryView: View {
                     VStack(spacing: 8) {
                         Text("Your Library Awaits")
                             .font(.title.bold())
-                            .multilineTextAlignment(.center)
 
                         Text("Start building your personal collection of books")
                             .font(.subheadline)
