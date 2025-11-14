@@ -1,17 +1,22 @@
 # 📚 BooksTrack by oooe - Claude Code Guide
 
-**Version 3.0.0 (Build 47+)** | **iOS 26.0+** | **Swift 6.1+** | **Updated: October 23, 2025**
+**Version 3.0.0 (Build 47+)** | **iOS 26.0+** | **Swift 6.1+** | **Updated: November 13, 2025**
 
-Personal book tracking iOS app with cultural diversity insights. SwiftUI, SwiftData, Cloudflare Workers backend.
+**Native iOS book tracking app** with cultural diversity insights. SwiftUI, SwiftData, CloudKit sync.
 
 **🎉 NOW ON APP STORE!** Bundle ID: `Z67H8Y8DW.com.oooefam.booksV3`
 
 **📚 DOCUMENTATION HUB:** See `docs/README.md` for complete documentation navigation (PRDs, workflows, feature guides)
 
+**🎯 EXPERTISE FOCUS:**
+- **Swift 6.2** expertise required (concurrency, typed throws, strict data isolation)
+- **SwiftUI** best practices (iOS 26 HIG compliance, Liquid Glass design)
+- **SwiftData** mastery (persistent identifiers, CloudKit sync, relationship management)
+- **Backend API Contract:** All backend communication follows canonical DTO contract (see Backend API Contract section)
+
 **🤖 AI CONTEXT FILES:**
 - **This file:** Claude Code development guide (primary)
 - **`.ai/SHARED_CONTEXT.md`:** Project-wide AI context (tech stack, architecture, critical rules)
-- **`.ai/gemini-config.md`:** Gemini API configuration and usage
 - **`.github/copilot-instructions.md`:** GitHub Copilot setup
 - **`.ai/README.md`:** AI context organization guide
 
@@ -29,17 +34,16 @@ This command uses the --lang swift flag to specify the language and a pattern to
 **Note:** Implementation plans tracked in [GitHub Issues](https://github.com/users/jukasdrj/projects/2).
 
 ### Core Stack
-- SwiftUI + @Observable + SwiftData + CloudKit sync
-- Swift 6.1 concurrency (@MainActor, actors, typed throws)
-- Swift Testing (@Test, #expect, parameterized tests)
-- iOS 26 Liquid Glass design system
-- Cloudflare Workers (RPC service bindings, Durable Objects, KV/R2)
+- **SwiftUI** - @Observable, @State, @Bindable (iOS 26 HIG patterns)
+- **SwiftData** - CloudKit sync, persistent identifiers, relationships
+- **Swift 6.2** - Strict concurrency (@MainActor, actors, typed throws)
+- **Swift Testing** - @Test, #expect, parameterized tests
+- **iOS 26 Design** - Liquid Glass, semantic colors, system fonts
 
 ### Essential Commands
 
 **🚀 iOS Development (MCP-Powered):**
 ```bash
-/gogo          # App Store validation pipeline
 /build         # Quick build check
 /test          # Run Swift Testing suite
 /device-deploy # Deploy to iPhone/iPad
@@ -47,12 +51,7 @@ This command uses the --lang swift flag to specify the language and a pattern to
 ```
 See **[MCP_SETUP.md](MCP_SETUP.md)** for XcodeBuildMCP configuration.
 
-**☁️ Backend Operations:**
-```bash
-/deploy-backend  # Deploy api-worker with validation
-/backend-health  # Health check + diagnostics
-/logs            # Stream Worker logs (real-time)
-```
+**Note:** Backend is in separate repository. iOS codebase follows canonical API contract (see Backend API Contract section).
 
 ### App Launch Architecture (Nov 2025 Optimization)
 
@@ -210,124 +209,67 @@ struct BookDetailView: View {
 - Compile-time safety prevents runtime crashes from typos/wrong types
 
 **Image Proxy (#147):**
-- All cover images routed through `/images/proxy` endpoint
+- All cover images routed through backend `/images/proxy` endpoint
 - R2 caching for 50%+ faster loads
-- Backend normalization + caching (Phase 1)
+- Backend handles normalization + caching
 
-**Cache Key Normalization (#197):**
-- Shared utilities: `cloudflare-workers/api-worker/src/utils/normalization.ts`
-- `normalizeTitle()`: Removes articles (the/a/an), punctuation, lowercases
-- `normalizeISBN()`: Strips hyphens and formatting
-- `normalizeAuthor()`: Lowercases and trims
-- `normalizeImageURL()`: Removes query params, forces HTTPS
-- Impact: +15-30% cache hit rate improvement (60-70% → 75-90%)
+### Backend API Contract (Canonical DTOs)
 
-### Backend Architecture
+**🚨 CRITICAL:** All backend communication MUST adhere to the canonical DTO contract. Backend is in separate repository.
 
-**Worker:** `api-worker` (Cloudflare Worker monolith)
-
-#### Canonical Data Contracts (v1.0.0) 🎉 NEW
-
-**TypeScript-first API contracts** ensure consistency across all data providers. All `/v1/*` endpoints return structured canonical responses.
-
-**Core DTOs:** `cloudflare-workers/api-worker/src/types/canonical.ts`
+**iOS Implementation:** Swift Codable DTOs in `BooksTrackerPackage/Sources/BooksTrackerFeature/Services/API/`
 - `WorkDTO` - Abstract creative work (mirrors SwiftData Work model)
 - `EditionDTO` - Physical/digital manifestation (multi-ISBN support)
 - `AuthorDTO` - Creator with diversity analytics
 
-**Response Envelope:** All `/v1/*` endpoints return discriminated union:
-```typescript
-{
-  "success": true | false,
-  "data": { works: WorkDTO[], authors: AuthorDTO[] } | undefined,
-  "error": { message: string, code: ApiErrorCode, details?: any } | undefined,
-  "meta": { timestamp: string, processingTime: number, provider: string, cached: boolean }
+**Response Envelope:** All `/v1/*` endpoints return:
+```swift
+struct CanonicalAPIResponse: Codable {
+    let success: Bool
+    let data: DataEnvelope?      // { works: [WorkDTO], authors: [AuthorDTO] }
+    let error: ErrorEnvelope?    // { message: String, code: ApiErrorCode, details: Any? }
+    let meta: MetaEnvelope       // { timestamp: String, processingTime: Double, provider: String, cached: Bool }
 }
 ```
 
-**V1 Endpoints (Canonical):**
-- `GET /v1/search/title?q={query}` - Title search (canonical response)
-- `GET /v1/search/isbn?isbn={isbn}` - ISBN lookup with validation (ISBN-10/ISBN-13)
-- `GET /v1/search/advanced?title={title}&author={author}` - Flexible search (title, author, or both)
+**V1 Endpoints (Used by iOS):**
+- `GET /v1/search/title?q={query}` - Title search
+- `GET /v1/search/isbn?isbn={isbn}` - ISBN lookup (validates ISBN-10/ISBN-13)
+- `GET /v1/search/advanced?title={title}&author={author}` - Multi-field search
 - `POST /v1/enrichment/batch` - Batch enrichment with WebSocket progress
+- `POST /api/scan-bookshelf?jobId={uuid}` - AI bookshelf scan (Gemini 2.0 Flash)
+- `POST /api/scan-bookshelf/batch` - Batch scan (max 5 photos)
+- `POST /api/import/csv-gemini` - AI CSV import
+- `GET /ws/progress?jobId={uuid}` - WebSocket progress (all background jobs)
 
-**Error Codes:** Structured error handling
+**Error Codes (ApiErrorCode):**
 - `INVALID_QUERY` - Empty/invalid search parameters
 - `INVALID_ISBN` - Malformed ISBN format
 - `PROVIDER_ERROR` - Upstream API failure (Google Books, etc.)
 - `INTERNAL_ERROR` - Unexpected server error
 
-**Provenance Tracking:** Every DTO includes:
-- `primaryProvider` - Which API contributed the data ("google-books", "openlibrary", etc.)
-- `contributors` - Array of all providers that enriched the data
-- `synthetic` - Flag for Works inferred from Edition data (enables iOS deduplication)
+**Provenance Tracking:**
+Every DTO includes:
+- `primaryProvider` - Data source ("google-books", "openlibrary", etc.)
+- `contributors` - All providers that enriched data
+- `synthetic` - Flag for Works inferred from Editions (enables iOS deduplication)
 
-**Implementation Status:**
-- ✅ TypeScript types defined (`enums.ts`, `canonical.ts`, `responses.ts`)
-- ✅ Google Books normalizers (`normalizeGoogleBooksToWork`, `normalizeGoogleBooksToEdition`)
-- ✅ Backend genre normalization service (`genre-normalizer.ts`)
-- ✅ All 3 `/v1/*` endpoints deployed with genre normalization active
-- ✅ Backend enrichment services migrated to canonical format
-- ✅ AI scanner WebSocket messages use canonical DTOs
-- ✅ iOS Swift Codable DTOs (`WorkDTO`, `EditionDTO`, `AuthorDTO`)
-- ✅ iOS search services migrated to `/v1/*` endpoints with DTOMapper
-- ✅ iOS enrichment service migrated to canonical parsing
-- ✅ Comprehensive test coverage (CanonicalAPIResponseTests)
-- ✅ iOS DTOMapper fully integrated (deduplication active, genre normalization flowing)
-- ⏳ Legacy endpoint deprecation (deferred 2-4 weeks)
+**iOS Services Using Contract:**
+- `SearchService` - `/v1/search/*` endpoints
+- `EnrichmentService` - `/v1/enrichment/batch`
+- `BookshelfScannerService` - `/api/scan-bookshelf/*`
+- `CSVImportService` - `/api/import/csv-gemini`
+- `DTOMapper` - Canonical DTO → SwiftData model mapping
 
-**Design:** `docs/plans/2025-10-29-canonical-data-contracts-design.md`
-**Implementation:** `docs/plans/2025-10-29-canonical-data-contracts-implementation.md`
+**Critical Rules:**
+1. **Never bypass DTOMapper** - All backend responses MUST be parsed through DTOMapper
+2. **Respect provenance** - Use `synthetic` flag for deduplication logic
+3. **Handle all error codes** - Display user-friendly messages for each ApiErrorCode
+4. **WebSocket progress** - All background jobs use unified WebSocket endpoint
 
-**Legacy Endpoints (Still Active):**
-- `GET /search/title?q={query}` - Book search (6h cache)
-- `GET /search/isbn?isbn={isbn}` - ISBN lookup (7-day cache)
-- `GET /search/advanced?title={title}&author={author}` - Multi-field search (6h cache, supports POST for compatibility)
-- `POST /api/enrichment/start` - **DEPRECATED** Batch enrichment with WebSocket progress
-- `POST /api/scan-bookshelf?jobId={uuid}` - AI bookshelf scan with Gemini 2.0 Flash
-- `POST /api/scan-bookshelf/batch` - Batch scan (max 5 photos, parallel upload → sequential processing)
-- `POST /api/import/csv-gemini` - AI-powered CSV import with Gemini parsing (Beta)
-- `GET /ws/progress?jobId={uuid}` - WebSocket progress (unified for ALL jobs)
-
-**AI Provider (Gemini Only):**
-- **Gemini 2.0 Flash:** Google's production vision model with 2M token context window
-- Processing time: 25-40s (includes AI inference + enrichment)
-- Image size: Handles 4-5MB images natively (no resizing needed)
-- Accuracy: High (0.7-0.95 confidence scores)
-- Optimized for ISBN detection and small text on book spines
-- **Token tracking:** All responses include token usage metrics (Nov 2025+)
-
-**Note:** Cloudflare Workers AI models (Llama, LLaVA, UForm) removed due to small context windows (128K-8K tokens) that couldn't handle typical bookshelf images. See [GitHub Issue #134](https://github.com/jukasdrj/books-tracker-v1/issues/134) for details.
-
-**Best Practices (Nov 2025 Audit):**
-- ✅ System instructions separated from dynamic content
-- ✅ Image-first ordering in prompts
-- ✅ Temperature optimization (0.2 CSV, 0.4 bookshelf)
-- ✅ JSON output format via `responseMimeType`
-- ✅ Token usage logging and metadata
-- ✅ Stop sequences for cleaner termination
-- See `docs/architecture/gemini-api-best-practices-audit.md`
-
-**Architecture:**
-- Single monolith worker with direct function calls (no RPC service bindings)
-- ProgressWebSocketDO for real-time status updates (all background jobs)
-- No circular dependencies, no polling endpoints
-- KV caching, R2 image storage, multi-provider AI integration
-
-**Internal Structure:**
-```
-api-worker/
-├── src/index.js                # Main router
-├── durable-objects/            # WebSocket DO
-├── services/                   # Business logic (AI, enrichment, APIs)
-├── providers/                  # AI provider modules (Gemini, Cloudflare)
-├── handlers/                   # Request handlers (search)
-└── utils/                      # Shared utilities (cache)
-```
-
-**Rule:** All background jobs report via WebSocket. No polling. All services communicate via direct function calls.
-
-**See:** `cloudflare-workers/MONOLITH_ARCHITECTURE.md` for monolith architecture details. Previous distributed architecture archived in `cloudflare-workers/_archived/`.
+**Design Documentation:**
+- `docs/plans/2025-10-29-canonical-data-contracts-design.md`
+- `docs/plans/2025-10-29-canonical-data-contracts-implementation.md`
 
 ### Navigation Structure
 
@@ -556,13 +498,6 @@ public class CSVImportService {
 
 ## Debugging
 
-
-### Backend
-```bash
-npx wrangler tail books-api-proxy --search "provider"
-curl "https://books-api-proxy.jukasdrj.workers.dev/health"
-```
-
 ### Critical Lessons
 
 **Real Device Testing:**
@@ -646,7 +581,7 @@ ast-grep --lang swift --pattern '@Observable class $NAME { $$$ }' .
 **📚 Complete Documentation Hub:** `docs/README.md` - Navigation guide for all doc types
 
 ```
-📄 CLAUDE.md                 ← This file (quick reference <500 lines)
+📄 CLAUDE.md                 ← This file (Swift/iOS quick reference)
 📄 MCP_SETUP.md             ← XcodeBuildMCP workflows
 📄 CHANGELOG.md             ← Victory stories + debugging sagas
 
@@ -658,9 +593,10 @@ ast-grep --lang swift --pattern '@Observable class $NAME { $$$ }' .
   ├── architecture/         ← System design & architectural decisions
   └── guides/               ← How-to guides & best practices
 
-📁 cloudflare-workers/      ← Backend: MONOLITH_ARCHITECTURE.md
-📁 .claude/commands/        ← Slash commands (8 total: iOS + backend operations)
+📁 .claude/commands/        ← Slash commands (4 total: iOS development only)
 ```
+
+**Note:** Backend documentation is in separate repository. iOS follows canonical API contract (see Backend API Contract section).
 
 **Documentation Types:**
 - **PRDs** (`docs/product/`) - WHY features exist, WHO they're for, WHAT success looks like

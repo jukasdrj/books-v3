@@ -210,12 +210,13 @@ struct WorkDetailView: View {
                                 HStack(spacing: 4) {
                                     Text(author.name)
                                         .font(.title2)
-                                        .foregroundColor(.white.opacity(0.9))
+                                        .foregroundColor(.white)
                                     Image(systemName: "magnifyingglass")
                                         .font(.footnote)
-                                        .foregroundColor(.white.opacity(0.7))
+                                        .foregroundColor(.white.opacity(0.9))
                                 }
-                                .shadow(color: .black.opacity(0.8), radius: 4, x: 0, y: 1) // ✅ WCAG AA: Stronger shadow for contrast on light backgrounds
+                                .shadow(color: .black.opacity(0.95), radius: 6, x: 0, y: 2)  // Primary shadow for depth
+                                .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)   // Secondary shadow for WCAG AA contrast
                             }
                             .buttonStyle(.plain)
                         }

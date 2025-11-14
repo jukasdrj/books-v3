@@ -1,10 +1,12 @@
 {
-  "version": "1.0.0",
+  "version": "2.0.0",
+  "description": "BooksTrack iOS app - Swift/SwiftUI expertise focus. Backend in separate repository.",
   "skills": {
     "ast-grep-for-swift": {
       "type": "domain",
       "enforcement": "suggest",
       "priority": "high",
+      "description": "Syntax-aware Swift code search using ast-grep",
       "promptTriggers": {
         "keywords": [
           "find",
@@ -18,6 +20,7 @@
           "@mainactor",
           "@observable",
           "@model",
+          "@bindable",
           "force unwrap",
           "refactor",
           "all instances"
@@ -35,7 +38,8 @@
     "ios-swift-dev-guidelines": {
       "type": "domain",
       "enforcement": "suggest",
-      "priority": "high",
+      "priority": "critical",
+      "description": "iOS 26, Swift 6.2, SwiftUI, SwiftData best practices and patterns",
       "promptTriggers": {
         "keywords": [
           "swiftui",
@@ -44,6 +48,8 @@
           "swift 6",
           "concurrency",
           "@mainactor",
+          "@bindable",
+          "@observable",
           "actor",
           "async",
           "await",
@@ -51,7 +57,10 @@
           "human interface",
           "accessibility",
           "navigation",
-          "ios 26"
+          "ios 26",
+          "cloudkit",
+          "persistent identifier",
+          "model context"
         ],
         "intentPatterns": [
           "create.*view",
@@ -61,35 +70,9 @@
           "fix.*actor",
           "concurrency.*issue",
           "navigation.*pattern",
-          "ios.*best.*practice"
-        ]
-      }
-    },
-    "cloudflare-workers-dev": {
-      "type": "domain",
-      "enforcement": "suggest",
-      "priority": "high",
-      "promptTriggers": {
-        "keywords": [
-          "cloudflare",
-          "worker",
-          "durable object",
-          "kv",
-          "r2",
-          "backend",
-          "api",
-          "service binding",
-          "edge",
-          "wrangler"
-        ],
-        "intentPatterns": [
-          "deploy.*worker",
-          "create.*endpoint",
-          "fix.*backend",
-          "durable.*object",
-          "cloudflare.*api",
-          "backend.*issue",
-          "worker.*error"
+          "ios.*best.*practice",
+          "swiftdata.*relationship",
+          "cloudkit.*sync"
         ]
       }
     },
@@ -97,6 +80,7 @@
       "type": "domain",
       "enforcement": "suggest",
       "priority": "medium",
+      "description": "Deep analysis, code review, planning for complex Swift/iOS problems",
       "promptTriggers": {
         "keywords": [
           "debug",
@@ -106,7 +90,9 @@
           "architecture",
           "investigate",
           "complex issue",
-          "code review"
+          "code review",
+          "refactor",
+          "performance"
         ],
         "intentPatterns": [
           "help.*debug",
@@ -115,71 +101,8 @@
           "analyze.*problem",
           "complex.*bug",
           "architectural.*decision",
-          "investigate.*issue"
-        ]
-      }
-    },
-    "mcp-openmemory": {
-      "type": "domain",
-      "enforcement": "suggest",
-      "priority": "low",
-      "promptTriggers": {
-        "keywords": [
-          "remember",
-          "save this",
-          "store",
-          "preference",
-          "my preference",
-          "i prefer",
-          "always use",
-          "note that"
-        ],
-        "intentPatterns": [
-          "remember.*that",
-          "save.*preference",
-          "store.*this",
-          "i.*prefer.*to",
-          "always.*use",
-          "keep.*in.*mind"
-        ]
-      }
-    },
-    "cloudflare-observability": {
-      "type": "domain",
-      "enforcement": "suggest",
-      "priority": "high",
-      "promptTriggers": {
-        "keywords": [
-          "worker logs",
-          "query logs",
-          "observability",
-          "worker metrics",
-          "worker events",
-          "cloudflare analytics",
-          "log search",
-          "error logs",
-          "worker performance",
-          "trace request",
-          "gemini calls",
-          "enrichment logs",
-          "websocket logs",
-          "cache logs",
-          "api errors"
-        ],
-        "intentPatterns": [
-          "show.*logs",
-          "find.*errors.*worker",
-          "query.*worker.*logs",
-          "search.*events",
-          "analyze.*requests",
-          "filter.*logs",
-          "investigate.*worker",
-          "check.*worker.*errors",
-          "trace.*request",
-          "find.*gemini.*calls",
-          "show.*enrichment",
-          "debug.*websocket",
-          "cache.*performance"
+          "investigate.*issue",
+          "refactor.*strategy"
         ]
       }
     }

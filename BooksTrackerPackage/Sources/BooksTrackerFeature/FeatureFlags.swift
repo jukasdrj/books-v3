@@ -81,6 +81,24 @@ public final class FeatureFlags: Sendable {
         }
     }
 
+    /// Disable canonical /v1/enrichment/batch endpoint (opt-out flag)
+    ///
+    /// When enabled, forces use of legacy /api/enrichment/batch endpoint.
+    /// Useful for debugging or if canonical endpoint has issues.
+    ///
+    /// Default: `false` (canonical endpoint enabled)
+    ///
+    /// Note: Legacy endpoint will be removed in backend v2.0 (January 2026).
+    /// This flag provides emergency fallback only.
+    public var disableCanonicalEnrichment: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: "feature.disableCanonicalEnrichment")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "feature.disableCanonicalEnrichment")
+        }
+    }
+
     public static let shared = FeatureFlags()
 
     private init() {}
@@ -90,8 +108,9 @@ public final class FeatureFlags: Sendable {
     public func resetToDefaults() {
         enableTabBarMinimize = true  // Default enabled
         coverSelectionStrategy = .auto  // Default auto
+        disableCanonicalEnrichment = false  // Default canonical endpoint
         #if DEBUG
-        print("✅ FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto)")
+        print("✅ FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true)")
         #endif
     }
 }

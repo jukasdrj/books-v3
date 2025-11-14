@@ -18,17 +18,17 @@ actor EnrichmentAPIClient {
     /// - Returns: Enrichment result with final counts
     /// - Note: Supports automatic fallback from /v1/enrichment/batch → /api/enrichment/batch if canonical endpoint unavailable (404/405/426/501)
     func startEnrichment(jobId: String, books: [Book]) async throws -> EnrichmentResult {
-        // Feature flag: Use canonical /v1 endpoint when enabled, fallback to legacy /api if unavailable
-        // Default: OFF (waiting for backend deployment of /v1/enrichment/batch)
-        // Related: GitHub Issue #425, FRONTEND_HANDOFF.md
-        let useCanonicalEndpoint = UserDefaults.standard.bool(forKey: "feature.useCanonicalEnrichment")
+        // Use canonical /v1 endpoint by default (Issue #425)
+        // Legacy /api endpoint will be removed in backend v2.0 (January 2026)
+        // Feature flag available to disable canonical endpoint if needed via FeatureFlags.disableCanonicalEnrichment
+        let disableCanonical = FeatureFlags.shared.disableCanonicalEnrichment
 
-        let primaryEndpoint = useCanonicalEndpoint ? "/v1/enrichment/batch" : "/api/enrichment/batch"
+        let primaryEndpoint = disableCanonical ? "/api/enrichment/batch" : "/v1/enrichment/batch"
         let fallbackEndpoint = "/api/enrichment/batch"
 
         do {
             return try await performEnrichment(endpoint: primaryEndpoint, jobId: jobId, books: books)
-        } catch let error as NSError where useCanonicalEndpoint && shouldFallbackToLegacy(statusCode: error.code) {
+        } catch let error as NSError where !disableCanonical && shouldFallbackToLegacy(statusCode: error.code) {
             // Automatic fallback on endpoint-not-available errors (404, 405, 426, 501)
             #if DEBUG
             print("⚠️ [EnrichmentAPIClient] Canonical endpoint failed with \(error.code), falling back to legacy: \(fallbackEndpoint)")

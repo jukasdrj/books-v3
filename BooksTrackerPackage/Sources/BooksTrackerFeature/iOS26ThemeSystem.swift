@@ -433,6 +433,7 @@ struct iOS26ThemePicker: View {
     // MARK: - Adaptive Grid Layout
     
     /// iOS 26 HIG: 2-column for iPhone (comfortable tap targets), 3-column for iPad
+    @available(iOS 14.0, macOS 11.0, *)
     private var gridColumns: [GridItem] {
         switch sizeClass {
         case .compact:
@@ -465,115 +466,115 @@ struct ThemePreviewCard: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: 16) {
-                // Theme preview with ACTUAL theme background (mini version)
-                ZStack {
-                    // Background gradient preview - shows real theme appearance
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(
-                            LinearGradient(
-                                colors: theme.backgroundGradient,
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(height: 120)
-                        .overlay {
-                            // Glass effect preview overlay
-                            RoundedRectangle(cornerRadius: 20)
-                                .fill(theme.primaryColor.opacity(0.2))
-                                .blendMode(.overlay)
-                        }
-                        .overlay {
-                            VStack(spacing: 8) {
-                                // Theme icon with glass effect
-                                ZStack {
-                                    Circle()
-                                        .fill(.ultraThinMaterial)
-                                        .frame(width: 48, height: 48)
-                                    
-                                    Image(systemName: theme.icon)
-                                        .font(.title2)
-                                        .foregroundStyle(theme.primaryColor)
-                                        .symbolRenderingMode(.hierarchical)
-                                }
-                                
-                                // Mini preview dots showing color palette
-                                HStack(spacing: 6) {
-                                    Circle()
-                                        .fill(theme.primaryColor)
-                                        .frame(width: 8, height: 8)
-                                    Circle()
-                                        .fill(theme.secondaryColor)
-                                        .frame(width: 8, height: 8)
-                                    Circle()
-                                        .fill(.white.opacity(0.5))
-                                        .frame(width: 8, height: 8)
-                                }
-                            }
-                        }
-                        .overlay {
-                            // Selection indicator - prominent border
-                            if isSelected {
-                                RoundedRectangle(cornerRadius: 20)
-                                    .strokeBorder(theme.primaryColor, lineWidth: 4)
-                                    .matchedGeometryEffect(id: "selection", in: namespace)
-                                    .shadow(color: theme.primaryColor.opacity(0.5), radius: 8)
-                            }
-                        }
-                    
-                    // Checkmark for selected state
-                    if isSelected {
-                        VStack {
-                            HStack {
-                                Spacer()
-                                ZStack {
-                                    Circle()
-                                        .fill(theme.primaryColor)
-                                        .frame(width: 28, height: 28)
-                                    
-                                    Image(systemName: "checkmark")
-                                        .font(.system(size: 14, weight: .bold))
-                                        .foregroundColor(.white)
-                                }
-                                .offset(x: 8, y: -8)
-                            }
-                            Spacer()
-                        }
-                    }
-                }
-
-                // Theme name with high contrast
-                Text(theme.displayName)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(adjustedTextColor) // ✅ High contrast white text
-                    .multilineTextAlignment(.center)
-                    .minimumScaleFactor(0.8) // Dynamic Type support
-                    .lineLimit(2) // Prevents cutoff on long names
+                themePreviewBox
+                themeNameLabel
             }
-            .padding(12)
+            .padding(16)
             .background {
                 RoundedRectangle(cornerRadius: 24)
                     .fill(.ultraThinMaterial)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 24)
-                            .fill(theme.primaryColor.opacity(0.1))
-                    }
+                    .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
             }
+            .overlay {
+                if isSelected {
+                    selectedBorderOverlay
+                }
+            }
+            .scaleEffect(isSelected ? 1.02 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
         }
-        .buttonStyle(ThemeCardButtonStyle(isSelected: isSelected))
+        .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(theme.displayName) theme")
         .accessibilityValue(isSelected ? "Selected" : "Not selected")
         .accessibilityHint("Double tap to select this theme and preview it immediately")
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : [.isButton])
-        .accessibilityAction(named: "Preview theme") {
-            action()
+    }
+
+    private var themePreviewBox: some View {
+        ZStack {
+            backgroundGradientPreview
+                .overlay {
+                    glassEffectOverlay
+                }
+                .overlay {
+                    themeIconAndPalette
+                }
         }
+    }
+
+    private var backgroundGradientPreview: some View {
+        RoundedRectangle(cornerRadius: 20)
+            .fill(
+                LinearGradient(
+                    colors: theme.backgroundGradient,
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .frame(height: 120)
+    }
+
+    private var glassEffectOverlay: some View {
+        RoundedRectangle(cornerRadius: 20)
+            .fill(theme.primaryColor.opacity(0.2))
+            .blendMode(.overlay)
+    }
+
+    private var themeIconAndPalette: some View {
+        VStack(spacing: 8) {
+            themeIcon
+            colorPaletteDots
+        }
+    }
+
+    private var themeIcon: some View {
+        ZStack {
+            Circle()
+                .fill(.ultraThinMaterial)
+                .frame(width: 48, height: 48)
+
+            Image(systemName: theme.icon)
+                .font(.title2)
+                .foregroundStyle(theme.primaryColor)
+                .symbolRenderingMode(.hierarchical)
+        }
+    }
+
+    private var colorPaletteDots: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(theme.primaryColor)
+                .frame(width: 8, height: 8)
+            Circle()
+                .fill(theme.secondaryColor)
+                .frame(width: 8, height: 8)
+            Circle()
+                .fill(.white.opacity(0.5))
+                .frame(width: 8, height: 8)
+        }
+    }
+
+    private var themeNameLabel: some View {
+        Text(theme.displayName)
+            .font(.subheadline.weight(.semibold))
+            .foregroundColor(adjustedTextColor)
+            .multilineTextAlignment(.center)
+            .minimumScaleFactor(0.8)
+            .lineLimit(2)
+    }
+
+    private var selectedBorderOverlay: some View {
+        RoundedRectangle(cornerRadius: 24)
+            .strokeBorder(theme.primaryColor, lineWidth: 3)
+            .matchedGeometryEffect(id: "selection", in: namespace)
+            .shadow(color: theme.primaryColor.opacity(0.5), radius: 8)
     }
     
     // MARK: - Accessibility Support
     
     /// High contrast mode detection for WCAG AAA compliance
+    @available(iOS 13.0, macOS 10.15, *)
     private var adjustedTextColor: Color {
         #if os(iOS)
         return contrast == .increased ? .white : .white.opacity(0.95)
