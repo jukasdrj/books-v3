@@ -20,14 +20,14 @@ public struct ListWorkDTO: Sendable, Identifiable, Hashable {
     public let id: String  // PersistentIdentifier string representation
     public let title: String
     public let authorPreview: String?  // First author name for display
-    public let coverImageURL: URL?
+    public let coverImageURL: String?  // Changed from URL? to match Work model
     public let reviewStatus: ReviewStatus
 
     public init(
         id: String,
         title: String,
         authorPreview: String?,
-        coverImageURL: URL?,
+        coverImageURL: String?,
         reviewStatus: ReviewStatus
     ) {
         self.id = id

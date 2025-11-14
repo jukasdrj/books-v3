@@ -294,45 +294,28 @@ public class LibraryRepository {
     /// - Returns: Array of works with minimal properties loaded
     /// - Throws: `SwiftDataError` if query fails
     public func fetchUserLibraryForList() throws -> [Work] {
-        // PERFORMANCE: Fetch UserLibraryEntry first (smaller dataset)
-        var descriptor = FetchDescriptor<UserLibraryEntry>()
+        // PERFORMANCE: Fetch Work objects directly with database-level sorting
+        // to avoid N+1 query problem from in-memory sorting on faulted properties.
+        var descriptor = FetchDescriptor<Work>(
+            predicate: #Predicate { work in
+                // Filter for works that are part of the user's library
+                work.userLibraryEntries?.isEmpty == false
+            },
+            sortBy: [SortDescriptor(\.lastModified, order: .reverse)]
+        )
         
         // SELECTIVE LOADING: Only fetch properties needed for list cards
         // This reduces memory by ~70% compared to full object loading
         // Relationships (work.authors, work.editions) will fault on access
-        descriptor.propertiesToFetch = [\.work]
+        // Note: lastModified is implicitly fetched due to sort descriptor
+        descriptor.propertiesToFetch = [
+            \.title,
+            \.coverImageURL,
+            \.reviewStatus
+        ]
         
-        let entries = try modelContext.fetch(descriptor)
-        
-        // Map to Works with deduplication
-        var seenWorkIDs = Set<PersistentIdentifier>()
-        let works = entries.compactMap { entry -> Work? in
-            // 1. VALIDATE: Check if the entry is still valid in the context
-            guard modelContext.model(for: entry.persistentModelID) as? UserLibraryEntry != nil else {
-                return nil
-            }
-            
-            // 2. ACCESS: Now safe to access entry.work
-            guard let work = entry.work else {
-                return nil
-            }
-            
-            // 3. DEDUPLICATE: Skip if we've already seen this work
-            guard !seenWorkIDs.contains(work.persistentModelID) else {
-                return nil
-            }
-            seenWorkIDs.insert(work.persistentModelID)
-            
-            // 4. VALIDATE: Check if the work is still valid in the context
-            guard modelContext.model(for: work.persistentModelID) as? Work != nil else {
-                return nil
-            }
-            
-            return work
-        }
-        
-        // Sort by last modified date (newest first)
-        return works.sorted { $0.lastModified > $1.lastModified }
+        // Fetching Work directly handles deduplication automatically
+        return try modelContext.fetch(descriptor)
     }
 
     /// Fetches single work for detail view (full data).
@@ -357,11 +340,9 @@ public class LibraryRepository {
     /// - Returns: Fully loaded work with all relationships, or nil if not found
     /// - Throws: `SwiftDataError` if query fails
     public func fetchWorkDetail(id: PersistentIdentifier) throws -> Work? {
-        // Full object graph fetch (no propertiesToFetch = everything loaded)
-        let descriptor = FetchDescriptor<Work>(
-            predicate: #Predicate { $0.persistentModelID == id }
-        )
-        return try modelContext.fetch(descriptor).first
+        // Fetch by PersistentIdentifier using modelContext.model(for:)
+        // SwiftData predicates don't support persistentModelID comparison
+        return modelContext.model(for: id) as? Work
     }
 
     /// Fetches works for list view using projection DTO pattern (fallback).
@@ -378,7 +359,23 @@ public class LibraryRepository {
     /// - Returns: Array of list-optimized DTO projections
     /// - Throws: `SwiftDataError` if query fails
     public func fetchUserLibraryForListDTO() throws -> [ListWorkDTO] {
-        let works = try fetchUserLibrary()
+        // PERFORMANCE: Use efficient fetch strategy with database-level sorting
+        var descriptor = FetchDescriptor<Work>(
+            predicate: #Predicate { work in
+                work.userLibraryEntries?.isEmpty == false
+            },
+            sortBy: [SortDescriptor(\.lastModified, order: .reverse)]
+        )
+
+        // Fetch only the properties required to build the ListWorkDTO
+        descriptor.propertiesToFetch = [
+            \.title,
+            \.authors,
+            \.coverImageURL,
+            \.reviewStatus
+        ]
+
+        let works = try modelContext.fetch(descriptor)
         return works.map { ListWorkDTO.from($0) }
     }
 
