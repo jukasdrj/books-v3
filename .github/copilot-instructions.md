@@ -1,10 +1,10 @@
 # GitHub Copilot Instructions for BooksTrack
 
-**Version:** 3.0.1 (Build 188) | **iOS 26.0+, Swift 6.1+, Node 18.0+** | **Bundle:** `Z67H8Y8DW.com.oooefam.booksV3`
+**Version:** 3.0.1 (Build 188) | **iOS 26.0+, Swift 6.1+** | **Bundle:** `Z67H8Y8DW.com.oooefam.booksV3`
 
 ## Stack
 **iOS:** SwiftUI + @Observable (NO ViewModels!) + SwiftData + CloudKit | Swift Testing (@Test, 161 tests)  
-**Backend:** Cloudflare Workers monolith (api-worker) + Durable Objects + KV/R2 + Gemini 2.0 Flash AI
+**Backend:** Separate repository at [bookstrack-backend](https://github.com/jukasdrj/bookstrack-backend)
 
 ## Build & Test (VALIDATED)
 
@@ -16,15 +16,6 @@
 
 # MCP commands (requires XcodeBuildMCP server):
 /build /test /gogo /device-deploy /sim
-```
-
-### Backend (Works in CI)
-```bash
-cd cloudflare-workers/api-worker
-npm install  # 88 packages, ~12s
-npm test     # Expected: 161 pass, 70 skip, 30 fail (integration needs server - OK)
-npm run deploy  # Deploys to api-worker.jukasdrj.workers.dev
-curl https://api-worker.jukasdrj.workers.dev/health  # Verify
 ```
 
 ## CRITICAL Rules (Common Crashes!)
@@ -64,14 +55,12 @@ BooksTrackerPackage/
     Views/       # Library, Search, Shelf, Insights tabs
     Services/    # BookSearchAPIService, EnrichmentQueue
   Tests/         # 161 Swift Testing tests
-cloudflare-workers/api-worker/
-  src/index.js   # Backend entry
-  handlers/      # Search, enrichment
-  test/          # Vitest tests
 Config/Shared.xcconfig  # Version, bundle ID (UPDATE HERE!)
 docs/README.md          # Documentation hub (START HERE)
 CLAUDE.md               # Quick reference (<500 lines)
 ```
+
+**Backend:** Maintained in separate repository at [bookstrack-backend](https://github.com/jukasdrj/bookstrack-backend)
 
 ## API (Canonical v1.0.0)
 ```typescript
@@ -83,6 +72,8 @@ GET /v1/search/advanced?title=&author=
 POST /v1/enrichment/batch
 GET /ws/progress?jobId={uuid}        # WebSocket (real-time)
 ```
+
+**Backend Repository:** https://github.com/jukasdrj/bookstrack-backend
 
 ## SwiftData Models
 ```
@@ -99,7 +90,7 @@ UserLibraryEntry many:1 Edition
 1. Code: `BooksTrackerPackage/Sources/BooksTrackerFeature/[Category]/`
 2. Use `public` for app shell exports
 3. Tests: `BooksTrackerPackage/Tests/`
-4. Backend: `cloudflare-workers/api-worker/src/handlers/`
+4. Backend: See [bookstrack-backend](https://github.com/jukasdrj/bookstrack-backend) repository
 
 ### Code Search (IMPORTANT!)
 ```bash
@@ -114,13 +105,12 @@ ast-grep --lang swift --pattern '@MainActor class $NAME { $$$ }' .
 2. **"temporary identifier" crash:** Call `save()` before `persistentModelID`
 3. **CloudKit sync fails:** Test multi-device, check dashboard, reset via Settings
 
-### Backend  
-4. **Integration tests ECONNREFUSED:** Expected without `npm run dev` - deploy if unit tests pass
-5. **Wrangler timeout:** Check secrets in Cloudflare dashboard (NOT `wrangler secret put`)
+### Backend
+4. **Backend issues:** See [bookstrack-backend](https://github.com/jukasdrj/bookstrack-backend) repository for troubleshooting
 
 ## Security
 - ✅ Zero warnings (enforced)
-- ✅ No secrets in code (use Cloudflare Secrets Store: GOOGLE_BOOKS_API_KEY, GEMINI_API_KEY, ISBNDB_API_KEY)
+- ✅ No secrets in code (backend manages API keys separately)
 - ✅ Real device test (keyboard, camera, CloudKit)
 - ✅ WCAG AA contrast (4.5:1+ with .secondary/.tertiary)
 

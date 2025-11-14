@@ -2,7 +2,7 @@
 
 **Version 3.0.0** | **iOS 26.0+** | **Swift 6.1+**
 
-A modern iOS book tracking application with cultural diversity insights, powered by SwiftUI, SwiftData, and Cloudflare Workers. Track your reading journey, discover diverse voices, and gain insights into your literary preferences.
+A modern iOS book tracking application with cultural diversity insights, powered by SwiftUI and SwiftData. Track your reading journey, discover diverse voices, and gain insights into your literary preferences.
 
 **🎉 NOW AVAILABLE ON THE APP STORE!**
 
@@ -45,11 +45,9 @@ A modern iOS book tracking application with cultural diversity insights, powered
 - Swift 6.1+
 - Apple Developer Account (for device testing)
 
-**Backend Development:**
-- Node.js 18.0+
-- npm or yarn
-- Cloudflare account (for Workers deployment)
-- Wrangler CLI
+**Backend:**
+- Backend is maintained in a separate repository: [bookstrack-backend](https://github.com/jukasdrj/bookstrack-backend)
+- iOS app communicates with backend via canonical API contract (see `CLAUDE.md`)
 
 ### Installation
 
@@ -59,46 +57,19 @@ A modern iOS book tracking application with cultural diversity insights, powered
    cd books-tracker-v1
    ```
 
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Open the Xcode workspace:**
+2. **Open the Xcode workspace:**
    ```bash
    open BooksTracker.xcworkspace
    ```
 
-4. **Configure signing:**
+3. **Configure signing:**
    - Select the BooksTracker target
    - Update Team and Bundle Identifier in Signing & Capabilities
    - Bundle ID: `Z67H8Y8DW.com.oooefam.booksV3`
 
-5. **Build and run:**
+4. **Build and run:**
    - Select your target device or simulator
    - Press `Cmd + R` to build and run
-
-### Backend Setup
-
-1. **Navigate to workers directory:**
-   ```bash
-   cd cloudflare-workers
-   ```
-
-2. **Configure Wrangler:**
-   ```bash
-   npx wrangler login
-   ```
-
-3. **Deploy the API worker:**
-   ```bash
-   npm run deploy:all
-   ```
-
-4. **Verify deployment:**
-   ```bash
-   curl "https://books-api-proxy.jukasdrj.workers.dev/health"
-   ```
 
 ---
 
@@ -194,18 +165,6 @@ books-tracker-v1/
 │   └── Tests/
 │       └── BooksTrackerFeatureTests/ # Swift Testing suite
 │
-├── cloudflare-workers/
-│   ├── api-worker/                   # Monolith Worker
-│   │   ├── src/
-│   │   │   ├── index.js              # Main router
-│   │   │   ├── handlers/             # Request handlers (search, enrichment)
-│   │   │   ├── services/             # Business logic (AI, APIs)
-│   │   │   ├── providers/            # AI providers (Gemini)
-│   │   │   ├── durable-objects/      # WebSocket DO
-│   │   │   └── utils/                # Shared utilities
-│   │   └── test/                     # Worker tests
-│   └── _archived/                    # Legacy distributed architecture
-│
 ├── docs/                             # Documentation hub
 │   ├── README.md                     # Documentation navigation
 │   ├── product/                      # PRDs & requirements
@@ -215,12 +174,11 @@ books-tracker-v1/
 │   └── guides/                       # How-to guides
 │
 ├── .claude/                          # Claude Code configuration
-│   └── commands/                     # Slash commands (iOS + backend ops)
+│   └── commands/                     # Slash commands for iOS development
 │
 ├── CLAUDE.md                         # Developer quick reference (<500 lines)
 ├── MCP_SETUP.md                      # XcodeBuildMCP workflows
-├── CHANGELOG.md                      # Project history & lessons
-└── package.json                      # Root npm scripts
+└── CHANGELOG.md                      # Project history & lessons
 
 
 ---
@@ -248,21 +206,6 @@ xcodebuild test -scheme BooksTracker -destination 'platform=iOS Simulator,name=i
 - ISBN validation & normalization
 - Enrichment queue management
 
-### Backend Tests
-
-**Run Worker tests:**
-
-cd cloudflare-workers
-npm test
-
-
-**Test Coverage:**
-- CSV validation logic
-- Gemini prompt generation
-- Canonical DTO normalization
-- Genre standardization
-- WebSocket progress tracking
-
 ---
 
 ## 🚢 Deployment
@@ -281,22 +224,9 @@ npm test
 4. Upload to App Store Connect
 5. Submit for review
 
-### Cloudflare Workers
+### Backend
 
-**Deploy backend:**
-
-npm run deploy:workers
-
-
-**Health check:**
-
-curl "https://books-api-proxy.jukasdrj.workers.dev/health"
-
-
-**Stream logs:**
-
-/logs  # Real-time Worker logs via XcodeBuildMCP
-
+Backend deployment is managed in a separate repository: [bookstrack-backend](https://github.com/jukasdrj/bookstrack-backend)
 
 ---
 
