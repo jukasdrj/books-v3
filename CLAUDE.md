@@ -1,6 +1,6 @@
 # 📚 BooksTrack by oooe - Claude Code Guide
 
-**Version 3.0.0 (Build 47+)** | **iOS 26.0+** | **Swift 6.1+** | **Updated: November 13, 2025**
+**Version 3.7.5 (Build 189+)** | **iOS 26.0+** | **Swift 6.1+** | **Updated: November 14, 2025**
 
 **Native iOS book tracking app** with cultural diversity insights. SwiftUI, SwiftData, CloudKit sync.
 

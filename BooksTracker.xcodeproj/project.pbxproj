@@ -377,7 +377,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 188;
+				CURRENT_PROJECT_VERSION = 189;
 				DEVELOPMENT_TEAM = 8Z67H8Y8DW;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BooksTrackerWidgets/Info.plist;
@@ -389,7 +389,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.0.1;
+				MARKETING_VERSION = 3.7.5;
 				PRODUCT_BUNDLE_IDENTIFIER = Z67H8Y8DW.com.oooefam.booksV3.BooksTrackerWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -410,7 +410,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 188;
+				CURRENT_PROJECT_VERSION = 189;
 				DEVELOPMENT_TEAM = 8Z67H8Y8DW;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BooksTrackerWidgets/Info.plist;
@@ -422,7 +422,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.0.1;
+				MARKETING_VERSION = 3.7.5;
 				PRODUCT_BUNDLE_IDENTIFIER = Z67H8Y8DW.com.oooefam.booksV3.BooksTrackerWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
