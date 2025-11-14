@@ -59,6 +59,7 @@ public struct iOS26LiquidLibraryView: View {
     @State private var cachedDiversityScore: Double = 0.0
     @State private var lastSearchText = ""
     @State private var filterService = LibraryFilterService()
+    @State private var isLoading = true // For skeleton loading screen
 
     @Namespace private var layoutTransition
     @State private var scrollPosition = ScrollPosition()
@@ -77,10 +78,8 @@ public struct iOS26LiquidLibraryView: View {
             .onChange(of: libraryWorks) { _, _ in
                 updateFilteredWorks()
             }
-            .onAppear {
-                updateFilteredWorks()
-                pendingEnrichmentCount = EnrichmentQueue.shared.count()
-                updateReviewQueueCount()
+            .task { // Changed from onAppear to task for async operation
+                await initialLoad()
             }
             .onReceive(NotificationCenter.default.publisher(for: .enrichmentStarted)) { _ in
                 isEnriching = true
@@ -208,37 +207,56 @@ public struct iOS26LiquidLibraryView: View {
                     .ignoresSafeArea()
                 }
 
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    if pendingEnrichmentCount > 0 {
-                        enrichmentStatusView
-                            .padding(.horizontal)
-                            .padding(.bottom, 20)
-                    }
-                    // Cultural insights header
-                    if !cachedFilteredWorks.isEmpty {
-                        culturalInsightsHeader
-                            .padding(.horizontal)
-                            .padding(.bottom, 20)
-                    }
-
-                    // Library content based on selected layout
-                    Group {
-                        switch selectedLayout {
-                        case .floatingGrid:
-                            optimizedFloatingGridLayout
-                        case .adaptiveCards:
-                            optimizedAdaptiveCardsLayout
-                        case .liquidList:
-                            optimizedLiquidListLayout
+            if isLoading {
+                skeletonLoadingView
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        if pendingEnrichmentCount > 0 {
+                            enrichmentStatusView
+                                .padding(.horizontal)
+                                .padding(.bottom, 20)
                         }
+                        // Cultural insights header
+                        if !cachedFilteredWorks.isEmpty {
+                            culturalInsightsHeader
+                                .padding(.horizontal)
+                                .padding(.bottom, 20)
+                        }
+    
+                        // Library content based on selected layout
+                        Group {
+                            switch selectedLayout {
+                            case .floatingGrid:
+                                optimizedFloatingGridLayout
+                            case .adaptiveCards:
+                                optimizedAdaptiveCardsLayout
+                            case .liquidList:
+                                optimizedLiquidListLayout
+                            }
+                        }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
+                }
+                .scrollEdgeEffectStyle(.soft, for: .top)  // iOS 26: Soft fade under nav bar for Liquid Glass depth
+                .scrollPosition($scrollPosition)
+            }
+        }
+    }
+
+    // MARK: - Skeleton Loading View
+    
+    private var skeletonLoadingView: some View {
+        ScrollView {
+            LazyVGrid(columns: gridColumns, spacing: 16) {
+                ForEach(0..<6) { _ in
+                    BookCardSkeleton()
                 }
             }
-            .scrollEdgeEffectStyle(.soft, for: .top)  // iOS 26: Soft fade under nav bar for Liquid Glass depth
-            .scrollPosition($scrollPosition)
+            .padding()
         }
+        .accessibilityLabel("Loading your library")
+        .transition(.opacity.animation(.easeInOut(duration: 0.5)))
     }
 
     // MARK: - Optimized Layout Implementations
@@ -511,6 +529,19 @@ public struct iOS26LiquidLibraryView: View {
     }
 
     // MARK: - Performance Optimizations
+
+    private func initialLoad() async {
+        // Simulate a short delay to ensure skeleton screen is visible
+        try? await Task.sleep(for: .seconds(0.5))
+        
+        updateFilteredWorks()
+        pendingEnrichmentCount = EnrichmentQueue.shared.count()
+        updateReviewQueueCount()
+        
+        withAnimation {
+            isLoading = false
+        }
+    }
 
     private func updateFilteredWorks() {
         // ✅ FIX 5: Cached filtering and diversity calculation using LibraryFilterService

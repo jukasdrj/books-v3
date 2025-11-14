@@ -95,6 +95,9 @@ public struct SearchView: View {
     // Pagination state
     @State private var isLoadingMore = false
 
+    // Image prefetching
+    @StateObject private var imagePrefetcher = ImagePrefetcher()
+    
     // MARK: - Body
 
     public var body: some View {
@@ -669,7 +672,7 @@ public struct SearchView: View {
                     resultsHeader(count: items.count, cacheHitRate: cacheHitRate)
 
                     // Results list with accessibility
-                    ForEach(items) { result in
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, result in
                         Button {
                             selectedBook = result
                         } label: {
@@ -686,6 +689,9 @@ public struct SearchView: View {
                         // HIG: Custom VoiceOver actions for power users
                         .accessibilityAction(named: "Add to library") {
                             // Quick add action
+                        }
+                        .task {
+                            prefetchImages(for: items, currentIndex: index)
                         }
                     }
 
@@ -902,6 +908,26 @@ public struct SearchView: View {
 
     // MARK: - Helper Methods
 
+    /// Prefetches images for upcoming search results to improve scrolling performance.
+    private func prefetchImages(for items: [SearchResult], currentIndex: Int) {
+        let prefetchThreshold = 5 // Start prefetching when 5 items from the end are displayed
+        let prefetchWindow = 10 // Prefetch next 10 items
+
+        // Ensure we are near the end of the current items
+        guard currentIndex >= items.count - prefetchThreshold else { return }
+
+        let startIndex = currentIndex + 1
+        let endIndex = min(startIndex + prefetchWindow, items.count)
+
+        guard startIndex < endIndex else { return }
+
+        let urlsToPrefetch = items[startIndex..<endIndex].compactMap { CoverImageService.coverURL(for: $0.work) }
+
+        if !urlsToPrefetch.isEmpty {
+            imagePrefetcher.startPrefetching(urls: urlsToPrefetch)
+        }
+    }
+    
     /// HIG: Scope-aware search execution
     private func performScopedSearch(query: String, scope: SearchScope, searchModel: SearchModel) {
         // Do not trim whitespace here; let the model handle it.
