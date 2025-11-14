@@ -105,6 +105,56 @@
           "refactor.*strategy"
         ]
       }
+    },
+    "swift62-master": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "critical",
+      "description": "Swift 6.2 strict concurrency, @MainActor validation, iOS 26 HIG compliance",
+      "promptTriggers": {
+        "keywords": [
+          "concurrency",
+          "mainactor",
+          "@mainactor",
+          "actor isolation",
+          "sendable",
+          "swift 6",
+          "swift 6.2",
+          "persistent identifier",
+          "persistentmodelid",
+          "bindable",
+          "@bindable",
+          "observable",
+          "@observable",
+          "ios 26",
+          "hig compliance",
+          "navigation pattern",
+          "timer.publish",
+          "task.sleep",
+          "swiftdata lifecycle",
+          "glass overlay",
+          "keyboard focus"
+        ],
+        "intentPatterns": [
+          "check.*concurrency",
+          "validate.*swift.*6",
+          "mainactor.*violation",
+          "actor.*isolation",
+          "sendable.*conformance",
+          "persistent.*id.*crash",
+          "bindable.*missing",
+          "observable.*mainactor",
+          "ios.*26.*compliance",
+          "hig.*pattern",
+          "navigation.*issue",
+          "timer.*actor",
+          "swiftdata.*save",
+          "relationship.*before.*insert",
+          "glass.*hit.*testing",
+          "keyboard.*conflict",
+          "performance.*app.*launch"
+        ]
+      }
     }
   }
 }
