@@ -52,7 +52,10 @@ public struct iOS26LiquidLibraryView: View {
     @State private var pendingEnrichmentCount = 0
     @State private var reviewQueueCount = 0
     @State private var isEnriching = false
-    @State private var isReadingStatsExpanded = false  // NEW: Collapsible reading stats
+    @State private var isReadingStatsExpanded = false
+    @State private var quickFilter: LibraryRepository.QuickFilterType?
+    @State private var errorMessage: String?
+    @State private var showError = false
 
     // ✅ FIX 3: Performance optimizations
     @State private var cachedFilteredWorks: [Work] = []
@@ -106,6 +109,23 @@ public struct iOS26LiquidLibraryView: View {
                 print("✅ Library view: Cleared cache after library reset")
                 #endif
             }
+            .onChange(of: searchText) { _, newValue in
+                // Clear quick filter when search text changes
+                if newValue.isEmpty {
+                    quickFilter = nil
+                }
+                updateFilteredWorks()
+            }
+            .onChange(of: quickFilter) { _, _ in
+                updateFilteredWorks()
+            }
+            .alert("Error", isPresented: $showError) {
+                Button("OK") {
+                    showError = false
+                }
+            } message: {
+                Text(errorMessage ?? "An unknown error occurred")
+            }
             .navigationTitle("My Library")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -134,6 +154,21 @@ public struct iOS26LiquidLibraryView: View {
 
                 // Informational/Settings - Trailing placement for secondary actions
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button("Recently Added") {
+                            quickFilter = .recentlyAdded
+                            updateFilteredWorks()
+                        }
+                        Button("Recently Read") {
+                            quickFilter = .recentlyRead
+                            updateFilteredWorks()
+                        }
+                    } label: {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
+                    }
+                    .buttonStyle(.glass)
+                    .foregroundStyle(.primary)
+
                     Button {
                         showingDiversityInsights.toggle()
                     } label: {
@@ -217,38 +252,52 @@ public struct iOS26LiquidLibraryView: View {
             if isLoading {
                 skeletonLoadingView
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        if pendingEnrichmentCount > 0 {
-                            enrichmentStatusView
-                                .padding(.horizontal)
-                                .padding(.bottom, 20)
-                        }
-                        // Cultural insights header
-                        if !cachedFilteredWorks.isEmpty {
-                            culturalInsightsHeader
-                                .padding(.horizontal)
-                                .padding(.bottom, 20)
-                        }
-    
-                        // Library content based on selected layout
-                        Group {
-                            switch selectedLayout {
-                            case .floatingGrid:
-                                optimizedFloatingGridLayout
-                            case .adaptiveCards:
-                                optimizedAdaptiveCardsLayout
-                            case .liquidList:
-                                optimizedLiquidListLayout
+                if cachedFilteredWorks.count > 50 {
+                    ScrollViewReader { scrollProxy in
+                        scrollContent
+                            .overlay(alignment: .trailing) {
+                                AlphabeticalIndexView(works: cachedFilteredWorks, scrollProxy: scrollProxy)
+                                    .padding(.trailing, 4)
                             }
-                        }
-                        .padding(.horizontal)
                     }
+                } else {
+                    scrollContent
                 }
-                .scrollEdgeEffectStyle(.soft, for: .top)  // iOS 26: Soft fade under nav bar for Liquid Glass depth
-                .scrollPosition($scrollPosition)
             }
         }
+    }
+    
+    private var scrollContent: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                if pendingEnrichmentCount > 0 {
+                    enrichmentStatusView
+                        .padding(.horizontal)
+                        .padding(.bottom, 20)
+                }
+                // Cultural insights header
+                if !cachedFilteredWorks.isEmpty {
+                    culturalInsightsHeader
+                        .padding(.horizontal)
+                        .padding(.bottom, 20)
+                }
+
+                // Library content based on selected layout
+                Group {
+                    switch selectedLayout {
+                    case .floatingGrid:
+                        optimizedFloatingGridLayout
+                    case .adaptiveCards:
+                        optimizedAdaptiveCardsLayout
+                    case .liquidList:
+                        optimizedLiquidListLayout
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
+        .scrollEdgeEffectStyle(.soft, for: .top)
+        .scrollPosition($scrollPosition)
     }
 
     // MARK: - Skeleton Loading View
@@ -551,18 +600,45 @@ public struct iOS26LiquidLibraryView: View {
     }
 
     private func updateFilteredWorks() {
-        // ✅ FIX 5: Cached filtering and diversity calculation using LibraryFilterService
-        let filtered: [Work]
-
-        if searchText.isEmpty {
-            filtered = Array(libraryWorks)
-        } else {
-            filtered = filterService.searchWorks(libraryWorks, searchText: searchText, modelContext: modelContext)
+        // ✅ In-memory filtering on existing @Query data (no dual-fetch)
+        var filtered = Array(libraryWorks)
+        
+        // Apply search text filter
+        if !searchText.isEmpty {
+            filtered = filtered.filter { work in
+                work.title.localizedStandardContains(searchText) ||
+                (work.authors?.contains(where: { author in
+                    author.name.localizedStandardContains(searchText)
+                }) ?? false)
+            }
+        }
+        
+        // Apply quick filter
+        if let quickFilter {
+            guard let thirtyDaysAgo = Calendar.current.date(byAdding: .day, value: -30, to: Date()) else {
+                errorMessage = "Failed to calculate date range for filtering"
+                showError = true
+                return
+            }
+            
+            switch quickFilter {
+            case .recentlyAdded:
+                filtered = filtered.filter { work in
+                    work.userLibraryEntries?.contains { $0.dateAdded >= thirtyDaysAgo } ?? false
+                }
+            case .recentlyRead:
+                filtered = filtered.filter { work in
+                    work.userLibraryEntries?.contains { entry in
+                        guard let dateCompleted = entry.dateCompleted else { return false }
+                        return dateCompleted >= thirtyDaysAgo
+                    } ?? false
+                }
+            }
         }
 
         // Only update if actually changed
         if filtered.map(\.id) != cachedFilteredWorks.map(\.id) {
-            cachedFilteredWorks = filtered
+            cachedFilteredWorks = filtered.sorted { $0.title < $1.title }
 
             // Async diversity calculation to avoid blocking main thread
             Task {

@@ -267,6 +267,14 @@ public class LibraryRepository {
         return try modelContext.fetch(descriptor)
     }
 
+    // MARK: - Quick Filters
+    
+    /// Quick filter types for common library views
+    public enum QuickFilterType: Sendable {
+        case recentlyAdded
+        case recentlyRead
+    }
+
     // MARK: - Phase 4.2: Selective Fetching (Issue #396)
 
     /// Fetches works optimized for list views (minimal data).
