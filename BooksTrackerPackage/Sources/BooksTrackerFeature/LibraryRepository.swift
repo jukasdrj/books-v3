@@ -543,8 +543,8 @@ public class LibraryRepository {
         do {
             // STEP 1: Cancel enrichment queue operations first
             await EnrichmentQueue.shared.cancelBackendJob()
-            EnrichmentQueue.shared.stopProcessing()
-            EnrichmentQueue.shared.clear()
+            await EnrichmentQueue.shared.stop()
+            EnrichmentQueue.shared.clearQueue()
 
             // STEP 2: Delete all models using modelContext
             // Use predicate-based deletion for efficiency and clarity

@@ -41,7 +41,7 @@ struct EditionComparisonSheet: View {
     }
 
     private func navigateToLibraryEntry() {
-        if let work = ownedEdition.work {
+        if ownedEdition.work != nil {
             tabCoordinator.selectedTab = .library
             tabCoordinator.switchToLibrary()
         }
@@ -49,13 +49,10 @@ struct EditionComparisonSheet: View {
 
     private func addDifferentEdition() {
         guard let work = searchResult.work else { return }
-        // Ensure both work and searchResult are inserted into modelContext
-        if modelContext.model(for: work.persistentModelID) == nil {
-            modelContext.insert(work)
-        }
-        if modelContext.model(for: searchResult.persistentModelID) == nil {
-            modelContext.insert(searchResult)
-        }
+        // Insert models into context if not already present
+        modelContext.insert(work)
+        modelContext.insert(searchResult)
+        
         // Now safe to create UserLibraryEntry using factory method
         _ = UserLibraryEntry.createOwnedEntry(for: work, edition: searchResult, context: modelContext)
         do {
@@ -81,7 +78,7 @@ struct EditionDetailCard: View {
                 Text("Format: \(edition.format.displayName)")
                 Text("Publisher: \(edition.publisher ?? "N/A")")
                 Text("Year: \((edition.publicationDate?.prefix(4)).map(String.init) ?? "N/A")")
-                Text("ISBN: \(edition.isbn13 ?? "N/A")")
+                Text("ISBN: \(edition.primaryISBN ?? "N/A")")
             }
             .font(.subheadline)
         }

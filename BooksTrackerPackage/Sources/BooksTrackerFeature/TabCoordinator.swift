@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// Coordinates navigation actions between tabs
 /// Used for cross-tab navigation (e.g., Shelf scan → Library after adding books)

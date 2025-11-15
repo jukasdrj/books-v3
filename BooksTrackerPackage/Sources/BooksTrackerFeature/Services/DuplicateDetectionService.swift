@@ -13,7 +13,7 @@ final class DuplicateDetectionService {
         // 3. Normalized title match (medium confidence)
 
         // Try ISBN match first
-        if let isbn = work.primaryEdition?.isbn13,
+        if let isbn = work.primaryEdition?.primaryISBN,
            let entry = findByISBN(isbn, in: modelContext) {
             return entry
         }
@@ -27,9 +27,10 @@ final class DuplicateDetectionService {
         in modelContext: ModelContext
     ) -> UserLibraryEntry? {
         let predicate = #Predicate<UserLibraryEntry> { entry in
-            entry.edition?.isbn13 == isbn
+            entry.edition?.primaryISBN == isbn
         }
-        let descriptor = FetchDescriptor(predicate: predicate, fetchLimit: 1)
+        var descriptor = FetchDescriptor(predicate: predicate)
+        descriptor.fetchLimit = 1
         return try? modelContext.fetch(descriptor).first
     }
 
@@ -37,20 +38,24 @@ final class DuplicateDetectionService {
         _ work: Work,
         in modelContext: ModelContext
     ) -> UserLibraryEntry? {
-        guard let title = work.title?.lowercased(),
-              let firstAuthor = work.authors.first?.name.lowercased() else {
+        let title = work.title.lowercased()
+        guard let firstAuthor = work.authors?.first?.name.lowercased() else {
             return nil
         }
 
         // CloudKit does not support filtering on to-many relationships in predicates.
-        // So, filter by title in predicate, then filter by author in-memory.
-        let predicate = #Predicate<UserLibraryEntry> { entry in
-            entry.work?.title?.lowercased() == title
-        }
-        let descriptor = FetchDescriptor(predicate: predicate)
-        let candidates = (try? modelContext.fetch(descriptor)) ?? []
-        return candidates.first(where: { entry in
-            entry.work?.authors.contains(where: { author in
+        // SwiftData predicates also don't support lowercased() function.
+        // Fetch all entries and filter in-memory for case-insensitive matching.
+        let descriptor = FetchDescriptor<UserLibraryEntry>()
+        let allEntries = (try? modelContext.fetch(descriptor)) ?? []
+        
+        return allEntries.first(where: { entry in
+            guard let entryTitle = entry.work?.title.lowercased(),
+                  entryTitle == title else {
+                return false
+            }
+            
+            return entry.work?.authors?.contains(where: { author in
                 author.name.lowercased() == firstAuthor
             }) ?? false
         })
