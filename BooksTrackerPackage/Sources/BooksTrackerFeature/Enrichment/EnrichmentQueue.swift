@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import SwiftData
 import os.log
@@ -20,8 +21,23 @@ struct EnrichmentTimeoutError: Error, LocalizedError {
 /// Supports FIFO ordering with ability to prioritize specific items (e.g., user scrolled to book)
 /// MainActor-isolated for SwiftData compatibility
 @MainActor
+@Observable
 public final class EnrichmentQueue {
     public static let shared = EnrichmentQueue()
+
+    // MARK: - Published State
+
+    /// Books currently being enriched (for UI observation)
+    public private(set) var activeEnrichments: Set<PersistentIdentifier> = []
+
+    /// Completion events (for toast notifications)
+    public var completionEvents = PassthroughSubject<EnrichmentCompletionEvent, Never>()
+
+    public struct EnrichmentCompletionEvent: Sendable {
+        public let bookIds: [PersistentIdentifier]
+        public let successCount: Int
+        public let timestamp: Date
+    }
 
     // MARK: - Properties
 
@@ -158,8 +174,9 @@ public final class EnrichmentQueue {
     }
 
     /// Clear all items from the queue
-    public func clear() {
+    public func clearQueue() {
         queue.removeAll()
+        activeEnrichments.removeAll()
         saveQueue()
         #if DEBUG
         print("🧹 EnrichmentQueue cleared")
@@ -267,7 +284,7 @@ public final class EnrichmentQueue {
                 #if DEBUG
                 print("[DEBUGGER:EnrichmentQueue:startProcessing:263] EARLY EXIT - clearing queue and returning")
                 #endif
-                self.clear()
+                self.clearQueue()
                 NotificationCoordinator.postEnrichmentCompleted()
                 return
             }
@@ -298,6 +315,10 @@ public final class EnrichmentQueue {
                     if Task.isCancelled { throw CancellationError() }
 
                     logger.info("📦 Processing batch \(index + 1) of \(batches.count)...")
+
+                    // ✅ Mark works as active for UI observation
+                    let batchWorkIDs = batch.map { $0.persistentModelID }
+                    self.activeEnrichments.formUnion(batchWorkIDs)
 
                     let jobId = UUID().uuidString
                     self.setCurrentJobId(jobId)
@@ -352,21 +373,32 @@ public final class EnrichmentQueue {
                                     guard let self = self else { return }
                                     self.resetActivityTimer()
                                     guard case .batchEnrichment(let batchPayload) = completePayload else {
-                                        #if DEBUG
-                                        print("⚠️ Unexpected payload type for batch enrichment completion")
-                                        #endif
+                                        // On protocol mismatch, still clean up this batch from active enrichments
+                                        self.activeEnrichments.subtract(batchWorkIDs)
                                         continuation.resume()
                                         return
                                     }
 
-                                    self.applyEnrichedData(batchPayload.enrichedBooks, in: modelContext)
+                                    // Extract successfully enriched books
+                                    let successfulBooks = batchPayload.enrichedBooks.filter { $0.success }
+                                    self.applyEnrichedData(successfulBooks, in: modelContext)
+
+                                    // ✅ Mark as complete
+                                    self.activeEnrichments.subtract(batchWorkIDs)
+
+                                    // ✅ Publish completion event for UI
+                                    self.completionEvents.send(EnrichmentCompletionEvent(
+                                        bookIds: batchWorkIDs,
+                                        successCount: successfulBooks.count,
+                                        timestamp: Date()
+                                    ))
 
                                     continuation.resume()
                                 },
                                 errorHandler: { errorPayload in
-                                    #if DEBUG
-                                    print("❌ WebSocket enrichment error for batch \(index + 1): \(errorPayload.message)")
-                                    #endif
+                                    // On error, ensure we clean up this batch from active enrichments
+                                    self.activeEnrichments.subtract(batchWorkIDs)
+
                                     NotificationCoordinator.postEnrichmentFailed(error: errorPayload.message)
                                     continuation.resume(throwing: EnrichmentError.apiError(errorPayload.message))
                                 }
@@ -381,7 +413,7 @@ public final class EnrichmentQueue {
                 #if DEBUG
                 print("✅ All enrichment batches completed successfully")
                 #endif
-                self.clear()
+                self.clearQueue()
                 NotificationCoordinator.postEnrichmentCompleted()
 
             } catch let error as EnrichmentTimeoutError {
@@ -403,10 +435,12 @@ public final class EnrichmentQueue {
     }
 
     /// Stop background processing
-    public func stopProcessing() {
+    public func stop() async {
+        await cancelBackendJob() // Best-effort cancellation
         currentTask?.cancel()
         currentTask = nil
         processing = false
+        activeEnrichments.removeAll() // Clear active on stop
     }
 
     /// Cancel the backend enrichment job

@@ -29,15 +29,21 @@ struct iOS26LiquidListRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: rowSpacing) {
-            // Book cover thumbnail
-            coverThumbnail
+        ZStack(alignment: .topTrailing) {
+            HStack(alignment: .top, spacing: rowSpacing) {
+                // Book cover thumbnail
+                coverThumbnail
 
-            // Main content area
-            mainContent
+                // Main content area
+                mainContent
 
-            // Trailing accessories
-            trailingAccessories
+                // Trailing accessories
+                trailingAccessories
+            }
+
+            // Enrichment indicator overlay
+            EnrichmentIndicator(workId: work.persistentModelID)
+                .padding(8)
         }
         .padding(.horizontal, horizontalPadding)
         .padding(.vertical, verticalPadding)
@@ -79,11 +85,12 @@ struct iOS26LiquidListRow: View {
 
     private var coverThumbnail: some View {
         // ✅ FIXED: Uses CoverImageService with Edition → Work fallback logic
-        CachedAsyncImage(url: CoverImageService.coverURL(for: work)) { image in
-            image
-                .resizable()
-                .aspectRatio(2/3, contentMode: .fill)
-        } placeholder: {
+        ZStack(alignment: .topTrailing) {
+            CachedAsyncImage(url: CoverImageService.coverURL(for: work)) { image in
+                image
+                    .resizable()
+                    .aspectRatio(2/3, contentMode: .fill)
+            } placeholder: {
             Rectangle()
                 .fill(LinearGradient(
                     colors: [
@@ -103,6 +110,12 @@ struct iOS26LiquidListRow: View {
         .clipShape(RoundedRectangle(cornerRadius: thumbnailCornerRadius))
         .glassEffect(.subtle, tint: themeStore.primaryColor.opacity(0.1))
         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+
+            if let entry = userEntry {
+                LibraryStatusBadge(status: entry.readingStatus)
+                    .padding(4)
+            }
+        }
     }
 
     // MARK: - Main Content
@@ -392,7 +405,7 @@ struct iOS26LiquidListRow: View {
             description += ", Published \(year)"
         }
         if let userEntry = userEntry {
-            description += ", Status: \(userEntry.readingStatus.displayName)"
+            description += ", Status: \(userEntry.readingStatus.displayName). Already in library."
             if userEntry.readingStatus == .reading && userEntry.readingProgress > 0 {
                 description += ", Progress: \(Int(userEntry.readingProgress * 100))%"
             }

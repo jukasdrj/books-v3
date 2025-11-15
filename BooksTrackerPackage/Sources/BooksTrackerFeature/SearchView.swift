@@ -71,6 +71,8 @@ public struct SearchView: View {
 
     @State private var searchModel: SearchModel?
     @State private var selectedBook: SearchResult?
+    @State private var tappedBook: SearchResult?
+    @State private var editionComparisonData: EditionComparisonData?
     @State private var searchScope: SearchScope = .all
     @Namespace private var searchTransition
 
@@ -338,6 +340,9 @@ public struct SearchView: View {
         // across different devices, orientations, and accessibility settings
         .safeAreaInset(edge: .bottom) {
             Color.clear.frame(height: 16)
+        }
+        .sheet(item: $editionComparisonData) { data in
+            EditionComparisonSheet(searchResult: data.searchEdition, ownedEdition: data.ownedEdition)
         }
     }
 
@@ -674,7 +679,20 @@ public struct SearchView: View {
                     // Results list with accessibility
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, result in
                         Button {
-                            selectedBook = result
+                            if result.isInLibrary {
+                                // Prepare edition comparison data
+                                if let ownedEntry = result.work.userLibraryEntries?.first,
+                                   let ownedEdition = ownedEntry.edition,
+                                   let searchEdition = result.primaryEdition {
+                                    tappedBook = result
+                                    editionComparisonData = EditionComparisonData(
+                                        searchEdition: searchEdition,
+                                        ownedEdition: ownedEdition
+                                    )
+                                }
+                            } else {
+                                selectedBook = result
+                            }
                         } label: {
                             iOS26LiquidListRow(
                                 work: result.work,
@@ -1065,4 +1083,13 @@ struct iOS26ScrollEdgeEffectModifier: ViewModifier {
     .modelContainer(container)
     .environment(\.dtoMapper, dtoMapper)
     .preferredColorScheme(.dark)
+}
+
+// MARK: - Supporting Types
+
+/// Data needed for edition comparison sheet
+struct EditionComparisonData: Identifiable {
+    let id = UUID()
+    let searchEdition: Edition
+    let ownedEdition: Edition
 }

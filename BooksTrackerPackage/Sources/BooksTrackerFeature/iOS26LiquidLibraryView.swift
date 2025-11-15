@@ -65,6 +65,7 @@ public struct iOS26LiquidLibraryView: View {
     @State private var scrollPosition = ScrollPosition()
     @Environment(\.iOS26ThemeStore) private var themeStore
     @Environment(\.modelContext) private var modelContext
+    @Environment(TabCoordinator.self) private var tabCoordinator
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass  // GitHub Issue #435
 
     public init() {}
@@ -77,6 +78,12 @@ public struct iOS26LiquidLibraryView: View {
             }
             .onChange(of: libraryWorks) { _, _ in
                 updateFilteredWorks()
+            }
+            .onChange(of: tabCoordinator.highlightedBookIDs) { _, newIDs in
+                if !newIDs.isEmpty {
+                    searchText = "" // Clear search
+                    cachedFilteredWorks = libraryWorks.filter { newIDs.contains($0.persistentModelID) }
+                }
             }
             .task { // Changed from onAppear to task for async operation
                 await initialLoad()

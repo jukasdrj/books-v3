@@ -11,6 +11,10 @@ public final class TabCoordinator {
     /// Pending action to switch to Library tab (consumed after switch)
     private var pendingSwitchToLibrary: Bool = false
 
+    /// IDs of books to highlight after enrichment
+    public var highlightedBookIDs: Set<PersistentIdentifier> = []
+
+
     public init() {}
 
     /// Request switch to Library tab
@@ -18,6 +22,13 @@ public final class TabCoordinator {
     public func switchToLibrary() {
         selectedTab = .library
         pendingSwitchToLibrary = true
+        highlightedBookIDs = [] // Clear highlights on generic switch
+    }
+
+    /// Switch to library and highlight specific books
+    public func showEnrichedBooksInLibrary(bookIDs: [PersistentIdentifier]) {
+        highlightedBookIDs = Set(bookIDs)
+        selectedTab = .library
     }
 
     /// Check and consume pending Library tab switch

@@ -22,31 +22,244 @@ TypeScript-first API contracts ensure consistency across all data providers. All
 - `EditionDTO` - Physical/digital manifestation (multi-ISBN support)
 - `AuthorDTO` - Creator with diversity analytics
 
-**Response Envelope:** All `/v1/*` endpoints return discriminated union:
+**Response Envelope:** All `/v1/*` endpoints return ResponseEnvelope v2 format (as of November 2025):
 ```typescript
 {
-  "success": true | false,
-  "data": { works: WorkDTO[], authors: AuthorDTO[] } | undefined,
-  "error": { message: string, code: ApiErrorCode, details?: any } | undefined,
-  "meta": { timestamp: string, processingTime: number, provider: string, cached: boolean }
+  "data": { works: WorkDTO[], editions: EditionDTO[], authors: AuthorDTO[] } | null,
+  "metadata": {
+    "timestamp": string,      // ISO 8601 format
+    "processingTime"?: number, // Milliseconds
+    "provider"?: string,      // 'google_books' | 'openlibrary' | 'isbndb'
+    "cached"?: boolean        // true if served from cache
+  },
+  "error"?: {                 // Present only on error
+    "message": string,
+    "code"?: string,          // e.g., 'NOT_FOUND', 'INVALID_ISBN'
+    "details"?: any
+  }
 }
 ```
 
-### V1 Endpoints (Canonical)
+**Key Differences from v1:**
+- ✅ `data` is nullable (null on error)
+- ✅ `metadata` (not `meta`) is always present
+- ✅ `error` field only present on errors
+- ❌ No `success` boolean discriminator
 
-**Search Endpoints:**
-- `GET /v1/search/title?q={query}` - Title search (canonical response)
-- `GET /v1/search/isbn?isbn={isbn}` - ISBN lookup with validation (ISBN-10/ISBN-13)
-- `GET /v1/search/advanced?title={title}&author={author}` - Flexible search (title, author, or both)
+### V1 Endpoints (Canonical - ResponseEnvelope v2)
 
-**Enrichment Endpoints:**
-- `POST /v1/enrichment/batch` - Batch enrichment with WebSocket progress
+#### Search Endpoints
 
-**Error Codes:**
-- `INVALID_QUERY` - Empty/invalid search parameters
-- `INVALID_ISBN` - Malformed ISBN format
-- `PROVIDER_ERROR` - Upstream API failure (Google Books, etc.)
-- `INTERNAL_ERROR` - Unexpected server error
+**1. GET /v1/search/isbn**
+Search by ISBN-10 or ISBN-13.
+
+**Parameters:**
+- `isbn` (required) - 10 or 13 digit ISBN
+
+**Success Response (200):**
+```json
+{
+  "data": {
+    "works": [{
+      "workId": "OL82563W",
+      "title": "Harry Potter and the Philosopher's Stone",
+      "primaryProvider": "google_books",
+      ...
+    }],
+    "editions": [{
+      "isbn": "9780439708180",
+      "format": "Hardcover",
+      ...
+    }],
+    "authors": [{
+      "authorId": "OL23919A",
+      "name": "J.K. Rowling",
+      ...
+    }]
+  },
+  "metadata": {
+    "timestamp": "2025-11-15T21:00:00.000Z",
+    "processingTime": 145,
+    "provider": "google_books",
+    "cached": false
+  }
+}
+```
+
+**Error Response - Invalid ISBN (400):**
+```json
+{
+  "data": null,
+  "metadata": {
+    "timestamp": "2025-11-15T21:00:00.000Z"
+  },
+  "error": {
+    "message": "Invalid ISBN format. Must be valid ISBN-10 or ISBN-13",
+    "code": "INVALID_ISBN",
+    "details": { "isbn": "123" }
+  }
+}
+```
+
+---
+
+**2. GET /v1/search/title**
+Search by book title.
+
+**Parameters:**
+- `q` (required) - Search query
+
+**Success Response (200):**
+```json
+{
+  "data": {
+    "works": [
+      { "title": "The Great Gatsby", ... },
+      { "title": "Gatsby's Girl", ... }
+    ],
+    "editions": [...],
+    "authors": [...]
+  },
+  "metadata": {
+    "timestamp": "2025-11-15T21:00:00.000Z",
+    "processingTime": 234,
+    "provider": "google_books",
+    "cached": false
+  }
+}
+```
+
+---
+
+**3. GET /v1/search/advanced**
+Search by title and/or author.
+
+**Parameters:**
+- `title` (optional) - Book title
+- `author` (optional) - Author name
+- At least one parameter required
+
+**Success Response (200):**
+```json
+{
+  "data": {
+    "works": [{
+      "title": "1984",
+      "authors": [{ "name": "George Orwell" }],
+      ...
+    }],
+    "editions": [...],
+    "authors": [...]
+  },
+  "metadata": {
+    "timestamp": "2025-11-15T21:00:00.000Z",
+    "processingTime": 189,
+    "provider": "google_books",
+    "cached": true,
+    "cacheSource": "EDGE"
+  }
+}
+```
+
+**Error Response - Missing Parameters (400):**
+```json
+{
+  "data": null,
+  "metadata": {
+    "timestamp": "2025-11-15T21:00:00.000Z"
+  },
+  "error": {
+    "message": "At least one of title or author is required",
+    "code": "INVALID_QUERY",
+    "details": { "title": "", "author": "" }
+  }
+}
+```
+
+---
+
+**4. GET /v1/editions/search**
+Find all editions of a specific work.
+
+**Parameters:**
+- `workTitle` (required) - Work title
+- `author` (required) - Author name
+- `limit` (optional) - Max results (default: 20)
+
+**Success Response (200):**
+```json
+{
+  "data": {
+    "works": [],
+    "editions": [
+      {
+        "isbn": "9780553418026",
+        "isbns": ["9780553418026", "0553418025"],
+        "title": "The Martian",
+        "format": "Hardcover",
+        "publicationDate": "2014-02-11",
+        ...
+      },
+      {
+        "isbn": "9780804139021",
+        "format": "Paperback",
+        ...
+      }
+    ],
+    "authors": []
+  },
+  "metadata": {
+    "timestamp": "2025-11-15T21:00:00.000Z",
+    "processingTime": 456,
+    "provider": "orchestrated:isbndb+google_books",
+    "cached": false
+  }
+}
+```
+
+**Error Response - Not Found (404):**
+```json
+{
+  "data": null,
+  "metadata": {
+    "timestamp": "2025-11-15T21:00:00.000Z",
+    "processingTime": 123
+  },
+  "error": {
+    "message": "No editions found for \"Unknown Book\" by Unknown Author",
+    "code": "NOT_FOUND",
+    "details": {
+      "workTitle": "Unknown Book",
+      "author": "Unknown Author"
+    }
+  }
+}
+```
+
+#### Enrichment Endpoints
+
+**POST /v1/enrichment/batch**
+Batch enrichment with WebSocket progress updates.
+
+#### HTTP Status Codes
+
+| Code | Meaning | When Used |
+|------|---------|-----------|
+| 200 | Success | Book(s) found and returned |
+| 400 | Bad Request | Invalid parameters (INVALID_ISBN, INVALID_QUERY) |
+| 404 | Not Found | No results for valid query (NOT_FOUND) |
+| 500 | Internal Error | Unexpected server error (INTERNAL_ERROR) |
+| 503 | Service Unavailable | External API failure (PROVIDER_ERROR) |
+
+#### Error Codes
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `INVALID_QUERY` | 400 | Empty/invalid search parameters |
+| `INVALID_ISBN` | 400 | Malformed ISBN format |
+| `NOT_FOUND` | 404 | No results found for valid query |
+| `PROVIDER_ERROR` | 503 | Upstream API failure (Google Books, ISBNdb, etc.) |
+| `INTERNAL_ERROR` | 500 | Unexpected server error |
 
 ### Provenance Tracking
 
@@ -116,17 +329,23 @@ Every DTO includes:
 curl https://api.oooefam.net/health
 ```
 
-### Search Endpoints
+### Search Endpoints (v2 ResponseEnvelope Format)
 
 ```bash
-# Title search (canonical)
-curl "https://api.oooefam.net/v1/search/title?q=hamlet"
+# Title search (returns {data, metadata})
+curl "https://api.oooefam.net/v1/search/title?q=hamlet" | jq
 
-# ISBN search (canonical)
-curl "https://api.oooefam.net/v1/search/isbn?isbn=9780743273565"
+# ISBN search (returns {data, metadata})
+curl "https://api.oooefam.net/v1/search/isbn?isbn=9780439708180" | jq
 
-# Advanced search (canonical)
-curl "https://api.oooefam.net/v1/search/advanced?title=1984&author=Orwell"
+# Advanced search (returns {data, metadata})
+curl "https://api.oooefam.net/v1/search/advanced?title=1984&author=Orwell" | jq
+
+# Editions search (returns {data, metadata})
+curl "https://api.oooefam.net/v1/editions/search?workTitle=The+Martian&author=Andy+Weir" | jq
+
+# Error example - Invalid ISBN (returns {data: null, metadata, error})
+curl "https://api.oooefam.net/v1/search/isbn?isbn=123" | jq
 ```
 
 ### WebSocket Flow
@@ -248,6 +467,8 @@ public struct ApiResponse<T: Codable>: Codable { /* ... */ }
 
 ---
 
-**Last Updated:** November 13, 2025
-**API Version:** v1.0.0
+**Last Updated:** November 15, 2025
+**API Version:** v1.0.0 (ResponseEnvelope v2)
 **Maintainer:** Claude Code
+**Changes:** Migrated all v1 search endpoints to native v2 response format (Issue #117)
+

@@ -42,6 +42,7 @@ public struct SettingsView: View {
     @Environment(FeatureFlags.self) private var featureFlags
     @Environment(\.dtoMapper) private var dtoMapper
     @Environment(LibraryRepository.self) private var libraryRepository
+    @Environment(EnrichmentQueue.self) private var enrichmentQueue
     @Environment(TabCoordinator.self) private var tabCoordinator
 
     // MARK: - State Management
@@ -187,6 +188,32 @@ public struct SettingsView: View {
                 Text("Library Management")
             } footer: {
                 Text("Import books from CSV, enrich metadata, or reset your entire library. Resetting is permanent and cannot be undone.")
+            }
+
+            // MARK: - Background Tasks Section
+
+            Section {
+                NavigationLink {
+                    EnrichmentQueueDetailsView()
+                } label: {
+                    HStack {
+                        Label("Enrichment Queue", systemImage: "arrow.triangle.2.circlepath")
+                        Spacer()
+                        if enrichmentQueue.activeEnrichments.isEmpty {
+                            Text("Up to date")
+                                .foregroundColor(.secondary)
+                                .font(.callout)
+                        } else {
+                            Text("\(enrichmentQueue.activeEnrichments.count) in queue")
+                                .foregroundColor(.orange)
+                                .font(.callout)
+                        }
+                    }
+                }
+            } header: {
+                Text("Background Tasks")
+            } footer: {
+                Text("Monitor and manage background enrichment of book metadata and covers.")
             }
 
             // MARK: - AI Features Section

@@ -29,6 +29,7 @@ public struct ContentView: View {
     @Environment(\.accessibilityVoiceOverEnabled) var voiceOverEnabled
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Environment(\.dtoMapper) private var dtoMapper
+    @Environment(EnrichmentQueue.self) private var enrichmentQueue
     @State private var selectedTab: MainTab = .library
     @State private var searchCoordinator = SearchCoordinator()
     @State private var tabCoordinator = TabCoordinator()
@@ -40,6 +41,10 @@ public struct ContentView: View {
     @State private var isEnriching = false
     @State private var enrichmentProgress: (completed: Int, total: Int) = (0, 0)
     @State private var currentBookTitle = ""
+
+    // Toast notifications
+    @State private var showingCompletionToast = false
+    @State private var latestCompletionEvent: EnrichmentQueue.EnrichmentCompletionEvent?
 
     public var body: some View {
         // Verify DTOMapper dependency injection (should never fail in production)
@@ -68,6 +73,7 @@ public struct ContentView: View {
                         NavigationStack {
                             SearchView()
                                 .environment(searchCoordinator)
+                                .environment(tabCoordinator)
                         }
                         .tabItem {
                             Label("Search", systemImage: selectedTab == .search ? "magnifyingglass.circle.fill" : "magnifyingglass")
@@ -206,6 +212,21 @@ public struct ContentView: View {
                 }
             }
             .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isEnriching)
+            .overlay(alignment: .top) {
+                if showingCompletionToast, let event = latestCompletionEvent {
+                    EnrichmentCompletionToast(
+                        event: event,
+                        isPresented: $showingCompletionToast
+                    )
+                    .padding(.top, 8)
+                }
+            }
+            .onReceive(enrichmentQueue.completionEvents) { event in
+                latestCompletionEvent = event
+                withAnimation {
+                    showingCompletionToast = true
+                }
+            }
         } else {
             // Fallback on earlier versions
         }

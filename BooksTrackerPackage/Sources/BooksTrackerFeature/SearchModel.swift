@@ -24,6 +24,7 @@ public enum SearchScope: String, CaseIterable, Identifiable, Sendable {
         case .isbn: return "Search by ISBN number"
         }
     }
+
 }
 
 // MARK: - Search State Management
@@ -53,6 +54,7 @@ public final class SearchModel {
 
     // Dependencies
     private let apiService: BookSearchAPIService
+    private let modelContext: ModelContext
     private var searchTask: Task<Void, Never>?
 
     // Pagination state
@@ -60,6 +62,7 @@ public final class SearchModel {
 
     public init(modelContext: ModelContext, dtoMapper: DTOMapper) {
         self.apiService = BookSearchAPIService(modelContext: modelContext, dtoMapper: dtoMapper)
+        self.modelContext = modelContext
 
         // Load recent searches from UserDefaults
         if let savedSearches = UserDefaults.standard.array(forKey: "RecentBookSearches") as? [String] {
@@ -386,6 +389,11 @@ public final class SearchModel {
             // Check if task was cancelled
             guard !Task.isCancelled else { throw CancellationError() }
 
+            // Enrich search results with library status
+            let enrichedResults = await enrichResultsWithLibraryStatus(response.results)
+
+            guard !Task.isCancelled else { throw CancellationError() }
+
             // Update performance metrics
             lastSearchTime = CFAbsoluteTimeGetCurrent() - startTime
             cacheHitRate = response.cacheHitRate
@@ -393,9 +401,9 @@ public final class SearchModel {
             // Calculate final results (append or replace)
             let finalResults: [SearchResult]
             if appendResults {
-                finalResults = viewState.currentResults + response.results
+                finalResults = viewState.currentResults + enrichedResults
             } else {
-                finalResults = response.results
+                finalResults = enrichedResults
             }
 
             let hasMore = (finalResults.count) < (response.totalItems ?? 0)
@@ -549,6 +557,19 @@ public final class SearchModel {
             // Show initial state without trending books
             viewState = .initial(trending: [], recentSearches: recentSearches)
         }
+    }
+
+    private func enrichResultsWithLibraryStatus(_ results: [SearchResult]) async -> [SearchResult] {
+        var enrichedResults: [SearchResult] = []
+
+        for result in results {
+            if let entry = DuplicateDetectionService.findExistingEntry(for: result.work, in: modelContext) {
+                result.work.userLibraryEntries = [entry]
+            }
+            enrichedResults.append(result)
+        }
+
+        return enrichedResults
     }
 }
 
