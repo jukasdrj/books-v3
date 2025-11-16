@@ -209,4 +209,3 @@ public enum CulturalRegion: String, Codable, CaseIterable, Identifiable, Sendabl
         }
     }
 }
-

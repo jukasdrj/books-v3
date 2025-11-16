@@ -525,7 +525,13 @@ public class LibraryRepository {
             guard modelContext.model(for: work.persistentModelID) as? Work != nil else {
                 return nil
             }
-            return work.userLibraryEntries?.first?.edition?.pageCount
+            // Enhanced error handling for missing edition data
+            guard let entry = work.userLibraryEntries?.first,
+                  let edition = entry.edition,
+                  let pageCount = edition.pageCount else {
+                return nil
+            }
+            return pageCount
         }.reduce(0, +)
 
         return ReadingStatistics(

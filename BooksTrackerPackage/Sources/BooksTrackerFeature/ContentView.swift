@@ -35,6 +35,17 @@ public struct ContentView: View {
     @State private var tabCoordinator = TabCoordinator()
     @State private var notificationCoordinator = NotificationCoordinator()
     @State private var libraryRepository: LibraryRepository?
+    
+    // Review queue count via @Query (reactive, no polling!)
+    @Query(
+        filter: #Predicate<Work> { work in
+            work.reviewStatus.rawValue == "needsReview"
+        }
+    ) private var needsReviewWorks: [Work]
+    
+    private var reviewQueueCount: Int {
+        needsReviewWorks.count
+    }
 
 
     // Enrichment progress tracking (no Live Activity required!)
@@ -88,6 +99,7 @@ public struct ContentView: View {
                         .tabItem {
                             Label("Shelf", systemImage: selectedTab == .shelf ? "viewfinder.circle.fill" : "viewfinder")
                         }
+                        .badge(min(reviewQueueCount, 100))
                         .tag(MainTab.shelf)
 
                         // Insights Tab
@@ -117,6 +129,7 @@ public struct ContentView: View {
                 if libraryRepository == nil {
                     libraryRepository = LibraryRepository(modelContext: modelContext, dtoMapper: dtoMapper, featureFlags: featureFlags)
                 }
+                // @Query provides reactive updates - no manual monitoring needed
                 LaunchMetrics.shared.recordMilestone("UI fully interactive")
 
                 // Print full launch report after a short delay (let everything settle)

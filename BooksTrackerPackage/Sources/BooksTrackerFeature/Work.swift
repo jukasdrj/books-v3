@@ -357,4 +357,3 @@ public final class Work {
         ]
     }
 }
-

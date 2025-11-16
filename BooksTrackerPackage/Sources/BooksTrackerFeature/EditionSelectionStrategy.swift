@@ -131,13 +131,52 @@ public struct RecentStrategy: EditionSelectionStrategy {
         }
     }
 
-    /// Extract year from publication date string
+    /// Extract year from publication date string using Calendar API for improved parsing
     private func yearFromPublicationDate(_ dateString: String?) -> Int {
-        guard let dateString = dateString,
-              let year = Int(dateString.prefix(4)) else {
-            return 0  // Default for unparseable dates
+        guard let dateString = dateString else { return 0 }
+        
+        // Use Calendar API for more robust date parsing
+        let calendar = Calendar.current
+        let dateFormats = [
+            "yyyy-MM-dd",        // ISO 8601
+            "yyyy-MM",          // Year-month
+            "yyyy",             // Year only
+            "MM/dd/yyyy",       // US format
+            "dd/MM/yyyy",       // European format
+            "yyyy-MM-dd'T'HH:mm:ssZ"  // ISO with timestamp
+        ]
+        
+        for format in dateFormats {
+            let formatter = DateFormatter()
+            formatter.dateFormat = format
+            formatter.locale = Locale.current
+            formatter.timeZone = TimeZone.current
+            
+            if let date = formatter.date(from: dateString) {
+                let components = calendar.dateComponents([.year], from: date)
+                return components.year ?? 0
+            }
         }
-        return year
+        
+        // Fallback: Try to extract year directly from string (for backwards compatibility)
+        let normalizedString = dateString.applyingTransform(.stripDiacritics, reverse: false) ?? dateString
+        
+        // Broader regex for years 1000-2999 (handles historical and future dates)
+        let regex = try? NSRegularExpression(pattern: "\\b(1[0-9]{3}|2[0-9]{3})\\b")
+        let range = NSRange(location: 0, length: normalizedString.utf16.count)
+        if let match = regex?.firstMatch(in: normalizedString, options: [], range: range),
+           let yearRange = Range(match.range, in: normalizedString),
+           let year = Int(normalizedString[yearRange]) {
+            return year
+        }
+        
+        #if DEBUG
+        if dateString.count > 0 {
+            print("⚠️ EditionSelectionStrategy: Unparseable date '\(dateString)' - defaulting to 0")
+        }
+        #endif
+        
+        return 0  // Default for unparseable dates
     }
 }
 

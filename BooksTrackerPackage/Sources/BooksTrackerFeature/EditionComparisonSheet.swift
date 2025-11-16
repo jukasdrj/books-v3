@@ -132,10 +132,10 @@ struct EditionDetailCard: View {
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
 
-            // Cover image if available
+            // Cover image if available - prioritize edition cover, fallback to work cover
             if let work = edition.work,
-               let coverURL = work.coverImageURL,
-               let url = URL(string: coverURL) {
+               let coverURLString = edition.coverImageURL ?? work.coverImageURL,
+               let url = URL(string: coverURLString) {
                 AsyncImage(url: url) { image in
                     image
                         .resizable()

@@ -41,6 +41,13 @@ public final class UserLibraryEntry {
     // Metadata
     var lastModified: Date = Date()
 
+    /// AI confidence score (0.0-1.0) if added via AI scanning
+    /// nil for manually added books
+    public var aiConfidence: Double?
+
+    /// Timestamp when confidence was recorded
+    public var aiConfidenceDate: Date?
+
     // Relationships (inverses defined on the "many" side: Work and Edition)
     var work: Work?
 

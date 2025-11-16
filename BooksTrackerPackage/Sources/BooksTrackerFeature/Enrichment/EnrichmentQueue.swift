@@ -381,9 +381,8 @@ public final class EnrichmentQueue {
                                         return
                                     }
 
-                                    // Extract successfully enriched books
-                                    let successfulBooks = batchPayload.enrichedBooks.filter { $0.success }
-                                    let result = self.applyEnrichedData(successfulBooks, in: modelContext)
+                                    // ✅ Pass ALL enriched books (not just successful ones) for proper error tracking
+                                    let result = self.applyEnrichedData(batchPayload.enrichedBooks, in: modelContext)
 
                                     // ✅ Mark as complete
                                     self.activeEnrichments.subtract(batchWorkIDs)

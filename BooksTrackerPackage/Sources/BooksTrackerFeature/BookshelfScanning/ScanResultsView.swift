@@ -3,14 +3,6 @@ import SwiftData
 
 #if canImport(UIKit)
 
-// MARK: - Confidence Thresholds
-
-/// Shared confidence thresholds for scan result categorization
-private enum ConfidenceThreshold {
-    static let high: Double = 0.7
-    static let medium: Double = 0.1
-}
-
 // MARK: - Photo Overlay Info
 
 /// Data structure for photo overlay sheet presentation
@@ -18,6 +10,12 @@ private struct PhotoOverlayInfo: Identifiable {
     let id = UUID()
     let image: UIImage
     let books: [DetectedBook]
+}
+
+/// Wrapper for confidence explanation sheet
+fileprivate struct ConfidenceExplanationInfo: Identifiable {
+    let id = UUID()
+    let confidence: Double
 }
 
 // MARK: - Scan Results View
@@ -33,6 +31,7 @@ public struct ScanResultsView: View {
     @State private var resultsModel: ScanResultsModel
     @State private var dismissedSuggestionTypes: Set<String> = []
     @State private var photoOverlayInfo: PhotoOverlayInfo?
+    @State private var confidenceExplanationFor: ConfidenceExplanationInfo?
 
     public init(
         scanResult: ScanResult?,
@@ -104,6 +103,9 @@ public struct ScanResultsView: View {
             }
             .sheet(item: $photoOverlayInfo) { info in
                 BoundingBoxOverlayView(image: info.image, detectedBooks: info.books)
+            }
+            .sheet(item: $confidenceExplanationFor) { info in
+                ConfidenceExplanationSheet(confidence: info.confidence)
             }
             .task {
                 await resultsModel.performDuplicateCheck(modelContext: modelContext)
@@ -284,7 +286,8 @@ public struct ScanResultsView: View {
                     },
                     onToggle: {
                         resultsModel.toggleBookSelection(book)
-                    }
+                    },
+                    confidenceExplanationFor: $confidenceExplanationFor
                 )
             }
         }
@@ -344,6 +347,7 @@ struct DetectedBookRow: View {
     let detectedBook: DetectedBook
     let onSearch: () async -> Void
     let onToggle: () -> Void
+    @Binding fileprivate var confidenceExplanationFor: ConfidenceExplanationInfo?
 
     @Environment(\.iOS26ThemeStore) private var themeStore
     @State private var isSearching = false
@@ -383,14 +387,18 @@ struct DetectedBookRow: View {
                         .foregroundStyle(.secondary)
                     }
 
-                    // Confidence
-                    HStack(spacing: 4) {
-                        Text("Confidence:")
-                        Text("\(Int(detectedBook.confidence * 100))%")
-                            .fontWeight(.medium)
+                    // Confidence with enhanced badge
+                    HStack(spacing: 8) {
+                        ConfidenceBadge(confidence: detectedBook.confidence, style: .detailed)
+                        
+                        if detectedBook.confidence < ConfidenceThresholds.medium {
+                            Button("Why?") {
+                                confidenceExplanationFor = ConfidenceExplanationInfo(confidence: detectedBook.confidence)
+                            }
+                            .font(.caption2)
+                            .foregroundColor(.blue)
+                        }
                     }
-                    .font(.caption2)
-                    .foregroundStyle(detectedBook.confidence >= ConfidenceThreshold.high ? .green : .orange)
                 }
 
                 Spacer()
@@ -489,7 +497,7 @@ class ScanResultsModel {
             // Check if already in library
             if await isDuplicate(book, in: modelContext) {
                 detectedBooks[index].status = .alreadyInLibrary
-            } else if book.confidence >= ConfidenceThreshold.high && (book.isbn != nil || (book.title != nil && book.author != nil)) {
+            } else if book.confidence >= ConfidenceThresholds.high && (book.isbn != nil || (book.title != nil && book.author != nil)) {
                 // Auto-select high-confidence books
                 detectedBooks[index].status = .confirmed
             }
@@ -497,7 +505,7 @@ class ScanResultsModel {
     }
 
     private func isDuplicate(_ detectedBook: DetectedBook, in modelContext: ModelContext) async -> Bool {
-        // ISBN-first strategy
+        // ISBN-first strategy (efficient predicate-based lookup)
         if let isbn = detectedBook.isbn, !isbn.isEmpty {
             let descriptor = FetchDescriptor<Edition>(
                 predicate: #Predicate<Edition> { edition in
@@ -509,23 +517,47 @@ class ScanResultsModel {
             }
         }
 
-        // Title + Author fallback
-        if let title = detectedBook.title, let author = detectedBook.author {
-            let titleLower = title.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-            let authorLower = author.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-
-            let descriptor = FetchDescriptor<Work>()
-            if let allWorks = try? modelContext.fetch(descriptor) {
-                return allWorks.contains { work in
-                    guard work.userLibraryEntries?.isEmpty == false else { return false }
-                    let workTitle = work.title.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-                    let workAuthor = work.authorNames.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-                    return workTitle == titleLower && workAuthor == authorLower
-                }
-            }
+        // Title + Author fallback with database-level predicate filtering
+        guard let title = detectedBook.title, let author = detectedBook.author else {
+            return false
         }
-
-        return false
+        
+        // Normalize for predicate search
+        let normalizedTitle = title
+            .folding(options: .diacriticInsensitive, locale: Locale.current)
+            .lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Pre-filter Works by title at database level (performance optimization)
+        let predicate = #Predicate<Work> { work in
+            work.title.localizedStandardContains(title) && 
+            (work.userLibraryEntries?.isEmpty == false)
+        }
+        let descriptor = FetchDescriptor<Work>(predicate: predicate)
+        
+        guard let candidates = try? modelContext.fetch(descriptor) else {
+            return false
+        }
+        
+        // Perform precise in-memory matching on reduced candidate set
+        let detectedAuthor = author
+            .folding(options: .diacriticInsensitive, locale: Locale.current)
+            .lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        return candidates.contains { work in
+            let workTitle = work.title
+                .folding(options: .diacriticInsensitive, locale: Locale.current)
+                .lowercased()
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            let workAuthor = work.authorNames
+                .folding(options: .diacriticInsensitive, locale: Locale.current)
+                .lowercased()
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            return workTitle == normalizedTitle && workAuthor == detectedAuthor
+        }
     }
 
     // MARK: - Book Search Integration
@@ -608,6 +640,10 @@ class ScanResultsModel {
                     if let primaryEdition = editions.first {
                         entry.edition = primaryEdition
                     }
+                    
+                    // Store AI confidence score for transparency
+                    entry.aiConfidence = detectedBook.confidence
+                    entry.aiConfidenceDate = Date()
 
                     try modelContext.save()
 
@@ -668,6 +704,10 @@ class ScanResultsModel {
                     // Create library entry
                     let entry = UserLibraryEntry.createWishlistEntry(for: work, context: modelContext)
 
+                    // Store AI confidence score for transparency
+                    entry.aiConfidence = detectedBook.confidence
+                    entry.aiConfidenceDate = Date()
+
                     // If ISBN available, create minimal edition
                     if let isbn = detectedBook.isbn {
                         let edition = Edition(
@@ -712,22 +752,43 @@ class ScanResultsModel {
             print("📚 Queued \(workIDs.count) books from scan for background enrichment")
             #endif
 
-            // [DEBUGGER:ScanResultsView:addAllToLibrary:707] Starting context merge wait
-            // Delay enrichment to allow SwiftData to fully persist newly created works
+            // Wait for SwiftData to fully persist newly created works with polling
             Task {
-                #if DEBUG
-                print("[DEBUGGER:ScanResultsView:713] Before 500ms delay - workIDs.count=\(workIDs.count)")
-                #endif
-                try? await Task.sleep(for: .milliseconds(500))
+                var attempts = 0
+                let maxAttempts = 5
                 
                 #if DEBUG
-                print("[DEBUGGER:ScanResultsView:718] After 500ms delay - checking context availability")
-                let availableCount = workIDs.compactMap { modelContext.model(for: $0) as? Work }.count
-                print("[DEBUGGER:ScanResultsView:720] Works available in context: \(availableCount)/\(workIDs.count)")
+                print("[DEBUGGER:ScanResultsView] Waiting for SwiftData persistence - workIDs.count=\(workIDs.count)")
                 #endif
                 
-                EnrichmentQueue.shared.startProcessing(in: modelContext) { _, _, _ in
-                    // Silent background processing - progress shown via EnrichmentProgressBanner
+                // Poll until all works are available or max attempts reached
+                while attempts < maxAttempts {
+                    let availableCount = workIDs.compactMap { modelContext.model(for: $0) as? Work }.count
+                    
+                    #if DEBUG
+                    print("[DEBUGGER:ScanResultsView] Attempt \(attempts + 1)/\(maxAttempts): \(availableCount)/\(workIDs.count) works available")
+                    #endif
+                    
+                    if availableCount == workIDs.count {
+                        break  // All works persisted successfully
+                    }
+                    
+                    try? await Task.sleep(for: .milliseconds(100))
+                    attempts += 1
+                }
+                
+                if attempts < maxAttempts {
+                    #if DEBUG
+                    print("[DEBUGGER:ScanResultsView] All works persisted, starting enrichment")
+                    #endif
+                    
+                    EnrichmentQueue.shared.startProcessing(in: modelContext) { _, _, _ in
+                        // Silent background processing - progress shown via EnrichmentProgressBanner
+                    }
+                } else {
+                    #if DEBUG
+                    print("⚠️ [DEBUGGER:ScanResultsView] Timeout waiting for persistence after \(maxAttempts * 100)ms")
+                    #endif
                 }
             }
         }
