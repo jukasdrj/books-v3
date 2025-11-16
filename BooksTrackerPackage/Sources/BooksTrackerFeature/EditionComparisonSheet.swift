@@ -1,5 +1,17 @@
 import SwiftUI
+import SwiftData
 
+/// Sheet for comparing a search result with an existing library entry.
+///
+/// **Usage in SearchView:**
+/// ```swift
+/// .sheet(item: $comparisonItem) { item in
+///     EditionComparisonSheet(
+///         searchResult: item.searchResultEdition,
+///         ownedEdition: item.ownedEdition
+///     )
+/// }
+/// ```
 struct EditionComparisonSheet: View {
     let searchResult: Edition
     let ownedEdition: Edition
@@ -9,39 +21,84 @@ struct EditionComparisonSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                HStack(spacing: 16) {
-                    EditionDetailCard(edition: ownedEdition, title: "You Own")
-                    EditionDetailCard(edition: searchResult, title: "Search Result")
-                }
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Header message
+                    VStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 48))
+                            .foregroundStyle(.orange)
 
-                VStack(spacing: 12) {
-                    Button("View in Library") {
-                        // Navigate to Library tab
-                        dismiss()
-                        navigateToLibraryEntry()
-                    }
-                    .buttonStyle(.borderedProminent)
+                        Text("Book Already in Library")
+                            .font(.title2.weight(.semibold))
 
-                    Button("Add Different Edition") {
-                        // Proceed with adding
-                        dismiss()
-                        addDifferentEdition()
+                        if let work = ownedEdition.work,
+                           let entry = work.userLibraryEntries?.first {
+                            Text("This book is already in your \(entry.readingStatus.displayName) collection")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
                     }
-                    .buttonStyle(.bordered)
+                    .padding(.top)
+
+                    // Edition comparison
+                    VStack(spacing: 16) {
+                        Text("Compare Editions")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        HStack(alignment: .top, spacing: 12) {
+                            EditionDetailCard(edition: ownedEdition, title: "You Own")
+                            Divider()
+                            EditionDetailCard(edition: searchResult, title: "Search Result")
+                        }
+                    }
+
+                    // Action buttons
+                    VStack(spacing: 12) {
+                        Button {
+                            dismiss()
+                            navigateToLibraryEntry()
+                        } label: {
+                            Label("View in Library", systemImage: "books.vertical.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+
+                        Button {
+                            dismiss()
+                            addDifferentEdition()
+                        } label: {
+                            Label("Add Different Edition", systemImage: "plus.circle.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+
+                        Button("Cancel", role: .cancel) {
+                            dismiss()
+                        }
+                        .controlSize(.large)
+                    }
                 }
+                .padding()
             }
-            .navigationTitle("Edition Comparison")
+            .navigationTitle("Duplicate Book")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Done") { dismiss() }
                 }
             }
         }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 
     private func navigateToLibraryEntry() {
-        if let work = ownedEdition.work {
+        if ownedEdition.work != nil {
             tabCoordinator.selectedTab = .library
             tabCoordinator.switchToLibrary()
         }
@@ -49,13 +106,10 @@ struct EditionComparisonSheet: View {
 
     private func addDifferentEdition() {
         guard let work = searchResult.work else { return }
-        // Ensure both work and searchResult are inserted into modelContext
-        if modelContext.model(for: work.persistentModelID) == nil {
-            modelContext.insert(work)
-        }
-        if modelContext.model(for: searchResult.persistentModelID) == nil {
-            modelContext.insert(searchResult)
-        }
+        // Insert models into context if not already present
+        modelContext.insert(work)
+        modelContext.insert(searchResult)
+        
         // Now safe to create UserLibraryEntry using factory method
         _ = UserLibraryEntry.createOwnedEntry(for: work, edition: searchResult, context: modelContext)
         do {
@@ -74,19 +128,44 @@ struct EditionDetailCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.headline)
-                .fontWeight(.bold)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+
+            // Cover image if available - prioritize edition cover, fallback to work cover
+            if let work = edition.work,
+               let coverURLString = edition.coverImageURL ?? work.coverImageURL,
+               let url = URL(string: coverURLString) {
+                AsyncImage(url: url) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                } placeholder: {
+                    Rectangle()
+                        .fill(.gray.opacity(0.2))
+                        .overlay {
+                            Image(systemName: "book.closed.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                }
+                .frame(height: 100)
+                .cornerRadius(8)
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Format: \(edition.format.displayName)")
                 Text("Publisher: \(edition.publisher ?? "N/A")")
                 Text("Year: \((edition.publicationDate?.prefix(4)).map(String.init) ?? "N/A")")
-                Text("ISBN: \(edition.isbn13 ?? "N/A")")
+                Text("ISBN: \(edition.primaryISBN ?? "N/A")")
             }
-            .font(.subheadline)
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
         .padding()
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
+        .frame(maxWidth: .infinity)
+        .background {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial)
+        }
     }
 }

@@ -680,7 +680,7 @@ public struct SearchView: View {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, result in
                         Button {
                             if result.isInLibrary {
-                                // Prepare edition comparison data
+                                // Try edition comparison first
                                 if let ownedEntry = result.work.userLibraryEntries?.first,
                                    let ownedEdition = ownedEntry.edition,
                                    let searchEdition = result.primaryEdition {
@@ -689,6 +689,21 @@ public struct SearchView: View {
                                         searchEdition: searchEdition,
                                         ownedEdition: ownedEdition
                                     )
+                                } else {
+                                    // ✅ Fallback: Navigate to existing library entry
+                                    // This handles edge cases where isInLibrary=true but edition data is missing
+                                    selectedBook = result
+                                    
+                                    #if DEBUG
+                                    // Log edge cases for debugging data integrity issues
+                                    if result.work.userLibraryEntries?.first == nil {
+                                        print("⚠️ SearchView: isInLibrary=true but userLibraryEntries is nil for '\(result.work.title)'")
+                                    } else if result.work.userLibraryEntries?.first?.edition == nil {
+                                        print("⚠️ SearchView: Library entry exists but edition is nil for '\(result.work.title)'")
+                                    } else if result.primaryEdition == nil {
+                                        print("⚠️ SearchView: isInLibrary=true but searchResult has no primaryEdition for '\(result.work.title)'")
+                                    }
+                                    #endif
                                 }
                             } else {
                                 selectedBook = result

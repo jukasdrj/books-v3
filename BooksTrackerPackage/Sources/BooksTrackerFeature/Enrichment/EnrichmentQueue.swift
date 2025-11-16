@@ -36,6 +36,8 @@ public final class EnrichmentQueue {
     public struct EnrichmentCompletionEvent: Sendable {
         public let bookIds: [PersistentIdentifier]
         public let successCount: Int
+        public let failureCount: Int  // ✅ New: Track failed enrichments
+        public let errors: [String]   // ✅ New: User-friendly error messages
         public let timestamp: Date
     }
 
@@ -379,17 +381,18 @@ public final class EnrichmentQueue {
                                         return
                                     }
 
-                                    // Extract successfully enriched books
-                                    let successfulBooks = batchPayload.enrichedBooks.filter { $0.success }
-                                    self.applyEnrichedData(successfulBooks, in: modelContext)
+                                    // ✅ Pass ALL enriched books (not just successful ones) for proper error tracking
+                                    let result = self.applyEnrichedData(batchPayload.enrichedBooks, in: modelContext)
 
                                     // ✅ Mark as complete
                                     self.activeEnrichments.subtract(batchWorkIDs)
 
-                                    // ✅ Publish completion event for UI
+                                    // ✅ Publish completion event for UI (with error tracking)
                                     self.completionEvents.send(EnrichmentCompletionEvent(
                                         bookIds: batchWorkIDs,
-                                        successCount: successfulBooks.count,
+                                        successCount: result.successCount,
+                                        failureCount: result.failureCount,
+                                        errors: result.errors,
                                         timestamp: Date()
                                     ))
 
@@ -570,18 +573,26 @@ public final class EnrichmentQueue {
     // MARK: - Enriched Data Application
 
     /// Apply enriched data from backend to SwiftData models
-    /// Called when WebSocket receives complete message with enriched books
-    private func applyEnrichedData(_ enrichedBooks: [EnrichedBookPayload], in modelContext: ModelContext) {
+    /// - Returns: Tuple of (successCount, failureCount, errors) for completion event
+    private func applyEnrichedData(_ enrichedBooks: [EnrichedBookPayload], in modelContext: ModelContext) -> (successCount: Int, failureCount: Int, errors: [String]) {
         #if DEBUG
         print("📚 Applying enriched data for \(enrichedBooks.count) books")
         #endif
 
         var saveCounter = 0
+        var successCount = 0
+        var failureCount = 0
+        var errors: [String] = []
+        
         for enrichedBook in enrichedBooks {
             guard enrichedBook.success,
                   let enrichedData = enrichedBook.enriched else {
+                // ✅ Track failure and collect error message
+                failureCount += 1
+                let reason = enrichedBook.error ?? "No enriched data available"
+                errors.append("Failed to enrich '\(enrichedBook.title)': \(reason)")
+                
                 #if DEBUG
-                let reason = enrichedBook.error ?? "no enriched data available"
                 print("⏭️ Skipping \(enrichedBook.title) - \(reason)")
                 #endif
                 continue
@@ -781,6 +792,7 @@ public final class EnrichmentQueue {
             work.touch()
 
             saveCounter += 1
+            successCount += 1  // ✅ Track successful enrichment
 
             // Incremental saves every 10 books to:
             // 1. Convert temporary IDs to permanent IDs progressively
@@ -793,6 +805,8 @@ public final class EnrichmentQueue {
                     print("💾 Incremental save: \(saveCounter)/\(enrichedBooks.count) books processed")
                     #endif
                 } catch {
+                    // ✅ Track save errors
+                    errors.append("Failed to save batch at \(saveCounter) books: \(error.localizedDescription)")
                     #if DEBUG
                     print("❌ Failed incremental save at \(saveCounter) books: \(error)")
                     #endif
@@ -804,13 +818,17 @@ public final class EnrichmentQueue {
         do {
             try modelContext.save()
             #if DEBUG
-            print("✅ Successfully applied enriched data to \(enrichedBooks.count) books")
+            print("✅ Successfully applied enriched data to \(successCount) books")
             #endif
         } catch {
+            // ✅ Track final save errors
+            errors.append("Failed final save: \(error.localizedDescription)")
             #if DEBUG
             print("❌ Failed final save of enriched data: \(error)")
             #endif
         }
+        
+        return (successCount: successCount, failureCount: failureCount, errors: errors)
     }
 }
 

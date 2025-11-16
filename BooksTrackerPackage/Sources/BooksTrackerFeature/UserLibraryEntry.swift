@@ -276,4 +276,3 @@ public enum ReadingStatus: String, Codable, CaseIterable, Identifiable, Sendable
         return ReadingStatusParser.parse(string)
     }
 }
-

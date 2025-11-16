@@ -83,7 +83,7 @@ public final class SyncCoordinator {
 
             // Check if job was cancelled
             if let status = jobStatus[jobId], status == .cancelled {
-                enrichmentQueue.stopProcessing()
+                await enrichmentQueue.stop()
                 break
             }
         }

@@ -41,9 +41,17 @@ struct iOS26LiquidListRow: View {
                 trailingAccessories
             }
 
-            // Enrichment indicator overlay
-            EnrichmentIndicator(workId: work.persistentModelID)
-                .padding(8)
+            // Overlay badges (library status + enrichment indicator)
+            VStack(alignment: .trailing, spacing: 4) {
+                // Library status badge (shows if book is already in library)
+                if let entry = userEntry {
+                    LibraryStatusBadge(status: entry.readingStatus)
+                }
+
+                // Enrichment indicator overlay
+                EnrichmentIndicator(workId: work.persistentModelID)
+            }
+            .padding(8)
         }
         .padding(.horizontal, horizontalPadding)
         .padding(.vertical, verticalPadding)
@@ -85,12 +93,11 @@ struct iOS26LiquidListRow: View {
 
     private var coverThumbnail: some View {
         // ✅ FIXED: Uses CoverImageService with Edition → Work fallback logic
-        ZStack(alignment: .topTrailing) {
-            CachedAsyncImage(url: CoverImageService.coverURL(for: work)) { image in
-                image
-                    .resizable()
-                    .aspectRatio(2/3, contentMode: .fill)
-            } placeholder: {
+        CachedAsyncImage(url: CoverImageService.coverURL(for: work)) { image in
+            image
+                .resizable()
+                .aspectRatio(2/3, contentMode: .fill)
+        } placeholder: {
             Rectangle()
                 .fill(LinearGradient(
                     colors: [
@@ -110,12 +117,6 @@ struct iOS26LiquidListRow: View {
         .clipShape(RoundedRectangle(cornerRadius: thumbnailCornerRadius))
         .glassEffect(.subtle, tint: themeStore.primaryColor.opacity(0.1))
         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-
-            if let entry = userEntry {
-                LibraryStatusBadge(status: entry.readingStatus)
-                    .padding(4)
-            }
-        }
     }
 
     // MARK: - Main Content
