@@ -155,7 +155,7 @@ struct EditionDetailCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Format: \(edition.format.displayName)")
                 Text("Publisher: \(edition.publisher ?? "N/A")")
-                Text("Year: \((edition.publicationDate?.prefix(4)).map(String.init) ?? "N/A")")
+                Text("Year: \(extractYear(from: edition.publicationDate) ?? "N/A")")
                 Text("ISBN: \(edition.primaryISBN ?? "N/A")")
             }
             .font(.caption)
@@ -167,5 +167,51 @@ struct EditionDetailCard: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(.ultraThinMaterial)
         }
+    }
+    
+    // MARK: - Private Methods
+    
+    /// Extracts the year from a publication date string or Date object
+    /// - Parameter publicationDate: Either a String date (YYYY-MM-DD format or partial) or Date object
+    /// - Returns: The year as a string or nil if invalid
+    private func extractYear(from publicationDate: String?) -> String? {
+        guard let publicationDate = publicationDate, !publicationDate.isEmpty else {
+            return nil
+        }
+        
+        // If it's already a year (4 digits), return it
+        if publicationDate.count == 4 && publicationDate.allSatisfy({ $0.isNumber }) {
+            return publicationDate
+        }
+        
+        // Try to parse as ISO 8601 date string
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        if let date = formatter.date(from: publicationDate) {
+            let year = Calendar.current.component(.year, from: date)
+            return String(year)
+        }
+        
+        // Try other common formats
+        formatter.dateFormat = "yyyy"
+        if let date = formatter.date(from: publicationDate) {
+            let year = Calendar.current.component(.year, from: date)
+            return String(year)
+        }
+        
+        formatter.dateFormat = "yyyy-MM"
+        if let date = formatter.date(from: publicationDate) {
+            let year = Calendar.current.component(.year, from: date)
+            return String(year)
+        }
+        
+        // Fallback: Extract first 4 characters if they're all digits
+        if publicationDate.count >= 4,
+           let firstFour = publicationDate.prefix(4).map(String.init),
+           firstFour.allSatisfy({ $0.isNumber }) {
+            return firstFour
+        }
+        
+        return nil
     }
 }

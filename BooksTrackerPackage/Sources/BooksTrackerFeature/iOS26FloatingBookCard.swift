@@ -797,9 +797,9 @@ struct MemoryPressureHandler {
 }
 
 // Shared cache for all CachedAsyncImage instances
-// SAFETY: @unchecked Sendable because NSCache is thread-safe and provides
+// SAFETY: Sendable because NSCache is thread-safe by design and provides
 // its own internal synchronization. Singleton pattern ensures controlled access.
-final class CachedAsyncImageCache: @unchecked Sendable {
+final class CachedAsyncImageCache: Sendable {
     static let shared = CachedAsyncImageCache()
 
     let cache: NSCache<NSString, NSData> = {

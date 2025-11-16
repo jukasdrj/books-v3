@@ -293,7 +293,7 @@ struct EditionMetadataView: View {
             Button(action: {
                 showingNotesEditor.toggle()
             }) {
-                Text(libraryEntry?.notes?.isEmpty == false ? libraryEntry!.notes! : "Add your thoughts...")
+                Text(libraryEntry?.notes?.isEmpty == false ? libraryEntry?.notes : "Add your thoughts...")
                     .font(.subheadline)
                     .foregroundColor(libraryEntry?.notes?.isEmpty == false ? .primary : .secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
