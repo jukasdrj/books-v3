@@ -86,6 +86,19 @@ actor GeminiCSVImportService {
         print("[CSV Upload] Starting upload, size: \(csvText.utf8.count) bytes")
         #endif
 
+        // Validate CSV format (fail fast before network call)
+        do {
+            try CSVValidator.validate(csvText: csvText)
+            #if DEBUG
+            print("[CSV Upload] ✅ CSV validation passed")
+            #endif
+        } catch let validationError as CSVValidationError {
+            #if DEBUG
+            print("[CSV Upload] ❌ CSV validation failed: \(validationError.localizedDescription)")
+            #endif
+            throw GeminiCSVImportError.parsingFailed(validationError.localizedDescription)
+        }
+
         // Validate file size
         let dataSize = csvText.utf8.count
         guard dataSize <= maxFileSize else {
