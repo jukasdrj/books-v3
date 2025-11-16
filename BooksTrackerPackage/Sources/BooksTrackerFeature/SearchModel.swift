@@ -575,10 +575,9 @@ public final class SearchModel {
 
 // MARK: - Search Result Model
 
-// SAFETY: @unchecked Sendable because search results are immutable after creation
-// and only consumed on @MainActor. Work/Edition/Author references are read-only
-// from the perspective of SearchResult consumers. Created in background search tasks,
-// safely passed to MainActor UI without mutation.
+// SAFETY: @unchecked Sendable because SwiftData models (Work, Edition, Author) are not
+// explicitly Sendable-conforming, but all SearchResult creation and usage happens on
+// @MainActor (via BookSearchAPIService and SearchModel), ensuring thread safety.
 public struct SearchResult: Identifiable, Hashable, @unchecked Sendable {
     public let id = UUID()
     public let work: Work
@@ -631,4 +630,3 @@ public struct SearchResult: Identifiable, Hashable, @unchecked Sendable {
         hasher.combine(id)
     }
 }
-

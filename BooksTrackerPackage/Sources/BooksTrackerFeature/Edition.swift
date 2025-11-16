@@ -267,6 +267,30 @@ public final class Edition {
     func touch() {
         lastModified = Date()
     }
+    
+    /// Extract publication year using Calendar API when possible
+    /// Falls back to string extraction if date parsing fails
+    var publicationYear: String? {
+        guard let dateString = publicationDate else { return nil }
+        
+        // Try ISO 8601 date parsing first (YYYY-MM-DD format)
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withFullDate]
+        
+        if let date = isoFormatter.date(from: dateString) {
+            let year = Calendar.current.component(.year, from: date)
+            return String(year)
+        }
+        
+        // Fallback: Extract first 4 digits (year) from string
+        // Handles formats like "2020", "2020-01-01", "January 2020", etc.
+        let digits = dateString.prefix(4)
+        if digits.count == 4, Int(digits) != nil {
+            return String(digits)
+        }
+        
+        return nil
+    }
 }
 
 // MARK: - URL Extension for Cover Images
@@ -280,4 +304,3 @@ extension Edition {
 }
 
 // EditionFormat is now defined in ModelTypes.swift
-
