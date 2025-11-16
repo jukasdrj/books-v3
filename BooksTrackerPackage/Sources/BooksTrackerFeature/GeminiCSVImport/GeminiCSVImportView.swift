@@ -548,26 +548,41 @@ public struct GeminiCSVImportView: View {
                 EnrichmentQueue.shared.enqueueBatch(result.newWorkIDs)
 
                 // Start enrichment in background
-                // CRITICAL: Poll for SwiftData context merging
+                // Wait for SwiftData context merging with exponential backoff (Issue #467)
                 // ImportService uses background actor context, main view uses different context
-                // Without polling, modelContext.work(for:) returns nil for all IDs (cross-context issue)
                 Task {
-                    // Poll until SwiftData merges changes from background context
                     let workIDs = result.newWorkIDs
-                    let deadline = Date.now.addingTimeInterval(5.0) // 5-second timeout
-
-                    while Date.now < deadline {
-                        let foundCount = workIDs.compactMap { modelContext.model(for: $0) as? Work }.count
-                        if foundCount == workIDs.count {
-                            break // All works are available
+                    let startTime = Date.now
+                    let timeout: TimeInterval = 5.0
+                    
+                    // Try immediate check first (often succeeds immediately)
+                    var foundCount = workIDs.compactMap { modelContext.model(for: $0) as? Work }.count
+                    if foundCount == workIDs.count {
+                        #if DEBUG
+                        print("📚 Context merge: Immediate (\(foundCount)/\(workIDs.count))")
+                        #endif
+                    } else {
+                        // Exponential backoff: 250ms, 500ms, then 1s intervals
+                        let intervals: [Duration] = [.milliseconds(250), .milliseconds(500), .milliseconds(1000)]
+                        var intervalIndex = 0
+                        
+                        while Date.now.timeIntervalSince(startTime) < timeout {
+                            let currentInterval = intervals[min(intervalIndex, intervals.count - 1)]
+                            try? await Task.sleep(for: currentInterval)
+                            
+                            foundCount = workIDs.compactMap { modelContext.model(for: $0) as? Work }.count
+                            if foundCount == workIDs.count {
+                                break
+                            }
+                            
+                            intervalIndex += 1
                         }
-                        try? await Task.sleep(for: .milliseconds(100))
+                        
+                        #if DEBUG
+                        let elapsed = Date.now.timeIntervalSince(startTime)
+                        print("📚 Context merge: \(foundCount)/\(workIDs.count) in \(Int(elapsed * 1000))ms")
+                        #endif
                     }
-
-                    #if DEBUG
-                    let finalFoundCount = workIDs.compactMap { modelContext.model(for: $0) as? Work }.count
-                    print("📚 Context merge complete: \(finalFoundCount)/\(workIDs.count) works available")
-                    #endif
 
                     EnrichmentQueue.shared.startProcessing(in: modelContext) { completed, total, currentTitle in
                         #if DEBUG
