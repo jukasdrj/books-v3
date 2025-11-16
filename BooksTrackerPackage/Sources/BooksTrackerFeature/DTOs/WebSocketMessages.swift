@@ -18,13 +18,24 @@ import Foundation
 // MARK: - Message Type Enum
 
 public enum MessageType: String, Codable, Sendable {
+    // Client-to-Server
+    case ready = "ready"              // Client ready signal
+    
+    // Server-to-Client
     case readyAck = "ready_ack"       // Backend acknowledgment of client ready signal
+    case reconnected = "reconnected"  // State sync after reconnect
     case jobStarted = "job_started"
     case jobProgress = "job_progress"
     case jobComplete = "job_complete"
     case error = "error"
     case ping = "ping"
     case pong = "pong"
+
+    // Batch scanning
+    case batchInit = "batch-init"
+    case batchProgress = "batch-progress"
+    case batchComplete = "batch-complete"
+    case batchCanceling = "batch-canceling"
 }
 
 // MARK: - Pipeline Type Enum
@@ -55,6 +66,7 @@ public struct TypedWebSocketMessage: Codable, Sendable {
 
 public enum MessagePayload: Codable, Sendable {
     case readyAck(ReadyAckPayload)
+    case reconnected(ReconnectedPayload)
     case jobStarted(JobStartedPayload)
     case jobProgress(JobProgressPayload)
     case jobComplete(JobCompletePayload)
@@ -70,6 +82,8 @@ public enum MessagePayload: Codable, Sendable {
         switch type {
         case "ready_ack":
             self = .readyAck(try ReadyAckPayload(from: decoder))
+        case "reconnected":
+            self = .reconnected(try ReconnectedPayload(from: decoder))
         case "job_started":
             self = .jobStarted(try JobStartedPayload(from: decoder))
         case "job_progress":
@@ -94,6 +108,8 @@ public enum MessagePayload: Codable, Sendable {
     public func encode(to encoder: Encoder) throws {
         switch self {
         case .readyAck(let payload):
+            try payload.encode(to: encoder)
+        case .reconnected(let payload):
             try payload.encode(to: encoder)
         case .jobStarted(let payload):
             try payload.encode(to: encoder)
@@ -121,6 +137,26 @@ public struct ReadyAckPayload: Codable, Sendable {
     public let type: String
     public let timestamp: Int64             // Milliseconds since epoch
 }
+
+// MARK: - Reconnected Payload
+
+public struct ReconnectedPayload: Codable, Sendable {
+    public let type: String
+    public let progress: Double
+    public let status: String
+    public let processedCount: Int
+    public let totalCount: Int
+    public let lastUpdate: Int64?
+    public let message: String
+    
+    enum CodingKeys: String, CodingKey {
+        case type, progress, status, message
+        case processedCount = "processed_count"
+        case totalCount = "total_count"
+        case lastUpdate = "last_update"
+    }
+}
+
 
 // MARK: - Job Started Payload
 
@@ -247,7 +283,27 @@ public struct AIScanCompletePayload: Codable, Sendable {
     public let totalDetected: Int
     public let approved: Int
     public let needsReview: Int
-    public let books: [DetectedBookPayload]
+    public let resultsUrl: String?
+    public let books: [DetectedBookPayload]?
+    public let metadata: JobMetadata?
+
+    enum CodingKeys: String, CodingKey {
+        case type, pipeline, books, metadata
+        case totalDetected = "total_detected"
+        case approved
+        case needsReview = "needs_review"
+        case resultsUrl = "results_url"
+    }
+}
+
+public struct JobMetadata: Codable, Sendable {
+    public let modelUsed: String?
+    public let processingTime: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case modelUsed = "model_used"
+        case processingTime = "processing_time"
+    }
 }
 
 public struct DetectedBookPayload: Codable, Sendable {

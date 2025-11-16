@@ -684,6 +684,33 @@ actor BookshelfAIService {
         return submissionResponse
     }
 
+    public func fetchScanResults(url: String) async throws -> ScanResultPayload {
+        guard let fullURL = URL(string: "\(EnrichmentConfig.apiBaseURL)\(url)") else {
+            throw BookshelfAIError.invalidResponse
+        }
+        
+        let (data, response) = try await URLSession.shared.data(from: fullURL)
+
+        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+            throw BookshelfAIError.invalidResponse
+        }
+
+        do {
+            let envelope = try JSONDecoder().decode(ResponseEnvelope<ScanResultPayload>.self, from: data)
+            
+            guard let results = envelope.data else {
+                if let error = envelope.error {
+                    throw APIError(code: error.code?.rawValue ?? "UNKNOWN", message: error.message)
+                }
+                throw APIError(code: "NO_DATA", message: "Missing results data")
+            }
+            
+            return results
+        } catch {
+            throw BookshelfAIError.decodingFailed(error)
+        }
+    }
+
     /// Create batch request payload with compressed images
     internal func createBatchRequest(jobId: String, photos: [CapturedPhoto]) async throws -> BatchScanRequest {
         var images: [BatchScanRequest.ImageData] = []

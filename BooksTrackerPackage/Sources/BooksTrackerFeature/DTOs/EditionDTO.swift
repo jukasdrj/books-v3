@@ -157,14 +157,24 @@ public struct EditionDTO: Codable, Sendable, Equatable {
 
         // Identifiers
         isbn = try container.decodeIfPresent(String.self, forKey: .isbn)
-        isbns = try container.decodeIfPresent([String].self, forKey: .isbns) ?? []
+        isbns = try container.decodeIfPresent([String].self, forKey: .isbns) ?? {
+            #if DEBUG
+            print("⚠️ Backend violation: Missing isbns for edition - defaulting to []")
+            #endif
+            return []
+        }()
 
         // Core metadata
         title = try container.decodeIfPresent(String.self, forKey: .title)
         publisher = try container.decodeIfPresent(String.self, forKey: .publisher)
         publicationDate = try container.decodeIfPresent(String.self, forKey: .publicationDate)
         pageCount = try container.decodeIfPresent(Int.self, forKey: .pageCount)
-        format = try container.decodeIfPresent(DTOEditionFormat.self, forKey: .format) ?? .paperback
+        format = try container.decodeIfPresent(DTOEditionFormat.self, forKey: .format) ?? {
+            #if DEBUG
+            print("⚠️ Backend violation: Missing format for edition '\(title ?? "N/A")' - defaulting to .paperback")
+            #endif
+            return .paperback
+        }()
         coverImageURL = try container.decodeIfPresent(String.self, forKey: .coverImageURL)
         editionTitle = try container.decodeIfPresent(String.self, forKey: .editionTitle)
         editionDescription = try container.decodeIfPresent(String.self, forKey: .editionDescription)
@@ -182,12 +192,32 @@ public struct EditionDTO: Codable, Sendable, Equatable {
         goodreadsID = try container.decodeIfPresent(String.self, forKey: .goodreadsID)
 
         // External IDs - Modern (arrays default to empty)
-        amazonASINs = try container.decodeIfPresent([String].self, forKey: .amazonASINs) ?? []
-        googleBooksVolumeIDs = try container.decodeIfPresent([String].self, forKey: .googleBooksVolumeIDs) ?? []
-        librarythingIDs = try container.decodeIfPresent([String].self, forKey: .librarythingIDs) ?? []
+        amazonASINs = try container.decodeIfPresent([String].self, forKey: .amazonASINs) ?? {
+            #if DEBUG
+            print("⚠️ Backend violation: Missing amazonASINs for edition '\(title ?? "N/A")' - defaulting to []")
+            #endif
+            return []
+        }()
+        googleBooksVolumeIDs = try container.decodeIfPresent([String].self, forKey: .googleBooksVolumeIDs) ?? {
+            #if DEBUG
+            print("⚠️ Backend violation: Missing googleBooksVolumeIDs for edition '\(title ?? "N/A")' - defaulting to []")
+            #endif
+            return []
+        }()
+        librarythingIDs = try container.decodeIfPresent([String].self, forKey: .librarythingIDs) ?? {
+            #if DEBUG
+            print("⚠️ Backend violation: Missing librarythingIDs for edition '\(title ?? "N/A")' - defaulting to []")
+            #endif
+            return []
+        }()
 
         // Quality metrics
         lastISBNDBSync = try container.decodeIfPresent(String.self, forKey: .lastISBNDBSync)
-        isbndbQuality = try container.decodeIfPresent(Int.self, forKey: .isbndbQuality) ?? 0
+        isbndbQuality = try container.decodeIfPresent(Int.self, forKey: .isbndbQuality) ?? {
+            #if DEBUG
+            print("⚠️ Backend violation: Missing isbndbQuality for edition '\(title ?? "N/A")' - defaulting to 0")
+            #endif
+            return 0
+        }()
     }
 }

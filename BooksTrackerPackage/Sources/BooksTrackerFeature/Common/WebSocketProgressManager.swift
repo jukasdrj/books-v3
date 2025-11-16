@@ -6,6 +6,7 @@ enum WebSocketError: Error, LocalizedError {
     case encodingFailed
     case decodingFailed
     case connectionFailed(Error)
+    case authenticationFailed
 
     var errorDescription: String? {
         switch self {
@@ -13,6 +14,7 @@ enum WebSocketError: Error, LocalizedError {
         case .encodingFailed: return "Failed to encode message"
         case .decodingFailed: return "Failed to decode message"
         case .connectionFailed(let error): return "Connection failed: \(error.localizedDescription)"
+        case .authenticationFailed: return "Authentication failed"
         }
     }
 }
@@ -70,7 +72,7 @@ struct JobState: Codable, Sendable {
 /// - Result: Server processes ONLY after WebSocket is listening
 @MainActor
 @Observable
-public final class WebSocketProgressManager {
+public final class WebSocketProgressManager: NSObject, URLSessionWebSocketDelegate {
 
     // MARK: - Properties
 
@@ -78,6 +80,8 @@ public final class WebSocketProgressManager {
     public private(set) var lastError: Error?
 
     private var webSocketTask: URLSessionWebSocketTask?
+    private var session: URLSession!
+    private var connectionContinuation: CheckedContinuation<ConnectionToken, Error>?
     private var receiveTask: Task<Void, Never>?
     private var progressHandler: ((JobProgress) -> Void)?
     private var disconnectionHandler: ((Error) -> Void)?
@@ -96,7 +100,10 @@ public final class WebSocketProgressManager {
 
     // MARK: - Public Methods
 
-    public init() {}
+    override public init() {
+        super.init()
+        self.session = URLSession(configuration: .default, delegate: self, delegateQueue: OperationQueue.main)
+    }
 
     /// STEP 1: Establish WebSocket connection BEFORE job starts
     /// This prevents race condition where server processes before client listens
@@ -116,50 +123,29 @@ public final class WebSocketProgressManager {
             try KeychainHelper.saveToken(token, for: jobId)
         }
 
-        // Create connection endpoint with client-provided jobId and optional token
-        let url: URL
-        if let token = token {
-            var components = URLComponents(string: "\(EnrichmentConfig.webSocketBaseURL)/ws/progress")!
-            components.queryItems = [
-                URLQueryItem(name: "jobId", value: jobId),
-                URLQueryItem(name: "token", value: token)
-            ]
-            guard let urlWithToken = components.url else {
-                throw URLError(.badURL, userInfo: ["reason": "Failed to construct WebSocket URL with token"])
+        return try await withCheckedThrowingContinuation { continuation in
+            // Create connection endpoint with client-provided jobId and optional token
+            let url: URL
+            if let token = token {
+                var components = URLComponents(string: "\(EnrichmentConfig.webSocketBaseURL)/ws/progress")!
+                components.queryItems = [
+                    URLQueryItem(name: "jobId", value: jobId),
+                    URLQueryItem(name: "token", value: token)
+                ]
+                guard let urlWithToken = components.url else {
+                    continuation.resume(throwing: URLError(.badURL, userInfo: ["reason": "Failed to construct WebSocket URL with token"]))
+                    return
+                }
+                url = urlWithToken
+            } else {
+                url = EnrichmentConfig.webSocketURL(jobId: jobId)
             }
-            url = urlWithToken
-        } else {
-            url = EnrichmentConfig.webSocketURL(jobId: jobId)
+
+            self.connectionContinuation = continuation
+            let task = self.session.webSocketTask(with: url)
+            self.webSocketTask = task
+            task.resume()
         }
-
-        // Create URLSession with WebSocket configuration
-        let session = URLSession(configuration: .default)
-        let task = session.webSocketTask(with: url)
-
-        // Start connection
-        task.resume()
-
-        // Wait for successful connection (by sending/receiving ping)
-        try await WebSocketHelpers.waitForConnection(task, timeout: connectionTimeout)
-
-        self.webSocketTask = task
-        self.isConnected = true
-        self.reconnectionAttempt = 0  // Reset reconnection counter on successful connection
-
-        #if DEBUG
-        print("🔌 WebSocket established (ready for job configuration)")
-        #endif
-
-        // Start receiving messages in background
-        await startReceiving()
-
-        // Return token proving connection is ready
-        let connectionToken = ConnectionToken(
-            connectionId: UUID().uuidString,
-            createdAt: Date()
-        )
-
-        return connectionToken
     }
 
     /// STEP 2: Configure established WebSocket for specific job
@@ -294,9 +280,6 @@ public final class WebSocketProgressManager {
                 // Try to reconnect (token already in Keychain)
                 _ = try await establishConnection(jobId: jobId, token: token!)
 
-                // If successful, sync state from server
-                await syncStateAfterReconnection()
-
                 #if DEBUG
                 print("✅ Reconnection successful after \(reconnectionAttempt) attempts")
                 #endif
@@ -325,127 +308,7 @@ public final class WebSocketProgressManager {
         }
     }
 
-    /// Sync state from server after reconnection
-    /// Fetches latest job state to avoid missing progress updates
-    /// Retries up to 3 times with exponential backoff on failure
-    private func syncStateAfterReconnection() async {
-        guard let jobId = boundJobId else {
-            #if DEBUG
-            print("⚠️ Cannot sync state: missing jobId")
-            #endif
-            return
-        }
 
-        // Retrieve token from Keychain
-        let token: String
-        do {
-            guard let retrievedToken = try KeychainHelper.getToken(for: jobId) else {
-                #if DEBUG
-                print("⚠️ Cannot sync state: no token found in Keychain")
-                #endif
-                return
-            }
-            token = retrievedToken
-        } catch {
-            #if DEBUG
-            print("⚠️ Cannot sync state: Keychain error: \(error)")
-            #endif
-            return
-        }
-
-        // Retry with exponential backoff (3 attempts: 1s, 2s, 4s)
-        let maxRetries = 3
-        for attempt in 1...maxRetries {
-            do {
-                // Call backend to get current job state
-                guard let stateURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/job-state/\(jobId)") else {
-                    #if DEBUG
-                    print("❌ Invalid URL for state sync")
-                    #endif
-                    return
-                }
-                var request = URLRequest(url: stateURL)
-                request.httpMethod = "GET"
-                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-                request.timeoutInterval = 10.0  // 10 second timeout
-
-                let (data, response) = try await URLSession.shared.data(for: request)
-
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    throw URLError(.badServerResponse)
-                }
-
-                // Handle non-200 responses
-                guard httpResponse.statusCode == 200 else {
-                    if httpResponse.statusCode >= 500 && attempt < maxRetries {
-                        // Server error - retry
-                        let delay = pow(2.0, Double(attempt))
-                        #if DEBUG
-                        print("⚠️ State sync failed (HTTP \(httpResponse.statusCode)), retrying in \(delay)s...")
-                        #endif
-                        try await Task.sleep(for: .seconds(delay))
-                        continue
-                    } else {
-                        // Client error or final attempt - don't retry
-                        #if DEBUG
-                        print("⚠️ State sync failed: HTTP \(httpResponse.statusCode)")
-                        #endif
-                        return
-                    }
-                }
-
-                // Parse state response
-                let decoder = JSONDecoder()
-                let jobState = try decoder.decode(JobState.self, from: data)
-
-                #if DEBUG
-                print("✅ State synced: \(jobState.status) - \(jobState.processedCount)/\(jobState.totalCount)")
-                #endif
-
-                // If we have a progress handler, synthesize a progress update
-                if let handler = progressHandler {
-                    let progress = JobProgress(
-                        totalItems: jobState.totalCount,
-                        processedItems: jobState.processedCount,
-                        currentStatus: "Reconnected - resuming at \(jobState.processedCount)/\(jobState.totalCount)",
-                        keepAlive: false,
-                        scanResult: nil
-                    )
-                    handler(progress)
-                }
-
-                // Success - exit retry loop
-                return
-
-            } catch {
-                if attempt < maxRetries {
-                    // Retry with exponential backoff
-                    let delay = pow(2.0, Double(attempt))
-                    #if DEBUG
-                    print("⚠️ State sync attempt \(attempt) failed: \(error). Retrying in \(delay)s...")
-                    #endif
-                    try? await Task.sleep(for: .seconds(delay))
-                } else {
-                    // Final attempt failed
-                    #if DEBUG
-                    print("❌ State sync failed after \(maxRetries) attempts: \(error)")
-                    #endif
-
-                    // Notify user of sync failure
-                    if let handler = progressHandler {
-                        let progress = JobProgress(
-                            totalItems: 0,
-                            processedItems: 0,
-                            currentStatus: "Reconnected - state sync failed, progress may be inaccurate",
-                            keepAlive: false,
-                            scanResult: nil
-                        )
-                        handler(progress)
-                    }
-                }
-            }
-        }
-    }
 
     /// Disconnect WebSocket
     public func disconnect() {
@@ -521,40 +384,12 @@ public final class WebSocketProgressManager {
                     let message = try await webSocketTask.receive()
                     await handleMessage(message)
                 } catch {
+                    // The didCloseWith delegate method will handle closures.
+                    // We just need to break the loop.
                     #if DEBUG
-                    print("⚠️ WebSocket receive error: \(error)")
+                    print("⚠️ WebSocket receive error, loop ending: \(error)")
                     #endif
                     self.lastError = error
-
-                    // Mark as disconnected
-                    self.isConnected = false
-
-                    // Attempt automatic reconnection if we have jobId and token in Keychain
-                    do {
-                        if let jobId = boundJobId, try KeychainHelper.getToken(for: jobId) != nil {
-                            #if DEBUG
-                            print("🔄 Connection lost - attempting reconnection...")
-                            #endif
-
-                            // Spawn reconnection task (don't await to avoid blocking)
-                            reconnectionTask = Task {
-                                await self.attemptReconnection()
-                            }
-
-                            return  // Exit receive loop - reconnection will start a new one
-                        } else {
-                            // No reconnection info - notify and disconnect
-                            disconnectionHandler?(error)
-                            self.disconnect()
-                        }
-                    } catch {
-                        #if DEBUG
-                        print("❌ Keychain error during reconnection check: \(error)")
-                        #endif
-                        disconnectionHandler?(error)
-                        self.disconnect()
-                    }
-
                     break
                 }
             }
@@ -632,121 +467,168 @@ public final class WebSocketProgressManager {
                     return
                 }
 
-                // Convert unified schema to legacy ScanResultPayload
-                let scanResult = ScanResultPayload(
-                    totalDetected: aiPayload.totalDetected,
-                    approved: aiPayload.approved,
-                    needsReview: aiPayload.needsReview,
-                    books: aiPayload.books.map { book in
-                        // Reconstruct EnrichmentPayload from flattened DetectedBookPayload fields
-                        let enrichment: ScanResultPayload.BookPayload.EnrichmentPayload? = {
-                            guard let status = book.enrichmentStatus else { return nil }
+                if let resultsUrl = aiPayload.resultsUrl {
+                    // v2.1 pattern - fetch via HTTP
+                    do {
+                        let results = try await BookshelfAIService.shared.fetchScanResults(url: resultsUrl)
+                        let progress = JobProgress(
+                            totalItems: 1,
+                            processedItems: 1,
+                            currentStatus: "Complete!",
+                            keepAlive: false,
+                            scanResult: results
+                        )
+                        await MainActor.run {
+                            progressHandler?(progress)
+                        }
+                    } catch {
+                        #if DEBUG
+                        print("❌ Failed to fetch scan results from \(resultsUrl): \(error)")
+                        #endif
+                        // Notify handler of failure
+                        let progress = JobProgress(
+                            totalItems: 1,
+                            processedItems: 1,
+                            currentStatus: "Failed to load results",
+                            keepAlive: false,
+                            scanResult: nil
+                        )
+                        await MainActor.run {
+                            progressHandler?(progress)
+                        }
+                    }
+                } else if let books = aiPayload.books {
+                    // Backward compatibility - embedded books
+                    let scanResult = ScanResultPayload(
+                        totalDetected: aiPayload.totalDetected,
+                        approved: aiPayload.approved,
+                        needsReview: aiPayload.needsReview,
+                        books: books.map { book in
+                            // Reconstruct EnrichmentPayload from flattened DetectedBookPayload fields
+                            let enrichment: ScanResultPayload.BookPayload.EnrichmentPayload? = {
+                                guard let status = book.enrichmentStatus else { return nil }
 
-                            // Build minimal WorkDTO from flattened enrichment fields
-                            // CRITICAL: Always create WorkDTO if we have enrichment data, even if coverUrl is nil
-                            let work: WorkDTO? = WorkDTO(
-                                title: book.title ?? "",
-                                subjectTags: [],
-                                originalLanguage: nil,
-                                firstPublicationYear: book.publicationYear,
-                                description: nil,
-                                coverImageURL: book.coverUrl,  // May be nil - that's OK!
-                                synthetic: false,
-                                primaryProvider: "google-books",
-                                contributors: [],
-                                openLibraryID: nil,
-                                openLibraryWorkID: nil,
-                                isbndbID: nil,
-                                googleBooksVolumeID: nil,
-                                goodreadsID: nil,
-                                goodreadsWorkIDs: [],
-                                amazonASINs: [],
-                                librarythingIDs: [],
-                                googleBooksVolumeIDs: [],
-                                lastISBNDBSync: nil,
-                                isbndbQuality: 0,
-                                reviewStatus: .verified,
-                                originalImagePath: nil,
-                                boundingBox: nil
-                            )
-
-                            // Build minimal EditionDTO from flattened enrichment fields
-                            let edition: EditionDTO? = if book.publisher != nil || book.publicationYear != nil {
-                                EditionDTO(
-                                    isbn: book.isbn,
-                                    isbns: book.isbn.map { [$0] } ?? [],
-                                    title: book.title,
-                                    publisher: book.publisher,
-                                    publicationDate: book.publicationYear.map { String($0) },
-                                    pageCount: nil,
-                                    format: .paperback,
+                                // Build minimal WorkDTO from flattened enrichment fields
+                                let work: WorkDTO? = WorkDTO(
+                                    title: book.title ?? "",
+                                    subjectTags: [],
+                                    originalLanguage: nil,
+                                    firstPublicationYear: book.publicationYear,
+                                    description: nil,
                                     coverImageURL: book.coverUrl,
-                                    editionTitle: nil,
-                                    editionDescription: nil,
-                                    language: nil,
+                                    synthetic: false,
                                     primaryProvider: "google-books",
                                     contributors: [],
                                     openLibraryID: nil,
-                                    openLibraryEditionID: nil,
+                                    openLibraryWorkID: nil,
                                     isbndbID: nil,
                                     googleBooksVolumeID: nil,
                                     goodreadsID: nil,
+                                    goodreadsWorkIDs: [],
                                     amazonASINs: [],
-                                    googleBooksVolumeIDs: [],
                                     librarythingIDs: [],
+                                    googleBooksVolumeIDs: [],
                                     lastISBNDBSync: nil,
-                                    isbndbQuality: 0
+                                    isbndbQuality: 0,
+                                    reviewStatus: .verified,
+                                    originalImagePath: nil,
+                                    boundingBox: nil
                                 )
-                            } else { nil }
 
-                            return ScanResultPayload.BookPayload.EnrichmentPayload(
-                                status: status,
-                                work: work,
-                                editions: edition.map { [$0] } ?? [],
-                                authors: [],  // Not available in flattened DetectedBookPayload
-                                provider: "google-books",
-                                cachedResult: false
+                                // Build minimal EditionDTO from flattened enrichment fields
+                                let edition: EditionDTO? = if book.publisher != nil || book.publicationYear != nil {
+                                    EditionDTO(
+                                        isbn: book.isbn,
+                                        isbns: book.isbn.map { [$0] } ?? [],
+                                        title: book.title,
+                                        publisher: book.publisher,
+                                        publicationDate: book.publicationYear.map { String($0) },
+                                        pageCount: nil,
+                                        format: .paperback,
+                                        coverImageURL: book.coverUrl,
+                                        editionTitle: nil,
+                                        editionDescription: nil,
+                                        language: nil,
+                                        primaryProvider: "google-books",
+                                        contributors: [],
+                                        openLibraryID: nil,
+                                        openLibraryEditionID: nil,
+                                        isbndbID: nil,
+                                        googleBooksVolumeID: nil,
+                                        goodreadsID: nil,
+                                        amazonASINs: [],
+                                        googleBooksVolumeIDs: [],
+                                        librarythingIDs: [],
+                                        lastISBNDBSync: nil,
+                                        isbndbQuality: 0
+                                    )
+                                } else { nil }
+
+                                return ScanResultPayload.BookPayload.EnrichmentPayload(
+                                    status: status,
+                                    work: work,
+                                    editions: edition.map { [$0] } ?? [],
+                                    authors: [],
+                                    provider: "google-books",
+                                    cachedResult: false
+                                )
+                            }()
+
+                            return ScanResultPayload.BookPayload(
+                                title: book.title ?? "",
+                                author: book.author ?? "",
+                                isbn: book.isbn,
+                                format: nil,
+                                confidence: book.confidence ?? 0.0,
+                                boundingBox: book.boundingBox.map { bbox in
+                                    ScanResultPayload.BookPayload.BoundingBoxPayload(
+                                        x1: bbox.x1, y1: bbox.y1, x2: bbox.x2, y2: bbox.y2
+                                    )
+                                } ?? ScanResultPayload.BookPayload.BoundingBoxPayload(x1: 0, y1: 0, x2: 0, y2: 0),
+                                enrichment: enrichment
                             )
-                        }()
-
-                        return ScanResultPayload.BookPayload(
-                            title: book.title ?? "",
-                            author: book.author ?? "",
-                            isbn: book.isbn,
-                            format: nil, // Not in unified schema yet
-                            confidence: book.confidence ?? 0.0,
-                            boundingBox: book.boundingBox.map { bbox in
-                                ScanResultPayload.BookPayload.BoundingBoxPayload(
-                                    x1: bbox.x1, y1: bbox.y1, x2: bbox.x2, y2: bbox.y2
-                                )
-                            } ?? ScanResultPayload.BookPayload.BoundingBoxPayload(x1: 0, y1: 0, x2: 0, y2: 0),
-                            enrichment: enrichment  // ✅ Reconstructed from DetectedBookPayload fields!
+                        },
+                        metadata: ScanResultPayload.ScanMetadataPayload(
+                            processingTime: 0,
+                            enrichedCount: aiPayload.approved,
+                            timestamp: String(message.timestamp),
+                            modelUsed: "gemini-2.0-flash"
                         )
-                    },
-                    metadata: ScanResultPayload.ScanMetadataPayload(
-                        processingTime: 0,  // Not in unified schema
-                        enrichedCount: aiPayload.approved,
-                        timestamp: String(message.timestamp),
-                        modelUsed: "gemini-2.0-flash"
                     )
-                )
 
-                let progress = JobProgress(
-                    totalItems: 1,
-                    processedItems: 1,
-                    currentStatus: "Complete!",
-                    keepAlive: false,
-                    scanResult: scanResult
-                )
+                    let progress = JobProgress(
+                        totalItems: 1,
+                        processedItems: 1,
+                        currentStatus: "Complete!",
+                        keepAlive: false,
+                        scanResult: scanResult
+                    )
 
-                await MainActor.run {
-                    progressHandler?(progress)
+                    await MainActor.run {
+                        progressHandler?(progress)
+                    }
                 }
 
             case .error(let errorPayload):
                 #if DEBUG
                 print("❌ WebSocket error: \(errorPayload.message)")
                 #endif
+
+            case .reconnected(let payload):
+                #if DEBUG
+                print("✅ Reconnected - syncing state: \(payload.processedCount)/\(payload.totalCount)")
+                #endif
+
+                if let handler = progressHandler {
+                    let progress = JobProgress(
+                        totalItems: payload.totalCount,
+                        processedItems: payload.processedCount,
+                        currentStatus: payload.message,
+                        keepAlive: false,
+                        scanResult: nil
+                    )
+                    handler(progress)
+                }
 
             case .readyAck, .jobStarted, .ping, .pong:
                 // No action needed for infrastructure messages
@@ -760,6 +642,97 @@ public final class WebSocketProgressManager {
             #if DEBUG
             print("⚠️ Failed to parse progress update: \(error)")
             #endif
+        }
+    }
+}
+
+// MARK: - URLSessionWebSocketDelegate
+extension WebSocketProgressManager {
+    public func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
+        self.isConnected = true
+        self.reconnectionAttempt = 0  // Reset reconnection counter on successful connection
+        #if DEBUG
+        print("🔌 WebSocket established (delegate)")
+        #endif
+
+        // Start receiving messages in background
+        Task {
+            await startReceiving()
+        }
+
+        // Resume continuation to signal connection is ready
+        let token = ConnectionToken(connectionId: UUID().uuidString, createdAt: Date())
+        connectionContinuation?.resume(returning: token)
+        connectionContinuation = nil
+    }
+
+    public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        if let error = error {
+            #if DEBUG
+            print("🔌 WebSocket task completed with error: \(error)")
+            #endif
+            self.isConnected = false
+            connectionContinuation?.resume(throwing: error)
+            connectionContinuation = nil
+            
+            // This is called for network errors, so we attempt reconnection.
+            // The didCloseWith delegate is for graceful or ungraceful closures.
+            reconnect()
+        }
+    }
+
+    public func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
+        #if DEBUG
+        print("🔌 WebSocket closed with code: \(closeCode.rawValue)")
+        #endif
+
+        self.isConnected = false
+        
+        switch closeCode {
+        case .normalClosure, .goingAway:
+            #if DEBUG
+            print("✅ Job completed normally - no reconnection")
+            #endif
+            disconnect() // Clean up
+            return
+
+        case .policyViolation:  // 1008 - Auth failure
+            lastError = WebSocketError.authenticationFailed
+            disconnectionHandler?(lastError!)
+            disconnect() // Clean up
+            return
+
+        default:  // Network errors, etc. - reconnect
+            reconnect()
+        }
+    }
+    
+    private func reconnect() {
+        // Attempt automatic reconnection if we have jobId and token in Keychain
+        Task {
+            do {
+                if let jobId = boundJobId, try KeychainHelper.getToken(for: jobId) != nil {
+                    #if DEBUG
+                    print("🔄 Connection lost - attempting reconnection...")
+                    #endif
+                    
+                    // Spawn reconnection task (don't await to avoid blocking)
+                    reconnectionTask = Task {
+                        await self.attemptReconnection()
+                    }
+                } else {
+                    // No reconnection info - notify and disconnect
+                    let error = URLError(.networkConnectionLost)
+                    disconnectionHandler?(error)
+                    self.disconnect()
+                }
+            } catch {
+                #if DEBUG
+                print("❌ Keychain error during reconnection check: \(error)")
+                #endif
+                disconnectionHandler?(error)
+                self.disconnect()
+            }
         }
     }
 }
