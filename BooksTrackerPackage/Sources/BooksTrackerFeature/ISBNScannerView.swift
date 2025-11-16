@@ -97,7 +97,7 @@ private struct DataScannerRepresentable: UIViewControllerRepresentable {
             recognizesMultipleItems: false,
             isHighFrameRateTrackingEnabled: true,
             isPinchToZoomEnabled: true,
-            isGuidanceEnabled: true,
+            isGuidanceEnabled: false, // Disabled to fix #478 - prevents middle-screen positioning issue
             isHighlightingEnabled: true
         )
 
@@ -183,6 +183,37 @@ private struct DataScannerRepresentable: UIViewControllerRepresentable {
     }
 }
 
+@available(iOS 16.0, *)
+private struct ScannerOverlayView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack {
+            HStack {
+                Spacer()
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title.weight(.semibold))
+                        .foregroundColor(.white)
+                        .shadow(radius: 2)
+                }
+                .accessibilityLabel("Close scanner")
+                .padding([.top, .trailing])
+            }
+            Spacer()
+            Text("Point camera at an ISBN barcode")
+                .font(.headline)
+                .foregroundColor(.white)
+                .padding()
+                .background(Color.black.opacity(0.6))
+                .clipShape(Capsule())
+                .padding(.bottom)
+        }
+    }
+}
+
 /// Apple-native barcode scanner using VisionKit DataScannerViewController
 /// Follows official guidance from "Scanning data with the camera"
 @available(iOS 16.0, *)
@@ -202,11 +233,15 @@ public struct ISBNScannerView: View {
             } else if !DataScannerViewController.isAvailable {
                 PermissionDeniedView()
             } else {
-                DataScannerRepresentable(
-                    onISBNScanned: onISBNScanned,
-                    errorMessage: $errorMessage
-                )
-                .ignoresSafeArea()
+                ZStack {
+                    DataScannerRepresentable(
+                        onISBNScanned: onISBNScanned,
+                        errorMessage: $errorMessage
+                    )
+                    .ignoresSafeArea()
+
+                    ScannerOverlayView()
+                }
             }
         }
         .alert("Scanner Error", isPresented: .constant(errorMessage != nil)) {
