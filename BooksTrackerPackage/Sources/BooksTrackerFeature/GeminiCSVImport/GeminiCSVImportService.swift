@@ -149,13 +149,20 @@ actor GeminiCSVImportService {
         // Execute request
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
-            #if DEBUG
-            print("[CSV Upload] ✅ Received response from backend")
-            #endif
-
+            
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw GeminiCSVImportError.invalidResponse
             }
+            
+            #if DEBUG
+            print("[CSV Upload] ✅ Received response from backend")
+            print("[CSV Upload] Status code: \(httpResponse.statusCode)")
+            print("[CSV Upload] Response headers: \(httpResponse.allHeaderFields)")
+            print("[CSV Upload] Response body size: \(data.count) bytes")
+            if let bodyString = String(data: data, encoding: .utf8) {
+                print("[CSV Upload] Response body preview: \(bodyString.prefix(500))")
+            }
+            #endif
 
             // Accept both 200 (OK) and 202 (Accepted) for async job start
             if ![200, 202].contains(httpResponse.statusCode) {
