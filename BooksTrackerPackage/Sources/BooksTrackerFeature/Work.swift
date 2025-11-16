@@ -93,7 +93,18 @@ public final class Work {
     var contributors: [String] = [] // All providers that enriched this Work
 
     // Review status for AI-detected books
-    public var reviewStatus: ReviewStatus = ReviewStatus.verified
+    // Stored as String to enable SwiftData predicate queries (predicates can't access enum.rawValue)
+    var reviewStatusRawValue: String = ReviewStatus.verified.rawValue
+    
+    /// Review status for AI-detected books (computed property wrapping stored String)
+    public var reviewStatus: ReviewStatus {
+        get {
+            ReviewStatus(rawValue: reviewStatusRawValue) ?? .verified
+        }
+        set {
+            reviewStatusRawValue = newValue.rawValue
+        }
+    }
 
     /// Path to original bookshelf scan image (temporary storage)
     /// Will be deleted after all books from scan are reviewed

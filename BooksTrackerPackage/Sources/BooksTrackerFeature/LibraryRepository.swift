@@ -431,11 +431,10 @@ public class LibraryRepository {
     /// - Returns: Array of works with reviewStatus = .needsReview
     /// - Throws: `SwiftDataError` if query fails
     public func fetchReviewQueue() throws -> [Work] {
-        // PERFORMANCE: Use predicate for database-level filtering (not in-memory)
-        // Must compare rawValue since Swift predicate macros don't support enum case access
+        // Query the stored String property directly (reviewStatus is a computed property)
         let descriptor = FetchDescriptor<Work>(
             predicate: #Predicate { work in
-                work.reviewStatus.rawValue == "needsReview"
+                work.reviewStatusRawValue == "needsReview"
             },
             sortBy: [SortDescriptor(\.lastModified, order: .reverse)]
         )
@@ -451,11 +450,10 @@ public class LibraryRepository {
     /// - Returns: Number of works needing review
     /// - Throws: `SwiftDataError` if query fails
     public func reviewQueueCount() throws -> Int {
-        // Use database-level counting with predicate
-        // Must compare rawValue since Swift predicate macros don't support enum case access
+        // Query the stored String property directly (reviewStatus is a computed property)
         let descriptor = FetchDescriptor<Work>(
             predicate: #Predicate { work in
-                work.reviewStatus.rawValue == "needsReview"
+                work.reviewStatusRawValue == "needsReview"
             }
         )
         return try modelContext.fetchCount(descriptor)

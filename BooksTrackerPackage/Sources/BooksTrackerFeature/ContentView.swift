@@ -36,15 +36,10 @@ public struct ContentView: View {
     @State private var notificationCoordinator = NotificationCoordinator()
     @State private var libraryRepository: LibraryRepository?
     
-    // Review queue count via @Query (reactive, no polling!)
-    @Query(
-        filter: #Predicate<Work> { work in
-            work.reviewStatus.rawValue == "needsReview"
-        }
-    ) private var needsReviewWorks: [Work]
-    
+    // Review queue count (computed from LibraryRepository)
     private var reviewQueueCount: Int {
-        needsReviewWorks.count
+        guard let libraryRepository = libraryRepository else { return 0 }
+        return (try? libraryRepository.reviewQueueCount()) ?? 0
     }
 
 

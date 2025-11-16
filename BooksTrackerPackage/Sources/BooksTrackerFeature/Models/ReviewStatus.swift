@@ -10,11 +10,11 @@ import Foundation
 /// Tracks human review status for AI-detected books
 public enum ReviewStatus: String, Codable, Sendable {
     /// Book data verified by AI or user
-    case verified
+    case verified = "verified"
 
     /// Low-confidence AI result requiring human review
-    case needsReview
+    case needsReview = "needsReview"
 
     /// User manually corrected AI result
-    case userEdited
+    case userEdited = "userEdited"
 }
