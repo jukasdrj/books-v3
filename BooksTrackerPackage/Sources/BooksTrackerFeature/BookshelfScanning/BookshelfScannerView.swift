@@ -478,24 +478,38 @@ class BookshelfScanModel {
     /// Saves original bookshelf image to temporary storage for correction UI
     /// - Parameter image: The captured bookshelf image
     /// - Returns: File path to saved image, or nil if saving failed
-    private func saveOriginalImage(_ image: UIImage) -> String? {
+    @MainActor
+    private func saveOriginalImage(_ image: UIImage) async -> String? {
         let tempDirectory = FileManager.default.temporaryDirectory
         let filename = "bookshelf_scan_\(UUID().uuidString).jpg"
         let fileURL = tempDirectory.appendingPathComponent(filename)
 
-        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
-            #if DEBUG
-            print("⚠️ Failed to convert image to JPEG data")
-            #endif
+        // Offload JPEG compression to background task
+        let imageData = await Task.detached(priority: .background) { () -> Data? in
+            guard let data = image.jpegData(compressionQuality: 0.8) else {
+                #if DEBUG
+                print("⚠️ Failed to convert image to JPEG data")
+                #endif
+                return nil
+            }
+            return data
+        }.value
+
+        guard let imageData = imageData else {
             return nil
         }
 
+        // Offload file write to background task
         do {
-            try imageData.write(to: fileURL)
-            #if DEBUG
-            print("✅ Saved original image to: \(fileURL.path)")
-            #endif
-            return fileURL.path
+            let savedPath = try await Task.detached(priority: .background) { () -> String in
+                try imageData.write(to: fileURL)
+                #if DEBUG
+                print("✅ Saved original image to: \(fileURL.path)")
+                #endif
+                return fileURL.path
+            }.value
+
+            return savedPath
         } catch {
             #if DEBUG
             print("❌ Failed to save original image: \(error)")
@@ -519,7 +533,7 @@ class BookshelfScanModel {
         #endif
 
         // Save original image first for correction UI
-        self.lastSavedImagePath = saveOriginalImage(image)
+        self.lastSavedImagePath = await saveOriginalImage(image)
 
         do {
             // Use new WebSocket method for real-time progress updates
