@@ -1,6 +1,6 @@
 # 📚 BooksTrack by oooe - Claude Code Guide
 
-**Version 3.7.5 (Build 189+)** | **iOS 26.0+** | **Swift 6.1+** | **Updated: November 14, 2025**
+**Version 3.7.5 (Build 189+)** | **iOS 26.0+** | **Swift 6.1+** | **Updated: November 15, 2025**
 
 **Native iOS book tracking app** with cultural diversity insights. SwiftUI, SwiftData, CloudKit sync.
 
@@ -12,7 +12,7 @@
 - **Swift 6.2** expertise required (concurrency, typed throws, strict data isolation)
 - **SwiftUI** best practices (iOS 26 HIG compliance, Liquid Glass design)
 - **SwiftData** mastery (persistent identifiers, CloudKit sync, relationship management)
-- **Backend API Contract:** All backend communication follows canonical DTO contract (see Backend API Contract section)
+- **Backend API v2.0:** All backend communication follows v2.0 canonical contract (December 1, 2025+)
 
 **🤖 AI CONTEXT FILES:**
 - **This file:** Claude Code development guide (primary)
@@ -215,61 +215,385 @@ struct BookDetailView: View {
 
 ### Backend API Contract (Canonical DTOs)
 
-**🚨 CRITICAL:** All backend communication MUST adhere to the canonical DTO contract. Backend is in separate repository.
+**🚨 CRITICAL:** All backend communication MUST adhere to v2.0 canonical contract. Backend API_CONTRACT.md is the **single source of truth**.
+
+### Base URLs
+
+| Environment | HTTP API | WebSocket API |
+|-------------|----------|---------------|
+| **Production** | `https://api.oooefam.net` | `wss://api.oooefam.net/ws/progress` |
+| **Staging** | `https://staging-api.oooefam.net` | `wss://staging-api.oooefam.net/ws/progress` |
+| **Local Dev** | `http://localhost:8787` | `ws://localhost:8787/ws/progress` |
+
+### API Version
+
+- **Current:** v2.0 (Production, November 15, 2025+)
+- **Legacy:** v1.0 (Deprecated - sunset March 1, 2026)
 
 **iOS Implementation:** Swift Codable DTOs in `BooksTrackerPackage/Sources/BooksTrackerFeature/Services/API/`
 - `WorkDTO` - Abstract creative work (mirrors SwiftData Work model)
 - `EditionDTO` - Physical/digital manifestation (multi-ISBN support)
-- `AuthorDTO` - Creator with diversity analytics
+- `AuthorDTO` - Creator with cultural diversity analytics (Wikidata enrichment)
 
-**Response Envelope:** All `/v1/*` endpoints return:
+**Response Envelope (v2):** All `/v1/*` endpoints return:
 ```swift
-struct CanonicalAPIResponse: Codable {
-    let success: Bool
-    let data: DataEnvelope?      // { works: [WorkDTO], authors: [AuthorDTO] }
-    let error: ErrorEnvelope?    // { message: String, code: ApiErrorCode, details: Any? }
-    let meta: MetaEnvelope       // { timestamp: String, processingTime: Double, provider: String, cached: Bool }
+struct ResponseEnvelope<T: Codable>: Codable {
+    let data: T?                    // Payload (null on error)
+    let metadata: ResponseMetadata  // Always present
+    let error: APIError?            // Present only on error
+}
+
+struct ResponseMetadata: Codable {
+    let timestamp: String           // ISO 8601 UTC
+    let processingTime: Int?        // Milliseconds
+    let provider: String?           // "google-books" | "openlibrary" | "isbndb" | "gemini"
+    let cached: Bool?               // true if served from cache
+}
+
+struct APIError: Codable {
+    let message: String             // Human-readable
+    let code: String?               // Machine-readable (e.g., "NOT_FOUND")
+    let details: AnyCodable?        // Optional context
 }
 ```
 
-**V1 Endpoints (Used by iOS):**
-- `GET /v1/search/title?q={query}` - Title search
-- `GET /v1/search/isbn?isbn={isbn}` - ISBN lookup (validates ISBN-10/ISBN-13)
+**V1 Endpoints (Production Ready):**
+- `GET /v1/search/title?q={query}` - Title search (fuzzy, up to 20 results)
+- `GET /v1/search/isbn?isbn={isbn}` - ISBN lookup (ISBN-10 or ISBN-13)
 - `GET /v1/search/advanced?title={title}&author={author}` - Multi-field search
-- `POST /v1/enrichment/batch` - Batch enrichment with WebSocket progress
-- `POST /api/scan-bookshelf?jobId={uuid}` - AI bookshelf scan (Gemini 2.0 Flash)
-- `POST /api/scan-bookshelf/batch` - Batch scan (max 5 photos)
-- `POST /api/import/csv-gemini` - AI CSV import
-- `GET /ws/progress?jobId={uuid}` - WebSocket progress (all background jobs)
+- `GET /v1/scan/results/{jobId}` - ✅ Fetch AI scan results (24hr TTL)
+- `GET /v1/csv/results/{jobId}` - ✅ Fetch CSV import results (24hr TTL)
+- `GET /ws/progress?jobId={uuid}&token={token}` - WebSocket progress (all jobs)
 
-**Error Codes (ApiErrorCode):**
-- `INVALID_QUERY` - Empty/invalid search parameters
-- `INVALID_ISBN` - Malformed ISBN format
-- `PROVIDER_ERROR` - Upstream API failure (Google Books, etc.)
-- `INTERNAL_ERROR` - Unexpected server error
+**Error Codes:**
+- `INVALID_ISBN` - Invalid ISBN format (HTTP 400)
+- `INVALID_QUERY` - Missing/invalid query parameter (HTTP 400)
+- `INVALID_REQUEST` - Malformed request body (HTTP 400)
+- `NOT_FOUND` - Resource not found (HTTP 404)
+- `RATE_LIMIT_EXCEEDED` - Too many requests (HTTP 429, retryable)
+- `PROVIDER_TIMEOUT` - External API timeout (HTTP 504, retryable)
+- `PROVIDER_ERROR` - External API error (HTTP 502, retryable)
+- `INTERNAL_ERROR` - Server error (HTTP 500, retryable)
 
-**Provenance Tracking:**
-Every DTO includes:
-- `primaryProvider` - Data source ("google-books", "openlibrary", etc.)
-- `contributors` - All providers that enriched data
-- `synthetic` - Flag for Works inferred from Editions (enables iOS deduplication)
+**Error Detection (v2):**
+```swift
+// Check for errors using EITHER pattern:
+
+// Pattern 1: Check error field
+if let error = envelope.error {
+    throw APIError.serverError(error.message, code: error.code)
+}
+
+// Pattern 2: Check data field for null
+guard let data = envelope.data else {
+    throw APIError.noData
+}
+```
+
+**DTO Schemas (v2.0 - Complete):**
+
+**WorkDTO:**
+```swift
+struct WorkDTO: Codable {
+    // ========== REQUIRED FIELDS ==========
+    let title: String
+    let subjectTags: [String]            // Always present (can be empty)
+    let goodreadsWorkIDs: [String]       // Always present (can be empty)
+    let amazonASINs: [String]            // Always present (can be empty)
+    let librarythingIDs: [String]        // Always present (can be empty)
+    let googleBooksVolumeIDs: [String]   // Always present (can be empty)
+    let isbndbQuality: Int               // 0-100, always present
+    let reviewStatus: ReviewStatus       // Always present
+    
+    // ========== OPTIONAL METADATA ==========
+    let originalLanguage: String?        // ISO 639-1 (e.g., "en", "fr")
+    let firstPublicationYear: Int?       // Year only (e.g., 1925)
+    let description: String?             // Synopsis
+    let coverImageURL: String?           // High-res (1200px width)
+    
+    // ========== PROVENANCE ==========
+    let synthetic: Bool?                 // true if Work inferred from Edition
+    let primaryProvider: String?         // "google-books" | "openlibrary" | "isbndb" | "gemini"
+    let contributors: [String]?          // All providers that contributed
+    
+    // ========== EXTERNAL IDs (LEGACY - SINGLE VALUES) ==========
+    let openLibraryID: String?           // e.g., "OL12345W"
+    let openLibraryWorkID: String?       // Alias for openLibraryID
+    let isbndbID: String?
+    let googleBooksVolumeID: String?     // Deprecated: use googleBooksVolumeIDs[]
+    let goodreadsID: String?             // Deprecated: use goodreadsWorkIDs[]
+    
+    // ========== QUALITY METRICS ==========
+    let lastISBNDBSync: String?          // ISO 8601 timestamp
+    
+    // ========== AI SCAN METADATA ==========
+    let originalImagePath: String?       // Source image for AI-detected books
+    let boundingBox: BoundingBox?        // Book location in image
+}
+
+struct BoundingBox: Codable {
+    let x: Double       // 0.0-1.0 (normalized)
+    let y: Double       // 0.0-1.0 (normalized)
+    let width: Double   // 0.0-1.0 (normalized)
+    let height: Double  // 0.0-1.0 (normalized)
+}
+
+enum ReviewStatus: String, Codable {
+    case verified = "verified"
+    case needsReview = "needsReview"
+    case userEdited = "userEdited"
+}
+```
+
+**EditionDTO:**
+```swift
+struct EditionDTO: Codable {
+    // ========== REQUIRED FIELDS ==========
+    let isbns: [String]                  // All ISBNs (can be empty)
+    let format: EditionFormat            // Always present
+    let amazonASINs: [String]            // Always present (can be empty)
+    let googleBooksVolumeIDs: [String]   // Always present (can be empty)
+    let librarythingIDs: [String]        // Always present (can be empty)
+    let isbndbQuality: Int               // 0-100, always present
+    
+    // ========== OPTIONAL IDENTIFIERS ==========
+    let isbn: String?                    // Primary ISBN (first from isbns array)
+    
+    // ========== OPTIONAL METADATA ==========
+    let title: String?
+    let publisher: String?
+    let publicationDate: String?         // YYYY-MM-DD or YYYY
+    let pageCount: Int?
+    let coverImageURL: String?
+    let editionTitle: String?            // e.g., "Deluxe Illustrated Edition"
+    let editionDescription: String?      // ⚠️ NOT 'description' (Swift @Model reserved)
+    let language: String?                // ISO 639-1 code
+    
+    // ========== PROVENANCE ==========
+    let primaryProvider: String?
+    let contributors: [String]?
+    
+    // ========== EXTERNAL IDs (LEGACY) ==========
+    let openLibraryID: String?
+    let openLibraryEditionID: String?
+    let isbndbID: String?
+    let googleBooksVolumeID: String?     // Deprecated: use googleBooksVolumeIDs[]
+    let goodreadsID: String?
+    
+    // ========== QUALITY METRICS ==========
+    let lastISBNDBSync: String?          // ISO 8601 timestamp
+}
+
+enum EditionFormat: String, Codable {
+    case hardcover = "Hardcover"
+    case paperback = "Paperback"
+    case ebook = "E-book"
+    case audiobook = "Audiobook"
+    case massMarket = "Mass Market"
+}
+```
+
+**AuthorDTO:**
+```swift
+struct AuthorDTO: Codable {
+    // ========== REQUIRED FIELDS ==========
+    let name: String
+    let gender: AuthorGender             // Always present (Wikidata enriched)
+    
+    // ========== OPTIONAL CULTURAL DIVERSITY FIELDS ==========
+    let culturalRegion: CulturalRegion?  // Wikidata enriched
+    let nationality: String?             // e.g., "Nigeria", "United States"
+    let birthYear: Int?
+    let deathYear: Int?
+    
+    // ========== EXTERNAL IDs ==========
+    let openLibraryID: String?
+    let isbndbID: String?
+    let googleBooksID: String?
+    let goodreadsID: String?
+    
+    // ========== STATISTICS ==========
+    let bookCount: Int?                  // Total books by this author
+}
+
+enum AuthorGender: String, Codable {
+    case female = "Female"
+    case male = "Male"
+    case nonBinary = "Non-binary"
+    case other = "Other"
+    case unknown = "Unknown"            // Fallback if Wikidata fails
+}
+
+enum CulturalRegion: String, Codable {
+    case africa = "Africa"
+    case asia = "Asia"
+    case europe = "Europe"
+    case northAmerica = "North America"
+    case southAmerica = "South America"
+    case oceania = "Oceania"
+    case middleEast = "Middle East"
+    case caribbean = "Caribbean"
+    case centralAsia = "Central Asia"
+    case indigenous = "Indigenous"
+    case international = "International"
+}
+```
+
+**WebSocket v2 Contract:**
+
+All WebSocket messages use this envelope:
+```swift
+struct WebSocketMessage: Codable {
+    let type: String                 // "job_started" | "job_progress" | "job_complete" | "error" | "ping" | "pong"
+    let jobId: String
+    let pipeline: String             // "batch_enrichment" | "csv_import" | "ai_scan"
+    let timestamp: Int               // Unix timestamp (milliseconds)
+    let version: String              // "1.0.0"
+    let payload: MessagePayload      // Type-specific data
+}
+```
+
+**🚨 CRITICAL: Summary-Only Completions**
+
+Completion messages are **summary-only** (< 1 KB). Full results fetched via HTTP GET.
+
+**Message Types:**
+
+1. **job_started** - Sent on WebSocket connection
+   ```swift
+   payload: {
+       type: "job_started"
+       totalItems: 10
+       estimatedDuration: 30000  // milliseconds
+   }
+   ```
+
+2. **job_progress** - Periodic updates (every 5-10% progress)
+   ```swift
+   payload: {
+       type: "job_progress"
+       progress: 0.5              // 0.0 to 1.0 for progress bar
+       status: "Processing image 5 of 10"
+       processedCount: 5
+       currentItem: "IMG_1234.jpg"
+   }
+   ```
+
+3. **job_complete** - Summary only (⚠️ NO large arrays!)
+   ```swift
+   payload: {
+       type: "job_complete"
+       totalDetected: 25
+       approved: 20
+       needsReview: 5
+       resultsUrl: "/v1/scan/results/uuid-12345"  // ⚠️ Fetch full results here!
+       metadata: {
+           modelUsed: "gemini-2.0-flash-exp"
+           processingTime: 8500
+       }
+   }
+   ```
+   
+   **Client Action (MANDATORY):** Fetch full results via HTTP GET:
+   ```swift
+   let fullResults = try await fetchResults(url: payload.resultsUrl)
+   // GET https://api.oooefam.net/v1/scan/results/uuid-12345
+   ```
+
+4. **error** - Job failure
+   ```swift
+   payload: {
+       type: "error"
+       code: "E_CSV_PROCESSING_FAILED"
+       message: "Invalid CSV format: Missing title column"
+       retryable: true
+       details: { lineNumber: 42 }
+   }
+   ```
+
+**WebSocket Close Codes:**
+
+| Code | Name | Client Action |
+|------|------|---------------|
+| 1000 | NORMAL_CLOSURE | Job completed successfully |
+| 1001 | GOING_AWAY | Retry after 5 seconds |
+| 1002 | PROTOCOL_ERROR | Fix client implementation |
+| 1008 | POLICY_VIOLATION | Re-authenticate (invalid token) |
+| 1009 | MESSAGE_TOO_BIG | Reduce payload size |
+| 1011 | INTERNAL_ERROR | Retry with exponential backoff |
+| 1013 | TRY_AGAIN_LATER | Server overload, retry after 30s |
+
+**WebSocket Token Management:**
+
+- **Token Expiration:** 2 hours (7200 seconds)
+- **Refresh:** ⚠️ Not yet implemented (single-use tokens only)
+- **Obtain Token:** POST endpoints return `{ jobId, token }` in response
+
+**Performance Best Practices:**
+
+**1. Summary-Only Completions Pattern**
+
+❌ **Old (Causes UI Freezes):**
+```swift
+// Waiting for 5 MB JSON array in WebSocket message
+let message = try JSONDecoder().decode(WebSocketMessage.self, from: data)
+let books = message.payload.books  // UI freezes 10+ seconds!
+```
+
+✅ **New (Instant Response):**
+```swift
+// Step 1: Receive lightweight summary via WebSocket (< 1 KB)
+let message = try JSONDecoder().decode(WebSocketMessage.self, from: data)
+let resultsUrl = message.payload.resultsUrl
+
+// Step 2: Fetch full results via HTTP GET (async, background)
+Task.detached {
+    let results = try await fetchResults(url: resultsUrl)
+    await MainActor.run { updateUI(results) }
+}
+```
+
+**2. Rate Limiting**
+
+| Endpoint Type | Limit | Window |
+|---------------|-------|--------|
+| Search endpoints | 100 req | 1 min |
+| Batch endpoints | 10 req | 1 min |
+| AI scan endpoints | 5 req | 1 min |
+| Global limit | 1000 req | 1 hour |
+
+**3. Caching (Server-Side)**
+
+- Book metadata: **24 hours** (KV cache)
+- ISBN lookups: **7 days**
+- Cover images: **30 days**
+- AI scan results: **24 hours** (KV, then 404)
+- CSV import results: **24 hours** (KV, then 404)
+
+**4. Cultural Diversity Data**
+
+- Enriched via **Wikidata API** (70%+ success rate)
+- Fallback: `gender: "Unknown"` if Wikidata fails
+- Cache TTL: **7 days** (author metadata is stable)
 
 **iOS Services Using Contract:**
 - `SearchService` - `/v1/search/*` endpoints
-- `EnrichmentService` - `/v1/enrichment/batch`
-- `BookshelfScannerService` - `/api/scan-bookshelf/*`
-- `CSVImportService` - `/api/import/csv-gemini`
+- `BookshelfScannerService` - `/v1/scan/results/*`
+- `CSVImportService` - `/v1/csv/results/*`
 - `DTOMapper` - Canonical DTO → SwiftData model mapping
 
 **Critical Rules:**
 1. **Never bypass DTOMapper** - All backend responses MUST be parsed through DTOMapper
 2. **Respect provenance** - Use `synthetic` flag for deduplication logic
-3. **Handle all error codes** - Display user-friendly messages for each ApiErrorCode
-4. **WebSocket progress** - All background jobs use unified WebSocket endpoint
+3. **Handle all error codes** - Display user-friendly messages for each error code
+4. **Summary-only completions** - ALWAYS fetch full results via HTTP GET after WebSocket `job_complete`
+5. **Cultural diversity** - Handle Wikidata enrichment failures gracefully (fallback to "Unknown")
+6. **Results TTL** - Fetch results within 24 hours (KV storage expires)
 
 **Design Documentation:**
-- `docs/plans/2025-10-29-canonical-data-contracts-design.md`
-- `docs/plans/2025-10-29-canonical-data-contracts-implementation.md`
+- `docs/API_CONTRACT.md` - **SINGLE SOURCE OF TRUTH** (v2.0 canonical contract)
+- `docs/FRONTEND_INTEGRATION_GUIDE.md` - Complete frontend integration patterns
+- `docs/plans/2025-10-29-canonical-data-contracts-design.md` - Design rationale
 
 ### Navigation Structure
 
