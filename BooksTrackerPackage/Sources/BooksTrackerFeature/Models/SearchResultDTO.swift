@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 
 // MARK: - Sendable SearchResult DTO
 
@@ -9,9 +10,9 @@ public struct SearchResultDTO: Identifiable, Hashable, Sendable {
     public let id = UUID()
     public let workId: PersistentIdentifier
     public let title: String
-    public let authors: [AuthorDTO]
-    public let primaryEdition: EditionDTO?
-    public let allEditions: [EditionDTO]
+    public let authors: [SearchResultAuthorDTO]
+    public let primaryEdition: SearchResultEditionDTO?
+    public let allEditions: [SearchResultEditionDTO]
     public let relevanceScore: Double
     public let provider: String
     public let isInLibrary: Bool
@@ -22,9 +23,9 @@ public struct SearchResultDTO: Identifiable, Hashable, Sendable {
     ) {
         self.workId = searchResult.work.persistentModelID
         self.title = searchResult.work.title
-        self.authors = searchResult.authors.map { AuthorDTO(from: $0) }
-        self.primaryEdition = searchResult.primaryEdition.map { EditionDTO(from: $0) }
-        self.allEditions = searchResult.editions.map { EditionDTO(from: $0) }
+        self.authors = searchResult.authors.map { SearchResultAuthorDTO(from: $0) }
+        self.primaryEdition = searchResult.primaryEdition.map { SearchResultEditionDTO(from: $0) }
+        self.allEditions = searchResult.editions.map { SearchResultEditionDTO(from: $0) }
         self.relevanceScore = searchResult.relevanceScore
         self.provider = searchResult.provider
         self.isInLibrary = isInLibrary
@@ -48,7 +49,7 @@ public struct SearchResultDTO: Identifiable, Hashable, Sendable {
 
 // MARK: - Author DTO
 
-public struct AuthorDTO: Sendable, Hashable {
+public struct SearchResultAuthorDTO: Sendable, Hashable {
     public let id: PersistentIdentifier
     public let name: String
     
@@ -60,7 +61,7 @@ public struct AuthorDTO: Sendable, Hashable {
 
 // MARK: - Edition DTO
 
-public struct EditionDTO: Sendable, Hashable {
+public struct SearchResultEditionDTO: Sendable, Hashable {
     public let id: PersistentIdentifier
     public let isbn: String?
     public let format: String

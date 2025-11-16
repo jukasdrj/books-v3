@@ -98,9 +98,9 @@ struct EditionComparisonSheet: View {
     }
 
     private func navigateToLibraryEntry() {
-        if ownedEdition.work != nil {
-            tabCoordinator.selectedTab = .library
-            tabCoordinator.switchToLibrary()
+        if let work = ownedEdition.work {
+            // Navigate to Library tab and highlight the specific book
+            tabCoordinator.showEnrichedBooksInLibrary(bookIDs: [work.persistentModelID])
         }
     }
 
@@ -206,10 +206,11 @@ struct EditionDetailCard: View {
         }
         
         // Fallback: Extract first 4 characters if they're all digits
-        if publicationDate.count >= 4,
-           let firstFour = publicationDate.prefix(4).map(String.init),
-           firstFour.allSatisfy({ $0.isNumber }) {
-            return firstFour
+        if publicationDate.count >= 4 {
+            let firstFour = String(publicationDate.prefix(4))
+            if firstFour.allSatisfy({ $0.isNumber }) {
+                return firstFour
+            }
         }
         
         return nil
