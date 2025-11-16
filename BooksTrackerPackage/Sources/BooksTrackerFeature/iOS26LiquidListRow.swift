@@ -41,9 +41,17 @@ struct iOS26LiquidListRow: View {
                 trailingAccessories
             }
 
-            // Enrichment indicator overlay
-            EnrichmentIndicator(workId: work.persistentModelID)
-                .padding(8)
+            // Overlay badges (library status + enrichment indicator)
+            VStack(alignment: .trailing, spacing: 4) {
+                // Library status badge (shows if book is already in library)
+                if let entry = userEntry {
+                    LibraryStatusBadge(status: entry.readingStatus)
+                }
+
+                // Enrichment indicator overlay
+                EnrichmentIndicator(workId: work.persistentModelID)
+            }
+            .padding(8)
         }
         .padding(.horizontal, horizontalPadding)
         .padding(.vertical, verticalPadding)
