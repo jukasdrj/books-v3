@@ -70,7 +70,7 @@ extension ApiResponse {
 extension BookSearchResponse {
     /// Create a mock empty search response
     static func mockEmpty() -> BookSearchResponse {
-        BookSearchResponse(works: [], authors: [], totalResults: 0)
+        BookSearchResponse(works: [], editions: [], authors: [], totalResults: 0)
     }
 
     /// Create a mock search response with sample data
@@ -100,9 +100,21 @@ extension BookSearchResponse {
             boundingBox: nil
         )
 
-        let author = AuthorDTO(name: authorName, gender: .unknown)
+        let author = AuthorDTO(
+            name: authorName,
+            gender: .unknown,
+            culturalRegion: nil,
+            nationality: nil,
+            birthYear: nil,
+            deathYear: nil,
+            openLibraryID: nil,
+            isbndbID: nil,
+            googleBooksID: nil,
+            goodreadsID: nil,
+            bookCount: nil
+        )
 
-        return BookSearchResponse(works: [work], authors: [author], totalResults: 1)
+        return BookSearchResponse(works: [work], editions: [], authors: [author], totalResults: 1)
     }
 }
 

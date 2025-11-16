@@ -429,3 +429,20 @@ public struct AnyCodable: Codable, @unchecked Sendable {
         }
     }
 }
+
+// MARK: - ReconnectedPayload Extension
+
+extension ReconnectedPayload {
+    /// Converts a ReconnectedPayload to a synthetic JobProgressPayload
+    /// Used for updating progress handlers after WebSocket reconnection
+    public func toJobProgressPayload() -> JobProgressPayload {
+        JobProgressPayload(
+            type: self.type,
+            progress: self.progress,
+            status: self.status,
+            processedCount: self.processedCount,
+            currentItem: nil,
+            keepAlive: true
+        )
+    }
+}

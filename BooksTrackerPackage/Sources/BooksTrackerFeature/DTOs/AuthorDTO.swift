@@ -44,6 +44,34 @@ public struct AuthorDTO: Codable, Sendable, Equatable {
     /// Number of books by this author
     public let bookCount: Int?
 
+    // MARK: - Memberwise Initializer
+
+    public init(
+        name: String,
+        gender: DTOAuthorGender,
+        culturalRegion: DTOCulturalRegion? = nil,
+        nationality: String? = nil,
+        birthYear: Int? = nil,
+        deathYear: Int? = nil,
+        openLibraryID: String? = nil,
+        isbndbID: String? = nil,
+        googleBooksID: String? = nil,
+        goodreadsID: String? = nil,
+        bookCount: Int? = nil
+    ) {
+        self.name = name
+        self.gender = gender
+        self.culturalRegion = culturalRegion
+        self.nationality = nationality
+        self.birthYear = birthYear
+        self.deathYear = deathYear
+        self.openLibraryID = openLibraryID
+        self.isbndbID = isbndbID
+        self.googleBooksID = googleBooksID
+        self.goodreadsID = goodreadsID
+        self.bookCount = bookCount
+    }
+
     // MARK: - Coding Keys
 
     private enum CodingKeys: String, CodingKey {

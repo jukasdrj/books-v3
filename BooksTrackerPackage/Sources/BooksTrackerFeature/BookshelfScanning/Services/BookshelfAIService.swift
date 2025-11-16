@@ -700,7 +700,7 @@ actor BookshelfAIService {
             
             guard let results = envelope.data else {
                 if let error = envelope.error {
-                    throw APIError(code: error.code?.rawValue ?? "UNKNOWN", message: error.message)
+                    throw APIError(code: error.code ?? "UNKNOWN", message: error.message)
                 }
                 throw APIError(code: "NO_DATA", message: "Missing results data")
             }

@@ -76,7 +76,7 @@ struct SelectiveFetchingValidationTests {
         print("📊 Measuring full fetch memory...")
 
         var baselineDescriptor = FetchDescriptor<Work>()
-        baselineDescriptor.sortBy = [SortDescriptor(\\.title)]
+        baselineDescriptor.sortBy = [SortDescriptor(\Work.title)]
 
         let baselineWorks = try context.fetch(baselineDescriptor)
         #expect(baselineWorks.count == 1000)
@@ -95,14 +95,14 @@ struct SelectiveFetchingValidationTests {
         print("📊 Measuring selective fetch memory...")
 
         var selectiveDescriptor = FetchDescriptor<Work>()
-        selectiveDescriptor.sortBy = [SortDescriptor(\\.title)]
+        selectiveDescriptor.sortBy = [SortDescriptor(\Work.title)]
 
         // CRITICAL: Test propertiesToFetch with CloudKit sync
         // Only fetch essential properties for list views
         selectiveDescriptor.propertiesToFetch = [
-            \\.title,
-            \\.coverImageURL,
-            \\.persistentModelID
+            \Work.title,
+            \Work.coverImageURL,
+            \Work.persistentModelID
         ]
 
         let selectiveWorks = try context.fetch(selectiveDescriptor)
@@ -194,9 +194,9 @@ struct SelectiveFetchingValidationTests {
         // MARK: - List View Fetch (minimal properties)
         var listDescriptor = FetchDescriptor<Work>()
         listDescriptor.propertiesToFetch = [
-            \\.title,
-            \\.coverImageURL,
-            \\.persistentModelID
+            \Work.title,
+            \Work.coverImageURL,
+            \Work.persistentModelID
         ]
 
         let listWorks = try context.fetch(listDescriptor)
@@ -243,7 +243,7 @@ struct SelectiveFetchingValidationTests {
         var descriptor = FetchDescriptor<UserLibraryEntry>(
             predicate: #Predicate { $0.status == .read }
         )
-        descriptor.propertiesToFetch = [\\.work, \\.status]
+        descriptor.propertiesToFetch = [\UserLibraryEntry.work, \UserLibraryEntry.status]
 
         let entries = try context.fetch(descriptor)
         #expect(entries.count == 1)

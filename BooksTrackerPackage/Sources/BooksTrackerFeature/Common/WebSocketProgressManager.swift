@@ -72,7 +72,7 @@ struct JobState: Codable, Sendable {
 /// - Result: Server processes ONLY after WebSocket is listening
 @MainActor
 @Observable
-public final class WebSocketProgressManager: NSObject, URLSessionWebSocketDelegate {
+public final class WebSocketProgressManager: NSObject, @preconcurrency URLSessionWebSocketDelegate, @preconcurrency URLSessionTaskDelegate {
 
     // MARK: - Properties
 

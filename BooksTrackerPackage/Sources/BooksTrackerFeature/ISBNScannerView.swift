@@ -86,7 +86,9 @@ private struct PermissionDeniedView: View {
 @available(iOS 16.0, *)
 private struct DataScannerRepresentable: UIViewControllerRepresentable {
     let onISBNScanned: (ISBNValidator.ISBN) -> Void
+    let onInvalidBarcode: () -> Void
     @Binding var errorMessage: String?
+    @Binding var shouldResetScanner: Bool
     @Environment(\.dismiss) private var dismiss
     private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "ISBNScanner")
 
@@ -107,6 +109,18 @@ private struct DataScannerRepresentable: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: DataScannerViewController, context: Context) {
+        if shouldResetScanner {
+            uiViewController.stopScanning()
+            do {
+                try uiViewController.startScanning()
+                shouldResetScanner = false
+            } catch {
+                logger.error("Failed to restart scanning: \(error.localizedDescription)")
+                context.coordinator.handleError("Unable to restart scanner: \(error.localizedDescription)")
+            }
+            return
+        }
+
         if !uiViewController.isScanning {
             do {
                 try uiViewController.startScanning()
@@ -118,18 +132,39 @@ private struct DataScannerRepresentable: UIViewControllerRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onISBNScanned: onISBNScanned, errorMessage: $errorMessage, dismiss: dismiss)
+        Coordinator(
+            onISBNScanned: onISBNScanned,
+            onInvalidBarcode: onInvalidBarcode,
+            errorMessage: $errorMessage,
+            shouldResetScanner: $shouldResetScanner,
+            dismiss: dismiss
+        )
+    }
+
+    static func dismantleUIViewController(_ uiViewController: DataScannerViewController, coordinator _: Coordinator) {
+        uiViewController.stopScanning()
+        uiViewController.delegate = nil
     }
 
     class Coordinator: NSObject, DataScannerViewControllerDelegate {
         let onISBNScanned: (ISBNValidator.ISBN) -> Void
+        let onInvalidBarcode: () -> Void
         @Binding var errorMessage: String?
+        @Binding var shouldResetScanner: Bool
         let dismiss: DismissAction
         private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "ISBNScanner")
 
-        init(onISBNScanned: @escaping (ISBNValidator.ISBN) -> Void, errorMessage: Binding<String?>, dismiss: DismissAction) {
+        init(
+            onISBNScanned: @escaping (ISBNValidator.ISBN) -> Void,
+            onInvalidBarcode: @escaping () -> Void,
+            errorMessage: Binding<String?>,
+            shouldResetScanner: Binding<Bool>,
+            dismiss: DismissAction
+        ) {
             self.onISBNScanned = onISBNScanned
+            self.onInvalidBarcode = onInvalidBarcode
             self._errorMessage = errorMessage
+            self._shouldResetScanner = shouldResetScanner
             self.dismiss = dismiss
         }
 
@@ -176,7 +211,10 @@ private struct DataScannerRepresentable: UIViewControllerRepresentable {
                 }
 
             case .invalid:
-                // Silently ignore non-ISBN barcodes
+                let feedbackGenerator = UINotificationFeedbackGenerator()
+                feedbackGenerator.notificationOccurred(.error)
+
+                onInvalidBarcode()
                 return
             }
         }
@@ -220,6 +258,9 @@ private struct ScannerOverlayView: View {
 public struct ISBNScannerView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var errorMessage: String?
+    @State private var shouldResetScanner = false
+    @State private var invalidFeedbackVisible = false
+    @State private var invalidFeedbackTask: Task<Void, Never>?
     let onISBNScanned: (ISBNValidator.ISBN) -> Void
 
     public init(onISBNScanned: @escaping (ISBNValidator.ISBN) -> Void) {
@@ -236,22 +277,62 @@ public struct ISBNScannerView: View {
                 ZStack {
                     DataScannerRepresentable(
                         onISBNScanned: onISBNScanned,
-                        errorMessage: $errorMessage
+                        onInvalidBarcode: triggerInvalidBarcodeFeedback,
+                        errorMessage: $errorMessage,
+                        shouldResetScanner: $shouldResetScanner
                     )
                     .ignoresSafeArea()
 
                     ScannerOverlayView()
+
+                    if invalidFeedbackVisible {
+                        InvalidBarcodeFeedbackView()
+                            .transition(.opacity.combined(with: .move(edge: .bottom)))
+                            .padding(.bottom, 120)
+                    }
                 }
             }
         }
-        .alert("Scanner Error", isPresented: .constant(errorMessage != nil)) {
-            Button("OK") {
+        .alert("Scanner Error", isPresented: errorBinding) {
+            Button("Retry") {
+                errorMessage = nil
+                shouldResetScanner = true
+            }
+
+            Button("Close", role: .cancel) {
                 errorMessage = nil
                 dismiss()
             }
         } message: {
             if let errorMessage {
                 Text(errorMessage)
+            }
+        }
+        .onDisappear {
+            invalidFeedbackTask?.cancel()
+            invalidFeedbackTask = nil
+        }
+    }
+
+    private var errorBinding: Binding<Bool> {
+        Binding(get: { errorMessage != nil }, set: { isPresented in
+            if !isPresented {
+                errorMessage = nil
+            }
+        })
+    }
+
+    private func triggerInvalidBarcodeFeedback() {
+        invalidFeedbackTask?.cancel()
+        withAnimation(.easeInOut(duration: 0.2)) {
+            invalidFeedbackVisible = true
+        }
+
+        invalidFeedbackTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.2))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.3)) {
+                invalidFeedbackVisible = false
             }
         }
     }
@@ -263,5 +344,19 @@ extension ISBNScannerView {
     static var isAvailable: Bool {
         DataScannerViewController.isSupported &&
         DataScannerViewController.isAvailable
+    }
+}
+
+@available(iOS 16.0, *)
+private struct InvalidBarcodeFeedbackView: View {
+    var body: some View {
+        Text("Not an ISBN barcode")
+            .font(.callout.weight(.semibold))
+            .foregroundColor(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(Color.black.opacity(0.7))
+            .clipShape(Capsule())
+            .accessibilityLabel("Invalid barcode detected")
     }
 }

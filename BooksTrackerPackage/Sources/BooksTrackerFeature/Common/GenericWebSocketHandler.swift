@@ -152,6 +152,8 @@ public final class GenericWebSocketHandler {
             switch typedMessage.payload {
             case .jobProgress(let payload):
                 progressHandler(payload)
+            case .reconnected(let payload):
+                progressHandler(payload.toJobProgressPayload())
             case .jobComplete(let payload):
                 // CRITICAL: Stop listening BEFORE calling handler and disconnect
                 // This prevents "Socket is not connected" error (POSIX 57)
