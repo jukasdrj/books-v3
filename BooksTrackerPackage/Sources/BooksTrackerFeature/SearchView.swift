@@ -310,22 +310,59 @@ public struct SearchView: View {
         ZStack(alignment: .bottom) {
             switch searchModel.viewState {
             case .loadingTrending(let recentSearches):
-                loadingTrendingStateView(recentSearches: recentSearches)
+                LoadingTrendingView()
 
             case .initial(let trending, let recentSearches):
-                initialStateView(trending: trending, recentSearches: recentSearches, searchModel: searchModel)
+                InitialStateView(
+                    trending: trending,
+                    recentSearches: recentSearches,
+                    searchModel: searchModel,
+                    onBookSelected: { book in
+                        selectedBook = book
+                    }
+                )
 
             case .searching(let query, let scope, let previousResults):
-                searchingStateView(query: query, scope: scope, previousResults: previousResults)
+                SearchingView(
+                    query: query,
+                    scope: scope,
+                    previousResults: previousResults
+                )
 
             case .results(_, _, let items, let hasMorePages, let cacheHitRate):
-                resultsStateView(items: items, hasMorePages: hasMorePages, cacheHitRate: cacheHitRate)
+                ResultsStateView(
+                    items: items,
+                    hasMorePages: hasMorePages,
+                    cacheHitRate: cacheHitRate,
+                    searchModel: searchModel,
+                    imagePrefetcher: imagePrefetcher,
+                    onBookSelected: { book in
+                        selectedBook = book
+                    },
+                    onBookTapped: { book, comparisonData in
+                        tappedBook = book
+                        editionComparisonData = comparisonData
+                    },
+                    onLoadMore: {
+                        loadMoreResults()
+                    }
+                )
 
             case .noResults(let query, let scope):
-                noResultsStateView(query: query, scope: scope, searchModel: searchModel)
+                NoResultsView(
+                    query: query,
+                    scope: scope,
+                    searchModel: searchModel
+                )
 
             case .error(let message, let lastQuery, let lastScope, let recoverySuggestion):
-                errorStateView(message: message, lastQuery: lastQuery, lastScope: lastScope, recoverySuggestion: recoverySuggestion, searchModel: searchModel)
+                ErrorStateView(
+                    message: message,
+                    lastQuery: lastQuery,
+                    lastScope: lastScope,
+                    recoverySuggestion: recoverySuggestion,
+                    searchModel: searchModel
+                )
             }
 
             // HIG: Debug info only in development builds
@@ -346,485 +383,7 @@ public struct SearchView: View {
         }
     }
 
-    // MARK: - State Views
-    // HIG: Enhanced empty states with contextual guidance
-
-    private func loadingTrendingStateView(recentSearches: [String]) -> some View {
-        ScrollView {
-            LazyVStack(spacing: 32) {
-                // Welcome section
-                VStack(spacing: 16) {
-                    Image(systemName: "books.vertical.fill")
-                        .font(.system(size: 64, weight: .ultraLight))
-                        .foregroundStyle(themeStore.primaryColor)
-                        .symbolEffect(.pulse, options: .repeating)
-
-                    VStack(spacing: 8) {
-                        Text("Discover Your Next Great Read")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .multilineTextAlignment(.center)
-
-                        Text("Search millions of books or scan a barcode to get started")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-                    }
-                }
-                .padding(.top, 32)
-
-                // Loading indicator for trending books
-                VStack(spacing: 16) {
-                    ProgressView()
-                        .scaleEffect(1.2)
-
-                    Text("Loading trending books...")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 40)
-            }
-            .padding(.horizontal, 20)
-        }
-        .modifier(iOS26ScrollEdgeEffectModifier(edges: [.top]))
-    }
-
-    private func initialStateView(trending: [SearchResult], recentSearches: [String], searchModel: SearchModel) -> some View {
-        ScrollView {
-            LazyVStack(spacing: 32) {
-                // Welcome section - HIG: Clear, inviting empty state
-                VStack(spacing: 16) {
-                    Image(systemName: "books.vertical.fill")
-                        .font(.system(size: 64, weight: .ultraLight))
-                        .foregroundStyle(themeStore.primaryColor)
-                        .symbolEffect(.pulse, options: .repeating)
-
-                    VStack(spacing: 8) {
-                        Text("Discover Your Next Great Read")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .multilineTextAlignment(.center)
-
-                        Text("Search millions of books or scan a barcode to get started")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-                    }
-                }
-                .padding(.top, 32)
-
-                // Recent searches section - HIG: Quick access to previous searches
-                if !recentSearches.isEmpty {
-                    recentSearchesSection(recentSearches: recentSearches, searchModel: searchModel)
-                }
-
-                // Trending books grid - HIG: Contextual content discovery
-                if !trending.isEmpty {
-                    trendingBooksSection(trending: trending)
-                }
-
-                // HIG: Helpful tips for first-time users
-                if recentSearches.isEmpty {
-                    quickTipsSection
-                }
-            }
-            .padding(.horizontal, 20)
-            .scrollTargetLayout()
-        }
-        .scrollPosition($scrollPosition)
-        .modifier(iOS26ScrollEdgeEffectModifier(edges: [.top]))
-        .onScrollPhaseChange { _, newPhase in
-            withAnimation(.easeInOut(duration: 0.2)) {
-                scrollPhase = newPhase
-            }
-        }
-        .onScrollGeometryChange(for: CGFloat.self) { geometry in
-            geometry.contentOffset.y
-        } action: { _, newValue in
-            showBackToTop = newValue > 300
-        }
-        .transition(.asymmetric(
-            insertion: .opacity.combined(with: .scale(scale: 0.95)),
-            removal: .opacity.combined(with: .scale(scale: 1.05))
-        ))
-    }
-
-    // HIG: Recent searches for quick re-access
-    private func recentSearchesSection(recentSearches: [String], searchModel: SearchModel) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Label("Recent Searches", systemImage: "clock")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-
-                Spacer()
-
-                Button("Clear") {
-                    searchModel.clearRecentSearches()
-                }
-                .font(.subheadline)
-                .foregroundColor(themeStore.primaryColor)
-            }
-
-            LazyVGrid(columns: [
-                GridItem(.adaptive(minimum: 140), spacing: 12)
-            ], spacing: 12) {
-                ForEach(Array(recentSearches.prefix(6)), id: \.self) { search in
-                    Button {
-                        searchModel.searchText = search
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "arrow.right")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-
-                            Text(search)
-                                .font(.subheadline)
-                                .lineLimit(1)
-
-                            Spacer(minLength: 0)
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Search for \(search)")
-                }
-            }
-        }
-    }
-
-    // HIG: Trending content for discovery
-    private func trendingBooksSection(trending: [SearchResult]) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Label("Trending Books", systemImage: "flame.fill")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                    .symbolRenderingMode(.multicolor)
-
-                Spacer()
-            }
-
-            iOS26FluidGridSystem<SearchResult, AnyView>.bookLibrary(
-                items: trending
-            ) { book in
-                AnyView(
-                    Button {
-                        selectedBook = book
-                    } label: {
-                        iOS26FloatingBookCard(
-                            work: book.work,
-                            namespace: searchTransition,
-                            uniqueID: book.id.uuidString
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Trending book: \(book.displayTitle) by \(book.displayAuthors)")
-                )
-            }
-        }
-    }
-
-    // HIG: Helpful tips for first-time users
-    private var quickTipsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Label("Quick Tips", systemImage: "lightbulb.fill")
-                .font(.title3)
-                .fontWeight(.semibold)
-                .symbolRenderingMode(.multicolor)
-
-            VStack(spacing: 12) {
-                tipRow(
-                    icon: "magnifyingglass",
-                    title: "General Search",
-                    description: "Find books by any keyword in title or author"
-                )
-
-                tipRow(
-                    icon: "barcode.viewfinder",
-                    title: "Barcode Scanning",
-                    description: "Tap the barcode icon to instantly look up books"
-                )
-
-                tipRow(
-                    icon: "line.3.horizontal.decrease",
-                    title: "Search Scopes",
-                    description: "Filter by title, author, or ISBN for precise results"
-                )
-            }
-        }
-        .padding(.vertical, 8)
-    }
-
-    private func tipRow(icon: String, title: String, description: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(themeStore.primaryColor)
-                .frame(width: 28)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-
-                Text(description)
-                    .font(.caption)
-                    .foregroundStyle(.primary.opacity(0.75)) // ✅ WCAG AA: Better contrast for small text
-            }
-        }
-        .padding(12)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
-    // HIG: Loading state with clear feedback and smooth UX showing previous results
-    private func searchingStateView(query: String, scope: SearchScope, previousResults: [SearchResult]) -> some View {
-        ZStack {
-            // Show previous results if available for smooth transition
-            if !previousResults.isEmpty {
-                ScrollView {
-                    LazyVStack(spacing: 12) {
-                        ForEach(previousResults) { result in
-                            Button {
-                                selectedBook = result
-                            } label: {
-                                iOS26LiquidListRow(
-                                    work: result.work,
-                                    displayStyle: .standard
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .padding(.horizontal, 16)
-                            .opacity(0.5)  // Dim to indicate stale
-                            .accessibilityElement(children: .combine)
-                            .accessibilityLabel("Book: \(result.displayTitle) by \(result.displayAuthors)")
-                        }
-
-                        Spacer(minLength: 20)
-                    }
-                }
-                .disabled(true)  // Prevent interaction during loading
-            }
-
-            // Loading overlay
-            VStack(spacing: 24) {
-                Spacer()
-
-                VStack(spacing: 16) {
-                    ZStack {
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                            .frame(width: 80, height: 80)
-                            .overlay {
-                                Circle()
-                                    .fill(themeStore.glassStint(intensity: 0.2))
-                            }
-
-                        ProgressView()
-                            .scaleEffect(1.5)
-                            .tint(themeStore.primaryColor)
-                    }
-
-                    VStack(spacing: 8) {
-                        Text("Searching...")
-                            .font(.title3)
-                            .fontWeight(.medium)
-
-                        Text(searchStatusMessage(for: scope))
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                }
-
-                Spacer()
-            }
-            .background {
-                if !previousResults.isEmpty {
-                    Color.clear.background(.ultraThinMaterial)
-                }
-            }
-        }
-        .transition(.opacity.combined(with: .scale(scale: 0.9)))
-    }
-
-    // HIG: Contextual loading messages
-    private func searchStatusMessage(for scope: SearchScope) -> String {
-        switch scope {
-        case .all:
-            return "Searching all books..."
-        case .title:
-            return "Looking for titles..."
-        case .author:
-            return "Finding authors..."
-        case .isbn:
-            return "Looking up ISBN..."
-        }
-    }
-
-    // HIG: Results with pagination support
-    private func resultsStateView(items: [SearchResult], hasMorePages: Bool, cacheHitRate: Double) -> some View {
-        ZStack(alignment: .bottomTrailing) {
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    // Results header
-                    resultsHeader(count: items.count, cacheHitRate: cacheHitRate)
-
-                    // Results list with accessibility
-                    ForEach(Array(items.enumerated()), id: \.element.id) { index, result in
-                        Button {
-                            if result.isInLibrary {
-                                // Try edition comparison first
-                                if let ownedEntry = result.work.userLibraryEntries?.first,
-                                   let ownedEdition = ownedEntry.edition,
-                                   let searchEdition = result.primaryEdition {
-                                    tappedBook = result
-                                    editionComparisonData = EditionComparisonData(
-                                        searchEdition: searchEdition,
-                                        ownedEdition: ownedEdition
-                                    )
-                                } else {
-                                    // ✅ Fallback: Navigate to existing library entry
-                                    // This handles edge cases where isInLibrary=true but edition data is missing
-                                    selectedBook = result
-                                    
-                                    #if DEBUG
-                                    // Log edge cases for debugging data integrity issues
-                                    if result.work.userLibraryEntries?.first == nil {
-                                        print("⚠️ SearchView: isInLibrary=true but userLibraryEntries is nil for '\(result.work.title)'")
-                                    } else if result.work.userLibraryEntries?.first?.edition == nil {
-                                        print("⚠️ SearchView: Library entry exists but edition is nil for '\(result.work.title)'")
-                                    } else if result.primaryEdition == nil {
-                                        print("⚠️ SearchView: isInLibrary=true but searchResult has no primaryEdition for '\(result.work.title)'")
-                                    }
-                                    #endif
-                                }
-                            } else {
-                                selectedBook = result
-                            }
-                        } label: {
-                            iOS26LiquidListRow(
-                                work: result.work,
-                                displayStyle: .standard
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal, 16)
-                        .accessibilityElement(children: .combine)
-                        .accessibilityLabel("Book: \(result.displayTitle) by \(result.displayAuthors)")
-                        .accessibilityHint("Tap to view book details")
-                        // HIG: Custom VoiceOver actions for power users
-                        .accessibilityAction(named: "Add to library") {
-                            // Quick add action
-                        }
-                        .task {
-                            prefetchImages(for: items, currentIndex: index)
-                        }
-                    }
-
-                    // HIG: Pagination loading indicator
-                    if hasMorePages {
-                        loadMoreIndicator
-                            .onAppear {
-                                loadMoreResults()
-                            }
-                    }
-
-                    Spacer(minLength: 20)
-                }
-                .scrollTargetLayout()
-            }
-            .scrollPosition($scrollPosition)
-            .modifier(iOS26ScrollEdgeEffectModifier(edges: [.top, .bottom]))
-            .onScrollPhaseChange { _, newPhase in
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    scrollPhase = newPhase
-                }
-            }
-            .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                geometry.contentOffset.y
-            } action: { _, newValue in
-                showBackToTop = newValue > 300
-            }
-
-            // HIG: Back to Top button for long lists
-            if showBackToTop {
-                backToTopButton
-            }
-        }
-        .transition(.asymmetric(
-            insertion: .move(edge: .trailing).combined(with: .opacity),
-            removal: .move(edge: .leading).combined(with: .opacity)
-        ))
-    }
-
-    private func resultsHeader(count: Int, cacheHitRate: Double) -> some View {
-        HStack {
-            Text("\(count) results")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            Spacer()
-
-            if cacheHitRate > 0 {
-                HStack(spacing: 4) {
-                    Image(systemName: "bolt.fill")
-                        .foregroundStyle(themeStore.primaryColor)
-                        .font(.caption)
-
-                    Text("Cached")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 16)
-    }
-
-    // HIG: Clear loading indicator for pagination
-    private var loadMoreIndicator: some View {
-        HStack(spacing: 12) {
-            ProgressView()
-                .scaleEffect(0.8)
-
-            Text("Loading more results...")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding()
-        .frame(maxWidth: .infinity)
-    }
-
-    private var backToTopButton: some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.5)) {
-                scrollPosition.scrollTo(edge: .top)
-            }
-        } label: {
-            Image(systemName: "arrow.up")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.white)
-                .frame(width: 44, height: 44)
-                .background(.ultraThinMaterial, in: Circle())
-                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-        }
-        .padding(.trailing, 20)
-        .padding(.bottom, 20)
-        .transition(.asymmetric(
-            insertion: .scale.combined(with: .opacity),
-            removal: .scale.combined(with: .opacity)
-        ))
-        .accessibilityLabel("Scroll to top")
-    }
-
-    // HIG: Advanced search entry point
+    // MARK: - Advanced search entry point
     private var advancedSearchButton: some View {
         Button {
             showingAdvancedSearch = true
@@ -835,90 +394,6 @@ public struct SearchView: View {
         }
         .accessibilityLabel("Advanced Search")
         .accessibilityHint("Open advanced search form with multiple filter fields")
-    }
-
-    // HIG: Helpful no results state
-    private func noResultsStateView(query: String, scope: SearchScope, searchModel: SearchModel) -> some View {
-        VStack(spacing: 24) {
-            Spacer()
-
-            ContentUnavailableView {
-                Label("No Results Found", systemImage: "magnifyingglass")
-            } description: {
-                Text(noResultsMessage(for: scope, query: query))
-            } actions: {
-                VStack(spacing: 12) {
-                    Button("Clear Search") {
-                        searchModel.clearSearch()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(themeStore.primaryColor)
-                }
-            }
-
-            Spacer()
-        }
-        .transition(.opacity.combined(with: .scale(scale: 0.9)))
-    }
-
-    // HIG: Contextual no results messages
-    private func noResultsMessage(for scope: SearchScope, query: String) -> String {
-        switch scope {
-        case .all:
-            return "Try different keywords or check your spelling"
-        case .title:
-            return "No books found with that title. Try searching all fields."
-        case .author:
-            return "No authors found with that name. Check spelling or try searching all fields."
-        case .isbn:
-            return "No book found with that ISBN. Verify the number or try scanning a barcode."
-        }
-    }
-
-    // HIG: Clear error states with recovery options
-    private func errorStateView(message: String, lastQuery: String?, lastScope: SearchScope?, recoverySuggestion: String?, searchModel: SearchModel) -> some View {
-        VStack(spacing: 24) {
-            Spacer()
-
-            ContentUnavailableView {
-                Label("Search Error", systemImage: "exclamationmark.triangle")
-            } description: {
-                VStack(spacing: 8) {
-                    Text(message)
-
-                    if let suggestion = recoverySuggestion {
-                        Text(suggestion)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                }
-            } actions: {
-                VStack(spacing: 12) {
-                    if let query = lastQuery, let scope = lastScope {
-                        Button("Retry Search") {
-                            searchModel.search(query: query, scope: scope)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(themeStore.primaryColor)
-                    } else {
-                        Button("Try Again") {
-                            searchModel.retryLastSearch()
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(themeStore.primaryColor)
-                    }
-
-                    Button("Clear Search") {
-                        searchModel.clearSearch()
-                    }
-                    .buttonStyle(.bordered)
-                }
-            }
-
-            Spacer()
-        }
-        .transition(.opacity.combined(with: .scale(scale: 0.9)))
     }
 
     // MARK: - Performance Section (Debug Only)
@@ -941,26 +416,6 @@ public struct SearchView: View {
 
     // MARK: - Helper Methods
 
-    /// Prefetches images for upcoming search results to improve scrolling performance.
-    private func prefetchImages(for items: [SearchResult], currentIndex: Int) {
-        let prefetchThreshold = 5 // Start prefetching when 5 items from the end are displayed
-        let prefetchWindow = 10 // Prefetch next 10 items
-
-        // Ensure we are near the end of the current items
-        guard currentIndex >= items.count - prefetchThreshold else { return }
-
-        let startIndex = currentIndex + 1
-        let endIndex = min(startIndex + prefetchWindow, items.count)
-
-        guard startIndex < endIndex else { return }
-
-        let urlsToPrefetch = items[startIndex..<endIndex].compactMap { CoverImageService.coverURL(for: $0.work) }
-
-        if !urlsToPrefetch.isEmpty {
-            imagePrefetcher.startPrefetching(urls: urlsToPrefetch)
-        }
-    }
-    
     /// HIG: Scope-aware search execution
     private func performScopedSearch(query: String, scope: SearchScope, searchModel: SearchModel) {
         // Do not trim whitespace here; let the model handle it.

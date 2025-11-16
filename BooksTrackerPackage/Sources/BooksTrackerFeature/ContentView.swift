@@ -56,6 +56,8 @@ public struct ContentView: View {
     // Toast notifications
     @State private var showingCompletionToast = false
     @State private var latestCompletionEvent: EnrichmentQueue.EnrichmentCompletionEvent?
+    @State private var showingErrorToast = false
+    @State private var latestErrorMessage = ""
 
     public var body: some View {
         // Verify DTOMapper dependency injection (should never fail in production)
@@ -197,7 +199,10 @@ public struct ContentView: View {
                     onEnrichmentCompleted: { isEnriching = false },
                     onEnrichmentFailed: { payload in
                         isEnriching = false
-                        // TODO: Display error to user (e.g., banner or alert)
+                        latestErrorMessage = payload.errorMessage
+                        withAnimation {
+                            showingErrorToast = true
+                        }
                         #if DEBUG
                         print("❌ Enrichment failed: \(payload.errorMessage)")
                         #endif
@@ -226,12 +231,26 @@ public struct ContentView: View {
             }
             .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isEnriching)
             .overlay(alignment: .top) {
-                if showingCompletionToast, let event = latestCompletionEvent {
-                    EnrichmentCompletionToast(
-                        event: event,
-                        isPresented: $showingCompletionToast
-                    )
-                    .padding(.top, 8)
+                VStack {
+                    if showingErrorToast {
+                        EnrichmentErrorToast(
+                            errorMessage: latestErrorMessage,
+                            isPresented: $showingErrorToast
+                        ) {
+                            // Retry enrichment if user taps
+                            // Note: Could implement retry logic here in a future enhancement
+                        }
+                        .padding(.top, 8)
+                    }
+                    
+                    if showingCompletionToast, let event = latestCompletionEvent {
+                        EnrichmentCompletionToast(
+                            event: event,
+                            isPresented: $showingCompletionToast
+                        )
+                        .padding(.top, 8)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    }
                 }
             }
             .onReceive(enrichmentQueue.completionEvents) { event in
