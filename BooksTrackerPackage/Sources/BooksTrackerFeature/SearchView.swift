@@ -309,7 +309,7 @@ public struct SearchView: View {
     private func searchContentArea(searchModel: SearchModel) -> some View {
         ZStack(alignment: .bottom) {
             switch searchModel.viewState {
-            case .loadingTrending(let recentSearches):
+            case .loadingTrending(_):
                 LoadingTrendingView()
 
             case .initial(let trending, let recentSearches):
