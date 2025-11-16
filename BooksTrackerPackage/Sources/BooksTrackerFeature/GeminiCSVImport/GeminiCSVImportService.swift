@@ -166,36 +166,39 @@ actor GeminiCSVImportService {
 
             // Accept both 200 (OK) and 202 (Accepted) for async job start
             if ![200, 202].contains(httpResponse.statusCode) {
-                // Try to decode error response to extract error code
-                if let errorResponse = try? JSONDecoder().decode(ApiResponse<GeminiCSVImportResponse>.self, from: data),
-                   case .failure(let apiError, _) = errorResponse {
-                    let errorMessageWithCode = apiError.code != nil
-                        ? "\(apiError.message) (Code: \(apiError.code!.rawValue))"
-                        : apiError.message
+                // Try to decode error response using new ResponseEnvelope format
+                if let errorResponse = try? JSONDecoder().decode(ResponseEnvelope<GeminiCSVImportResponse>.self, from: data),
+                   let error = errorResponse.error {
+                    let errorMessageWithCode = error.code != nil
+                        ? "\(error.message) (Code: \(error.code!))"
+                        : error.message
                     throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessageWithCode)
                 }
                 let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
                 throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessage)
             }
 
-            // Decode canonical ApiResponse<GeminiCSVImportResponse>
+            // Decode new ResponseEnvelope<GeminiCSVImportResponse> format
             let decoder = JSONDecoder()
-            let envelope = try decoder.decode(ApiResponse<GeminiCSVImportResponse>.self, from: data)
+            let envelope = try decoder.decode(ResponseEnvelope<GeminiCSVImportResponse>.self, from: data)
 
-            // Check response type
-            switch envelope {
-            case .success(let importResponse, _):
-                #if DEBUG
-                print("[CSV Upload] ✅ Got jobId: \(importResponse.jobId), token: \(importResponse.token.prefix(8))...")
-                #endif
-                return (jobId: importResponse.jobId, token: importResponse.token)
-
-            case .failure(let error, _):
-                #if DEBUG
-                print("[CSV Upload] ❌ API error: \(error.message)")
-                #endif
-                throw GeminiCSVImportError.serverError(httpResponse.statusCode, error.message)
+            // Check for errors in response
+            if let error = envelope.error {
+                let errorMessageWithCode = error.code != nil
+                    ? "\(error.message) (Code: \(error.code!))"
+                    : error.message
+                throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessageWithCode)
             }
+            
+            // Extract data
+            guard let importResponse = envelope.data else {
+                throw GeminiCSVImportError.serverError(httpResponse.statusCode, "No data in response")
+            }
+            
+            #if DEBUG
+            print("[CSV Upload] ✅ Got jobId: \(importResponse.jobId), token: \(importResponse.token.prefix(8))...")
+            #endif
+            return (jobId: importResponse.jobId, token: importResponse.token)
 
         } catch let error as GeminiCSVImportError {
             #if DEBUG
