@@ -140,6 +140,7 @@ struct BooksTrackerApp: App {
                 .environment(featureFlags)
                 .environment(\.dtoMapper, DTOMapperFactory.shared.mapper(for: container.mainContext))
                 .environment(ModelContainerFactory.shared.libraryRepository)
+                .environment(EnrichmentQueue.shared)
         }
     }
 }
