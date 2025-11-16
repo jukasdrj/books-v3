@@ -76,6 +76,9 @@ public struct BookshelfScannerView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
+                        Task {
+                            await scanModel.cleanupTempFiles(mode: .perSession)
+                        }
                         dismiss()
                     }
                     .foregroundStyle(themeStore.primaryColor)
@@ -122,6 +125,9 @@ public struct BookshelfScannerView: View {
 
             .alert("Scan Failed", isPresented: $showingErrorAlert, presenting: scanModel.errorMessage) { _ in
                 Button("OK", role: .cancel) {
+                    Task {
+                        await scanModel.cleanupTempFiles(mode: .perSession)
+                    }
                     scanModel.scanState = .idle
                 }
             } message: { errorMessage in
@@ -129,6 +135,11 @@ public struct BookshelfScannerView: View {
             }
             .onChange(of: scanModel.isError) { oldValue, newValue in
                 showingErrorAlert = newValue
+            }
+        }
+        .onDisappear {
+            Task {
+                await scanModel.cleanupTempFiles(mode: .global)
             }
         }
     }
@@ -433,6 +444,9 @@ class BookshelfScanModel {
     // Original image storage for correction UI
     public var lastSavedImagePath: String?
     
+    // Temp file tracking for per-session cleanup (Issue #472)
+    private var tempFiles: [URL] = []
+    
     // Rate limit state (GitHub Issue #426)
     var rateLimitRetryAfter: Int = 0
     var showRateLimitBanner: Bool = false
@@ -462,6 +476,9 @@ class BookshelfScanModel {
     /// Reset scan model to initial state (Issue #383)
     /// Called after successfully adding books to library
     func resetToInitialState() {
+        Task {
+            await cleanupTempFiles(mode: .perSession)
+        }
         scanState = .idle
         detectedCount = 0
         confirmedCount = 0
@@ -473,6 +490,107 @@ class BookshelfScanModel {
         #if DEBUG
         print("🔄 Scan model reset to initial state")
         #endif
+    }
+
+    /// Cleanup modes for temp file management (Issue #472)
+    enum CleanupMode {
+        case perSession  // Delete only tracked files from current session
+        case global      // Delete all matching files older than 24 hours
+    }
+
+    /// Cleans up temporary bookshelf scan files
+    /// - Parameter mode: perSession for current tracked files, global for all stale matching files
+    /// - Returns: true if all deletions succeeded or partial success
+    @MainActor
+    func cleanupTempFiles(mode: CleanupMode) async -> Bool {
+        let success: Bool
+        switch mode {
+        case .perSession:
+            success = await deleteTrackedFiles()
+        case .global:
+            success = await deleteStaleGlobalFiles()
+        }
+        
+        // Clear tracked files after per-session cleanup
+        if mode == .perSession {
+            tempFiles.removeAll()
+        }
+        
+        return success
+    }
+    
+    /// Deletes only the tracked temp files from the current session
+    private func deleteTrackedFiles() async -> Bool {
+        await Task.detached(priority: .utility) { [tempFiles] in
+            var allSucceeded = true
+            for url in tempFiles {
+                do {
+                    if FileManager.default.fileExists(atPath: url.path) {
+                        try FileManager.default.removeItem(at: url)
+                        #if DEBUG
+                        print("🗑️ Deleted per-session temp file: \(url.lastPathComponent)")
+                        #endif
+                    }
+                } catch {
+                    #if DEBUG
+                    print("⚠️ Failed to delete temp file \(url.lastPathComponent): \(error.localizedDescription)")
+                    #endif
+                    allSucceeded = false
+                }
+            }
+            return allSucceeded
+        }.value
+    }
+    
+    /// Deletes all bookshelf_scan_*.jpg files in temp dir older than 24 hours
+    private func deleteStaleGlobalFiles() async -> Bool {
+        let ttlInterval: TimeInterval = 24 * 60 * 60  // 24 hours
+        let tempDirectory = FileManager.default.temporaryDirectory
+        
+        return await Task.detached(priority: .utility) {
+            var allSucceeded = true
+            
+            do {
+                let fileURLs = try FileManager.default.contentsOfDirectory(
+                    at: tempDirectory,
+                    includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey],
+                    options: [.skipsHiddenFiles]
+                )
+                
+                let pattern = "bookshelf_scan_.*\\.jpg"
+                let staleFiles = fileURLs.filter { url in
+                    url.lastPathComponent.range(of: pattern, options: .regularExpression) != nil
+                }
+                
+                for url in staleFiles {
+                    do {
+                        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+                        if let modDate = attributes[.modificationDate] as? Date,
+                           Date().timeIntervalSince(modDate) > ttlInterval {
+                            
+                            if FileManager.default.fileExists(atPath: url.path) {
+                                try FileManager.default.removeItem(at: url)
+                                #if DEBUG
+                                print("🗑️ Deleted stale temp file: \(url.lastPathComponent)")
+                                #endif
+                            }
+                        }
+                    } catch {
+                        #if DEBUG
+                        print("⚠️ Failed to check/delete stale file \(url.lastPathComponent): \(error.localizedDescription)")
+                        #endif
+                        allSucceeded = false
+                    }
+                }
+            } catch {
+                #if DEBUG
+                print("⚠️ Failed to enumerate temp directory: \(error.localizedDescription)")
+                #endif
+                allSucceeded = false
+            }
+            
+            return allSucceeded
+        }.value
     }
 
     /// Saves original bookshelf image to temporary storage for correction UI
@@ -501,15 +619,18 @@ class BookshelfScanModel {
 
         // Offload file write to background task
         do {
-            let savedPath = try await Task.detached(priority: .background) { () -> String in
+            let savedURL = try await Task.detached(priority: .background) { () -> URL in
                 try imageData.write(to: fileURL)
                 #if DEBUG
                 print("✅ Saved original image to: \(fileURL.path)")
                 #endif
-                return fileURL.path
+                return fileURL
             }.value
 
-            return savedPath
+            // Track the URL for cleanup (Issue #472)
+            tempFiles.append(savedURL)
+            
+            return savedURL.path
         } catch {
             #if DEBUG
             print("❌ Failed to save original image: \(error)")
@@ -578,6 +699,11 @@ class BookshelfScanModel {
             #endif
 
         } catch {
+            // Per-session cleanup on error (Issue #472)
+            Task {
+                await cleanupTempFiles(mode: .perSession)
+            }
+            
             // Check for rate limit error (GitHub Issue #426)
             if let aiError = error as? BookshelfAIError,
                case .rateLimitExceeded(let retryAfter) = aiError {

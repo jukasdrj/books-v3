@@ -278,7 +278,7 @@ public struct GeminiCSVImportView: View {
             let (uploadedJobId, authToken) = try await service.uploadCSV(csvText: csvText)
 
             #if DEBUG
-            print("[CSV Upload] 🔐 Auth token received: \(authToken.prefix(8))...")
+            print("[CSV Upload] 🔐 Auth token received (length: \(authToken.count))")
             #endif
 
             // Start WebSocket connection with authentication
