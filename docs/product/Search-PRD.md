@@ -187,9 +187,9 @@ GET /v1/search/advanced?title={title}&author={author}
 - ✅ **Structured error codes** (INVALID_QUERY, INVALID_ISBN, PROVIDER_ERROR)
 
 **User Experience:**
-- ✅ **Debounced search** (300ms delay, prevents API spam)
+- ✅ **Smart Debounce** (Dynamic 0.1s-0.8s delay based on query type)
 - ✅ **Trending books on empty state** (engaging landing page)
-- ✅ **Recent searches** (quick re-search)
+- ✅ **Recent searches** (quick re-search, persisted)
 - ✅ **Genre normalization** (consistent tags: "Fiction" not "fiction")
 
 ---
@@ -227,18 +227,22 @@ GET /v1/search/advanced?title={title}&author={author}
 
 ---
 
-### [October 2025] Decision: 300ms Debounce for Title Search
+### [October 2025] Decision: Smart Debounce Strategy
 
-**Context:** Users typing "Harry Potter" triggered 13 API calls (one per character).
+**Context:** Fixed 300ms debounce was too slow for ISBNs and too fast for short queries.
 
-**Decision:** Debounce search input by 300ms.
+**Decision:** Implement dynamic debounce delay.
+- ISBN patterns: 0.1s (immediate)
+- Short queries (1-3 chars): 0.8s (wait for more input)
+- Medium queries (4-6 chars): 0.5s
+- Long queries (>6 chars): 0.3s
 
 **Rationale:**
-1. Reduces API calls (13 → 1 for "Harry Potter")
-2. Improves performance (fewer network requests)
-3. Better UX (wait for user to finish typing)
+1. Optimizes API usage by waiting longer for short, ambiguous queries
+2. Provides instant feedback for ISBN pastes/scans
+3. Feels more responsive for specific long queries
 
-**Outcome:** ✅ Implemented, 92% reduction in API calls
+**Outcome:** ✅ Implemented in `SearchModel.swift`
 
 ---
 
@@ -247,14 +251,14 @@ GET /v1/search/advanced?title={title}&author={author}
 ### High Priority (Next 3 Months)
 
 **1. Search History Persistence**
-- Store last 10 searches in UserDefaults
-- Quick re-search buttons
-- Estimated effort: 1 day
+- ✅ **Done:** Stored in UserDefaults, last 10 searches
+- **Enhancement:** Sync across devices via CloudKit
+- Estimated effort: 2 days
 
 **2. Autocomplete Suggestions**
-- Type "Har" → Show "Harry Potter", "Harper Lee", "Haruki Murakami"
-- Backend endpoint: `/v1/search/autocomplete?q={prefix}`
-- Estimated effort: 3-4 days (backend + iOS)
+- ✅ **Partial:** Local suggestions for "King", "Weir", etc.
+- **Full:** Backend endpoint `/v1/search/autocomplete?q={prefix}`
+- Estimated effort: 3-4 days (backend integration)
 
 **3. Filters (Genre, Year, Language)**
 - Filter results by genre, publication year, language

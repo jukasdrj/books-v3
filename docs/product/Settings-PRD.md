@@ -100,16 +100,16 @@ Users want to personalize their app experience (visual themes, AI performance vs
 - [x] Given user selects new theme, when change applied, then entire app UI updates immediately (no restart)
 - [x] Given theme changed, when user relaunches app, then selected theme persists
 
-#### User Story 3: Select AI Provider
-
-**As a** user with performance vs accuracy preferences
-**I want to** choose AI provider (Gemini)
-**So that** I can optimize for my needs
-
-**Acceptance Criteria:**
-- [x] Given user opens Settings, when viewing "AI & Scanning" section, then AI provider dropdown shown
-- [x] Given user selects Gemini, when scanning bookshelf or importing CSV, then Gemini API used
-- [x] Given provider changed, when user performs AI operation, then new provider used immediately
+#### User Story 3: AI-Powered CSV Import
+ 
+ **As a** user with legacy data
+ **I want to** import books from CSV using AI
+ **So that** I don't have to manually enter data
+ 
+ **Acceptance Criteria:**
+ - [x] Given user opens Settings, when viewing "Library Management" section, then "AI-Powered CSV Import" button shown
+ - [x] Given user taps button, then CSV import sheet appears
+ - [x] Given import starts, then Gemini parses the file automatically
 
 #### User Story 4: Enable Experimental Features
 
@@ -144,15 +144,22 @@ Users want to personalize their app experience (visual themes, AI performance vs
 
 ```
 SettingsView (Sheet Presentation)
-  ├─ Appearance Section
-  │   └─ iOS26ThemeStore (Theme selection with 5 options)
-  ├─ AI & Scanning Section
-  │   └─ AI Provider Picker (Gemini default)
-  ├─ Advanced Section
-  │   └─ Feature Flags (Experimental toggles)
-  └─ Library Management Section
-      ├─ Reset Library (Destructive action with confirmation)
-      └─ Storage Info (Used space, total books)
+   ├─ Appearance Section
+   │   ├─ Theme Selection (NavigationLink)
+   │   ├─ Follow System Appearance (Toggle)
+   │   └─ Cover Selection (NavigationLink)
+   ├─ Library Management Section
+   │   ├─ AI-Powered CSV Import (Button)
+   │   ├─ Enrich Library Metadata (Button)
+   │   └─ Reset Library (Destructive Button)
+   ├─ Background Tasks Section
+   │   └─ Enrichment Queue (NavigationLink)
+   ├─ AI Features Section
+   │   └─ Tab Bar Minimize on Scroll (Toggle)
+   ├─ iCloud Sync Section
+   │   └─ Status & Help
+   └─ About Section
+       └─ Version, Acknowledgements, Privacy
 ```
 
 **Access Pattern:**
@@ -275,22 +282,21 @@ SettingsView (Sheet Presentation)
 
 ```
 ┌─────────────────────────────────────┐
-│  Settings                    [Done] │
-├─────────────────────────────────────┤
-│  APPEARANCE                         │
-│  Theme: Liquid Blue            [>]  │
-│                                     │
-│  AI & SCANNING                      │
-│  AI Provider: Gemini           [>]  │
-│                                     │
-│  ADVANCED                           │
-│  Experimental Barcode Scanner [✓]  │
-│  Batch Upload Limit: 5         [>]  │
-│                                     │
-│  LIBRARY MANAGEMENT                 │
-│  Reset Library           [Red Text] │
-│  Storage Used: 45 MB / 250 books    │
-└─────────────────────────────────────┘
+ │  Settings                    [Done] │
+ ├─────────────────────────────────────┤
+ │  APPEARANCE                         │
+ │  Theme: Liquid Blue            [>]  │
+ │  Follow System Appearance      [✓]  │
+ │  Cover Selection               [>]  │
+ │                                     │
+ │  LIBRARY MANAGEMENT                 │
+ │  AI-Powered CSV Import         [>]  │
+ │  Enrich Library Metadata       [>]  │
+ │  Reset Library           [Red Text] │
+ │                                     │
+ │  AI FEATURES                        │
+ │  Tab Bar Minimize on Scroll    [✓]  │
+ └─────────────────────────────────────┘
 ```
 
 ---
@@ -335,10 +341,11 @@ struct LibraryView: View {
 ## Feature Flags Available
 
 | Feature Flag | Description | Default | Status |
-|-------------|-------------|---------|--------|
-| `experimentalBarcodeScanner` | VisionKit-based ISBN scanner (shipped) | Enabled | ✅ Shipped |
-| `batchUploadLimit` | Max photos in bookshelf batch scan | 5 | ✅ Active |
-| `geminiCSVImport` | AI-powered CSV parsing | Enabled | ✅ Shipped |
+ |-------------|-------------|---------|--------|
+ | `enableTabBarMinimize` | Auto-hide tab bar on scroll | Enabled | ✅ Active |
+ | `coverSelectionStrategy` | Logic for choosing edition covers | Smart | ✅ Active |
+ | `experimentalBarcodeScanner` | VisionKit-based ISBN scanner | Enabled | ✅ Shipped |
+ | `geminiCSVImport` | AI-powered CSV parsing | Enabled | ✅ Shipped |
 
 ---
 
