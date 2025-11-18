@@ -1,0 +1,66 @@
+{
+  "$schema": "https://claude.com/schemas/settings.json",
+  "permissions": {
+    "rules": [
+      {
+        "type": "allow",
+        "tools": ["SlashCommand"],
+        "comment": "Allow slash commands (/build, /test, /sim, /device-deploy)"
+      },
+      {
+        "type": "allow",
+        "tools": ["Bash"],
+        "patterns": ["git status", "git diff", "git log"],
+        "comment": "Allow safe git read operations"
+      },
+      {
+        "type": "allow",
+        "tools": ["Read", "Glob", "Grep"],
+        "comment": "Allow file reading and searching"
+      },
+      {
+        "type": "allow",
+        "tools": ["mcp__filesystem-with-morph__*"],
+        "comment": "Allow filesystem MCP operations (edit_file, write_file, etc.)"
+      },
+      {
+        "type": "allow",
+        "tools": ["mcp__zen__*"],
+        "comment": "Allow all Zen MCP tools (debug, codereview, secaudit, etc.)"
+      },
+      {
+        "type": "ask",
+        "tools": ["Bash"],
+        "patterns": ["git add", "git commit", "git push"],
+        "comment": "Require approval for git write operations"
+      },
+      {
+        "type": "ask",
+        "tools": ["Bash"],
+        "patterns": ["rm ", "mv ", "cp "],
+        "comment": "Require approval for destructive file operations"
+      },
+      {
+        "type": "deny",
+        "tools": ["Bash"],
+        "patterns": ["rm -rf /", "sudo rm", "git push --force"],
+        "comment": "Block dangerous operations"
+      }
+    ]
+  },
+  "ignorePatterns": [
+    "**/.git/**",
+    "**/node_modules/**",
+    "**/DerivedData/**",
+    "**/.build/**",
+    "**/*.xcworkspace/xcuserdata/**",
+    "**/*.xcodeproj/xcuserdata/**",
+    "**/*.xcodeproj/project.xcworkspace/xcuserdata/**"
+  ],
+  "compactMode": {
+    "enabled": true,
+    "threshold": 0.8
+  },
+  "spinnerTipsEnabled": true,
+  "verbose": false
+}

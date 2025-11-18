@@ -1,6 +1,6 @@
 # 📚 BooksTrack - Claude Code Guide
 
-**Version 3.7.5 (Build 189+)** | **iOS 26.0+** | **Swift 6.2+** | **Updated: November 16, 2025**
+**Version 3.7.5 (Build 189+)** | **iOS 26.0+** | **Swift 6.2+** | **Updated: November 18, 2025**
 
 > **📋 For universal AI agent instructions, see [`AGENTS.md`](AGENTS.md)**
 > This file contains **Claude Code-specific** setup (MCP, slash commands, skills).
@@ -47,35 +47,64 @@ All slash commands use the XcodeBuildMCP server for native Xcode integration.
 
 ## Claude Code-Specific Patterns
 
-### Using Slash Commands
+### Using Custom Agents (v2.0.43)
 
-Available slash commands (defined in `.claude/commands/`):
-1. `/build` - Quick build validation
-2. `/test` - Run Swift Testing suite
-3. `/sim` - Launch in simulator with logs
-4. `/device-deploy` - Deploy to physical device
+**BooksTrack has 3 custom agents for specialized workflows:**
 
-**Example Usage:**
-```
-User: "Run the tests"
-Assistant: [Uses SlashCommand tool with "/test"]
-```
+#### `@pm` - Product Manager & Orchestrator
+**Autonomy: HIGH** - Operates independently, makes decisions
 
-### Using Task Tool with Specialized Agents
-
-**When to launch agents:**
-- **Explore:** Finding files, understanding codebase structure
-- **Plan:** Creating implementation plans for complex features
-- **frontend-error-fixer:** Fixing build/runtime errors
-- **documentation-architect:** Creating comprehensive docs
-- **auth-route-tester:** Testing routes after implementation
-- **code-architecture-reviewer:** Reviewing code for best practices
-- **refactor-planner:** Planning refactoring tasks
+**When to use:**
+- Complex feature implementation
+- Multi-step workflows requiring coordination
+- When you want Haiku (fast coding) + Grok-4 (review)
 
 **Example:**
-```swift
-// User asks: "Where are errors from the client handled?"
-// Assistant uses Task tool with subagent_type=Explore instead of direct Grep
+```
+User: "@pm implement pagination for library view"
+PM: [Clarifies requirements → Delegates to Haiku → Reviews with Grok-4 → Validates → Delivers]
+```
+
+#### `@zen` - Deep Analysis Specialist
+**Autonomy: MEDIUM** - PM orchestrates, Zen provides expert analysis
+
+**When to use:**
+- Complex debugging
+- Comprehensive code review
+- Security audits
+- Architectural decisions
+
+**Example:**
+```
+User: "@zen debug this SwiftData crash"
+Zen: [Uses mcp__zen__debug → Investigates → Reports findings]
+```
+
+#### `@xcode` - Build, Test & Deploy Specialist  
+**Autonomy: MEDIUM** - Executes build/test commands
+
+**When to use:**
+- Build validation
+- Test execution
+- Simulator/device deployment
+- TestFlight uploads
+
+**Example:**
+```
+User: "@xcode run tests"
+Xcode: [Executes /test → Reports results]
+```
+
+### Using Built-In Agents
+
+**Built-in agents (don't @-mention, they're automatic):**
+- **Explore** - Finding files, understanding codebase structure
+- **Plan** - Creating implementation plans for complex features
+
+**Example:**
+```
+User: "Where are errors from the client handled?"
+Claude: [Uses Explore agent automatically]
 ```
 
 ### TodoWrite Tool Usage
@@ -120,27 +149,24 @@ Assistant: [Uses SlashCommand tool with "/test"]
 
 ## Code Search Tools (Claude Code)
 
-### AST-Grep (PRIMARY)
+### Built-in Grep Tool (PRIMARY)
 
-**ALWAYS use `ast-grep` for Swift code** (NOT ripgrep/grep).
+**Use Claude Code's built-in Grep for all searches:**
 
 ```bash
-# Find all public methods
-ast-grep --lang swift --pattern 'public func $METHOD($$$) { $$$ }' .
-
 # Find all @MainActor classes
-ast-grep --lang swift --pattern '@MainActor class $NAME { $$$ }' .
+User: "Find all @MainActor classes"
+Claude: [Uses Grep tool with pattern '@MainActor']
 
-# Find all SwiftData @Model classes
-ast-grep --lang swift --pattern '@Model public class $NAME { $$$ }' .
-
-# Find all Task.sleep calls (check for Timer.publish violations)
-ast-grep --lang swift --pattern 'Task.sleep(for: $DURATION)' .
+# Find all SwiftData models
+User: "Find all @Model classes"  
+Claude: [Uses Grep tool with pattern '@Model']
 ```
 
 **When exploring codebase:**
-- Use Task tool with `subagent_type=Explore` for open-ended searches
-- Don't run multiple Grep/Glob commands directly
+- Use Explore agent for open-ended searches
+- Grep tool is used automatically when appropriate
+- Don't run multiple search commands directly
 
 ---
 
@@ -358,35 +384,32 @@ When user names a specific model, use that exact name. When no model mentioned, 
 
 ### Common Claude Code Workflows
 
-**1. Adding a new feature:**
+**1. Adding a new feature (with @pm):**
 ```
-1. Use TodoWrite to plan steps
-2. Use Task (Explore) to understand existing patterns
-3. Implement in BooksTrackerPackage/Sources/BooksTrackerFeature/
-4. Add tests in BooksTrackerPackage/Tests/
-5. Use /test to run tests
-6. Use /build to validate
-7. Use Task (code-architecture-reviewer) to review
+1. "@pm implement dark mode toggle"
+2. PM clarifies requirements
+3. PM delegates to Haiku (implementation)
+4. PM delegates to Grok-4 (review)
+5. PM runs /build and /test
+6. PM delivers complete, tested feature
 ```
 
 **2. Fixing a bug:**
 ```
-1. Use Task (Explore) to find relevant code
-2. Use ast-grep to find all instances
-3. Use Task (debug) for complex issues
+1. Use Explore agent to find relevant code
+2. "@zen debug the crash"
+3. Zen investigates and identifies root cause
 4. Fix the bug
 5. Add regression test
-6. Use /test to verify
+6. "@xcode run tests" to verify
 ```
 
 **3. Refactoring:**
 ```
-1. Use Task (refactor-planner) to create plan
-2. Use AskUserQuestion to confirm approach
-3. Use TodoWrite to track refactoring steps
-4. Implement changes
-5. Use /test to ensure no regressions
-6. Use Task (code-architecture-reviewer) to verify
+1. "@zen review this code for refactoring opportunities"
+2. Zen provides analysis and recommendations
+3. "@pm implement the refactoring"
+4. PM coordinates implementation and validation
 ```
 
 ---
@@ -403,15 +426,14 @@ When user names a specific model, use that exact name. When no model mentioned, 
 
 **Use CLAUDE.md for:**
 - MCP setup and slash commands
-- Task tool and specialized agents
+- Custom agents (@pm, @zen, @xcode)
 - TodoWrite patterns
 - Git commit workflow
 - PR creation workflow
 - Claude Code-specific debugging tips
-- Skills and Zen MCP tool usage
 
 ---
 
-**Last Updated:** November 16, 2025
+**Last Updated:** November 18, 2025
 **Maintained by:** oooe (jukasdrj)
 **See Also:** [`AGENTS.md`](AGENTS.md), [`MCP_SETUP.md`](MCP_SETUP.md)

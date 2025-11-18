@@ -116,7 +116,9 @@ const ws = new WebSocket(
   `wss://api.oooefam.net/ws/progress?jobId=${jobId}&token=${token}`
 );
 
-// 2. Send ready signal when ready to receive messages
+// 2. 🚨 CRITICAL: Send ready signal immediately or messages will be lost!
+//    Server waits 2-5 seconds for this signal before starting processing.
+//    If not sent, all progress messages will be queued and discarded.
 ws.onopen = () => {
   ws.send(JSON.stringify({ type: "ready" }));
 };
@@ -251,17 +253,23 @@ ws.onmessage = (event) => {
 }
 ```
 
-### **Error Response**
+### **Error Response (API v2.1)**
 ```json
 {
-  "success": false,
+  "data": null,
+  "metadata": {
+    "timestamp": "2025-11-17T12:00:00Z"
+  },
   "error": {
-    "code": "INVALID_ISBN",
     "message": "ISBN must be 10 or 13 digits",
-    "statusCode": 400
+    "code": "INVALID_ISBN",
+    "details": null
   }
 }
 ```
+
+**Note:** The `success` field was removed in v2.1. Check for `error` field presence instead.
+**HTTP Status:** 400 Bad Request
 
 ### **Error Codes**
 
