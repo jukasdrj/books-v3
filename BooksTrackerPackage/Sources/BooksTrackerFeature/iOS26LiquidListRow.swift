@@ -78,14 +78,9 @@ struct iOS26LiquidListRow: View {
                 Button("Mark as Read") {
                     updateReadingStatus(.read)
                 }
-            } else {
-                Button("Add to Library") {
-                    addToLibrary()
-                }
-                Button("Add to Wishlist") {
-                    addToWishlist()
-                }
             }
+            // ⚠️ REMOVED: Non-functional Add to Library/Wishlist accessibility actions
+            // These actions had no ModelContext and couldn't persist changes
         }
     }
 
@@ -382,15 +377,10 @@ struct iOS26LiquidListRow: View {
                 Button("Remove from Library", systemImage: "trash", role: .destructive) {
                     removeFromLibrary()
                 }
-            } else {
-                Button("Add to Library", systemImage: "plus.circle") {
-                    addToLibrary()
-                }
-
-                Button("Add to Wishlist", systemImage: "heart") {
-                    addToWishlist()
-                }
             }
+            // ⚠️ REMOVED: Non-functional Add to Library/Wishlist buttons
+            // These buttons had no ModelContext and couldn't persist changes
+            // For full book details and persistence actions, navigate to WorkDetailView
 
             Button("View Details", systemImage: "info.circle") {
                 // Navigate to detail view
@@ -535,21 +525,10 @@ struct iOS26LiquidListRow: View {
         notificationFeedback.notificationOccurred(.success)
     }
 
-    // TODO: Fix non-functional buttons (see .github/ISSUE_DEAD_CODE_CARD_PERSISTENCE.md)
-    private func addToLibrary() {
-        // DISABLED: No modelContext available in this view
-        #if DEBUG
-        print("⚠️ addToLibrary() called but not implemented - no persistence")
-        #endif
-    }
-
-    // TODO: Fix non-functional buttons (see .github/ISSUE_DEAD_CODE_CARD_PERSISTENCE.md)
-    private func addToWishlist() {
-        // DISABLED: No modelContext available in this view
-        #if DEBUG
-        print("⚠️ addToWishlist() called but not implemented - no persistence")
-        #endif
-    }
+    // ⚠️ REMOVED: Non-functional addToLibrary() and addToWishlist() functions
+    // These functions had no ModelContext and couldn't persist changes
+    // For full book details and persistence actions, navigate to WorkDetailView
+    // See ISSUE_DEAD_CODE_CARD_PERSISTENCE.md for context
 
     private func removeFromLibrary() {
         guard userEntry != nil else { return }
