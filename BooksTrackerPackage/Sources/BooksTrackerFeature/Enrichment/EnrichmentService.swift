@@ -171,7 +171,7 @@ public final class EnrichmentService {
 
     private func searchAPI(title: String, author: String?) async throws -> EnrichmentSearchResponseFlat {
         // Use v1 canonical advanced search endpoint for CSV enrichment
-        // Returns canonical ApiResponse<BookSearchResponse> with WorkDTO, EditionDTO, AuthorDTO
+        // Returns canonical ResponseEnvelope<BookSearchResponse> with WorkDTO, EditionDTO, AuthorDTO
         var urlComponents = URLComponents(string: "\(baseURL)/v1/search/advanced")!
         var queryItems: [URLQueryItem] = []
 
@@ -204,14 +204,13 @@ public final class EnrichmentService {
         #endif
 
         let decoder = JSONDecoder()
-        let envelope = try decoder.decode(ApiResponse<BookSearchResponse>.self, from: data)
+        let envelope = try decoder.decode(ResponseEnvelope<BookSearchResponse>.self, from: data)
 
-        // Parse canonical ApiResponse envelope
+        // Parse canonical ResponseEnvelope
         let transformedResults: [EnrichmentSearchResult]
         let totalItems: Int
 
-        switch envelope {
-        case .success(let searchData, _):
+        if let searchData = envelope.data {
             // Create a map of work index to editions for correlation (1:1 mapping)
             let editionsByIndex = Dictionary(uniqueKeysWithValues:
                 searchData.editions.enumerated().map { ($0, $1) }
@@ -223,9 +222,10 @@ public final class EnrichmentService {
                 return EnrichmentSearchResult(from: workDTO, edition: edition, authors: searchData.authors)
             }
             totalItems = searchData.totalResults ?? transformedResults.count
-
-        case .failure(let error, _):
+        } else if let error = envelope.error {
             throw EnrichmentError.apiError(error.message)
+        } else {
+            throw EnrichmentError.apiError("Invalid response: missing both data and error")
         }
 
         return EnrichmentSearchResponseFlat(

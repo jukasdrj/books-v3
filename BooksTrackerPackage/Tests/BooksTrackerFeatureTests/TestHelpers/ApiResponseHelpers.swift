@@ -1,38 +1,39 @@
 //
-//  ApiResponseHelpers.swift
+//  ResponseEnvelopeHelpers.swift
 //  BooksTrackerFeatureTests
 //
-//  Test utilities for creating mock ApiResponse objects
+//  Test utilities for creating mock ResponseEnvelope objects
 //
 
 import Foundation
 @testable import BooksTrackerFeature
 
-// MARK: - ApiResponse Mock Helpers
+// MARK: - ResponseEnvelope Mock Helpers
 
-extension ApiResponse {
+extension ResponseEnvelope {
     /// Create a mock success response for testing
     /// - Parameters:
     ///   - data: The data payload to wrap
     ///   - processingTime: Optional processing time in milliseconds
     ///   - provider: Optional provider name
     ///   - cached: Whether the response was cached
-    /// - Returns: A mock success ApiResponse
+    ///   - traceId: Optional trace ID for distributed tracing
+    /// - Returns: A mock success ResponseEnvelope
     static func mockSuccess(
         data: T,
         processingTime: Int? = nil,
         provider: String? = nil,
-        cached: Bool? = nil
-    ) -> ApiResponse<T> {
-        let meta = ResponseMeta(
-            timestamp: "2025-11-04T12:00:00Z",
+        cached: Bool? = nil,
+        traceId: String? = nil
+    ) -> ResponseEnvelope<T> {
+        let metadata = ResponseMetadata(
+            timestamp: "2025-11-18T12:00:00Z",
+            traceId: traceId,
             processingTime: processingTime,
             provider: provider,
-            cached: cached,
-            cacheAge: nil,
-            requestId: nil
+            cached: cached
         )
-        return .success(data, meta)
+        return ResponseEnvelope(data: data, metadata: metadata, error: nil)
     }
 
     /// Create a mock error response for testing
@@ -41,27 +42,26 @@ extension ApiResponse {
     ///   - code: Optional error code
     ///   - details: Optional error details
     ///   - processingTime: Optional processing time in milliseconds
-    /// - Returns: A mock failure ApiResponse
+    /// - Returns: A mock failure ResponseEnvelope
     static func mockFailure(
         message: String,
-        code: DTOApiErrorCode? = nil,
+        code: String? = nil,
         details: Any? = nil,
         processingTime: Int? = nil
-    ) -> ApiResponse<T> {
-        let apiError = ApiResponse<T>.ApiError(
+    ) -> ResponseEnvelope<T> {
+        let apiError = ResponseEnvelope<T>.ApiErrorInfo(
             message: message,
             code: code,
             details: details != nil ? AnyCodable(details!) : nil
         )
-        let meta = ResponseMeta(
-            timestamp: "2025-11-04T12:00:00Z",
+        let metadata = ResponseMetadata(
+            timestamp: "2025-11-18T12:00:00Z",
+            traceId: nil,
             processingTime: processingTime,
             provider: nil,
-            cached: nil,
-            cacheAge: nil,
-            requestId: nil
+            cached: nil
         )
-        return .failure(apiError, meta)
+        return ResponseEnvelope(data: nil, metadata: metadata, error: apiError)
     }
 }
 

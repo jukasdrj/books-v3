@@ -636,6 +636,11 @@ public final class WebSocketProgressManager: NSObject, @preconcurrency URLSessio
                 // jobStarted: Optional pre-processing notification
                 // ping/pong: Keep-alive messages
                 break
+
+            case .batchInit, .batchProgress, .batchComplete, .batchCanceling:
+                // Batch scanning messages - ignore in AI scan pipeline
+                // These should never reach here due to pipeline filtering at line 439
+                break
             }
 
         } catch {

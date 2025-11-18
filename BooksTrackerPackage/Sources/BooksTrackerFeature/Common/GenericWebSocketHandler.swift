@@ -201,6 +201,11 @@ public final class GenericWebSocketHandler {
                 // jobStarted: Optional pre-processing notification (no action needed)
                 // ping/pong: Keep-alive messages (no action needed)
                 break
+
+            case .batchInit, .batchProgress, .batchComplete, .batchCanceling:
+                // Batch scanning messages - ignore in this generic handler
+                // These should never reach here due to pipeline filtering at line 175
+                break
             }
         } catch {
             logger.error("❌ Failed to decode WebSocket message (\(self.pipeline.rawValue)): \(error.localizedDescription)")

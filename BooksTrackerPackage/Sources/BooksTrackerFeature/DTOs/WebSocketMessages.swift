@@ -74,6 +74,12 @@ public enum MessagePayload: Codable, Sendable {
     case ping(PingPayload)
     case pong(PongPayload)
 
+    // Batch scanning messages (Section 7.6)
+    case batchInit(BatchInitPayload)
+    case batchProgress(BatchProgressPayload)
+    case batchComplete(BatchCompletePayload)
+    case batchCanceling(BatchCancelingPayload)
+
     // Custom Codable implementation for discriminated union
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -96,6 +102,14 @@ public enum MessagePayload: Codable, Sendable {
             self = .ping(try PingPayload(from: decoder))
         case "pong":
             self = .pong(try PongPayload(from: decoder))
+        case "batch-init":
+            self = .batchInit(try BatchInitPayload(from: decoder))
+        case "batch-progress":
+            self = .batchProgress(try BatchProgressPayload(from: decoder))
+        case "batch-complete":
+            self = .batchComplete(try BatchCompletePayload(from: decoder))
+        case "batch-canceling":
+            self = .batchCanceling(try BatchCancelingPayload(from: decoder))
         default:
             throw DecodingError.dataCorruptedError(
                 forKey: .type,
@@ -122,6 +136,14 @@ public enum MessagePayload: Codable, Sendable {
         case .ping(let payload):
             try payload.encode(to: encoder)
         case .pong(let payload):
+            try payload.encode(to: encoder)
+        case .batchInit(let payload):
+            try payload.encode(to: encoder)
+        case .batchProgress(let payload):
+            try payload.encode(to: encoder)
+        case .batchComplete(let payload):
+            try payload.encode(to: encoder)
+        case .batchCanceling(let payload):
             try payload.encode(to: encoder)
         }
     }
@@ -367,6 +389,109 @@ public struct PongPayload: Codable, Sendable {
     public let type: String
     public let timestamp: Int64
     public let latency: Int?                // Milliseconds
+}
+
+// MARK: - Batch Scanning Payloads (Section 7.6)
+
+/// Batch init payload - sent when batch job is initialized
+public struct BatchInitPayload: Codable, Sendable {
+    public let type: String
+    public let totalPhotos: Int
+    public let status: String
+
+    public init(type: String = "batch-init", totalPhotos: Int, status: String) {
+        self.type = type
+        self.totalPhotos = totalPhotos
+        self.status = status
+    }
+}
+
+/// Batch progress payload - sent during batch processing
+public struct BatchProgressPayload: Codable, Sendable {
+    public let type: String
+    public let currentPhoto: Int
+    public let totalPhotos: Int
+    public let photoStatus: String
+    public let booksFound: Int
+    public let totalBooksFound: Int
+    public let photos: [PhotoProgressData]
+
+    public struct PhotoProgressData: Codable, Sendable {
+        public let index: Int
+        public let status: String
+        public let booksFound: Int?
+        public let error: String?
+
+        public init(index: Int, status: String, booksFound: Int? = nil, error: String? = nil) {
+            self.index = index
+            self.status = status
+            self.booksFound = booksFound
+            self.error = error
+        }
+    }
+
+    public init(
+        type: String = "batch-progress",
+        currentPhoto: Int,
+        totalPhotos: Int,
+        photoStatus: String,
+        booksFound: Int,
+        totalBooksFound: Int,
+        photos: [PhotoProgressData]
+    ) {
+        self.type = type
+        self.currentPhoto = currentPhoto
+        self.totalPhotos = totalPhotos
+        self.photoStatus = photoStatus
+        self.booksFound = booksFound
+        self.totalBooksFound = totalBooksFound
+        self.photos = photos
+    }
+}
+
+/// Batch complete payload - sent when batch job finishes
+public struct BatchCompletePayload: Codable, Sendable {
+    public let type: String
+    public let totalBooks: Int
+    public let photoResults: [PhotoResult]
+    public let books: [DetectedBookPayload]
+
+    public struct PhotoResult: Codable, Sendable {
+        public let index: Int
+        public let status: String
+        public let booksFound: Int?
+        public let error: String?
+
+        public init(index: Int, status: String, booksFound: Int? = nil, error: String? = nil) {
+            self.index = index
+            self.status = status
+            self.booksFound = booksFound
+            self.error = error
+        }
+    }
+
+    public init(
+        type: String = "batch-complete",
+        totalBooks: Int,
+        photoResults: [PhotoResult],
+        books: [DetectedBookPayload]
+    ) {
+        self.type = type
+        self.totalBooks = totalBooks
+        self.photoResults = photoResults
+        self.books = books
+    }
+}
+
+/// Batch canceling payload - sent when batch job is being canceled
+public struct BatchCancelingPayload: Codable, Sendable {
+    public let type: String
+    public let reason: String?
+
+    public init(type: String = "batch-canceling", reason: String? = nil) {
+        self.type = type
+        self.reason = reason
+    }
 }
 
 // MARK: - AnyCodable Helper

@@ -497,6 +497,11 @@ public struct GeminiCSVImportView: View {
                 case .ping, .pong:
                     // Heartbeat messages, no action needed
                     break
+
+                case .batchInit, .batchProgress, .batchComplete, .batchCanceling:
+                    // Batch scanning messages - ignore in CSV import pipeline
+                    // These should never reach here due to pipeline filtering at line 414
+                    break
                 }
             }
 

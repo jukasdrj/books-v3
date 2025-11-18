@@ -1,0 +1,1990 @@
+openapi: 3.0.3
+info:
+  title: BooksTrack API
+  version: 2.2
+  description: |
+    This OpenAPI specification defines the BooksTrack API, version 2.2.
+    It is derived from and complements the human-readable [API_CONTRACT.md](API_CONTRACT.md) document.
+
+    **Key Highlights (v2.2):**
+    - Complete Hono router migration.
+    - Hono router enabled by default.
+    - New endpoints: `/v1/scan/results/{jobId}`, `/v1/csv/results/{jobId}`, `POST /api/batch-scan`.
+    - Enhanced WebSocket API with reconnection support and batch scanning messages.
+    - Input validation limits for DoS prevention.
+    - Function-based CORS policy (see `API_CONTRACT.md` Section 2.1 for details on allowed origins).
+
+    **Important Notes:**
+    - All `/v1/*` HTTP endpoints use a consistent `ResponseEnvelope` format.
+    - WebSocket connections are initiated via a conceptual HTTP GET to `/ws/progress` and then upgrade. The WebSocket message types are defined in `components/schemas`.
+    - Rate limiting is enforced per IP address, with specific limits for certain endpoints.
+    - Tokens for WebSocket connections are automatically refreshed for active connections within 30 minutes of expiration.
+  contact:
+    email: api-support@oooefam.net
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://api.oooefam.net
+    description: Production environment
+  - url: https://staging-api.oooefam.net
+    description: Staging environment
+  - url: http://localhost:8787
+    description: Local Development environment
+
+paths:
+  /health:
+    get:
+      summary: Check API Health
+      operationId: getHealth
+      tags:
+        - Monitoring
+      description: Returns a simple status indicating the API's operational health.
+      responses:
+        '200':
+          description: API is healthy.
+          headers:
+            X-Router:
+              description: Indicates which router handled the request.
+              schema:
+                type: string
+                enum: [hono]
+            X-Response-Time:
+              description: Processing time in milliseconds (Hono router only).
+              schema:
+                type: string
+            Access-Control-Allow-Origin:
+              description: Dynamic CORS origin header based on request origin.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /metrics:
+    get:
+      summary: Retrieve API Metrics
+      operationId: getMetrics
+      tags:
+        - Monitoring
+      description: Returns raw metrics data, typically in a format like Prometheus exposition format.
+      responses:
+        '200':
+          description: Metrics data.
+          headers:
+            X-Router:
+              description: Indicates which router handled the request.
+              schema:
+                type: string
+                enum: [hono]
+            X-Response-Time:
+              description: Processing time in milliseconds (Hono router only).
+              schema:
+                type: string
+            Access-Control-Allow-Origin:
+              description: Dynamic CORS origin header based on request origin.
+              schema:
+                type: string
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |
+                  # HELP http_requests_total Total number of HTTP requests.
+                  # TYPE http_requests_total counter
+                  http_requests_total{method="GET",path="/health"} 100
+                  http_requests_total{method="GET",path="/v1/search/isbn"} 250
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /v1/search/isbn:
+    get:
+      summary: Search Books by ISBN
+      operationId: searchBooksByIsbn
+      tags:
+        - Book Search
+      description: Search for books using a 10-digit or 13-digit ISBN. Hyphens are optional.
+      parameters:
+        - $ref: '#/components/parameters/isbnQueryParam'
+      responses:
+        '200':
+          description: Book search results. Returns empty arrays if no book is found.
+          headers:
+            X-Router:
+              description: Indicates which router handled the request.
+              schema:
+                type: string
+                enum: [hono]
+            X-Response-Time:
+              description: Processing time in milliseconds (Hono router only).
+              schema:
+                type: string
+            Access-Control-Allow-Origin:
+              description: Dynamic CORS origin header based on request origin.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookSearchResponseEnvelope'
+              examples:
+                successExample:
+                  value:
+                    data:
+                      works:
+                        - title: Harry Potter and the Sorcerer's Stone
+                          subjectTags: [fantasy, young-adult, magic]
+                          firstPublicationYear: 1997
+                          coverImageURL: https://covers.openlibrary.org/b/id/12345-L.jpg
+                          synthetic: false
+                          primaryProvider: google-books
+                          goodreadsWorkIDs: [1234567]
+                          amazonASINs: [B000ABC123]
+                          isbndbQuality: 85
+                          reviewStatus: verified
+                      editions:
+                        - isbn: '9780439708180'
+                          isbns: ['9780439708180', '0439708184']
+                          title: Harry Potter and the Sorcerer's Stone
+                          publisher: Scholastic
+                          publicationDate: '1998-09-01'
+                          pageCount: 309
+                          format: Paperback
+                          coverImageURL: https://...
+                          amazonASINs: [B000ABC123]
+                          isbndbQuality: 85
+                      authors:
+                        - name: J.K. Rowling
+                          gender: Female
+                          culturalRegion: Europe
+                          nationality: United Kingdom
+                          birthYear: 1965
+                    metadata:
+                      timestamp: '2025-11-15T20:00:00.000Z'
+                      processingTime: 145
+                      provider: google-books
+                      cached: false
+                notFoundExample:
+                  value:
+                    data:
+                      works: []
+                      editions: []
+                      authors: []
+                    metadata:
+                      timestamp: '2025-11-15T20:00:00.000Z'
+                      processingTime: 89
+                      provider: none
+                      cached: false
+        '400':
+          description: Invalid ISBN format.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                invalidIsbn:
+                  value:
+                    data: null
+                    metadata:
+                      timestamp: '2025-11-15T20:00:00.000Z'
+                    error:
+                      message: Invalid ISBN format. Must be valid ISBN-10 or ISBN-13
+                      code: INVALID_ISBN
+                      details:
+                        isbn: '123'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        default:
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/search/title:
+    get:
+      summary: Search Books by Title
+      operationId: searchBooksByTitle
+      tags:
+        - Book Search
+      description: Search for books by title using fuzzy matching. Returns up to 20 results.
+      parameters:
+        - name: q
+          in: query
+          description: Search query for the book title. Minimum 2 characters.
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 200 # Input validation limit from API_CONTRACT.md
+          example: great gatsby
+      responses:
+        '200':
+          description: Book search results.
+          headers:
+            X-Router:
+              description: Indicates which router handled the request.
+              schema:
+                type: string
+                enum: [hono]
+            X-Response-Time:
+              description: Processing time in milliseconds (Hono router only).
+              schema:
+                type: string
+            Access-Control-Allow-Origin:
+              description: Dynamic CORS origin header based on request origin.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookSearchResponseEnvelope'
+        '400':
+          description: Invalid query parameter.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                invalidQuery:
+                  value:
+                    data: null
+                    metadata:
+                      timestamp: '2025-11-15T20:00:00.000Z'
+                    error:
+                      message: Missing or invalid query parameter 'q'.
+                      code: INVALID_QUERY
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        default:
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/search/advanced:
+    get:
+      summary: Advanced Book Search
+      operationId: advancedBookSearch
+      tags:
+        - Book Search
+      description: Perform an advanced search by title and/or author. At least one parameter is required. Returns up to 20 results.
+      parameters:
+        - name: title
+          in: query
+          description: Title search query.
+          required: false
+          schema:
+            type: string
+            maxLength: 200 # Input validation limit from API_CONTRACT.md
+          example: gatsby
+        - name: author
+          in: query
+          description: Author search query.
+          required: false
+          schema:
+            type: string
+            maxLength: 200 # Input validation limit from API_CONTRACT.md
+          example: fitzgerald
+      responses:
+        '200':
+          description: Advanced book search results.
+          headers:
+            X-Router:
+              description: Indicates which router handled the request.
+              schema:
+                type: string
+                enum: [hono]
+            X-Response-Time:
+              description: Processing time in milliseconds (Hono router only).
+              schema:
+                type: string
+            Access-Control-Allow-Origin:
+              description: Dynamic CORS origin header based on request origin.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookSearchResponseEnvelope'
+        '400':
+          description: Missing required query parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                missingParams:
+                  value:
+                    data: null
+                    metadata:
+                      timestamp: '2025-11-15T20:00:00.000Z'
+                    error:
+                      message: At least one of 'title' or 'author' is required.
+                      code: INVALID_QUERY
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        default:
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/scan/results/{jobId}:
+    get:
+      summary: Retrieve AI Scan Results
+      operationId: getScanResults
+      tags:
+        - Results Retrieval
+      description: Retrieve the full results of an AI book scan job after WebSocket completion. Results are stored for 24 hours.
+      parameters:
+        - $ref: '#/components/parameters/jobIdPathParam'
+      responses:
+        '200':
+          description: AI scan results.
+          headers:
+            X-Router:
+              description: Indicates which router handled the request.
+              schema:
+                type: string
+                enum: [hono]
+            X-Response-Time:
+              description: Processing time in milliseconds (Hono router only).
+              schema:
+                type: string
+            Access-Control-Allow-Origin:
+              description: Dynamic CORS origin header based on request origin.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanResultsResponseEnvelope'
+              examples:
+                successExample:
+                  value:
+                    data:
+                      totalDetected: 25
+                      approved: 20
+                      needsReview: 5
+                      books:
+                        - title: The Great Gatsby
+                          author: F. Scott Fitzgerald
+                          isbn: '9780743273565'
+                          confidence: 0.95
+                          boundingBox:
+                            x: 0.12
+                            y: 0.34
+                            width: 0.08
+                            height: 0.25
+                          enrichmentStatus: success
+                          enrichment:
+                            status: success
+                            work:
+                              title: The Great Gatsby
+                              subjectTags: [fiction, classics]
+                              goodreadsWorkIDs: []
+                              amazonASINs: []
+                              librarythingIDs: []
+                              googleBooksVolumeIDs: []
+                              isbndbQuality: 90
+                              reviewStatus: verified
+                            editions:
+                              - isbns: ['9780743273565']
+                                format: Paperback
+                                amazonASINs: []
+                                googleBooksVolumeIDs: []
+                                librarythingIDs: []
+                                isbndbQuality: 90
+                            authors:
+                              - name: F. Scott Fitzgerald
+                                gender: Male
+                                culturalRegion: North America
+                                nationality: United States
+                                birthYear: 1896
+                      metadata:
+                        modelUsed: gemini-2.0-flash-exp
+                        processingTime: 8500
+                        timestamp: 1700000000000
+                    metadata:
+                      timestamp: '2025-11-15T20:00:00.000Z'
+                      processingTime: 12
+                      cached: true
+                      provider: kv_cache
+        '404':
+          description: Scan results not found or expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                notFound:
+                  value:
+                    data: null
+                    metadata:
+                      timestamp: '2025-11-15T20:00:00.000Z'
+                    error:
+                      message: Scan results not found or expired. Results are stored for 24 hours after job completion.
+                      code: NOT_FOUND
+                      details:
+                        jobId: uuid-12345
+                        resultsKey: scan-results:uuid-12345
+                        ttl: 24 hours
+        default:
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/csv/results/{jobId}:
+    get:
+      summary: Retrieve CSV Import Results
+      operationId: getCsvResults
+      tags:
+        - Results Retrieval
+      description: Retrieve the full results of a CSV import job after WebSocket completion. Results are stored for 24 hours.
+      parameters:
+        - $ref: '#/components/parameters/jobIdPathParam'
+      responses:
+        '200':
+          description: CSV import results.
+          headers:
+            X-Router:
+              description: Indicates which router handled the request.
+              schema:
+                type: string
+                enum: [hono]
+            X-Response-Time:
+              description: Processing time in milliseconds (Hono router only).
+              schema:
+                type: string
+            Access-Control-Allow-Origin:
+              description: Dynamic CORS origin header based on request origin.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CsvResultsResponseEnvelope'
+              examples:
+                successExample:
+                  value:
+                    data:
+                      books:
+                        - title: '1984'
+                          author: George Orwell
+                          isbn: '9780451524935'
+                      errors: []
+                      successRate: '98/100'
+                      timestamp: 1700000000000
+                    metadata:
+                      timestamp: '2025-11-15T20:00:00.000Z'
+                      processingTime: 8
+                      cached: true
+                      provider: kv_cache
+        '404':
+          description: CSV results not found or expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                notFound:
+                  value:
+                    data: null
+                    metadata:
+                      timestamp: '2025-11-15T20:00:00.000Z'
+                    error:
+                      message: Scan results not found or expired. Results are stored for 24 hours after job completion.
+                      code: NOT_FOUND
+                      details:
+                        jobId: uuid-67890
+                        resultsKey: csv-results:uuid-67890
+                        ttl: 24 hours
+        default:
+          $ref: '#/components/responses/InternalServerError'
+
+  /ws/progress:
+    get:
+      summary: Establish WebSocket Connection for Job Progress
+      operationId: connectWebSocket
+      tags:
+        - WebSocket
+      security:
+        - WebSocketTokenAuth: []
+      description: |
+        Initiates a WebSocket connection for real-time progress updates for long-running jobs (AI scan, CSV import, batch enrichment).
+        This endpoint conceptually represents the HTTP handshake that upgrades to a WebSocket.
+
+        **WebSocket URL Pattern:**
+        `wss://api.oooefam.net/ws/progress?jobId={jobId}&token={token}&reconnect={true/false}`
+
+        **Authentication:**
+        Requires `jobId` and `token` obtained from the initial `POST` request (e.g., `/api/batch-scan`).
+
+        **Reconnection:**
+        Clients should add `reconnect=true` query parameter when attempting to re-establish a connection after a disconnect to sync job state.
+
+        **Message Format (Universal Envelope):**
+        All WebSocket messages adhere to the `WebSocketMessageEnvelope` schema defined in `components/schemas`.
+
+        **Key Message Types (Server to Client):**
+        - `ready_ack`: Acknowledges client's `ready` signal.
+        - `job_started`: Job has begun processing.
+        - `job_progress`: Periodic updates on job progress.
+        - `job_complete`: Job finished (summary only, fetch full results via HTTP GET).
+        - `error`: Job failed.
+        - `reconnected`: Sent upon successful reconnection with current job state.
+        - `batch-init`: Batch photo scan initialized.
+        - `batch-progress`: Progress for individual photos in a batch.
+        - `batch-complete`: All photos in batch processed (includes full results).
+        - `batch-canceling`: Batch cancellation in progress.
+
+        **Client Actions:**
+        1.  After connecting, client **MUST** send a `ReadyMessage` (`{"type": "ready"}`) to acknowledge readiness.
+        2.  Server responds with `ready_ack` to confirm the client is registered.
+        3.  After receiving `job_complete`, client **MUST** fetch full results via the provided `resultsUrl` (e.g., `GET /v1/scan/results/{jobId}`).
+        4.  Implement reconnection logic with exponential backoff and `reconnect=true` query parameter.
+
+        **Close Codes:**
+        - `1000 NORMAL_CLOSURE`: Job completed successfully.
+        - `1001 GOING_AWAY`: Server shutting down (retry after 5s).
+        - `1008 POLICY_VIOLATION`: Invalid token/auth failure (re-authenticate).
+        - `1011 INTERNAL_ERROR`: Server error (retry with exponential backoff).
+      parameters:
+        - $ref: '#/components/parameters/jobIdQueryParam'
+        - $ref: '#/components/parameters/tokenQueryParam'
+        - name: reconnect
+          in: query
+          description: Set to `true` when reconnecting to sync job state.
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '101':
+          description: Switching Protocols (WebSocket upgrade successful).
+        '400':
+          description: Invalid `jobId` or `token`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Unauthorized - invalid or expired token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                policyViolation:
+                  value:
+                    data: null
+                    metadata:
+                      timestamp: '2025-11-15T20:00:00.000Z'
+                    error:
+                      message: Invalid or expired WebSocket token.
+                      code: POLICY_VIOLATION
+        default:
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/enrichment/batch:
+    post:
+      summary: Start Batch Enrichment Job
+      operationId: startBatchEnrichment
+      tags:
+        - Batch Jobs
+      description: Initiates a background job to enrich a batch of books based on provided identifiers (e.g., ISBNs). Progress is communicated via WebSocket.
+      requestBody:
+        description: List of book identifiers to enrich.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  description: An array of book identifiers (e.g., ISBNs or titles).
+                  items:
+                    type: string # Assuming simple string identifiers for now.
+                  minItems: 1
+                  maxItems: 100 # Arbitrary limit, adjust based on backend capabilities
+              example:
+                items:
+                  - '9780439708180'
+                  - 'The Great Gatsby'
+      responses:
+        '202':
+          description: Batch enrichment job accepted. Returns a `jobId` and `token` for WebSocket connection.
+          headers:
+            X-Router:
+              description: Indicates which router handled the request.
+              schema:
+                type: string
+                enum: [hono]
+            X-Response-Time:
+              description: Processing time in milliseconds (Hono router only).
+              schema:
+                type: string
+            Access-Control-Allow-Origin:
+              description: Dynamic CORS origin header based on request origin.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobInitResponseEnvelope'
+              examples:
+                accepted:
+                  value:
+                    data:
+                      jobId: uuid-12345
+                      token: auth-token-67890
+                    metadata:
+                      timestamp: '2025-11-16T12:00:00.000Z'
+        '400':
+          description: Invalid request body or parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        default:
+          $ref: '#/components/responses/InternalServerError'
+
+
+  /api/import/csv-gemini:
+    post:
+      summary: Start CSV Import Job
+      operationId: startCsvImport
+      tags:
+        - Batch Jobs
+      description: Initiates a background job to import books from a CSV file. Progress is communicated via WebSocket.
+      requestBody:
+        description: A CSV file containing book data.
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                csvFile:
+                  type: string
+                  format: binary
+                  description: The CSV file to import.
+      responses:
+        '202':
+          description: CSV import job accepted. Returns a `jobId` and `token` for WebSocket connection.
+          headers:
+            X-Router:
+              description: Indicates which router handled the request.
+              schema:
+                type: string
+                enum: [hono]
+            X-Response-Time:
+              description: Processing time in milliseconds (Hono router only).
+              schema:
+                type: string
+            Access-Control-Allow-Origin:
+              description: Dynamic CORS origin header based on request origin.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobInitResponseEnvelope'
+              examples:
+                accepted:
+                  value:
+                    data:
+                      jobId: csv-import-uuid-123
+                      token: csv-import-token-456
+                    metadata:
+                      timestamp: '2025-11-16T12:00:00.000Z'
+        '400':
+          description: Invalid CSV format or file.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        default:
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/batch-scan:
+    post:
+      summary: Start Photo AI Scan Job (Single or Batch)
+      operationId: startPhotoScan
+      tags:
+        - Batch Jobs
+      description: |
+        Initiates a background job to scan one or more photos (1-5) for books using AI.
+        This is the canonical endpoint for all photo scanning operations.
+        Progress for each photo and the overall job is communicated via WebSocket.
+
+        **Single Photo**: Send 1 photo to scan a single bookshelf.
+        **Batch Photos**: Send 2-5 photos to scan multiple bookshelves in one job.
+      requestBody:
+        description: An array of image files to be scanned for books.
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                'photos[]':
+                  type: array
+                  description: An array of image files (JPEG, PNG, HEIC) to scan. Min 1, Max 5 photos. Each photo max 10 MB.
+                  items:
+                    type: string
+                    format: binary
+                  minItems: 1
+                  maxItems: 5
+      responses:
+        '202':
+          description: Batch photo scan job accepted. Returns a `jobId`, `token`, and `totalPhotos` for WebSocket connection.
+          headers:
+            X-Router:
+              description: Indicates which router handled the request.
+              schema:
+                type: string
+                enum: [hono]
+            X-Response-Time:
+              description: Processing time in milliseconds (Hono router only).
+              schema:
+                type: string
+            Access-Control-Allow-Origin:
+              description: Dynamic CORS origin header based on request origin.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchScanJobInitResponseEnvelope'
+              examples:
+                accepted:
+                  value:
+                    data:
+                      jobId: batch-uuid-12345
+                      token: auth-token-67890
+                      totalPhotos: 2
+                    metadata:
+                      timestamp: '2025-11-16T12:00:00.000Z'
+        '400':
+          description: Invalid number of photos, image format, or size.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        default:
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  parameters:
+    jobIdPathParam:
+      name: jobId
+      in: path
+      description: Job identifier from WebSocket completion message. Max 100 characters.
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-zA-Z0-9_-]+$' # Example pattern for UUID-like job IDs
+        maxLength: 100 # Input validation limit from API_CONTRACT.md
+      example: uuid-12345
+    jobIdQueryParam:
+      name: jobId
+      in: query
+      description: Job identifier for WebSocket connection. Max 100 characters.
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-zA-Z0-9_-]+$'
+        maxLength: 100
+      example: uuid-12345
+    tokenQueryParam:
+      name: token
+      in: query
+      description: Authentication token for WebSocket connection.
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-zA-Z0-9._-]+$' # Example pattern for JWT-like tokens
+      example: auth-token-67890
+    isbnQueryParam:
+      name: isbn
+      in: query
+      description: ISBN-10 or ISBN-13 (hyphens optional).
+      required: true
+      schema:
+        type: string
+        pattern: '^(?:ISBN(?:-13)?:?)(?=[0-9]{13}$)([0-9]{3}-){2}[0-9]{3}[0-9X]$|^(?:ISBN(?:-10)?:?)(?=[0-9]{10}$|(?=[0-9]{9}X$))(?=[0-9]{9}[0-9X]$)[0-9]{9}[0-9X]$'
+      example: '9780439708180'
+
+  responses:
+    RateLimitExceeded:
+      description: Too many requests.
+      headers:
+        X-RateLimit-Limit:
+          description: The maximum number of requests allowed in the current rate limit window.
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          description: The number of requests remaining in the current rate limit window.
+          schema:
+            type: integer
+        X-RateLimit-Reset:
+          description: The time at which the current rate limit window resets in Unix epoch seconds.
+          schema:
+            type: integer
+        Retry-After:
+          description: The number of seconds to wait before making another request.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+          examples:
+            rateLimit:
+              value:
+                data: null
+                metadata:
+                  timestamp: '2025-11-15T20:00:00Z'
+                error:
+                  message: 'Rate limit exceeded. Try again in 45 seconds.'
+                  code: RATE_LIMIT_EXCEEDED
+                  details:
+                    retryAfter: 45
+                    limit: 100
+                    window: 1 minute
+    InternalServerError:
+      description: Internal Server Error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+          examples:
+            internalError:
+              value:
+                data: null
+                metadata:
+                  timestamp: '2025-11-15T20:00:00.000Z'
+                error:
+                  message: An unexpected server error occurred.
+                  code: INTERNAL_ERROR
+
+  schemas:
+    # --- Universal Response Envelopes ---
+    SuccessEnvelope:
+      type: object
+      properties:
+        data:
+          description: The payload of the response. Can be null.
+          nullable: true
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+      required:
+        - data
+        - metadata
+    ErrorEnvelope:
+      type: object
+      properties:
+        data:
+          type: 'null'
+          description: Always null for error responses.
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        error:
+          $ref: '#/components/schemas/Error'
+      required:
+        - data
+        - metadata
+        - error
+    Metadata:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 UTC timestamp.
+          example: '2025-11-15T20:00:00.000Z'
+        processingTime:
+          type: number
+          format: int32
+          description: Processing time in milliseconds.
+          nullable: true
+          example: 145
+        provider:
+          $ref: '#/components/schemas/DataProvider'
+          description: The primary data provider for the response.
+          nullable: true
+        cached:
+          type: boolean
+          description: True if the response was served from cache.
+          nullable: true
+          example: false
+      required:
+        - timestamp
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Human-readable error message.
+          example: Book not found for ISBN 9780000000000
+        code:
+          type: string
+          description: Machine-readable error code.
+          enum:
+            - INVALID_ISBN
+            - INVALID_QUERY
+            - INVALID_REQUEST
+            - NOT_FOUND
+            - RATE_LIMIT_EXCEEDED
+            - PROVIDER_TIMEOUT
+            - PROVIDER_ERROR
+            - INTERNAL_ERROR
+            - POLICY_VIOLATION # Added for WebSocket auth errors
+            - BATCH_SCAN_ERROR # Added for batch scan specific errors
+          nullable: true
+          example: NOT_FOUND
+        details:
+          type: object
+          description: Optional context or specific details about the error.
+          nullable: true
+          example:
+            isbn: '9780000000000'
+            providersSearched: ['google-books', 'openlibrary', 'isbndb']
+      required:
+        - message
+
+    # --- Specific Error Details Schemas (used in Error.details) ---
+    ErrorDetailsRateLimit:
+      type: object
+      properties:
+        retryAfter:
+          type: integer
+          description: Seconds to wait before retrying.
+        limit:
+          type: integer
+          description: The rate limit that was exceeded.
+        window:
+          type: string
+          description: The time window for the rate limit (e.g., "1 minute").
+      required:
+        - retryAfter
+        - limit
+        - window
+    ErrorDetailsNotFound:
+      type: object
+      properties:
+        jobId:
+          type: string
+          description: The job ID that was not found.
+        resultsKey:
+          type: string
+          description: The KV key used to store results.
+        ttl:
+          type: string
+          description: Time-to-live for the results.
+      required:
+        - jobId
+        - resultsKey
+        - ttl
+    ErrorDetailsISBN:
+      type: object
+      properties:
+        isbn:
+          type: string
+          description: The invalid ISBN provided.
+      required:
+        - isbn
+
+    # --- DTOs ---
+    BoundingBox:
+      type: object
+      description: Normalized coordinates of a bounding box (0.0-1.0).
+      properties:
+        x:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.12
+        y:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.34
+        width:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.08
+        height:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.25
+      required:
+        - x
+        - y
+        - width
+        - height
+    WorkDTO:
+      type: object
+      description: Represents the abstract concept of a book (e.g., "The Great Gatsby" as a work).
+      properties:
+        title:
+          type: string
+          example: The Great Gatsby
+        subjectTags:
+          type: array
+          items:
+            type: string
+          example: [fantasy, young-adult, magic]
+        goodreadsWorkIDs:
+          type: array
+          items:
+            type: string
+          example: [1234567]
+        amazonASINs:
+          type: array
+          items:
+            type: string
+          example: [B000ABC123]
+        librarythingIDs:
+          type: array
+          items:
+            type: string
+          example: []
+        googleBooksVolumeIDs:
+          type: array
+          items:
+            type: string
+          example: []
+        isbndbQuality:
+          type: number
+          format: int32
+          minimum: 0
+          maximum: 100
+          example: 85
+        reviewStatus:
+          $ref: '#/components/schemas/ReviewStatus'
+        originalLanguage:
+          type: string
+          description: ISO 639-1 code (e.g., "en", "fr").
+          nullable: true
+          example: en
+        firstPublicationYear:
+          type: number
+          format: int32
+          description: Year only (e.g., 1925).
+          nullable: true
+          example: 1925
+        description:
+          type: string
+          description: Synopsis of the work.
+          nullable: true
+          example: A classic novel about the American Dream.
+        coverImageURL:
+          type: string
+          format: uri
+          description: High-res cover image URL (1200px width recommended).
+          nullable: true
+          example: https://covers.openlibrary.org/b/id/12345-L.jpg
+        synthetic:
+          type: boolean
+          description: True if Work was inferred from an Edition.
+          nullable: true
+          example: false
+        primaryProvider:
+          $ref: '#/components/schemas/DataProvider'
+          description: The primary data provider for this work.
+          nullable: true
+        contributors:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataProvider'
+          description: All providers that contributed data.
+          nullable: true
+        openLibraryID:
+          type: string
+          description: Legacy OpenLibrary Work ID (e.g., "OL12345W").
+          nullable: true
+        openLibraryWorkID:
+          type: string
+          description: Alias for openLibraryID.
+          nullable: true
+        isbndbID:
+          type: string
+          nullable: true
+        googleBooksVolumeID:
+          type: string
+          description: Legacy Google Books Volume ID (e.g., "abc123XYZ").
+          nullable: true
+        goodreadsID:
+          type: string
+          description: Deprecated. Use `goodreadsWorkIDs[]` instead.
+          nullable: true
+        lastISBNDBSync:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of last ISBNdb sync.
+          nullable: true
+        originalImagePath:
+          type: string
+          description: Source image path for AI-detected books.
+          nullable: true
+        boundingBox:
+          $ref: '#/components/schemas/BoundingBox'
+          description: Book location in image (for AI-detected books).
+          nullable: true
+      required:
+        - title
+        - subjectTags
+        - goodreadsWorkIDs
+        - amazonASINs
+        - librarythingIDs
+        - googleBooksVolumeIDs
+        - isbndbQuality
+        - reviewStatus
+    EditionDTO:
+      type: object
+      description: Represents a specific publication of a work (e.g., "The Great Gatsby" 1925 Scribner hardcover edition).
+      properties:
+        isbns:
+          type: array
+          items:
+            type: string
+          description: All ISBNs associated with this edition.
+          example: ['9780439708180', '0439708184']
+        format:
+          $ref: '#/components/schemas/EditionFormat'
+        amazonASINs:
+          type: array
+          items:
+            type: string
+          example: [B000ABC123]
+        googleBooksVolumeIDs:
+          type: array
+          items:
+            type: string
+          example: []
+        librarythingIDs:
+          type: array
+          items:
+            type: string
+          example: []
+        isbndbQuality:
+          type: number
+          format: int32
+          minimum: 0
+          maximum: 100
+          example: 85
+        isbn:
+          type: string
+          description: Primary ISBN (first from `isbns` array).
+          nullable: true
+          example: '9780439708180'
+        title:
+          type: string
+          nullable: true
+          example: Harry Potter and the Sorcerer's Stone
+        publisher:
+          type: string
+          nullable: true
+          example: Scholastic
+        publicationDate:
+          type: string
+          description: YYYY-MM-DD or YYYY.
+          nullable: true
+          example: '1998-09-01'
+        pageCount:
+          type: number
+          format: int32
+          nullable: true
+          example: 309
+        coverImageURL:
+          type: string
+          format: uri
+          nullable: true
+          example: https://covers.openlibrary.org/b/id/12345-M.jpg
+        editionTitle:
+          type: string
+          description: e.g., "Deluxe Illustrated Edition".
+          nullable: true
+        editionDescription:
+          type: string
+          description: Note: NOT 'description' (Swift reserved). Synopsis of the edition.
+          nullable: true
+        language:
+          type: string
+          description: ISO 639-1 code.
+          nullable: true
+          example: en
+        primaryProvider:
+          $ref: '#/components/schemas/DataProvider'
+          nullable: true
+        contributors:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataProvider'
+          nullable: true
+        openLibraryID:
+          type: string
+          nullable: true
+        openLibraryEditionID:
+          type: string
+          nullable: true
+        isbndbID:
+          type: string
+          nullable: true
+        googleBooksVolumeID:
+          type: string
+          description: Deprecated. Use `googleBooksVolumeIDs[]`.
+          nullable: true
+        goodreadsID:
+          type: string
+          nullable: true
+        lastISBNDBSync:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of last ISBNdb sync.
+          nullable: true
+      required:
+        - isbns
+        - format
+        - amazonASINs
+        - googleBooksVolumeIDs
+        - librarythingIDs
+        - isbndbQuality
+    AuthorDTO:
+      type: object
+      description: Represents a creator of works.
+      properties:
+        name:
+          type: string
+          example: J.K. Rowling
+        gender:
+          $ref: '#/components/schemas/AuthorGender'
+        culturalRegion:
+          $ref: '#/components/schemas/CulturalRegion'
+          description: Enriched via Wikidata.
+          nullable: true
+        nationality:
+          type: string
+          description: e.g., "Nigeria", "United States".
+          nullable: true
+          example: United Kingdom
+        birthYear:
+          type: number
+          format: int32
+          nullable: true
+          example: 1965
+        deathYear:
+          type: number
+          format: int32
+          nullable: true
+        openLibraryID:
+          type: string
+          nullable: true
+        isbndbID:
+          type: string
+          nullable: true
+        googleBooksID:
+          type: string
+          nullable: true
+        goodreadsID:
+          type: string
+          nullable: true
+        bookCount:
+          type: number
+          format: int32
+          description: Total books by this author.
+          nullable: true
+      required:
+        - name
+        - gender
+
+    # --- Enums ---
+    ReviewStatus:
+      type: string
+      enum:
+        - verified
+        - needsReview
+        - userEdited
+    DataProvider:
+      type: string
+      enum:
+        - google-books
+        - openlibrary
+        - isbndb
+        - gemini
+    EditionFormat:
+      type: string
+      enum:
+        - Hardcover
+        - Paperback
+        - E-book
+        - Audiobook
+        - Mass Market
+    AuthorGender:
+      type: string
+      enum:
+        - Female
+        - Male
+        - Non-binary
+        - Other
+        - Unknown
+    CulturalRegion:
+      type: string
+      enum:
+        - Africa
+        - Asia
+        - Europe
+        - North America
+        - South America
+        - Oceania
+        - Middle East
+        - Caribbean
+        - Central Asia
+        - Indigenous
+        - International
+    Pipeline:
+      type: string
+      enum:
+        - batch_enrichment
+        - csv_import
+        - ai_scan
+    MessageType:
+      type: string
+      description: |
+        All WebSocket message types (13 total).
+
+        **Active message types (11)**:
+        - job_started, job_progress, job_complete, error
+        - ready, ready_ack, reconnected
+        - batch-init, batch-progress, batch-complete, batch-canceling
+
+        **Planned for future (2)**: ping, pong (keep-alive functionality)
+      enum:
+        - job_started
+        - job_progress
+        - job_complete
+        - error
+        - ready
+        - ready_ack
+        - reconnected
+        - batch-init
+        - batch-progress
+        - batch-complete
+        - batch-canceling
+        - ping
+        - pong
+
+    # --- Endpoint Specific Payloads ---
+    BookSearchResponse:
+      type: object
+      description: Response structure for book search endpoints.
+      properties:
+        works:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkDTO'
+        editions:
+          type: array
+          items:
+            $ref: '#/components/schemas/EditionDTO'
+        authors:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuthorDTO'
+        totalResults:
+          type: number
+          format: int32
+          description: Reserved for future pagination.
+          nullable: true
+      required:
+        - works
+        - editions
+        - authors
+    BookSearchResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/SuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/BookSearchResponse'
+
+    ScanResultBookEnrichment:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success, failed, pending]
+        work:
+          $ref: '#/components/schemas/WorkDTO'
+          nullable: true
+        editions:
+          type: array
+          items:
+            $ref: '#/components/schemas/EditionDTO'
+        authors:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuthorDTO'
+      required:
+        - status
+        - editions
+        - authors
+    ScanResultBook:
+      type: object
+      properties:
+        title:
+          type: string
+          example: The Great Gatsby
+        author:
+          type: string
+          example: F. Scott Fitzgerald
+        isbn:
+          type: string
+          nullable: true
+          example: '9780743273565'
+        confidence:
+          type: number
+          format: float
+          example: 0.95
+        boundingBox:
+          $ref: '#/components/schemas/BoundingBox'
+        enrichmentStatus:
+          type: string
+          enum: [success, failed, pending]
+          example: success
+        enrichment:
+          $ref: '#/components/schemas/ScanResultBookEnrichment'
+          nullable: true
+      required:
+        - title
+        - author
+        - confidence
+        - boundingBox
+        - enrichmentStatus
+    ScanResultsData:
+      type: object
+      description: Data payload for AI scan results.
+      properties:
+        totalDetected:
+          type: number
+          format: int32
+          example: 25
+        approved:
+          type: number
+          format: int32
+          example: 20
+        needsReview:
+          type: number
+          format: int32
+          example: 5
+        books:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScanResultBook'
+        metadata: # Inner metadata for scan job, distinct from HTTP response metadata
+          type: object
+          properties:
+            modelUsed:
+              type: string
+              example: gemini-2.0-flash-exp
+            processingTime:
+              type: number
+              format: int32
+              example: 8500
+            timestamp:
+              type: number
+              description: Unix timestamp (milliseconds).
+              example: 1700000000000
+          required:
+            - modelUsed
+            - processingTime
+            - timestamp
+      required:
+        - totalDetected
+        - approved
+        - needsReview
+        - books
+        - metadata
+    ScanResultsResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/SuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ScanResultsData'
+
+    CsvResultBook:
+      type: object
+      properties:
+        title:
+          type: string
+          example: '1984'
+        author:
+          type: string
+          example: George Orwell
+        isbn:
+          type: string
+          nullable: true
+          example: '9780451524935'
+      required:
+        - title
+        - author
+    CsvResultsData:
+      type: object
+      description: Data payload for CSV import results.
+      properties:
+        books:
+          type: array
+          items:
+            $ref: '#/components/schemas/CsvResultBook'
+        errors:
+          type: array
+          items:
+            type: object # Specific error object not defined, using generic object
+            description: Details of any errors encountered during import.
+        successRate:
+          type: string
+          example: '98/100'
+        timestamp:
+          type: number
+          description: Unix timestamp (milliseconds).
+          example: 1700000000000
+      required:
+        - books
+        - errors
+        - successRate
+        - timestamp
+    CsvResultsResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/SuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/CsvResultsData'
+
+    JobInitResponse:
+      type: object
+      description: Response for initiating an asynchronous job.
+      properties:
+        jobId:
+          type: string
+          description: Unique identifier for the initiated job.
+          example: uuid-12345
+        token:
+          type: string
+          description: Authentication token for WebSocket progress updates.
+          example: auth-token-67890
+      required:
+        - jobId
+        - token
+    JobInitResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/SuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/JobInitResponse'
+
+    BatchScanJobInitResponse:
+      type: object
+      description: Response for initiating a batch photo scan job.
+      properties:
+        jobId:
+          type: string
+          description: Unique identifier for the initiated job.
+          example: batch-uuid-12345
+        token:
+          type: string
+          description: Authentication token for WebSocket progress updates.
+          example: auth-token-67890
+        totalPhotos:
+          type: number
+          format: int32
+          description: Total number of photos in the batch.
+          minimum: 1
+          maximum: 5
+          example: 2
+      required:
+        - jobId
+        - token
+        - totalPhotos
+    BatchScanJobInitResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/SuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/BatchScanJobInitResponse'
+
+    # --- WebSocket Message Payloads ---
+    WebSocketMessageEnvelope:
+      type: object
+      description: Universal envelope for all WebSocket messages.
+      properties:
+        type:
+          $ref: '#/components/schemas/MessageType'
+        jobId:
+          type: string
+          example: uuid-12345
+        pipeline:
+          $ref: '#/components/schemas/Pipeline'
+        timestamp:
+          type: number
+          description: Unix timestamp (milliseconds).
+          example: 1700000000000
+        version:
+          type: string
+          example: 1.0.0
+        payload:
+          type: object # Can be one of the specific payload types below
+          description: Type-specific data for the message.
+      required:
+        - type
+        - jobId
+        - pipeline
+        - timestamp
+        - version
+        - payload
+
+    JobStartedPayload:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [job_started]
+        totalItems:
+          type: number
+          format: int32
+          example: 10
+        estimatedDuration:
+          type: number
+          format: int32
+          description: Estimated duration in milliseconds.
+          example: 30000
+      required:
+        - type
+        - totalItems
+        - estimatedDuration
+    JobProgressPayload:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [job_progress]
+        progress:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.5
+        status:
+          type: string
+          example: Processing image 5 of 10
+        processedCount:
+          type: number
+          format: int32
+          example: 5
+        currentItem:
+          type: string
+          nullable: true
+          example: IMG_1234.jpg
+      required:
+        - type
+        - progress
+        - status
+        - processedCount
+    JobCompletePayload:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [job_complete]
+        totalDetected:
+          type: number
+          format: int32
+          nullable: true
+          example: 25
+        approved:
+          type: number
+          format: int32
+          nullable: true
+          example: 20
+        needsReview:
+          type: number
+          format: int32
+          nullable: true
+          example: 5
+        resultsUrl:
+          type: string
+          format: uri-reference
+          description: URL to fetch full results via HTTP GET.
+          example: /v1/scan/results/uuid-12345
+        metadata: # Inner metadata for job completion
+          type: object
+          properties:
+            modelUsed:
+              type: string
+              nullable: true
+              example: gemini-2.0-flash-exp
+            processingTime:
+              type: number
+              format: int32
+              nullable: true
+              example: 8500
+          required:
+            - modelUsed
+            - processingTime
+      required:
+        - type
+        - resultsUrl
+    ErrorPayload:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [error]
+        code:
+          type: string
+          example: E_CSV_PROCESSING_FAILED
+        message:
+          type: string
+          example: Invalid CSV format: Missing title column
+        retryable:
+          type: boolean
+          example: true
+        details:
+          type: object
+          nullable: true
+          example:
+            lineNumber: 42
+      required:
+        - type
+        - code
+        - message
+        - retryable
+    ReadyMessage:
+      type: object
+      description: |
+        Client-to-server message sent immediately after WebSocket connection is established.
+        **REQUIRED**: Client MUST send this message to acknowledge readiness before receiving job updates.
+      properties:
+        type:
+          type: string
+          enum: [ready]
+      required:
+        - type
+      example:
+        type: ready
+    ReadyAckPayload:
+      type: object
+      description: Server-to-client acknowledgment of the client's ready message.
+      properties:
+        type:
+          type: string
+          enum: [ready_ack]
+        timestamp:
+          type: number
+          description: Unix timestamp (milliseconds).
+          example: 1700000000000
+      required:
+        - type
+        - timestamp
+    ReconnectedPayload:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [reconnected]
+        progress:
+          type: number
+          format: float
+          example: 0.65
+        status:
+          type: string
+          example: processing
+        processedCount:
+          type: number
+          format: int32
+          example: 65
+        totalCount:
+          type: number
+          format: int32
+          example: 100
+        lastUpdate:
+          type: number
+          description: Unix timestamp (milliseconds) of last update.
+          example: 1700004950000
+        message:
+          type: string
+          example: Reconnected successfully - resuming job progress
+      required:
+        - type
+        - progress
+        - status
+        - processedCount
+        - totalCount
+        - lastUpdate
+        - message
+    BatchInitPayload:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [batch-init]
+        totalPhotos:
+          type: number
+          format: int32
+          example: 3
+        status:
+          type: string
+          enum: [processing, queued]
+          example: processing
+      required:
+        - type
+        - totalPhotos
+        - status
+    BatchProgressPhotoStatus:
+      type: object
+      properties:
+        index:
+          type: number
+          format: int32
+          example: 0
+        status:
+          type: string
+          enum: [queued, processing, complete, error]
+          example: complete
+        booksFound:
+          type: number
+          format: int32
+          example: 13
+        error:
+          type: string
+          description: Error message if photo processing failed.
+          nullable: true
+      required:
+        - index
+        - status
+        - booksFound
+    BatchProgressPayload:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [batch-progress]
+        currentPhoto:
+          type: number
+          format: int32
+          example: 1
+        totalPhotos:
+          type: number
+          format: int32
+          example: 3
+        photoStatus:
+          type: string
+          enum: [queued, processing, complete, error]
+          example: complete
+        booksFound:
+          type: number
+          format: int32
+          description: Books found in the current photo.
+          example: 12
+        totalBooksFound:
+          type: number
+          format: int32
+          description: Total books found across all processed photos.
+          example: 25
+        photos:
+          type: array
+          items:
+            $ref: '#/components/schemas/BatchProgressPhotoStatus'
+      required:
+        - type
+        - currentPhoto
+        - totalPhotos
+        - photoStatus
+        - booksFound
+        - totalBooksFound
+        - photos
+    BatchPhotoResult:
+      type: object
+      properties:
+        photoIndex:
+          type: number
+          format: int32
+          example: 0
+        booksFound:
+          type: number
+          format: int32
+          example: 13
+        status:
+          type: string
+          enum: [success, error]
+          example: success
+      required:
+        - photoIndex
+        - booksFound
+        - status
+    BatchCompletePayload:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [batch-complete]
+        totalBooks:
+          type: number
+          format: int32
+          example: 37
+        photoResults:
+          type: array
+          items:
+            $ref: '#/components/schemas/BatchPhotoResult'
+        books:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScanResultBook' # Reusing ScanResultBook for batch complete books
+      required:
+        - type
+        - totalBooks
+        - photoResults
+        - books
+    BatchCancelingPayload:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [batch-canceling]
+      required:
+        - type
+
+  securitySchemes:
+    WebSocketTokenAuth:
+      type: apiKey
+      in: query
+      name: token
+      description: |
+        JWT-like authentication token for WebSocket connections.
+        Obtained from the initial POST request (e.g., /api/batch-scan, /v1/enrichment/batch).
+        Token lifecycle: Valid for job duration, auto-refreshed within 30 minutes of expiration for active connections.
+
+security:
+  - WebSocketTokenAuth: []

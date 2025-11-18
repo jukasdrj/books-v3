@@ -233,11 +233,10 @@ struct DTOTests {
 
     // MARK: - Response Envelope Tests
 
-    @Test("ApiResponse decodes success envelope with BookSearchResponse")
-    func apiResponseSuccessDecoding() throws {
+    @Test("ResponseEnvelope decodes success envelope with BookSearchResponse")
+    func responseEnvelopeSuccessDecoding() throws {
         let json = """
         {
-            "success": true,
             "data": {
                 "works": [{
                     "title": "1984",
@@ -254,8 +253,8 @@ struct DTOTests {
                     "gender": "Male"
                 }]
             },
-            "meta": {
-                "timestamp": "2025-10-30T12:00:00Z",
+            "metadata": {
+                "timestamp": "2025-11-18T12:00:00Z",
                 "processingTime": 123,
                 "provider": "google-books",
                 "cached": false
@@ -264,48 +263,51 @@ struct DTOTests {
         """
 
         let data = json.data(using: .utf8)!
-        let response = try JSONDecoder().decode(ApiResponse<BookSearchResponse>.self, from: data)
+        let response = try JSONDecoder().decode(ResponseEnvelope<BookSearchResponse>.self, from: data)
 
-        guard case .success(let searchResponse, let meta) = response else {
-            Issue.record("Expected success response")
+        guard let searchResponse = response.data else {
+            Issue.record("Expected data in response")
             return
         }
+
+        let metadata = response.metadata
 
         #expect(searchResponse.works.count == 1)
         #expect(searchResponse.works[0].title == "1984")
         #expect(searchResponse.authors.count == 1)
         #expect(searchResponse.authors[0].name == "George Orwell")
-        #expect(meta.processingTime == 123)
-        #expect(meta.provider == "google-books")
+        #expect(metadata.processingTime == 123)
+        #expect(metadata.provider == "google-books")
     }
 
-    @Test("ApiResponse decodes error envelope")
-    func apiResponseErrorDecoding() throws {
+    @Test("ResponseEnvelope decodes error envelope")
+    func responseEnvelopeErrorDecoding() throws {
         let json = """
         {
-            "success": false,
+            "data": null,
             "error": {
                 "message": "Invalid ISBN format",
-                "code": "INVALID_ISBN",
-                "details": {"isbn": "abc"}
+                "code": "INVALID_ISBN"
             },
-            "meta": {
-                "timestamp": "2025-10-30T12:00:00Z",
+            "metadata": {
+                "timestamp": "2025-11-18T12:00:00Z",
                 "processingTime": 5
             }
         }
         """
 
         let data = json.data(using: .utf8)!
-        let response = try JSONDecoder().decode(ApiResponse<BookSearchResponse>.self, from: data)
+        let response = try JSONDecoder().decode(ResponseEnvelope<BookSearchResponse>.self, from: data)
 
-        guard case .failure(let error, let meta) = response else {
-            Issue.record("Expected error response")
+        guard let error = response.error else {
+            Issue.record("Expected error in response")
             return
         }
 
+        let metadata = response.metadata
+
         #expect(error.message == "Invalid ISBN format")
-        #expect(error.code == .invalidISBN)
-        #expect(meta.processingTime == 5)
+        #expect(error.code == "INVALID_ISBN")
+        #expect(metadata.processingTime == 5)
     }
 }

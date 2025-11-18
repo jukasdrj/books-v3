@@ -10,7 +10,7 @@ import Testing
 import Foundation
 @testable import BooksTrackerFeature
 
-// MARK: - ApiResponse Decoding Tests
+// MARK: - ResponseEnvelope Decoding Tests
 
 @Suite("Canonical API Response Parsing")
 struct CanonicalAPIResponseTests {
@@ -21,7 +21,6 @@ struct CanonicalAPIResponseTests {
     func testDecodeSuccessfulBookSearchResponse() throws {
         let json = """
         {
-          "success": true,
           "data": {
             "works": [
               {
@@ -57,7 +56,7 @@ struct CanonicalAPIResponseTests {
             ],
             "totalResults": 1
           },
-          "meta": {
+          "metadata": {
             "timestamp": "2025-10-30T12:00:00Z",
             "processingTime": 123,
             "provider": "google-books",
@@ -69,13 +68,15 @@ struct CanonicalAPIResponseTests {
         let data = json.data(using: .utf8)!
         let decoder = JSONDecoder()
 
-        let envelope = try decoder.decode(ApiResponse<BookSearchResponse>.self, from: data)
+        let envelope = try decoder.decode(ResponseEnvelope<BookSearchResponse>.self, from: data)
 
         // Verify success case
-        guard case .success(let searchResponse, let meta) = envelope else {
-            Issue.record("Expected success case, got failure")
+        guard let searchResponse = envelope.data else {
+            Issue.record("Expected data in envelope, got nil")
             return
         }
+
+        let metadata = envelope.metadata
 
         // Verify works array
         #expect(searchResponse.works.count == 1)
@@ -92,22 +93,21 @@ struct CanonicalAPIResponseTests {
         #expect(searchResponse.authors[0].name == "George Orwell")
 
         // Verify metadata
-        #expect(meta.provider == "google-books")
-        #expect(meta.cached == false)
-        #expect(meta.processingTime == 123)
+        #expect(metadata.provider == "google-books")
+        #expect(metadata.cached == false)
+        #expect(metadata.processingTime == 123)
     }
 
-    @Test("Decode failure ApiResponse")
+    @Test("Decode failure ResponseEnvelope")
     func testDecodeFailureResponse() throws {
         let json = """
         {
-          "success": false,
+          "data": null,
           "error": {
             "message": "Book not found",
-            "code": "NOT_FOUND",
-            "details": null
+            "code": "NOT_FOUND"
           },
-          "meta": {
+          "metadata": {
             "timestamp": "2025-10-30T12:00:00Z",
             "processingTime": 45,
             "provider": "google-books",
@@ -119,17 +119,19 @@ struct CanonicalAPIResponseTests {
         let data = json.data(using: .utf8)!
         let decoder = JSONDecoder()
 
-        let envelope = try decoder.decode(ApiResponse<BookSearchResponse>.self, from: data)
+        let envelope = try decoder.decode(ResponseEnvelope<BookSearchResponse>.self, from: data)
 
         // Verify failure case
-        guard case .failure(let error, let meta) = envelope else {
-            Issue.record("Expected failure case, got success")
+        guard let error = envelope.error else {
+            Issue.record("Expected error in envelope, got nil")
             return
         }
 
+        let metadata = envelope.metadata
+
         #expect(error.message == "Book not found")
-        #expect(error.code == .notFound)
-        #expect(meta.processingTime == 45)
+        #expect(error.code == "NOT_FOUND")
+        #expect(metadata.processingTime == 45)
     }
 
     // MARK: - WorkDTO Validation Tests
@@ -203,13 +205,12 @@ struct CanonicalAPIResponseTests {
     func testEmptyWorksArray() throws {
         let json = """
         {
-          "success": true,
           "data": {
             "works": [],
             "authors": [],
             "totalResults": 0
           },
-          "meta": {
+          "metadata": {
             "timestamp": "2025-10-30T12:00:00Z",
             "processingTime": 10,
             "provider": "google-books",
@@ -221,10 +222,10 @@ struct CanonicalAPIResponseTests {
         let data = json.data(using: .utf8)!
         let decoder = JSONDecoder()
 
-        let envelope = try decoder.decode(ApiResponse<BookSearchResponse>.self, from: data)
+        let envelope = try decoder.decode(ResponseEnvelope<BookSearchResponse>.self, from: data)
 
-        guard case .success(let searchResponse, _) = envelope else {
-            Issue.record("Expected success case")
+        guard let searchResponse = envelope.data else {
+            Issue.record("Expected data in envelope")
             return
         }
 
@@ -237,7 +238,6 @@ struct CanonicalAPIResponseTests {
     func testMalformedJSON() {
         let json = """
         {
-          "success": true,
           "data": {
             "works": [
         """
@@ -246,18 +246,18 @@ struct CanonicalAPIResponseTests {
         let decoder = JSONDecoder()
 
         #expect(throws: Error.self) {
-            try decoder.decode(ApiResponse<BookSearchResponse>.self, from: data)
+            try decoder.decode(ResponseEnvelope<BookSearchResponse>.self, from: data)
         }
     }
 
-    @Test("Missing required fields throws error")
+    @Test("Missing required metadata field throws error")
     func testMissingRequiredFields() {
-        // Missing 'data' field in success case
+        // Missing 'metadata' field
         let json = """
         {
-          "success": true,
-          "meta": {
-            "timestamp": "2025-10-30T12:00:00Z"
+          "data": {
+            "works": [],
+            "authors": []
           }
         }
         """
@@ -266,7 +266,7 @@ struct CanonicalAPIResponseTests {
         let decoder = JSONDecoder()
 
         #expect(throws: Error.self) {
-            try decoder.decode(ApiResponse<BookSearchResponse>.self, from: data)
+            try decoder.decode(ResponseEnvelope<BookSearchResponse>.self, from: data)
         }
     }
 

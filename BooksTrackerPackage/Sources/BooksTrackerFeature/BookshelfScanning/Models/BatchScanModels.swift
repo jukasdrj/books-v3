@@ -152,94 +152,10 @@ public struct BatchScanRequest: Codable, Sendable {
     }
 }
 
-// MARK: - Batch WebSocket Messages
-
-/// WebSocket message types for batch scanning
-public enum BatchWebSocketMessage: Codable {
-    case batchInit(BatchInitMessage)
-    case batchProgress(BatchProgressMessage)
-    case batchComplete(BatchCompleteMessage)
-
-    public struct BatchInitMessage: Codable {
-        public let type: String
-        public let jobId: String
-        public let totalPhotos: Int
-        public let status: String
-
-        public init(type: String, jobId: String, totalPhotos: Int, status: String) {
-            self.type = type
-            self.jobId = jobId
-            self.totalPhotos = totalPhotos
-            self.status = status
-        }
-    }
-
-    public struct BatchProgressMessage: Codable {
-        public let type: String
-        public let jobId: String
-        public let currentPhoto: Int
-        public let totalPhotos: Int
-        public let photoStatus: String
-        public let booksFound: Int
-        public let totalBooksFound: Int
-        public let photos: [PhotoProgressData]
-
-        public struct PhotoProgressData: Codable {
-            public let index: Int
-            public let status: String
-            public let booksFound: Int?
-            public let error: String?
-
-            public init(index: Int, status: String, booksFound: Int? = nil, error: String? = nil) {
-                self.index = index
-                self.status = status
-                self.booksFound = booksFound
-                self.error = error
-            }
-        }
-
-        public init(type: String, jobId: String, currentPhoto: Int, totalPhotos: Int, photoStatus: String, booksFound: Int, totalBooksFound: Int, photos: [PhotoProgressData]) {
-            self.type = type
-            self.jobId = jobId
-            self.currentPhoto = currentPhoto
-            self.totalPhotos = totalPhotos
-            self.photoStatus = photoStatus
-            self.booksFound = booksFound
-            self.totalBooksFound = totalBooksFound
-            self.photos = photos
-        }
-    }
-
-    public struct BatchCompleteMessage: Codable {
-        public let type: String
-        public let jobId: String
-        public let totalBooks: Int
-        public let photoResults: [PhotoResult]
-        public let books: [AIDetectedBook]
-
-        public struct PhotoResult: Codable {
-            public let index: Int
-            public let status: String
-            public let booksFound: Int?
-            public let error: String?
-
-            public init(index: Int, status: String, booksFound: Int? = nil, error: String? = nil) {
-                self.index = index
-                self.status = status
-                self.booksFound = booksFound
-                self.error = error
-            }
-        }
-
-        public init(type: String, jobId: String, totalBooks: Int, photoResults: [PhotoResult], books: [AIDetectedBook]) {
-            self.type = type
-            self.jobId = jobId
-            self.totalBooks = totalBooks
-            self.photoResults = photoResults
-            self.books = books
-        }
-    }
-}
+// MARK: - Legacy Batch WebSocket Messages
+// DEPRECATED: Use unified TypedWebSocketMessage schema instead (WebSocketMessages.swift)
+// These types are kept for backward compatibility but should not be used in new code
+// See Issue #502 for migration plan
 
 // MARK: - AIDetectedBook
 

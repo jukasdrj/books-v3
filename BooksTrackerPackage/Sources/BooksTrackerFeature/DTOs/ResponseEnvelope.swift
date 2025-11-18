@@ -9,28 +9,8 @@ import Foundation
 
 // MARK: - Response Metadata
 
-/// Response metadata included in every response (LEGACY - use ResponseMetadata for new endpoints)
-public struct ResponseMeta: Codable, Sendable {
-    /// ISO 8601 timestamp
-    public let timestamp: String
-
-    /// Processing time in milliseconds
-    public let processingTime: Int?
-
-    /// Data provider used
-    public let provider: String?
-
-    /// Whether response was cached
-    public let cached: Bool?
-
-    /// Seconds since cached
-    public let cacheAge: Int?
-
-    /// Request ID for distributed tracing (future)
-    public let requestId: String?
-}
-
-/// Response metadata for new envelope format
+/// Response metadata for API responses (Section 4.2)
+/// Mirrors TypeScript ResponseMetadata in api-worker/src/types/responses.ts
 public struct ResponseMetadata: Codable, Sendable {
     /// ISO 8601 timestamp
     public let timestamp: String
@@ -48,67 +28,10 @@ public struct ResponseMetadata: Codable, Sendable {
     public let cached: Bool?
 }
 
-// MARK: - API Response (Discriminated Union)
+// MARK: - Response Envelope
 
-/// Discriminated union for all API responses
-/// Use pattern matching to handle success vs error cases
-public enum ApiResponse<T: Codable>: Codable {
-    case success(T, ResponseMeta)
-    case failure(ApiError, ResponseMeta)
-
-    // MARK: - API Error
-
-    public struct ApiError: Codable, Sendable {
-        public let message: String
-        public let code: DTOApiErrorCode?
-        public let details: AnyCodable?
-
-        /// Helper to safely extract details as a specific type
-        public func detailsAs<D: Codable>(_ type: D.Type) -> D? {
-            details?.value as? D
-        }
-    }
-
-    // MARK: - Codable Implementation
-
-    private enum CodingKeys: String, CodingKey {
-        case success, data, error, meta
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let success = try container.decode(Bool.self, forKey: .success)
-        let meta = try container.decode(ResponseMeta.self, forKey: .meta)
-
-        if success {
-            let data = try container.decode(T.self, forKey: .data)
-            self = .success(data, meta)
-        } else {
-            let error = try container.decode(ApiError.self, forKey: .error)
-            self = .failure(error, meta)
-        }
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-
-        switch self {
-        case .success(let data, let meta):
-            try container.encode(true, forKey: .success)
-            try container.encode(data, forKey: .data)
-            try container.encode(meta, forKey: .meta)
-        case .failure(let error, let meta):
-            try container.encode(false, forKey: .success)
-            try container.encode(error, forKey: .error)
-            try container.encode(meta, forKey: .meta)
-        }
-    }
-}
-
-// MARK: - New Response Envelope
-
-/// Universal response envelope for new endpoints
-/// Mirrors TypeScript ResponseEnvelope in api-worker/src/types/responses.ts
+/// Universal response envelope for all API endpoints (Section 4.2)
+/// Mirrors TypeScript ResponseEnvelope in api-worker/src/types/responses.ts exactly
 public struct ResponseEnvelope<T: Codable>: Codable {
     /// Response payload (null on error)
     public let data: T?

@@ -144,6 +144,31 @@ actor BatchWebSocketHandler {
                 #endif
                 // Notify error via callback if needed
 
+            // Batch-specific messages (Section 7.6)
+            case .batchInit(let initPayload):
+                #if DEBUG
+                print("[BatchWebSocket] Batch init: \(initPayload.totalPhotos) photos, status: \(initPayload.status)")
+                #endif
+                await initializeBatchProgress(totalPhotos: initPayload.totalPhotos)
+
+            case .batchProgress(let batchProgressPayload):
+                #if DEBUG
+                print("[BatchWebSocket] Batch progress: photo \(batchProgressPayload.currentPhoto)/\(batchProgressPayload.totalPhotos)")
+                #endif
+                await processBatchProgress(batchProgressPayload)
+
+            case .batchComplete(let batchCompletePayload):
+                #if DEBUG
+                print("[BatchWebSocket] Batch complete: \(batchCompletePayload.totalBooks) total books")
+                #endif
+                await processBatchComplete(batchCompletePayload)
+
+            case .batchCanceling(let cancelPayload):
+                #if DEBUG
+                print("[BatchWebSocket] Batch canceling: \(cancelPayload.reason ?? "no reason")")
+                #endif
+                disconnect()
+
             case .readyAck, .ping, .pong:
                 // Infrastructure messages, no action needed
                 // readyAck: Backend acknowledgment of client ready signal
@@ -210,7 +235,7 @@ actor BatchWebSocketHandler {
         }
     }
 
-    /// Handle batch completion
+    /// Handle batch completion (legacy job_complete format)
     private func processCompletion(_ aiPayload: AIScanCompletePayload) async {
         // Extract values before crossing actor boundary
         let totalDetected = aiPayload.totalDetected
@@ -227,6 +252,87 @@ actor BatchWebSocketHandler {
             // Create fresh BatchProgress instance with final state
             let batchProgress = BatchProgress(jobId: jobId, totalPhotos: totalPhotos)
             batchProgress.complete(totalBooks: totalDetected)
+
+            // Call the callback with final progress
+            onProgress(batchProgress)
+        }
+
+        disconnect()
+    }
+
+    /// Handle batch progress (unified schema batch-progress message)
+    private func processBatchProgress(_ batchProgressPayload: BatchProgressPayload) async {
+        // Extract values before crossing actor boundary
+        let currentPhoto = batchProgressPayload.currentPhoto
+        let totalPhotos = batchProgressPayload.totalPhotos
+        let totalBooksFound = batchProgressPayload.totalBooksFound
+        let jobId = self.jobId
+
+        await MainActor.run {
+            #if DEBUG
+            print("[BatchWebSocket] Batch progress: Photo \(currentPhoto)/\(totalPhotos), Books: \(totalBooksFound)")
+            #endif
+
+            // Create fresh BatchProgress instance
+            let batchProgress = BatchProgress(jobId: jobId, totalPhotos: totalPhotos)
+            batchProgress.currentPhotoIndex = currentPhoto
+            batchProgress.totalBooksFound = totalBooksFound
+
+            // Update individual photo statuses from payload
+            for photoData in batchProgressPayload.photos {
+                let status: PhotoStatus
+                switch photoData.status.lowercased() {
+                case "queued": status = .queued
+                case "processing": status = .processing
+                case "complete": status = .complete
+                case "error": status = .error
+                default: status = .queued
+                }
+
+                batchProgress.updatePhoto(
+                    index: photoData.index,
+                    status: status,
+                    error: photoData.error
+                )
+            }
+
+            // Call the callback with updated progress
+            onProgress(batchProgress)
+        }
+    }
+
+    /// Handle batch completion (unified schema batch-complete message)
+    private func processBatchComplete(_ batchCompletePayload: BatchCompletePayload) async {
+        // Extract values before crossing actor boundary
+        let totalBooks = batchCompletePayload.totalBooks
+        let jobId = self.jobId
+        let totalPhotos = self.totalPhotos
+
+        await MainActor.run {
+            #if DEBUG
+            print("[BatchWebSocket] Batch complete: \(totalBooks) total books detected")
+            #endif
+
+            // Create fresh BatchProgress instance with final state
+            let batchProgress = BatchProgress(jobId: jobId, totalPhotos: totalPhotos)
+
+            // Update individual photo results
+            for photoResult in batchCompletePayload.photoResults {
+                let status: PhotoStatus
+                switch photoResult.status.lowercased() {
+                case "complete": status = .complete
+                case "error": status = .error
+                default: status = .complete
+                }
+
+                batchProgress.updatePhoto(
+                    index: photoResult.index,
+                    status: status,
+                    error: photoResult.error
+                )
+            }
+
+            batchProgress.complete(totalBooks: totalBooks)
 
             // Call the callback with final progress
             onProgress(batchProgress)

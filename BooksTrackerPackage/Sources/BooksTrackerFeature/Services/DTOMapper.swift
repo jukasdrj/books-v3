@@ -439,31 +439,12 @@ extension DTOMapper {
                 throw ParsingError.apiError(message: "Missing data and error in response", code: "INVALID_RESPONSE")
             }
         } catch let decodingError as DecodingError {
-            logger.debug("⚠️ Unified envelope parsing failed: \(decodingError.localizedDescription). Trying legacy format...")
+            logger.error("❌ Unified envelope parsing failed: \(decodingError.localizedDescription)")
+            throw ParsingError.unknownFormat
         } catch {
             // Re-throw non-decoding errors (e.g., ParsingError.apiError)
             throw error
         }
-
-        // Attempt 2: Legacy discriminated union format
-        do {
-            let legacy = try decoder.decode(ApiResponse<BookSearchResponse>.self, from: data)
-            switch legacy {
-            case .success(let data, _):
-                logger.debug("✅ Successfully parsed legacy discriminated union format")
-                return data
-            case .failure(let error, _):
-                throw ParsingError.apiError(message: error.message, code: error.code?.rawValue ?? "UNKNOWN")
-            }
-        } catch let decodingError as DecodingError {
-            logger.error("❌ Both envelope formats failed. Unified error: DecodingError, Legacy error: \(decodingError.localizedDescription)")
-        } catch {
-            // Re-throw non-decoding errors
-            throw error
-        }
-
-        // Both parsing attempts failed
-        throw ParsingError.unknownFormat
     }
 }
 
