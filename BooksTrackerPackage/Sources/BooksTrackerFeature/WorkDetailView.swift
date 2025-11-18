@@ -137,7 +137,7 @@ struct WorkDetailView: View {
                 bookCoverHero
 
                 // MARK: - Edition Metadata Card
-                EditionMetadataView(work: work, edition: primaryEdition, selectedAuthor: $selectedAuthor)
+                EditionMetadataView(work: work, edition: primaryEdition)
                     .padding(.horizontal, 20)
 
                 // MARK: - Manual Edition Selection
