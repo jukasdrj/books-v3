@@ -15,8 +15,6 @@
 - **`.ai/SHARED_CONTEXT.md`** - Project-wide context (tech stack, architecture)
 - **`.github/copilot-instructions.md`** - GitHub Copilot setup
 
-**📚 Full Documentation:** See [`docs/README.md`](docs/README.md) for complete navigation
-
 ---
 
 ## Claude Code MCP Setup
@@ -31,7 +29,8 @@
 /device-deploy # Deploy BooksTrack to connected iPhone/iPad using XcodeBuildMCP
 ```
 
-**📖 See [`MCP_SETUP.md`](MCP_SETUP.md)** for complete XcodeBuildMCP configuration.
+**XcodeBuildMCP Configuration:**
+All slash commands use the XcodeBuildMCP server for native Xcode integration.
 
 ### Available MCP Servers
 
@@ -415,4 +414,4 @@ When user names a specific model, use that exact name. When no model mentioned, 
 
 **Last Updated:** November 16, 2025
 **Maintained by:** oooe (jukasdrj)
-**See Also:** [`AGENTS.md`](AGENTS.md), [`MCP_SETUP.md`](MCP_SETUP.md), [`docs/README.md`](docs/README.md)
+**See Also:** [`AGENTS.md`](AGENTS.md), [`MCP_SETUP.md`](MCP_SETUP.md)

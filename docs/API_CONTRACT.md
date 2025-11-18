@@ -1,24 +1,14 @@
-# BooksTrack API Contract v2.2
+# BooksTrack API Contract v2.1
 
 **Status:** Production ✅
 **Effective Date:** November 15, 2025
-**Last Updated:** November 18, 2025 (v2.2 - Security Disclosures)
+**Last Updated:** November 16, 2025 (v2.1 - WebSocket Documentation)
 **Contract Owner:** Backend Team
 **Audience:** iOS, Flutter, Web Frontend Teams
 
 ---
 
-## 🔥 What's New
-
-### v2.2 (November 18, 2025) - Security Disclosures
-
-**CRITICAL:** This release documents 4 known security vulnerabilities in the current backend implementation. Frontend teams should review Section 3.3 and implement recommended mitigations.
-
-- **New Section 3.3:** Known Security Issues with OWASP classifications
-- **Security Warnings:** Added to WebSocket authentication documentation
-- **Action Required:** Review Section 3.3 immediately
-
-### v2.1 (Issue #67)
+## 🔥 What's New in v2.1 (Issue #67)
 
 This update **documents the complete WebSocket implementation** that has been in production but was previously undocumented:
 
@@ -56,8 +46,8 @@ This document is the **single source of truth** for the BooksTrack API. All fron
 
 ### 1.3 Versioning
 
-**Current Version:** `v2.2`
-**API Version Header:** `X-API-Version: 2.2` (optional)
+**Current Version:** `v2.1`
+**API Version Header:** `X-API-Version: 2.1` (optional)
 **URL Versioning:** `/v1/*` endpoints (implements v2.x contract), `/v2/*` endpoints (reserved for future breaking changes)
 
 **Version Support Policy:**
@@ -95,8 +85,6 @@ This document is the **single source of truth** for the BooksTrack API. All fron
 2. **Connect:** Use token in WebSocket URL: `wss://api.oooefam.net/ws/progress?jobId={jobId}&token={token}`
 3. **Expiration:** Tokens expire after **2 hours** (7200 seconds)
 4. **Refresh:** Available within **30-minute window** before expiration
-
-⚠️ **Security Warning:** Tokens are currently passed as URL query parameters. See Section 3.3 for security implications. This will be updated in a future version.
 
 **Token Refresh:**
 
@@ -158,43 +146,6 @@ X-RateLimit-Reset: 1700000000
   }
 }
 ```
-
-### 3.3 Known Security Issues
-
-The following critical security vulnerabilities are currently present in the backend implementation. Frontend teams should be aware of these and implement the suggested mitigations until backend fixes are deployed.
-
-#### Issue #482: Token Exposure in WebSocket URLs 🔴 CRITICAL
-*   **Description:** Authentication tokens are currently visible in WebSocket URL query parameters.
-*   **Risk:** Tokens can be inadvertently logged in network traces, browser developer tools, and crash logs, leading to potential exposure.
-*   **Current Example:** `wss://api.oooefam.net/ws/progress?jobId={id}&token={token}`
-*   **OWASP Category:** A01:2021 - Broken Access Control
-*   **Frontend Mitigation:** Minimize logging of WebSocket URLs, avoid analytics tracking that captures full URLs, and ensure browser developer tools are not used in production environments in a way that exposes these logs.
-*   **Backend Fix Planned:** Transition to WebSocket subprotocol authentication or immediate token exchange upon connection establishment.
-*   **Tracking:** Issue #482
-
-#### Issue #483: No Token Invalidation After Job Completion 🔴 CRITICAL
-*   **Description:** Authentication tokens remain valid for a full 2-hour duration even after the associated job has completed.
-*   **Risk:** This allows for replay attacks where an attacker could reuse a token from a completed job for an extended period, potentially impersonating the user or accessing stale resources.
-*   **Current Behavior:** A job completes in 30 seconds, but its token remains valid for an additional 1 hour, 59 minutes, and 30 seconds.
-*   **Frontend Mitigation:** Frontend applications should immediately clear and discard tokens associated with jobs as soon as a `job_complete` status is received.
-*   **Backend Fix Planned:** Implement server-side token invalidation upon receiving a WebSocket close code 1000 (Normal Closure) or explicit job completion notification.
-*   **Tracking:** Issue #483
-
-#### Issue #484: Multiple Concurrent Connections Allowed 🔴 CRITICAL
-*   **Description:** The backend currently allows the same authentication token to establish multiple concurrent WebSocket connections from different devices or browser tabs.
-*   **Risk:** This can lead to race conditions, inconsistent state updates, and potential data corruption, especially in scenarios involving real-time job progress tracking where multiple clients might try to update or interpret the same state simultaneously.
-*   **Current Behavior:** A 60-second grace period is currently in place, which inadvertently allows for concurrent connections to persist.
-*   **Frontend Mitigation:** Implement application-level logic to prevent multi-device usage with the same token, guiding users to close other active sessions or providing clear warnings.
-*   **Backend Fix Planned:** Enforce a strict single active connection policy per token, terminating older connections when a new one is established.
-*   **Tracking:** Issue #484
-
-#### Issue #485: Batch Scan Rate Limiting Unclear 🔴 CRITICAL
-*   **Description:** The current API contract does not clearly specify how batch photo uploads interact with the 5 photos/minute AI scan rate limit.
-*   **Risk:** This ambiguity can lead to resource abuse, as clients might assume batch uploads are treated as a single request, potentially allowing for 25 photos/minute (e.g., 5 batches of 5 photos) instead of the intended 5 photos/minute limit.
-*   **Current Behavior:** The API contract is silent on batch behavior, leading to potential misinterpretation.
-*   **Frontend Mitigation:** Frontend applications should assume each individual photo within a batch upload counts towards the 5 photos/minute AI scan limit and implement client-side rate limiting accordingly.
-*   **Backend Fix Planned:** Clarify and enforce the 5 photos/minute limit consistently across all relevant endpoints, explicitly stating that each photo in a batch counts individually.
-*   **Tracking:** Issue #485
 
 ---
 
@@ -771,9 +722,10 @@ wss://api.oooefam.net/ws/progress?jobId={jobId}&token={token}
 
 **Connection Lifecycle:**
 1. Client connects with valid `jobId` and `token`
-2. Server sends `connected` acknowledgment
-3. Server sends job updates (`job_started`, `job_progress`, `job_complete`)
-4. Server closes connection with code 1000 (NORMAL_CLOSURE) on completion
+2. Client sends `ready` signal when ready to receive messages
+3. Server sends `ready_ack` acknowledgment
+4. Server sends job updates (`job_started`, `job_progress`, `job_complete`)
+5. Server closes connection with code 1000 (NORMAL_CLOSURE) on completion
 
 **Heartbeat:**
 - Server sends `ping` every 30 seconds
@@ -1636,10 +1588,6 @@ queued → processing → complete | error
 
 ### 11.3 Changelog
 
-- **v2.2 (Nov 18, 2025):** 🔥 **Security Disclosures** (v2.2 - Security Disclosures)
-  - Documented 4 known security vulnerabilities
-  - Added Section 3.3: Known Security Issues
-  - Added security warnings to WebSocket auth
 - **v2.1 (Nov 16, 2025):** 🔥 **Major WebSocket Documentation Update** (Issue #67)
   - Documented 7 previously undocumented message types (`ready`, `ready_ack`, `reconnected`, batch messages)
   - Added Section 7.5: Reconnection Support with 60-second grace period
@@ -1714,6 +1662,6 @@ ws.onmessage = async (event) => {
 **END OF CONTRACT**
 
 **Questions?** Contact: api-support@oooefam.net
-**Last Updated:** November 18, 2025 (v2.2 - Security Disclosures)
+**Last Updated:** November 16, 2025 (v2.1 - WebSocket Documentation Update)
 **Next Review:** February 15, 2026
 **Related Issues:** #67 (API Contract Standardization), #91 (iOS WebSocket Migration Docs)

@@ -1,0 +1,25 @@
+# Repomix ignore patterns for OpenHands context generation
+# Exclude temporary files, test data, and archived content
+
+# Test data
+*.csv
+*.jpeg
+*.png
+*.jpg
+testImages/
+
+# Build artifacts
+.DS_Store
+DerivedData/
+.build/
+
+# Development workspaces
+dev/
+
+# Archived/legacy documentation
+docs/archive/
+docs/robit/
+
+# Cache directories
+.claude/tsc-cache/
+node_modules/

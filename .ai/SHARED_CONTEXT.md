@@ -1,6 +1,6 @@
 # BooksTrack - Shared AI Context
 
-**Version:** 3.0.0 | **iOS:** 26.0+ | **Swift:** 6.1+ | **Bundle ID:** Z67H8Y8DW.com.oooefam.booksV3
+**Version:** 3.7.5 | **iOS:** 26.0+ | **Swift:** 6.2+ | **Bundle ID:** Z67H8Y8DW.com.oooefam.booksV3
 
 Personal book tracking iOS app with cultural diversity insights. SwiftUI, SwiftData, Cloudflare Workers backend.
 
@@ -9,7 +9,7 @@ Personal book tracking iOS app with cultural diversity insights. SwiftUI, SwiftD
 ### iOS App
 - **UI Framework:** SwiftUI with @Observable pattern (no ViewModels)
 - **Data Layer:** SwiftData with CloudKit sync
-- **Concurrency:** Swift 6.1 structured concurrency (@MainActor, actors, typed throws)
+- **Concurrency:** Swift 6.2 structured concurrency (@MainActor, actors, typed throws)
 - **Testing:** Swift Testing framework (@Test, #expect, parameterized tests)
 - **Design:** iOS 26 Liquid Glass design system
 

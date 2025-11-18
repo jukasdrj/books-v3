@@ -1,6 +1,6 @@
 # GitHub Copilot Instructions for BooksTrack
 
-**Version:** 3.0.1 (Build 188) | **iOS 26.0+, Swift 6.1+** | **Bundle:** `Z67H8Y8DW.com.oooefam.booksV3`
+**Version:** 3.7.5 (Build 189+) | **iOS 26.0+, Swift 6.2+** | **Bundle:** `Z67H8Y8DW.com.oooefam.booksV3`
 
 ## Stack
 **iOS:** SwiftUI + @Observable (NO ViewModels!) + SwiftData + CloudKit | Swift Testing (@Test, 161 tests)  
