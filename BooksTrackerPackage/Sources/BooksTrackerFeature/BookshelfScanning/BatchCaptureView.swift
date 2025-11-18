@@ -16,6 +16,8 @@ public final class BatchCaptureModel {
     public var showingCamera = true
     public var isSubmitting = false
     public var batchProgress: BatchProgress?
+    public var errorMessage: String?
+    public var showingError = false
     private var wsHandler: BatchWebSocketHandler?
 
     public init() {}
@@ -143,7 +145,9 @@ public final class BatchCaptureModel {
             print("🔓 Idle timer re-enabled (submission error)")
             #endif
 
-            // TODO: Show error alert to user
+            // Show error alert to user
+            errorMessage = "Failed to submit batch: \(error.localizedDescription)"
+            showingError = true
         }
     }
 
@@ -266,6 +270,15 @@ public struct BatchCaptureView: View {
         .onChange(of: photosPickerItems) { oldValue, newValue in
             Task {
                 await loadSelectedPhotos(newValue)
+            }
+        }
+        .alert("Batch Submission Failed", isPresented: $model.showingError) {
+            Button("OK", role: .cancel) {
+                model.errorMessage = nil
+            }
+        } message: {
+            if let errorMessage = model.errorMessage {
+                Text(errorMessage)
             }
         }
     }

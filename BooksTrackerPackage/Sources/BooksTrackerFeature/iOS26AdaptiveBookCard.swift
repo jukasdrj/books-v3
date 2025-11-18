@@ -58,13 +58,6 @@ struct iOS26AdaptiveBookCard: View {
                 Button("Mark as Read") {
                     updateReadingStatus(.read)
                 }
-            } else {
-                Button("Add to Library") {
-                    addToLibrary()
-                }
-                Button("Add to Wishlist") {
-                    addToWishlist()
-                }
             }
         }
     }
@@ -265,14 +258,9 @@ struct iOS26AdaptiveBookCard: View {
 
                 if let userEntry = userEntry {
                     statusIndicator(for: userEntry.readingStatus, style: .premium)
-                } else {
-                    // Add to library button
-                    Button("Add to Library") {
-                        addToLibrary()
-                    }
-                    .buttonStyle(.glassProminent)
-                    .tint(themeStore.primaryColor)
                 }
+                // Note: Add to Library functionality requires modelContext
+                // Navigate to WorkDetailView for full persistence options
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -467,14 +455,6 @@ struct iOS26AdaptiveBookCard: View {
                 Button("Remove from Library", systemImage: "trash", role: .destructive) {
                     removeFromLibrary()
                 }
-            } else {
-                Button("Add to Library", systemImage: "plus.circle") {
-                    addToLibrary()
-                }
-
-                Button("Add to Wishlist", systemImage: "heart") {
-                    addToWishlist()
-                }
             }
 
             Button("View Details", systemImage: "info.circle") {
@@ -531,27 +511,10 @@ struct iOS26AdaptiveBookCard: View {
         notificationFeedback.notificationOccurred(.success)
     }
 
-    // TODO: Fix non-functional buttons (see .github/ISSUE_DEAD_CODE_CARD_PERSISTENCE.md)
-    // These functions create entries but have no modelContext to save them
-    private func addToLibrary() {
-        // DISABLED: No modelContext available in this view
-        // See GitHub issue for proper implementation
-        #if DEBUG
-        print("⚠️ addToLibrary() called but not implemented - no persistence")
-        #endif
-    }
-
-    private func addToWishlist() {
-        // DISABLED: No modelContext available in this view
-        // See GitHub issue for proper implementation
-        #if DEBUG
-        print("⚠️ addToWishlist() called but not implemented - no persistence")
-        #endif
-    }
-
     private func removeFromLibrary() {
         guard userEntry != nil else { return }
-        // Remove from SwiftData context
+        // Note: Requires modelContext to delete entry
+        // This functionality should be handled by parent view with modelContext access
     }
 }
 
