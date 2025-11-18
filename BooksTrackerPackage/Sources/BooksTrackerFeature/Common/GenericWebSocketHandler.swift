@@ -60,29 +60,57 @@ public final class GenericWebSocketHandler {
     }
 
     /// Connects to the WebSocket and starts listening for messages.
+    /// Implements automatic retry with exponential backoff for transient failures.
     public func connect() async {
-        let session = URLSession(configuration: .default)
-        webSocket = session.webSocketTask(with: url)
-        webSocket?.resume()
+        var attempts = 0
+        let maxRetries = 3
+        
+        while attempts < maxRetries {
+            let session = URLSession(configuration: .default)
+            webSocket = session.webSocketTask(with: url)
+            webSocket?.resume()
 
-        // ✅ CRITICAL: Wait for WebSocket handshake to complete
-        // Prevents POSIX error 57 "Socket is not connected" when calling receive()
-        if let webSocket = webSocket {
-            do {
-                try await WebSocketHelpers.waitForConnection(webSocket, timeout: 10.0)
-                isConnected = true
-                shouldContinueListening = true
-                logger.debug("✅ GenericWebSocketHandler connected (\(self.pipeline.rawValue))")
+            // ✅ CRITICAL: Wait for WebSocket handshake to complete
+            // Prevents POSIX error 57 "Socket is not connected" when calling receive()
+            if let webSocket = webSocket {
+                do {
+                    try await WebSocketHelpers.waitForConnection(webSocket, timeout: 10.0)
+                    isConnected = true
+                    shouldContinueListening = true
+                    logger.debug("✅ GenericWebSocketHandler connected (\(self.pipeline.rawValue))")
 
-                // CRITICAL FIX (Issue #378): Send ready signal to backend
-                // Backend waits for this signal before sending messages to prevent race condition
-                try await sendReadySignal()
+                    // CRITICAL FIX (Issue #378): Send ready signal to backend
+                    // Backend waits for this signal before sending messages to prevent race condition
+                    try await sendReadySignal()
 
-                listenForMessages()
-            } catch {
-                logger.error("❌ GenericWebSocketHandler connection failed (\(self.pipeline.rawValue)): \(error.localizedDescription)")
-                isConnected = false
-                shouldContinueListening = false
+                    listenForMessages()
+                    return // Success - exit retry loop
+                } catch {
+                    attempts += 1
+                    logger.error("❌ GenericWebSocketHandler connection failed (\(self.pipeline.rawValue)), attempt \(attempts)/\(maxRetries): \(error.localizedDescription)")
+                    
+                    // Clean up failed connection
+                    webSocket.cancel(with: .abnormalClosure, reason: nil)
+                    self.webSocket = nil
+                    
+                    if attempts < maxRetries {
+                        // Exponential backoff: 1s, 2s, 4s
+                        let delay = pow(2.0, Double(attempts))
+                        logger.debug("⏳ Retrying in \(delay) seconds...")
+                        try? await Task.sleep(for: .seconds(delay))
+                    } else {
+                        // Final failure - notify error handler
+                        isConnected = false
+                        shouldContinueListening = false
+                        let errorPayload = ErrorPayload(
+                            code: "WEBSOCKET_CONNECTION_FAILED",
+                            message: "Failed to connect after \(maxRetries) attempts: \(error.localizedDescription)",
+                            details: nil,
+                            retryable: true
+                        )
+                        errorHandler(errorPayload)
+                    }
+                }
             }
         }
     }

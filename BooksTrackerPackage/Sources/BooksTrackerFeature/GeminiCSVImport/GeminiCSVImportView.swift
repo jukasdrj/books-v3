@@ -509,6 +509,23 @@ public struct GeminiCSVImportView: View {
     }
 
     private func cancelImport() {
+        // Cancel backend job if one is running
+        if let jobId = jobId {
+            Task {
+                do {
+                    try await GeminiCSVImportService.shared.cancelJob(jobId: jobId)
+                    #if DEBUG
+                    print("[CSV Import] ✅ Backend job canceled")
+                    #endif
+                } catch {
+                    #if DEBUG
+                    print("[CSV Import] ⚠️ Failed to cancel backend job: \(error.localizedDescription)")
+                    #endif
+                    // Continue with local cleanup even if backend cancel fails
+                }
+            }
+        }
+
         // Explicitly close the WebSocket with a normal "going away" message
         webSocket?.cancel(with: .goingAway, reason: "User canceled".data(using: .utf8))
         webSocketTask?.cancel()

@@ -51,7 +51,7 @@ public struct BookshelfScannerView: View {
                         }
                         
                         // Privacy disclosure banner
-                        privacyDisclosureBanner
+                        PrivacyDisclosureBanner()
 
                         // Photo selection area
                         cameraSection
@@ -61,7 +61,14 @@ public struct BookshelfScannerView: View {
 
                         // Statistics (if scanning or completed)
                         if scanModel.scanState != .idle {
-                            statisticsSection
+                            ScanStatisticsView(
+                                scanState: scanModel.scanState,
+                                currentProgress: scanModel.currentProgress,
+                                currentStage: scanModel.currentStage,
+                                detectedCount: scanModel.detectedCount,
+                                confirmedCount: scanModel.confirmedCount,
+                                uncertainCount: scanModel.uncertainCount
+                            )
                         }
 
                         // Action buttons
@@ -144,39 +151,6 @@ public struct BookshelfScannerView: View {
         }
     }
 
-    // MARK: - Privacy Disclosure Banner
-
-    private var privacyDisclosureBanner: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                Image(systemName: "lock.shield.fill")
-                    .font(.title2)
-                    .foregroundStyle(themeStore.primaryColor)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Private & Secure")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-
-                    Text("Your photo is uploaded for AI analysis and is not stored.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .padding(16)
-        .background {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(themeStore.primaryColor.opacity(0.3), lineWidth: 1)
-                }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Privacy notice: Your photo is uploaded for AI analysis and is not stored.")
-    }
-
     // MARK: - Camera Section
 
     private var cameraSection: some View {
@@ -237,81 +211,6 @@ public struct BookshelfScannerView: View {
     }
 
 
-    // MARK: - Statistics Section
-
-    private var statisticsSection: some View {
-        VStack(spacing: 12) {
-            Text("Scan Progress")
-                .font(.headline)
-                .foregroundStyle(.primary)
-
-            // Real-time WebSocket progress (when processing)
-            if scanModel.scanState == .processing {
-                VStack(spacing: 12) {
-                    // Progress bar
-                    ProgressView(value: scanModel.currentProgress, total: 1.0)
-                        .tint(themeStore.primaryColor)
-
-                    // Stage label
-                    Text(scanModel.currentStage)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    // Percentage
-                    Text("\(Int(scanModel.currentProgress * 100))%")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 8)
-            }
-
-            // Statistics (when completed)
-            if scanModel.scanState == .completed {
-                HStack(spacing: 20) {
-                    statisticBadge(
-                        icon: "books.vertical.fill",
-                        value: "\(scanModel.detectedCount)",
-                        label: "Detected"
-                    )
-
-                    statisticBadge(
-                        icon: "checkmark.circle.fill",
-                        value: "\(scanModel.confirmedCount)",
-                        label: "Ready"
-                    )
-
-                    statisticBadge(
-                        icon: "questionmark.circle.fill",
-                        value: "\(scanModel.uncertainCount)",
-                        label: "Review"
-                    )
-                }
-            }
-        }
-        .padding()
-        .background {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-        }
-    }
-
-    private func statisticBadge(icon: String, value: String, label: String) -> some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(themeStore.primaryColor)
-
-            Text(value)
-                .font(.title3.bold())
-                .foregroundStyle(.primary)
-
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
     // MARK: - Action Buttons Section
 
     private var actionButtonsSection: some View {
@@ -368,42 +267,8 @@ public struct BookshelfScannerView: View {
 
             // Tips section
             if scanModel.scanState == .idle {
-                tipsSection
+                ScanningTipsView()
             }
-        }
-    }
-
-    // MARK: - Tips Section
-
-    private var tipsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Tips for Best Results")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
-
-            VStack(alignment: .leading, spacing: 8) {
-                tipRow(icon: "sun.max.fill", text: "Use good lighting")
-                tipRow(icon: "arrow.up.backward.and.arrow.down.forward", text: "Keep camera level with spines")
-                tipRow(icon: "camera.metering.center.weighted", text: "Get close enough to read titles")
-            }
-        }
-        .padding()
-        .background {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.ultraThinMaterial)
-        }
-    }
-
-    private func tipRow(icon: String, text: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .foregroundStyle(.orange)
-                .font(.caption)
-                .frame(width: 16)
-
-            Text(text)
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
     }
 

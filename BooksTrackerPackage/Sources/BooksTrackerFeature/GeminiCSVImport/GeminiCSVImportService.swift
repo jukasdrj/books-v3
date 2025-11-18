@@ -212,4 +212,44 @@ actor GeminiCSVImportService {
             throw GeminiCSVImportError.networkError(error)
         }
     }
+
+    // MARK: - Cancel Job
+
+    /// Cancel a running CSV import job
+    /// - Parameter jobId: The job ID to cancel
+    /// - Throws: GeminiCSVImportError on failure
+    func cancelJob(jobId: String) async throws {
+        #if DEBUG
+        print("[CSV Cancel] Canceling job: \(jobId)")
+        #endif
+
+        let cancelURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/v1/csv/cancel/\(jobId)")!
+        var request = URLRequest(url: cancelURL)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 30
+
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw GeminiCSVImportError.invalidResponse
+            }
+            
+            // Accept 200 (OK), 202 (Accepted), or 404 (already completed/not found)
+            if ![200, 202, 404].contains(httpResponse.statusCode) {
+                throw GeminiCSVImportError.serverError(httpResponse.statusCode, "Failed to cancel job")
+            }
+            
+            #if DEBUG
+            print("[CSV Cancel] ✅ Job canceled successfully")
+            #endif
+        } catch let error as GeminiCSVImportError {
+            throw error
+        } catch {
+            #if DEBUG
+            print("[CSV Cancel] ❌ Network Error: \(error.localizedDescription)")
+            #endif
+            throw GeminiCSVImportError.networkError(error)
+        }
+    }
 }
