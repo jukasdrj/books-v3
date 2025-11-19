@@ -62,9 +62,10 @@ struct ImportServiceTests {
                 title: "Test Book",
                 author: "Test Author",
                 isbn: "9781234567890",
-                publicationYear: 2020,
+                coverUrl: nil,
                 publisher: "Test Publisher",
-                coverUrl: nil
+                publicationYear: 2020,
+                enrichmentError: nil
             )
         ]
 

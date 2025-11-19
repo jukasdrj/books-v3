@@ -1,5 +1,5 @@
 {
-  "$schema": "https://claude.com/schemas/settings.json",
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "rules": [
       {
@@ -15,13 +15,8 @@
       },
       {
         "type": "allow",
-        "tools": ["Read", "Glob", "Grep"],
-        "comment": "Allow file reading and searching"
-      },
-      {
-        "type": "allow",
-        "tools": ["mcp__filesystem-with-morph__*"],
-        "comment": "Allow filesystem MCP operations (edit_file, write_file, etc.)"
+        "tools": ["Read", "Glob", "Grep", "Edit", "Write"],
+        "comment": "Allow file reading, searching, and editing"
       },
       {
         "type": "allow",

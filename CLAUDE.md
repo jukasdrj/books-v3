@@ -39,10 +39,6 @@ All slash commands use the XcodeBuildMCP server for native Xcode integration.
 - **Available Models:** 14 (use `listmodels` tool)
 - **Mode:** Auto model selection
 
-**Filesystem MCP:**
-- Use `mcp__filesystem-with-morph__edit_file` for all code edits
-- Do NOT use default Edit tool
-
 ---
 
 ## Claude Code-Specific Patterns
