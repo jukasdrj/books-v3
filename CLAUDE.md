@@ -17,6 +17,22 @@
 
 ---
 
+## Shared Knowledge Base
+
+**This project contributes to and references shared learnings across all projects.**
+
+**Knowledge Base Location:** `~/.claude/knowledge-base/`
+
+### Patterns from BooksTrack
+
+- [SwiftData Patterns](~/.claude/knowledge-base/patterns/swiftdata-patterns.md) - SwiftData best practices, concurrency, persistence
+- [Swift 6 Actor Isolation](~/.claude/knowledge-base/patterns/swift6-actor-isolation.md) - Swift 6 concurrency and actor patterns
+- [API Orchestration](~/.claude/knowledge-base/architectures/api-orchestration.md) - Multi-provider API orchestration design
+- [Real Device Testing](~/.claude/knowledge-base/debugging/real-device-testing.md) - Issues only visible on physical devices
+- [Zero Warnings Policy](~/.claude/knowledge-base/decisions/zero-warnings-policy.md) - Build warning policy and enforcement
+
+---
+
 ## Claude Code MCP Setup
 
 ### Essential MCP Commands
