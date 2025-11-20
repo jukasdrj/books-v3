@@ -1,14 +1,68 @@
-# BooksTrack API Contract v2.2
+# BooksTrack API Contract v2.4
 
 **Status:** Production ✅
-**Effective Date:** November 15, 2025
-**Last Updated:** November 18, 2025 (v2.2 - Hono Router Migration Complete)
+**Effective Date:** November 18, 2025
+**Last Updated:** November 18, 2025 (v2.4 - P1 Fixes: Image Quality + HATEOAS Links)
 **Contract Owner:** Backend Team
 **Audience:** iOS, Flutter, Web Frontend Teams
 
 ---
 
-## 🔥 What's New in v2.2 (Hono Router Complete)
+## 🔥 What's New in v2.4 (P1 Fixes: Image Quality + HATEOAS Links)
+
+### **🔗 NEW: HATEOAS Search Links (Issue #196)**
+- **Feature:** All WorkDTO and EditionDTO responses now include optional `searchLinks` field
+- **Purpose:** Backend centralizes URL construction - clients just follow links (no URL building logic needed)
+- **Providers:** Google Books, OpenLibrary, Amazon
+- **Impact:** Fixes iOS "View on Google Books" crash, eliminates duplicated URL logic across platforms
+- **Breaking Change:** None - field is optional, backward compatible
+
+**Example Response:**
+```json
+{
+  "title": "The Great Gatsby",
+  "searchLinks": {
+    "googleBooks": "https://www.googleapis.com/books/v1/volumes?q=isbn:9780743273565",
+    "openLibrary": "https://openlibrary.org/isbn/9780743273565",
+    "amazon": "https://www.amazon.com/s?k=9780743273565"
+  }
+}
+```
+
+### **📊 IMPROVED: Provider-Agnostic Image Quality Detection (Issue #195)**
+- **Fix:** `X-Image-Quality` header now accurate for OpenLibrary/ISBNdb covers (not just Google Books)
+- **Method:** Dimension-based detection via HTTP HEAD requests with URL heuristics fallback
+- **Caching:** Image dimensions cached for 24h to minimize external calls
+- **Impact:** More accurate quality metrics across all providers
+
+**See:** Section 5.1 (WorkDTO) and 5.2 (EditionDTO) for `searchLinks` schema.
+
+---
+
+## What's New in v2.3 (WebSocket Security Fix)
+
+### **🔒 SECURITY FIX: WebSocket Token Authentication (Issue #163)**
+- **Problem:** Tokens passed in URL query parameters leaked in server logs, browser history, and network traffic
+- **Solution:** New authentication via `Sec-WebSocket-Protocol` header (secure, not logged)
+- **Backward Compatibility:** OLD method (query param) still works but deprecated
+- **Migration Required:** Clients should migrate to new method within 90 days
+- **Impact:** Critical security improvement - tokens no longer visible in logs
+
+**NEW (Secure):**
+```javascript
+const ws = new WebSocket(url, ['bookstrack-auth.TOKEN_HERE'])
+```
+
+**OLD (Deprecated):**
+```javascript
+const ws = new WebSocket(`${url}?jobId=xxx&token=yyy`)  // ⚠️ INSECURE
+```
+
+**See:** Section 3.1 for complete migration guide with iOS, Web, and Flutter examples.
+
+---
+
+## What's New in v2.2 (Hono Router Complete)
 
 This update documents the **complete Hono router migration** and new default routing behavior:
 
@@ -282,11 +336,27 @@ curl -I https://api.oooefam.net/health | grep X-Router
 
 **Token-Based Auth:** Required for all WebSocket connections.
 
+**SECURITY FIX (Issue #163):** Token authentication method changed to prevent token leakage.
+
+**NEW METHOD (Secure) - Recommended:**
+Use WebSocket Subprotocol header to pass token (tokens NOT visible in logs/history):
+```
+wss://api.oooefam.net/ws/progress?jobId={jobId}
+Sec-WebSocket-Protocol: bookstrack-auth.{TOKEN}
+```
+
+**OLD METHOD (Deprecated) - Backward Compatible:**
+Pass token in URL query parameter (⚠️ INSECURE - leaks tokens in logs):
+```
+wss://api.oooefam.net/ws/progress?jobId={jobId}&token={token}
+```
+
 **Token Lifecycle:**
 1. **Obtain Token:** POST endpoints return `{ jobId, token }` in response
-2. **Connect:** Use token in WebSocket URL: `wss://api.oooefam.net/ws/progress?jobId={jobId}&token={token}`
-3. **Expiration:** Tokens expire after **2 hours** (7200 seconds)
-4. **Refresh:** Available within **30-minute window** before expiration
+2. **Connect (NEW):** Pass token via `Sec-WebSocket-Protocol: bookstrack-auth.{token}` header
+3. **Connect (OLD):** Pass token in URL query param `&token={token}` (deprecated)
+4. **Expiration:** Tokens expire after **2 hours** (7200 seconds)
+5. **Refresh:** Available within **30-minute window** before expiration
 
 **Token Refresh:**
 
@@ -300,7 +370,50 @@ curl -I https://api.oooefam.net/health | grep X-Router
 - New token extends expiration by another 2 hours
 - Client receives updated token via internal state (transparent)
 
-**Client Usage:**
+**Client Implementation Examples:**
+
+**iOS (Swift):**
+```swift
+// NEW METHOD (Secure - Recommended)
+let url = URL(string: "wss://api.oooefam.net/ws/progress?jobId=\(jobId)")!
+let request = URLRequest(url: url)
+request.setValue("bookstrack-auth.\(token)", forHTTPHeaderField: "Sec-WebSocket-Protocol")
+let webSocket = URLSession.shared.webSocketTask(with: request)
+
+// OLD METHOD (Deprecated - Backward Compatible)
+let url = URL(string: "wss://api.oooefam.net/ws/progress?jobId=\(jobId)&token=\(token)")!
+let webSocket = URLSession.shared.webSocketTask(with: url)
+```
+
+**JavaScript/Web:**
+```javascript
+// NEW METHOD (Secure - Recommended)
+const ws = new WebSocket(
+  `wss://api.oooefam.net/ws/progress?jobId=${jobId}`,
+  [`bookstrack-auth.${token}`]
+);
+
+// OLD METHOD (Deprecated - Backward Compatible)
+const ws = new WebSocket(
+  `wss://api.oooefam.net/ws/progress?jobId=${jobId}&token=${token}`
+);
+```
+
+**Flutter/Dart:**
+```dart
+// NEW METHOD (Secure - Recommended)
+final channel = WebSocketChannel.connect(
+  Uri.parse('wss://api.oooefam.net/ws/progress?jobId=$jobId'),
+  protocols: ['bookstrack-auth.$token']
+);
+
+// OLD METHOD (Deprecated - Backward Compatible)
+final channel = WebSocketChannel.connect(
+  Uri.parse('wss://api.oooefam.net/ws/progress?jobId=$jobId&token=$token')
+);
+```
+
+**Token Refresh (Automatic):**
 ```swift
 // NO CLIENT ACTION REQUIRED
 // The Durable Object automatically extends tokens for active WebSocket connections
@@ -326,6 +439,16 @@ curl -I https://api.oooefam.net/health | grep X-Router
   - Example: 4 photos in 1 batch = 1 request counted
   - Each batch can contain up to 5 photos
 
+**⚠️ IMPORTANT: Common Confusion Clarification**
+
+**"50 photos" is NOT a limit!** The number "50" appears in documentation as:
+- **50 MB** - Total batch size limit (5 photos × 10 MB each)
+- **50 seconds** - Max processing time (5 photos × 10s each)
+
+**The actual photo limit is 5 photos per batch**, NOT 50.
+
+---
+
 **Batch Scan Rate Limit FAQ:**
 
 Q: If I send 5 photos in a batch, does that count as 5 requests?
@@ -337,28 +460,51 @@ A: You receive HTTP 429 with `Retry-After` header indicating seconds to wait.
 Q: Can I send multiple batches in parallel?
 A: Yes, but all requests within a 60-second window count toward the 5/minute limit.
 
+Q: How do I scan more than 5 photos at once?
+A: Split into multiple batches. For 20 photos: send 4 batches of 5 photos each (respects 5 req/min limit = ~1 minute total).
+
+Q: Why is the limit 5 photos and not more?
+A: AI processing time (Gemini 2.0 Flash) takes ~10 seconds per photo. 5 photos = 50 seconds max, within Cloudflare Workers' 60-second CPU limit.
+
 **Rate Limit Headers:**
 ```http
-X-RateLimit-Limit: 1000
-X-RateLimit-Remaining: 987
-X-RateLimit-Reset: 1700000000
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 3
+X-RateLimit-Reset: 1700000060
+Retry-After: 45
 ```
 
-**Rate Limit Exceeded:**
+**Rate Limit Exceeded (429 Response):**
 ```json
 {
-  "data": null,
-  "metadata": {
-    "timestamp": "2025-11-15T20:00:00Z"
-  },
-  "error": {
-    "message": "Rate limit exceeded. Try again in 45 seconds.",
-    "code": "RATE_LIMIT_EXCEEDED",
-    "details": {
-      "retryAfter": 45,
-      "limit": 100,
-      "window": "1 minute"
-    }
+  "error": "Rate limit exceeded. Please try again in 45 seconds.",
+  "code": "RATE_LIMIT_EXCEEDED",
+  "details": {
+    "retryAfter": 45,
+    "clientIP": "192.168.1...",
+    "requestsRemaining": 0,
+    "requestsLimit": 5
+  }
+}
+```
+
+**Example: Batch Scan Rate Limit Response**
+```http
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/json
+Retry-After: 45
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1700000060
+
+{
+  "error": "Rate limit exceeded. Please try again in 45 seconds.",
+  "code": "RATE_LIMIT_EXCEEDED",
+  "details": {
+    "retryAfter": 45,
+    "clientIP": "192.168.1...",
+    "requestsRemaining": 0,
+    "requestsLimit": 5
   }
 }
 ```
@@ -472,6 +618,8 @@ interface WorkDTO {
   firstPublicationYear?: number;    // Year only (e.g., 1925)
   description?: string;             // Synopsis
   coverImageURL?: string;           // High-res cover (1200px width recommended)
+                                    // Returns placeholder URL if no cover available (Issue #202)
+  searchLinks?: SearchLinksDTO;     // HATEOAS links for external providers (Issue #196)
 
   // ========== PROVENANCE ==========
   synthetic?: boolean;              // true if Work was inferred from Edition
@@ -514,6 +662,28 @@ type ReviewStatus = "verified" | "needsReview" | "userEdited";
 type DataProvider = "google-books" | "openlibrary" | "isbndb" | "gemini";
 ```
 
+**SearchLinksDTO (Issue #196 - HATEOAS Compliance):**
+```typescript
+interface SearchLinksDTO {
+  googleBooks?: string;   // Direct link to Google Books search/volume
+  openLibrary?: string;   // Direct link to OpenLibrary ISBN/search
+  amazon?: string;        // Direct link to Amazon search
+}
+```
+
+**Purpose:** Centralize URL construction on backend (HATEOAS principle). Clients never need to construct provider URLs - just follow the links provided.
+
+**Example:**
+```json
+{
+  "searchLinks": {
+    "googleBooks": "https://www.googleapis.com/books/v1/volumes?q=isbn:9780743273565",
+    "openLibrary": "https://openlibrary.org/isbn/9780743273565",
+    "amazon": "https://www.amazon.com/s?k=9780743273565"
+  }
+}
+```
+
 ---
 
 ### 5.2 EditionDTO (Physical/Digital Manifestation)
@@ -538,10 +708,11 @@ interface EditionDTO {
   publisher?: string;
   publicationDate?: string;         // YYYY-MM-DD or YYYY
   pageCount?: number;
-  coverImageURL?: string;
+  coverImageURL?: string;           // Returns placeholder URL if no cover available (Issue #202)
   editionTitle?: string;            // e.g., "Deluxe Illustrated Edition"
   editionDescription?: string;      // Note: NOT 'description' (Swift reserved)
   language?: string;                // ISO 639-1 code
+  searchLinks?: SearchLinksDTO;     // HATEOAS links for external providers (Issue #196)
 
   // ========== PROVENANCE ==========
   primaryProvider?: DataProvider;
@@ -640,9 +811,16 @@ interface BookSearchResponse {
   works: WorkDTO[];
   editions: EditionDTO[];
   authors: AuthorDTO[];
+  resultCount: number;              // Number of books found (0 for no results, N for N books)
   totalResults?: number;            // Reserved for future pagination
 }
 ```
+
+**Field Details:**
+- **`resultCount`**: Explicitly indicates the number of results found. This disambiguates "no results found" (0) from errors.
+  - `0`: Search completed successfully but found no matching books
+  - `N > 0`: Search found N matching books
+  - Always equals `works.length` in current implementation
 
 **Relationship:**
 - Works and Editions are **loosely coupled** (not normalized)
@@ -708,7 +886,8 @@ Host: api.oooefam.net
         "nationality": "United Kingdom",
         "birthYear": 1965
       }
-    ]
+    ],
+    "resultCount": 1
   },
   "metadata": {
     "timestamp": "2025-11-15T20:00:00.000Z",
@@ -725,7 +904,8 @@ Host: api.oooefam.net
   "data": {
     "works": [],
     "editions": [],
-    "authors": []
+    "authors": [],
+    "resultCount": 0
   },
   "metadata": {
     "timestamp": "2025-11-15T20:00:00.000Z",
@@ -819,6 +999,7 @@ Host: api.oooefam.net
     "totalDetected": 25,
     "approved": 20,
     "needsReview": 5,
+    "expiresAt": "2025-01-16T10:00:00.000Z",
     "books": [
       {
         "title": "The Great Gatsby",
@@ -879,6 +1060,9 @@ Host: api.oooefam.net
 - TTL: **24 hours** from job completion
 - Max Size: ~10 MB (100 books @ 100 KB each)
 
+**Field Notes:**
+- **`expiresAt`**: ISO 8601 timestamp indicating when results will be deleted from KV cache. Clients should cache results locally before expiry or handle 404 errors gracefully.
+
 ---
 
 #### GET /v1/csv/results/{jobId}
@@ -907,7 +1091,8 @@ Host: api.oooefam.net
     ],
     "errors": [],
     "successRate": "98/100",
-    "timestamp": 1700000000000
+    "timestamp": 1700000000000,
+    "expiresAt": "2025-01-16T10:00:00.000Z"
   },
   "metadata": {
     "timestamp": "2025-11-15T20:00:00.000Z",
@@ -925,9 +1110,18 @@ Same structure as `/v1/scan/results/{jobId}`.
 - KV Key: `csv-results:{jobId}`
 - TTL: **24 hours** from job completion
 
+**Field Notes:**
+- **`expiresAt`**: ISO 8601 timestamp indicating when results will be deleted from KV cache. Clients should cache results locally before expiry or handle 404 errors gracefully.
+
 ---
 
 ## 7. WebSocket API
+
+> **🚨 BREAKING CHANGE (v2.0.0 - Issue #167):**
+> WebSocket error messages now use HTTP canonical format (ResponseEnvelope) for consistency.
+> **Deployment:** Coordinated backend + frontend deployment (Nov 19, 2025).
+> **Action Required:** Update WebSocket error parsing to new format immediately (see [Migration Guide](#error-migration-guide-v1-v2)).
+> **No Backward Compatibility:** v1 format removed - all clients must use v2.
 
 ### 7.1 Connection
 
@@ -1090,6 +1284,7 @@ Sent periodically during processing (every 5-10% progress).
     "approved": 20,
     "needsReview": 5,
     "resultsUrl": "/v1/scan/results/uuid-12345",
+    "expiresAt": "2025-01-16T10:00:00.000Z",
     "metadata": {
       "modelUsed": "gemini-2.0-flash-exp",
       "processingTime": 8500
@@ -1109,11 +1304,19 @@ GET https://api.oooefam.net/v1/scan/results/uuid-12345
 - WebSocket payloads kept < 1 KB for instant parsing
 - Results stored in KV with 24-hour TTL
 
+**New Field: `expiresAt` (Issue #169)**
+- **Type:** ISO 8601 timestamp string (e.g., `"2025-01-16T10:00:00.000Z"`)
+- **Purpose:** Prevents race conditions where clients try to fetch expired results
+- **Calculation:** 24 hours from job completion time
+- **Usage:** Clients can display countdown timers and handle expiry gracefully
+
 ---
 
 #### error
 
 Sent when job fails.
+
+**⚠️ BREAKING CHANGE (v2.0.0):** Error payload now matches HTTP canonical format (ResponseEnvelope) for consistency.
 
 ```json
 {
@@ -1121,17 +1324,66 @@ Sent when job fails.
   "jobId": "uuid-12345",
   "pipeline": "csv_import",
   "timestamp": 1700000700000,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "payload": {
     "type": "error",
-    "code": "E_CSV_PROCESSING_FAILED",
-    "message": "Invalid CSV format: Missing title column",
-    "retryable": true,
-    "details": {
-      "lineNumber": 42
-    }
+    "data": null,
+    "metadata": {
+      "timestamp": "2025-01-15T10:00:00.000Z"
+    },
+    "error": {
+      "message": "Invalid CSV format: Missing title column",
+      "code": "E_CSV_PROCESSING_FAILED",
+      "details": {
+        "lineNumber": 42
+      }
+    },
+    "retryable": true
   }
 }
+```
+
+**Migration Guide (v1 → v2):**
+
+```typescript
+// ❌ OLD (v1.0.0) - Deprecated
+const { code, message, details } = wsMessage.payload;
+
+// ✅ NEW (v2.0.0) - Canonical format
+const { error, retryable } = wsMessage.payload;
+const { code, message, details } = error;
+```
+
+```swift
+// Swift (iOS) Migration Example
+
+// ❌ OLD (v1.0.0) - Deprecated
+let code = payload["code"] as? String
+let message = payload["message"] as? String
+let details = payload["details"] as? [String: Any]
+
+// ✅ NEW (v2.0.0) - Canonical format
+let error = payload["error"] as? [String: Any]
+let retryable = payload["retryable"] as? Bool
+let code = error?["code"] as? String
+let message = error?["message"] as? String
+let details = error?["details"] as? [String: Any]
+```
+
+```dart
+// Dart (Flutter) Migration Example
+
+// ❌ OLD (v1.0.0) - Deprecated
+final code = payload['code'] as String?;
+final message = payload['message'] as String?;
+final details = payload['details'] as Map<String, dynamic>?;
+
+// ✅ NEW (v2.0.0) - Canonical format
+final error = payload['error'] as Map<String, dynamic>?;
+final retryable = payload['retryable'] as bool?;
+final code = error?['code'] as String?;
+final message = error?['message'] as String?;
+final details = error?['details'] as Map<String, dynamic>?;
 ```
 
 ---
@@ -1578,9 +1830,32 @@ queued → processing → complete | error
 | Limit | Value | Reason |
 |-------|-------|--------|
 | **Min Photos** | 1 | Single photo uses `/api/scan-bookshelf` endpoint |
-| **Max Photos** | 5 | AI processing time (5 photos × 10s = 50s max) |
+| **Max Photos** | **5** | AI processing time (5 photos × 10s = 50s max, within Workers' 60s limit) |
 | **Max Photo Size** | 10 MB | Gemini API limit |
 | **Total Upload Size** | 50 MB | 5 photos × 10 MB each |
+| **Rate Limit** | 5 requests/minute | Per IP, applies to batch requests (not individual photos) |
+
+**⚠️ Common Mistake:** Confusing "50 MB" with "50 photos". The limit is **5 photos**, not 50.
+
+**iOS Pagination Pattern (20+ Photos):**
+```swift
+// For 20 photos, split into 4 batches of 5
+let allPhotos = [/* 20 photos */]
+let batchSize = 5
+
+for (index, batch) in allPhotos.chunked(into: batchSize).enumerated() {
+    // Respect 5 req/min rate limit: wait 12 seconds between batches
+    if index > 0 {
+        try await Task.sleep(nanoseconds: 12_000_000_000) // 12 seconds
+    }
+
+    // Upload batch
+    let response = try await uploadBatch(batch)
+
+    // Connect WebSocket and track progress
+    await trackBatchProgress(response.jobId, response.token)
+}
+```
 
 #### Cancellation
 
@@ -1631,15 +1906,25 @@ queued → processing → complete | error
 ```json
 {
   "type": "error",
+  "jobId": "uuid-67890",
   "pipeline": "ai_scan",
+  "timestamp": 1700000800000,
+  "version": "2.0.0",
   "payload": {
-    "code": "BATCH_SCAN_ERROR",
-    "message": "All photos failed processing",
+    "type": "error",
+    "data": null,
+    "metadata": {
+      "timestamp": "2025-01-15T10:15:00.000Z"
+    },
+    "error": {
+      "message": "All photos failed processing",
+      "code": "BATCH_SCAN_ERROR"
+    },
     "retryable": true
   }
 }
 ```
-- WebSocket closes with code 1011 (INTERNAL_ERROR)
+- WebSocket closes with code 1011 (INTERNAL_ERROR) after 1 second delay
 
 ---
 
@@ -1843,10 +2128,10 @@ if (envelope.error) {
 }
 
 // 3. Extract data
-const { works, editions, authors } = envelope.data;
+const { works, editions, authors, resultCount } = envelope.data;
 
 // 4. Display to user
-console.log(`Found ${works.length} works, ${editions.length} editions, ${authors.length} authors`);
+console.log(`Found ${resultCount} works, ${editions.length} editions, ${authors.length} authors`);
 console.log(`Primary work: ${works[0].title} by ${authors[0].name}`);
 console.log(`Gender: ${authors[0].gender}, Cultural Region: ${authors[0].culturalRegion}`);
 ```
