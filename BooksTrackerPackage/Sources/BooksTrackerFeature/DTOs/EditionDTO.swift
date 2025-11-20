@@ -49,6 +49,9 @@ public struct EditionDTO: Codable, Sendable, Equatable {
     /// Language code (e.g., "en", "es")
     public let language: String?
 
+    /// HATEOAS links for external providers (v2.4 - Issue #196)
+    public let searchLinks: SearchLinksDTO?
+
     // MARK: - Provenance
 
     /// Primary data provider
@@ -99,6 +102,7 @@ public struct EditionDTO: Codable, Sendable, Equatable {
         editionTitle: String? = nil,
         editionDescription: String? = nil,
         language: String? = nil,
+        searchLinks: SearchLinksDTO? = nil,
         primaryProvider: String? = nil,
         contributors: [String]? = nil,
         openLibraryID: String? = nil,
@@ -123,6 +127,7 @@ public struct EditionDTO: Codable, Sendable, Equatable {
         self.editionTitle = editionTitle
         self.editionDescription = editionDescription
         self.language = language
+        self.searchLinks = searchLinks
         self.primaryProvider = primaryProvider
         self.contributors = contributors
         self.openLibraryID = openLibraryID
@@ -142,6 +147,7 @@ public struct EditionDTO: Codable, Sendable, Equatable {
     private enum CodingKeys: String, CodingKey {
         case isbn, isbns, title, publisher, publicationDate, pageCount, format
         case coverImageURL, editionTitle, editionDescription, language
+        case searchLinks
         case primaryProvider, contributors
         case openLibraryID, openLibraryEditionID, isbndbID, googleBooksVolumeID, goodreadsID
         case amazonASINs, googleBooksVolumeIDs, librarythingIDs
@@ -183,6 +189,7 @@ public struct EditionDTO: Codable, Sendable, Equatable {
         editionTitle = try container.decodeIfPresent(String.self, forKey: .editionTitle)
         editionDescription = try container.decodeIfPresent(String.self, forKey: .editionDescription)
         language = try container.decodeIfPresent(String.self, forKey: .language)
+        searchLinks = try container.decodeIfPresent(SearchLinksDTO.self, forKey: .searchLinks)
 
         // Provenance
         primaryProvider = try container.decodeIfPresent(String.self, forKey: .primaryProvider)

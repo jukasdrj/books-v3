@@ -32,6 +32,9 @@ public struct WorkDTO: Codable, Sendable, Equatable {
     /// Cover image URL (copied from EditionDTO for enrichment)
     public let coverImageURL: String?
 
+    /// HATEOAS links for external providers (v2.4 - Issue #196)
+    public let searchLinks: SearchLinksDTO?
+
     // MARK: - Provenance
 
     /// True if Work was inferred from Edition data (enables deduplication)
@@ -97,6 +100,7 @@ public struct WorkDTO: Codable, Sendable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case title, subjectTags, originalLanguage, firstPublicationYear, description, coverImageURL
+        case searchLinks
         case synthetic, primaryProvider, contributors
         case openLibraryID, openLibraryWorkID, isbndbID, googleBooksVolumeID, goodreadsID
         case goodreadsWorkIDs, amazonASINs, librarythingIDs, googleBooksVolumeIDs
@@ -114,6 +118,7 @@ public struct WorkDTO: Codable, Sendable, Equatable {
         firstPublicationYear: Int? = nil,
         description: String? = nil,
         coverImageURL: String? = nil,
+        searchLinks: SearchLinksDTO? = nil,
         synthetic: Bool? = nil,
         primaryProvider: String? = nil,
         contributors: [String]? = nil,
@@ -138,6 +143,7 @@ public struct WorkDTO: Codable, Sendable, Equatable {
         self.firstPublicationYear = firstPublicationYear
         self.description = description
         self.coverImageURL = coverImageURL
+        self.searchLinks = searchLinks
         self.synthetic = synthetic
         self.primaryProvider = primaryProvider
         self.contributors = contributors
@@ -200,6 +206,7 @@ public struct WorkDTO: Codable, Sendable, Equatable {
         firstPublicationYear = try container.decodeIfPresent(Int.self, forKey: .firstPublicationYear)
         description = try container.decodeIfPresent(String.self, forKey: .description)
         coverImageURL = try container.decodeIfPresent(String.self, forKey: .coverImageURL)
+        searchLinks = try container.decodeIfPresent(SearchLinksDTO.self, forKey: .searchLinks)
 
         // Provenance
         synthetic = try container.decodeIfPresent(Bool.self, forKey: .synthetic)

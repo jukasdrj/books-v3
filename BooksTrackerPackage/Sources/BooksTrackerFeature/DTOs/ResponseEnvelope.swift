@@ -57,6 +57,16 @@ public struct BookSearchResponse: Codable, Sendable {
     public let works: [WorkDTO]
     public let editions: [EditionDTO]
     public let authors: [AuthorDTO]
+
+    /// Number of books found (0 for no results, N for N books)
+    /// Disambiguates "no results found" (0) from errors (v2.4 - Issue #169)
+    public let resultCount: Int
+
+    /// ISO 8601 timestamp when results expire from KV cache
+    /// 24 hours after job completion (v2.4 - Issue #169)
+    public let expiresAt: String?
+
+    /// Reserved for future pagination support
     public let totalResults: Int?
 }
 

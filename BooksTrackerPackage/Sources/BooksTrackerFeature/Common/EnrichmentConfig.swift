@@ -68,9 +68,21 @@ enum EnrichmentConfig {
 
     // MARK: - WebSocket Endpoints
 
-    /// WebSocket progress tracking for background jobs
+    /// WebSocket progress tracking for background jobs (v2.4 - Secure Auth)
+    ///
+    /// ⚠️ SECURITY (Issue #163): Token authentication now uses Sec-WebSocket-Protocol header
+    /// instead of query parameters to prevent token leakage in server logs.
+    ///
+    /// **NEW (Secure) - Recommended:**
+    /// ```swift
+    /// let url = EnrichmentConfig.webSocketURL(jobId: jobId)
+    /// var request = URLRequest(url: url)
+    /// request.setValue("bookstrack-auth.\(token)", forHTTPHeaderField: "Sec-WebSocket-Protocol")
+    /// let webSocket = URLSession.shared.webSocketTask(with: request)
+    /// ```
+    ///
     /// - Parameter jobId: The unique job identifier
-    /// - Returns: WebSocket URL for the specified job
+    /// - Returns: WebSocket URL for the specified job (WITHOUT token in query params)
     static func webSocketURL(jobId: String) -> URL {
         URL(string: "\(webSocketBaseURL)/ws/progress?jobId=\(jobId)")!
     }

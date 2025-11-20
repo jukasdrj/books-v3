@@ -31,6 +31,7 @@ public final class GenericWebSocketHandler {
     private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "WebSocket")
     private var webSocket: URLSessionWebSocketTask?
     private let url: URL
+    private let token: String?
     private let pipeline: PipelineType
     private let progressHandler: @MainActor (JobProgressPayload) -> Void
     private let completionHandler: @MainActor (JobCompletePayload) -> Void
@@ -39,20 +40,27 @@ public final class GenericWebSocketHandler {
     private var shouldContinueListening = true
 
     /// Initializes a new generic WebSocket handler.
+    ///
+    /// ⚠️ SECURITY (v2.4 - Issue #163): Token authentication now uses Sec-WebSocket-Protocol header
+    /// instead of query parameters to prevent token leakage in server logs.
+    ///
     /// - Parameters:
-    ///   - url: The exact WebSocket URL to connect to, including query parameters (jobId, token)
+    ///   - url: The WebSocket URL to connect to, including jobId in query parameters (WITHOUT token)
+    ///   - token: The authentication token (passed via Sec-WebSocket-Protocol header, NOT in URL)
     ///   - pipeline: The pipeline type this handler is for (batch_enrichment, csv_import, ai_scan)
     ///   - progressHandler: Callback fired when a `job_progress` message is received
     ///   - completionHandler: Callback fired when a `job_complete` message is received
     ///   - errorHandler: Callback fired when an `error` message is received
     public init(
         url: URL,
+        token: String? = nil,
         pipeline: PipelineType,
         progressHandler: @escaping @MainActor (JobProgressPayload) -> Void,
         completionHandler: @escaping @MainActor (JobCompletePayload) -> Void,
         errorHandler: @escaping @MainActor (ErrorPayload) -> Void
     ) {
         self.url = url
+        self.token = token
         self.pipeline = pipeline
         self.progressHandler = progressHandler
         self.completionHandler = completionHandler
@@ -61,13 +69,23 @@ public final class GenericWebSocketHandler {
 
     /// Connects to the WebSocket and starts listening for messages.
     /// Implements automatic retry with exponential backoff for transient failures.
+    ///
+    /// ⚠️ SECURITY (v2.4 - Issue #163): Uses Sec-WebSocket-Protocol header for token authentication.
     public func connect() async {
         var attempts = 0
         let maxRetries = 3
-        
+
         while attempts < maxRetries {
             let session = URLSession(configuration: .default)
-            webSocket = session.webSocketTask(with: url)
+
+            // ⚠️ SECURITY FIX (Issue #163): Pass token via Sec-WebSocket-Protocol header
+            // instead of query parameters to prevent leakage in server logs
+            var request = URLRequest(url: url)
+            if let token = token {
+                request.setValue("bookstrack-auth.\(token)", forHTTPHeaderField: "Sec-WebSocket-Protocol")
+            }
+
+            webSocket = session.webSocketTask(with: request)
             webSocket?.resume()
 
             // ✅ CRITICAL: Wait for WebSocket handshake to complete

@@ -280,6 +280,10 @@ public struct CSVImportCompletePayload: Codable, Sendable {
     public let books: [ParsedBook]
     public let errors: [ImportError]
     public let successRate: String          // e.g., "45/50"
+
+    /// ISO 8601 timestamp when results expire from KV cache
+    /// 24 hours after job completion (v2.4 - Issue #169)
+    public let expiresAt: String?
 }
 
 public struct ParsedBook: Codable, Sendable {
@@ -309,12 +313,17 @@ public struct AIScanCompletePayload: Codable, Sendable {
     public let books: [DetectedBookPayload]?
     public let metadata: JobMetadata?
 
+    /// ISO 8601 timestamp when results expire from KV cache
+    /// 24 hours after job completion (v2.4 - Issue #169)
+    public let expiresAt: String?
+
     enum CodingKeys: String, CodingKey {
         case type, pipeline, books, metadata
         case totalDetected = "total_detected"
         case approved
         case needsReview = "needs_review"
         case resultsUrl = "results_url"
+        case expiresAt = "expiresAt"
     }
 }
 
