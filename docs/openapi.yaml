@@ -18,7 +18,7 @@ info:
     - New endpoints: `/v1/scan/results/{jobId}`, `/v1/csv/results/{jobId}`, `POST /api/batch-scan`.
     - Enhanced WebSocket API with reconnection support and batch scanning messages.
     - Input validation limits for DoS prevention.
-    - Function-based CORS policy (see `API_CONTRACT.md` Section 2.1 for details on allowed origins).
+    - Function-based CORS policy (see `API_CONTRACT.md` Section 3.2 for details on allowed origins).
 
     **Important Notes:**
     - All `/v1/*` HTTP endpoints use a consistent `ResponseEnvelope` format.
@@ -553,6 +553,22 @@ paths:
 
         **WebSocket URL Pattern:**
         `wss://api.oooefam.net/ws/progress?jobId={jobId}&token={token}&reconnect={true/false}`
+
+        **⚠️ CRITICAL: HTTP/1.1 Required (Issue #227)**
+        WebSocket connections MUST use HTTP/1.1. HTTP/2 and HTTP/3 are not supported by the WebSocket protocol (RFC 6455).
+
+        **iOS URLSession Configuration:**
+        ```swift
+        let configuration = URLSessionConfiguration.default
+        configuration.httpProtocolOptions = [.http1_1Only: true]
+        let session = URLSession(configuration: configuration)
+        ```
+
+        **Error if using HTTP/2:**
+        ```
+        HTTP/2 426 Upgrade Required
+        Expected Upgrade: websocket
+        ```
 
         **Authentication:**
         Requires `jobId` and `token` obtained from the initial `POST` request (e.g., `/api/batch-scan`).
@@ -1441,14 +1457,14 @@ components:
     MessageType:
       type: string
       description: |
-        All WebSocket message types (13 total).
+        All WebSocket message types (11 total).
 
-        **Active message types (11)**:
+        **Active message types**:
         - job_started, job_progress, job_complete, error
         - ready, ready_ack, reconnected
         - batch-init, batch-progress, batch-complete, batch-canceling
 
-        **Planned for future (2)**: ping, pong (keep-alive functionality)
+        **Note**: ping/pong removed in v2.4 (never implemented)
       enum:
         - job_started
         - job_progress
@@ -1461,8 +1477,6 @@ components:
         - batch-progress
         - batch-complete
         - batch-canceling
-        - ping
-        - pong
 
     # --- Endpoint Specific Payloads ---
     BookSearchResponse:

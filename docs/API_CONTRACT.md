@@ -364,11 +364,21 @@ wss://api.oooefam.net/ws/progress?jobId={jobId}&token={token}
 
 **Implementation:** Token refresh is handled **automatically by the Durable Object** when the connection is active and approaching expiration (within 30 minutes of expiry).
 
+**Backend Implementation:**
+- **Alarm System:** Durable Object schedules alarms every 15 minutes to check token expiration
+- **Refresh Window:** Automatic refresh triggers when token has < 30 minutes remaining
+- **Method:** `scheduleTokenRefreshCheck()` in `progress-socket.js:698`
+- **Auto-Refresh:** `autoRefreshToken()` generates new token and extends expiration by 2 hours
+- **Token Storage:** New tokens stored in KV with `authToken` and `authTokenExpiration` keys
+- **Token Blacklist:** Old tokens blacklisted with 2.5-hour TTL to prevent reuse
+- **Conflict Prevention:** Token refresh alarms delayed if job processing alarm is active (single alarm per DO)
+
 **Refresh Window:**
 - Tokens are **automatically refreshed** in the last 30 minutes before expiration
-- No client-side code needed - handled server-side
-- New token extends expiration by another 2 hours
+- No client-side code needed - handled server-side via Durable Object alarms
+- New token extends expiration by another 2 hours from refresh time
 - Client receives updated token via internal state (transparent)
+- Old token blacklisted but usable during 5-minute grace period for reconnections
 
 **Client Implementation Examples:**
 
@@ -425,7 +435,51 @@ final channel = WebSocketChannel.connect(
 - Disconnected clients can reconnect with old token during auto-refresh (5-minute grace period)
 - Expired tokens cannot be refreshed (must start new job)
 
-### 3.2 Rate Limiting
+### 3.2 CORS (Cross-Origin Resource Sharing)
+
+**Policy:** Specific origins only (NOT wildcard `*`)
+
+**Allowed Origins:**
+- `https://bookstrack.oooefam.net` - Production frontend
+- `capacitor://localhost` - iOS/Android Capacitor apps
+- `http://localhost:8787` - Local development
+
+**Implementation:** `src/middleware/cors.js`
+
+**Headers Set:**
+```
+Access-Control-Allow-Origin: {allowed-origin}
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Content-Type, Authorization
+Access-Control-Max-Age: 86400
+```
+
+**Preflight Requests:** OPTIONS requests return `204 No Content` with CORS headers
+
+**WebSocket CORS:** WebSocket connections follow same origin policy (validated in Durable Object)
+
+### 3.3 HTTP Headers
+
+**Required Headers:**
+- `Content-Type: application/json` - Required for POST/PUT requests with body
+
+**Optional Headers:**
+- `Authorization: Bearer {token}` - For future authentication (not currently enforced)
+- `User-Agent` - Recommended for analytics/debugging
+- `X-Request-ID` - Optional correlation ID for request tracking
+
+**Response Headers:**
+All API responses include:
+- `Content-Type: application/json`
+- `X-Request-ID` - Correlation ID (if provided in request)
+- `X-Response-Time` - Server-side processing time in milliseconds
+
+**WebSocket-Specific Headers:**
+- `Sec-WebSocket-Protocol: bookstrack-auth.{token}` - Authentication (see 3.1)
+- `Upgrade: websocket` - Protocol upgrade
+- `Connection: Upgrade`
+
+### 3.4 Rate Limiting
 
 **Global Limits:**
 - **1000 requests/hour** per IP address
@@ -802,7 +856,50 @@ type CulturalRegion =
 
 ---
 
-### 5.4 BookSearchResponse
+### 5.4 DTO Field Defaults
+
+**Default Value Pattern:** Optional fields default to `undefined` (NOT `null` or zero)
+
+**Common Defaults:**
+
+| Field Type | Default Value | Example Fields |
+|------------|---------------|----------------|
+| Optional string | `undefined` | `originalLanguage`, `description`, `coverImageURL` |
+| Optional number | `undefined` | `pageCount`, `firstPublicationYear`, `publicationYear` |
+| Optional object | `undefined` | `searchLinks`, `enrichment` |
+| Required array | `[]` (empty array) | `subjectTags`, `goodreadsWorkIDs`, `amazonASINs` |
+| Optional array | `undefined` | N/A (all arrays are required) |
+| Optional boolean | `undefined` | `synthetic` |
+
+**Type Safety Notes:**
+- **TypeScript**: Optional fields use `field?: type` (not `field: type | null`)
+- **JSON Serialization**: `undefined` fields are omitted from JSON (not sent as `null`)
+- **Client Handling**: Check for `undefined` or use nullish coalescing (`??`) for defaults
+
+**Examples:**
+
+```typescript
+// ✅ CORRECT: Check for undefined
+if (work.searchLinks !== undefined) {
+  // searchLinks exists
+}
+
+// ✅ CORRECT: Nullish coalescing
+const title = work.title ?? "Unknown Title";
+const pageCount = edition.pageCount ?? 0;
+
+// ❌ INCORRECT: Checking for null
+if (work.searchLinks !== null) { // Will miss undefined
+  // ...
+}
+
+// ❌ INCORRECT: Assuming default zero
+const pages = edition.pageCount; // Could be undefined, not 0!
+```
+
+---
+
+### 5.5 BookSearchResponse
 
 Used by: `/v1/search/title`, `/v1/search/isbn`, `/v1/search/advanced`
 
@@ -1130,16 +1227,34 @@ Same structure as `/v1/scan/results/{jobId}`.
 wss://api.oooefam.net/ws/progress?jobId={jobId}&token={token}
 ```
 
+**⚠️ CRITICAL: HTTP/1.1 Required (Issue #227)**
+
+WebSocket connections **MUST** use HTTP/1.1. HTTP/2 and HTTP/3 are not supported by the WebSocket protocol (RFC 6455).
+
+**iOS URLSession Configuration:**
+```swift
+let configuration = URLSessionConfiguration.default
+configuration.httpProtocolOptions = [.http1_1Only: true]
+let session = URLSession(configuration: configuration)
+let websocketTask = session.webSocketTask(with: request)
+```
+
+**Error if using HTTP/2:**
+```
+HTTP/2 426 Upgrade Required
+Expected Upgrade: websocket
+```
+
 **Connection Lifecycle:**
-1. Client connects with valid `jobId` and `token`
+1. Client connects with valid `jobId` and `token` (HTTP/1.1 only)
 2. Client sends `ready` signal when ready to receive messages
 3. Server sends `ready_ack` acknowledgment
 4. Server sends job updates (`job_started`, `job_progress`, `job_complete`)
 5. Server closes connection with code 1000 (NORMAL_CLOSURE) on completion
 
 **Heartbeat:**
-- Server sends `ping` every 30 seconds
-- Client should respond with `pong` (optional)
+- Not required - Cloudflare Workers automatically handles connection health
+- Connections remain active for duration of job (up to 2 hours with auto token refresh)
 
 **Local Testing with Wrangler:**
 ```bash
@@ -1206,9 +1321,6 @@ type MessageType =
   | "batch-complete"  // Server → Client: Batch scan complete
   | "batch-canceling" // Server → Client: Batch cancellation in progress
 
-  // Keep-alive (planned, not yet implemented)
-  | "ping"
-  | "pong";
 ```
 
 **Pipeline:**
