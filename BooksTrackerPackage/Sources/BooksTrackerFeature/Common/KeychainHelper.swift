@@ -7,11 +7,11 @@ public final class KeychainHelper {
 
     // MARK: - Errors
 
-    enum KeychainError: Error, LocalizedError {
+    public enum KeychainError: Error, LocalizedError {
         case unexpectedData
         case unhandledError(status: OSStatus)
 
-        var errorDescription: String? {
+        public var errorDescription: String? {
             switch self {
             case .unexpectedData:
                 return "Unexpected data format in Keychain"

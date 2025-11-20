@@ -1,10 +1,10 @@
 import Foundation
 
-struct APIError: Error, LocalizedError {
-    let code: String
-    let message: String
+public struct APIError: Error, LocalizedError {
+    public let code: String
+    public let message: String
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         "\(message) (Code: \(code))"
     }
 }
