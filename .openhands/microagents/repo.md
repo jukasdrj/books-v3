@@ -82,7 +82,12 @@ BooksTracker is a modern iOS book tracking application with cultural diversity i
 
 **Backend:** Maintained in separate repository (bookstrack-backend) using Cloudflare Workers, Durable Objects, KV Storage, R2 Object Storage, and Gemini 2.5 Flash AI.
 
-**Build Workflow:** The repository has a disabled GitHub Actions workflow (`build.yml.disabled`) that includes build validation, Swift testing, and zero-warnings enforcement for iOS development.
+**Build Workflow:** The repository has a disabled GitHub Actions workflow (`build.yml.disabled`) that includes:
+- Build validation for iOS Simulator (iPhone 16, iOS 18.0)
+- Swift Testing suite execution with `xcodebuild test`
+- Zero-warnings policy enforcement (fails CI if warnings detected)
+- Uses Xcode 16.1 on macOS-15 runners
+- Code signing disabled for CI builds
 
 **Development Tools:**
 - XcodeBuildMCP for iOS development workflows
@@ -90,3 +95,4 @@ BooksTracker is a modern iOS book tracking application with cultural diversity i
 - Swift 6.2+ with strict concurrency
 - VisionKit for barcode scanning
 - AVFoundation for camera integration
+- xcpretty for formatted build output
