@@ -246,9 +246,20 @@ let reading = all.filter { $0.readingStatus == .reading }
 
 ---
 
-## Backend API Contract (v2.0)
+## Backend API Contract (v2.4)
 
-**🚨 CRITICAL:** All backend communication MUST adhere to v2.0 canonical contract.
+**🚨 CRITICAL:** All backend communication MUST adhere to v2.4 canonical contract.
+
+**Last Updated:** November 18, 2025
+**Backend Repo:** https://github.com/jukasdrj/bookstrack-backend
+**Full Contract:** `docs/API_CONTRACT.md` in backend repo
+
+**v2.4 Changes (Nov 18, 2025):**
+- ✅ Secure WebSocket auth via `Sec-WebSocket-Protocol` header (implemented)
+- ✅ HTTP/1.1 enforcement for WebSocket (Issue #227 - implemented)
+- ✅ HATEOAS `SearchLinksDTO` on Work/Edition (backend provides provider URLs)
+- ✅ Image quality detection improvements (`isbndbQuality` field)
+- ✅ 24-hour result expiry (`expiresAt` field in completion payloads)
 
 ### Base URLs
 
@@ -290,8 +301,15 @@ GET /v1/search/isbn?isbn={isbn}             # ISBN lookup (ISBN-10 or ISBN-13)
 GET /v1/search/advanced?title=&author=      # Multi-field search
 GET /v1/scan/results/{jobId}                # Fetch AI scan results (24hr TTL)
 GET /v1/csv/results/{jobId}                 # Fetch CSV import results (24hr TTL)
-GET /ws/progress?jobId={uuid}&token={token} # WebSocket progress (all jobs)
+POST /api/batch-scan                        # Upload 1-5 photos for AI processing
+GET /ws/progress?jobId={uuid}               # WebSocket progress (token in header)
 ```
+
+**Rate Limits:**
+- Search: 100 req/min per IP
+- Batch enrichment: 10 req/min per IP
+- **AI batch scanning: 5 req/min per IP** (1-5 photos per batch)
+- Global: 1000 req/hour per IP (burst: 50/min)
 
 ### Error Codes
 - `INVALID_ISBN` - Invalid ISBN format (HTTP 400)
@@ -301,23 +319,101 @@ GET /ws/progress?jobId={uuid}&token={token} # WebSocket progress (all jobs)
 - `PROVIDER_TIMEOUT` - External API timeout (HTTP 504, retryable)
 - `INTERNAL_ERROR` - Server error (HTTP 500, retryable)
 
-### WebSocket v2 Contract
+### WebSocket v2.4 Contract
 
-**🚨 CRITICAL: Summary-Only Completions**
+**🚨 CRITICAL: HTTP/1.1 ONLY (Issue #227)**
 
-Completion messages are **summary-only** (< 1 KB). Full results fetched via HTTP GET.
+WebSocket connections **MUST** use HTTP/1.1. HTTP/2 and HTTP/3 are **not supported**.
+
+**iOS Configuration (MANDATORY):**
+```swift
+var request = URLRequest(url: url)
+request.assumesHTTP3Capable = false  // Force HTTP/1.1
+request.setValue("websocket", forHTTPHeaderField: "Upgrade")
+request.setValue("Upgrade", forHTTPHeaderField: "Connection")
+```
+
+**Violation Response:** `HTTP 426 Upgrade Required` (our code detects this as `-1011` error)
+
+---
+
+**🚨 CRITICAL: Secure Authentication (v2.4)**
+
+**NEW METHOD (Recommended):**
+```swift
+let url = URL(string: "wss://api.oooefam.net/ws/progress?jobId=\(jobId)")!
+var request = URLRequest(url: url)
+request.setValue("bookstrack-auth.\(token)", forHTTPHeaderField: "Sec-WebSocket-Protocol")
+```
+
+**OLD METHOD (Deprecated):**
+```
+wss://api.oooefam.net/ws/progress?jobId={jobId}&token={token}
+```
+
+**Why Header Method:**
+- Prevents token leakage in server logs
+- Not visible in browser history
+- Follows HATEOAS security principles
+
+---
+
+**🚨 CRITICAL: Send "ready" Signal**
+
+Backend waits for client ready signal before processing (2-5 second timeout):
+
+```swift
+func webSocketDidConnect(_ webSocket: URLSessionWebSocketTask) {
+    let readyMessage = ["type": "ready"]
+    let jsonData = try! JSONEncoder().encode(readyMessage)
+    webSocket.send(.data(jsonData))
+}
+```
+
+---
 
 **Message Types:**
-1. **job_started** - Sent on WebSocket connection
-2. **job_progress** - Periodic updates (every 5-10% progress)
-3. **job_complete** - Summary only (⚠️ NO large arrays!)
-4. **error** - Job failure
+1. **ready** (Client→Server) - Signal readiness after connection
+2. **ready_ack** (Server→Client) - Backend acknowledges ready signal
+3. **job_started** - Job begins processing
+4. **job_progress** - Periodic updates (every 5-10% progress)
+5. **job_complete** - Summary only (⚠️ NO large arrays!)
+6. **error** - Job failure (v2.0 canonical format: `payload.error.message`, `payload.error.code`, `payload.retryable`)
+7. **reconnected** - State sync after reconnect (progress, status, processedCount, totalCount)
+8. **batch-init**, **batch-progress**, **batch-complete** - Photo batch scanning (1-5 photos)
+
+---
+
+**Summary-Only Completions:**
+
+Completion messages are **summary-only** (< 1 KB). Full results fetched via HTTP GET.
 
 **Client Action (MANDATORY):** Fetch full results via HTTP GET after `job_complete`:
 ```swift
 let fullResults = try await fetchResults(url: payload.resultsUrl)
 // GET https://api.oooefam.net/v1/scan/results/uuid-12345
 ```
+
+**Results TTL:** 24 hours (v2.4) - check `expiresAt` field in completion payload
+
+---
+
+**Reconnection Support (Production Ready):**
+
+Grace period: 60 seconds after unexpected disconnect
+
+**Flow:**
+1. Detect disconnect (close code ≠ 1000)
+2. Reconnect with: `?jobId={jobId}&reconnect=true&token={token}`
+3. Receive `reconnected` message with synced state
+4. Continue listening for updates
+
+**Best Practices:**
+- Exponential backoff (1s, 2s, 4s, 8s, max 30s)
+- Max 3 retry attempts
+- Preserve jobId/token in memory (use Keychain for security)
+
+**✅ Implementation:** Our WebSocketProgressManager automatically adds `reconnect=true` parameter during reconnection attempts for optimal state sync.
 
 ---
 

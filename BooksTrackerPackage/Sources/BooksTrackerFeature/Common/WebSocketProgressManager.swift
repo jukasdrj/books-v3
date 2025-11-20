@@ -118,9 +118,10 @@ public final class WebSocketProgressManager: NSObject, @preconcurrency URLSessio
     /// - Parameters:
     ///   - jobId: Client-generated job identifier for WebSocket binding
     ///   - token: Optional authentication token for WebSocket connection
+    ///   - reconnect: Set to true when reconnecting to existing job (enables state sync)
     /// - Returns: ConnectionToken proving connection is ready
     /// - Throws: URLError if connection fails or times out
-    public func establishConnection(jobId: String, token: String? = nil) async throws -> ConnectionToken {
+    public func establishConnection(jobId: String, token: String? = nil, reconnect: Bool = false) async throws -> ConnectionToken {
         guard webSocketTask == nil else {
             throw URLError(.badURL, userInfo: ["reason": "WebSocket already connected"])
         }
@@ -132,7 +133,12 @@ public final class WebSocketProgressManager: NSObject, @preconcurrency URLSessio
 
         return try await withCheckedThrowingContinuation { continuation in
             // Create connection endpoint with client-provided jobId (token goes in header for security)
-            let url = URL(string: "\(EnrichmentConfig.webSocketBaseURL)/ws/progress?jobId=\(jobId)")!
+            // Add reconnect=true parameter for state sync on reconnection (v2.4 API contract)
+            var urlString = "\(EnrichmentConfig.webSocketBaseURL)/ws/progress?jobId=\(jobId)"
+            if reconnect {
+                urlString += "&reconnect=true"
+            }
+            let url = URL(string: urlString)!
 
             self.connectionContinuation = continuation
 
@@ -284,7 +290,8 @@ public final class WebSocketProgressManager: NSObject, @preconcurrency URLSessio
                 receiveTask = nil
 
                 // Try to reconnect (token already in Keychain)
-                _ = try await establishConnection(jobId: jobId, token: token!)
+                // Pass reconnect=true to enable backend state sync (v2.4 API contract)
+                _ = try await establishConnection(jobId: jobId, token: token!, reconnect: true)
 
                 #if DEBUG
                 print("✅ Reconnection successful after \(reconnectionAttempt) attempts")
