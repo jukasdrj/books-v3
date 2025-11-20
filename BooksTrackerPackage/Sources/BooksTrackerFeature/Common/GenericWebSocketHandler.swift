@@ -76,11 +76,23 @@ public final class GenericWebSocketHandler {
         let maxRetries = 3
 
         while attempts < maxRetries {
-            let session = URLSession(configuration: .default)
+            // FIX (Issue #227): Enforce HTTP/1.1 for WebSocket handshake compatibility with iOS/backend.
+            // iOS defaults to HTTP/2 for HTTPS, which is incompatible with RFC 6455 WebSocket upgrade.
+            let config = URLSessionConfiguration.default
+            config.httpMaximumConnectionsPerHost = 1
+            config.timeoutIntervalForRequest = 10.0 // Use default timeout
+
+            let session = URLSession(configuration: config)
 
             // ⚠️ SECURITY FIX (Issue #163): Pass token via Sec-WebSocket-Protocol header
             // instead of query parameters to prevent leakage in server logs
             var request = URLRequest(url: url)
+
+            // Enforce HTTP/1.1 and add required WebSocket headers
+            request.assumesHTTP3Capable = false // Forces HTTP/1.1 negotiation (disables HTTP/2 and HTTP/3)
+            request.setValue("websocket", forHTTPHeaderField: "Upgrade")
+            request.setValue("Upgrade", forHTTPHeaderField: "Connection")
+
             if let token = token {
                 request.setValue("bookstrack-auth.\(token)", forHTTPHeaderField: "Sec-WebSocket-Protocol")
             }
@@ -156,8 +168,23 @@ public final class GenericWebSocketHandler {
                         self.listenForMessages()
                     }
                 case .failure(let error):
-                    // Check if this is a normal disconnect (Code 57 after job complete)
                     let nsError = error as NSError
+
+                    // Check for HTTP 426 Upgrade Required (HTTP/2 mismatch - Issue #227)
+                    if nsError.code == -1011 && nsError.domain == NSURLErrorDomain {
+                        self.logger.error("❌ HTTP upgrade required - possible HTTP/2 negotiation: \(error.localizedDescription)")
+                        let errorPayload = ErrorPayload(
+                            code: "HTTP_VERSION_MISMATCH",
+                            message: "WebSocket upgrade failed - server requires HTTP/1.1 but got HTTP/2",
+                            details: AnyCodable(nsError.userInfo),
+                            retryable: false
+                        )
+                        self.errorHandler(errorPayload)
+                        self.disconnect()
+                        return
+                    }
+
+                    // Check if this is a normal disconnect (Code 57 after job complete)
                     if nsError.domain == NSPOSIXErrorDomain && nsError.code == 57 {
                         // Socket closed gracefully after job completion - not an error
                         self.logger.debug("✅ WebSocket closed gracefully (\(self.pipeline.rawValue))")

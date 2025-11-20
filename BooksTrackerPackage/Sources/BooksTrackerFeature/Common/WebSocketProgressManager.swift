@@ -102,7 +102,14 @@ public final class WebSocketProgressManager: NSObject, @preconcurrency URLSessio
 
     override public init() {
         super.init()
-        self.session = URLSession(configuration: .default, delegate: self, delegateQueue: OperationQueue.main)
+
+        // FIX (Issue #227): Enforce HTTP/1.1 for WebSocket handshake compatibility with iOS/backend.
+        // iOS defaults to HTTP/2 for HTTPS, which is incompatible with RFC 6455 WebSocket upgrade.
+        let config = URLSessionConfiguration.default
+        config.httpMaximumConnectionsPerHost = 1
+        config.timeoutIntervalForRequest = connectionTimeout // Use defined timeout (10.0s)
+
+        self.session = URLSession(configuration: config, delegate: self, delegateQueue: OperationQueue.main)
     }
 
     /// STEP 1: Establish WebSocket connection BEFORE job starts
@@ -124,25 +131,24 @@ public final class WebSocketProgressManager: NSObject, @preconcurrency URLSessio
         }
 
         return try await withCheckedThrowingContinuation { continuation in
-            // Create connection endpoint with client-provided jobId and optional token
-            let url: URL
-            if let token = token {
-                var components = URLComponents(string: "\(EnrichmentConfig.webSocketBaseURL)/ws/progress")!
-                components.queryItems = [
-                    URLQueryItem(name: "jobId", value: jobId),
-                    URLQueryItem(name: "token", value: token)
-                ]
-                guard let urlWithToken = components.url else {
-                    continuation.resume(throwing: URLError(.badURL, userInfo: ["reason": "Failed to construct WebSocket URL with token"]))
-                    return
-                }
-                url = urlWithToken
-            } else {
-                url = EnrichmentConfig.webSocketURL(jobId: jobId)
-            }
+            // Create connection endpoint with client-provided jobId (token goes in header for security)
+            let url = URL(string: "\(EnrichmentConfig.webSocketBaseURL)/ws/progress?jobId=\(jobId)")!
 
             self.connectionContinuation = continuation
-            let task = self.session.webSocketTask(with: url)
+
+            // FIX (Issue #227): Configure URLRequest for HTTP/1.1 WebSocket upgrade.
+            var request = URLRequest(url: url)
+            request.assumesHTTP3Capable = false // Forces HTTP/1.1 negotiation (disables HTTP/2 and HTTP/3)
+            request.setValue("websocket", forHTTPHeaderField: "Upgrade")
+            request.setValue("Upgrade", forHTTPHeaderField: "Connection")
+
+            // SECURITY: Add token securely via Sec-WebSocket-Protocol header (matches GenericWebSocketHandler pattern)
+            // This prevents token leakage in server logs, proxies, or error reports
+            if let token = token {
+                request.setValue("bookstrack-auth.\(token)", forHTTPHeaderField: "Sec-WebSocket-Protocol")
+            }
+
+            let task = self.session.webSocketTask(with: request)
             self.webSocketTask = task
             task.resume()
         }
@@ -673,13 +679,36 @@ extension WebSocketProgressManager {
 
     public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         if let error = error {
+            let nsError = error as NSError
+
+            // Check for HTTP 426 Upgrade Required (HTTP/2 mismatch - Issue #227)
+            if nsError.code == -1011 && nsError.domain == NSURLErrorDomain {
+                #if DEBUG
+                print("❌ HTTP upgrade required - possible HTTP/2 negotiation: \(error.localizedDescription)")
+                #endif
+                self.isConnected = false
+
+                let upgradeError = URLError(
+                    .badServerResponse,
+                    userInfo: [
+                        NSLocalizedDescriptionKey: "WebSocket upgrade failed - server requires HTTP/1.1 but got HTTP/2",
+                        "code": "HTTP_VERSION_MISMATCH",
+                        "retryable": false
+                    ]
+                )
+                connectionContinuation?.resume(throwing: upgradeError)
+                connectionContinuation = nil
+                disconnect()
+                return
+            }
+
             #if DEBUG
             print("🔌 WebSocket task completed with error: \(error)")
             #endif
             self.isConnected = false
             connectionContinuation?.resume(throwing: error)
             connectionContinuation = nil
-            
+
             // This is called for network errors, so we attempt reconnection.
             // The didCloseWith delegate is for graceful or ungraceful closures.
             reconnect()
