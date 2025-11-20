@@ -185,11 +185,17 @@ public final class EnhancedDiversityStats {
     public var genderDistribution: [String: Int] // e.g., ["Female": 15, "Male": 5]
     public var translationStatus: [String: Int] // e.g., ["Translated": 8, "Original Language": 12]
 
+    // ✨ NEW: Additional dimensions for Radar Chart (5-7 axes total)
+    public var ownVoicesTheme: [String: Int] // e.g., ["Own Voices": 10, "Not Own Voices": 8]
+    public var nicheAccessibility: [String: Int] // e.g., ["Accessible": 5, "Standard": 13]
+
     // Completion tracking (NEW - for gamification)
     public var totalBooks: Int
     public var booksWithCulturalData: Int
     public var booksWithGenderData: Int
     public var booksWithTranslationData: Int
+    public var booksWithOwnVoicesData: Int // ✨ ADDED for forward-compatibility
+    public var booksWithAccessibilityData: Int // ✨ ADDED for forward-compatibility
 
     // Computed properties
     public var culturalCompletionPercentage: Double {
@@ -197,9 +203,32 @@ public final class EnhancedDiversityStats {
         return Double(booksWithCulturalData) / Double(totalBooks) * 100
     }
 
+    public var genderCompletionPercentage: Double {
+        guard totalBooks > 0 else { return 0 }
+        return Double(booksWithGenderData) / Double(totalBooks) * 100
+    }
+
+    public var translationCompletionPercentage: Double {
+        guard totalBooks > 0 else { return 0 }
+        return Double(booksWithTranslationData) / Double(totalBooks) * 100
+    }
+
+    public var ownVoicesCompletionPercentage: Double {
+        guard totalBooks > 0 else { return 0 }
+        return Double(booksWithOwnVoicesData) / Double(totalBooks) * 100
+    }
+
+    public var accessibilityCompletionPercentage: Double {
+        guard totalBooks > 0 else { return 0 }
+        return Double(booksWithAccessibilityData) / Double(totalBooks) * 100
+    }
+
     public var overallCompletionPercentage: Double {
-        let totalFields = totalBooks * 3 // cultural, gender, translation
-        let completedFields = booksWithCulturalData + booksWithGenderData + booksWithTranslationData
+        // ✨ UPDATED: Now accounts for 5 dimensions (not 3)
+        let totalFields = totalBooks * 5 // cultural, gender, translation, ownVoices, accessibility
+        let completedFields = booksWithCulturalData + booksWithGenderData +
+                              booksWithTranslationData + booksWithOwnVoicesData +
+                              booksWithAccessibilityData
         guard totalFields > 0 else { return 0 }
         return Double(completedFields) / Double(totalFields) * 100
     }
@@ -210,10 +239,14 @@ public final class EnhancedDiversityStats {
         self.culturalOrigins = [:]
         self.genderDistribution = [:]
         self.translationStatus = [:]
+        self.ownVoicesTheme = [:] // ✨ ADDED
+        self.nicheAccessibility = [:] // ✨ ADDED
         self.totalBooks = 0
         self.booksWithCulturalData = 0
         self.booksWithGenderData = 0
         self.booksWithTranslationData = 0
+        self.booksWithOwnVoicesData = 0 // ✨ ADDED
+        self.booksWithAccessibilityData = 0 // ✨ ADDED
     }
 }
 
@@ -221,6 +254,10 @@ public enum StatsPeriod: String, Codable {
     case allTime, year, month
 }
 ```
+
+> **🔧 CRITICAL FIX (Nov 20, 2025):**
+> Added `ownVoicesTheme` and `nicheAccessibility` dimensions to prevent schema migration in Sprint 4.
+> The Representation Radar Chart requires 5-7 axes, not just 3. This future-proofs the data model.
 
 **Subtasks:**
 - [ ] Create `EnhancedDiversityStats.swift` with all properties
@@ -259,22 +296,37 @@ public enum StatsPeriod: String, Codable {
 - [ ] Solid lines for completed data
 - [ ] Dashed lines for missing data (ghost state)
 - [ ] "+" icon tap targets for missing dimensions
-- [ ] Animated chart rendering
-- [ ] Accessible labels (VoiceOver support)
+- [ ] **SPRINT 1 SCOPE:** Static chart rendering only (no animations)
+- [ ] **SPRINT 1 SCOPE:** Basic VoiceOver labels (advanced accessibility → Sprint 2)
 
 **Tech Stack:**
-- SwiftUI `Canvas` for custom drawing
-- OR Swift Charts framework (if sufficient)
+- SwiftUI `Canvas` for custom drawing (RECOMMENDED)
+- OR Swift Charts framework (if ghost state is supported)
 
 **Subtasks:**
-- [ ] Research best approach (Canvas vs. Swift Charts)
-- [ ] Implement radar chart rendering
-- [ ] Add ghost state dashed lines
-- [ ] Add "+" tap targets
-- [ ] Test accessibility (VoiceOver)
-- [ ] Test on real device
+- [ ] **Day 1:** Research Canvas vs. Swift Charts (2 hours max)
+- [ ] **DECISION POINT:** If Swift Charts doesn't support ghost state dashed lines + tappable "+" icons, commit to Canvas immediately
+- [ ] Implement radar chart polygon rendering (solid lines)
+- [ ] Add ghost state dashed lines for missing dimensions
+- [ ] Add "+" tap targets (44x44pt minimum)
+- [ ] Test on real device (performance check)
+- [ ] **DEFERRED TO SPRINT 2:** Advanced animations, transitions
+- [ ] **DEFERRED TO SPRINT 2:** Full VoiceOver dimension-by-dimension navigation
 
 **Estimated:** 8 hours
+
+> **⚠️ RISK MITIGATION (Nov 20, 2025):**
+> This is the MOST COMPLEX UI task in Sprint 1. To prevent scope creep:
+> - **Focus on static rendering** (data polygon + ghost state)
+> - **Defer animations** to Sprint 2 if time is short
+> - **Commit to Canvas early** if Swift Charts doesn't support ghost state
+> - **Test performance** with 100+ book library on real device
+>
+> **Success criteria for Sprint 1:**
+> - Chart correctly displays 5 dimensions
+> - Ghost state (dashed lines) is visually distinct
+> - "+" icons are tappable and launch prompts
+> - No lag on iPhone 16 Pro with 100 books
 
 ---
 
@@ -286,7 +338,10 @@ public enum StatsPeriod: String, Codable {
 - [ ] Multiple choice pills (SF Symbols + text)
 - [ ] Single-question focus
 - [ ] "Skip" option
-- [ ] Success animation + confirmation
+- [ ] **SUCCESS STATE:** Celebratory animation + immediate feedback
+- [ ] **SUCCESS STATE:** Show updated Curator Points (+5)
+- [ ] **SUCCESS STATE:** Show updated Completion Percentage (e.g., 75% → 80%)
+- [ ] **SUCCESS STATE:** Immediate radar chart update (visual confirmation)
 
 **Example Prompt:**
 ```
@@ -307,13 +362,38 @@ public enum StatsPeriod: String, Codable {
 └────────────────────────────────────┘
 ```
 
+**Enhanced Success State:**
+```
+┌────────────────────────────────────┐
+│  ✅ Cultural background saved!     │
+│                                    │
+│  📊 Diversity: 75% → 80% Complete  │
+│  🏆 +5 Curator Points               │
+│                                    │
+│  [View Updated Radar Chart]        │
+│  [Dismiss]                         │
+└────────────────────────────────────┘
+```
+
 **Subtasks:**
 - [ ] Create `ProgressiveProfilingPrompt` view
 - [ ] Integrate with `ReadingSessionService`
-- [ ] Add success animation
+- [ ] **CRITICAL:** Implement success animation (confetti, checkmark, haptic feedback)
+- [ ] **CRITICAL:** Show before/after completion percentage (75% → 80%)
+- [ ] **CRITICAL:** Display Curator Points awarded (+5)
+- [ ] **CRITICAL:** Trigger immediate radar chart refresh
 - [ ] Test user flow on real device
 
 **Estimated:** 4 hours
+
+> **✅ SUCCESS STATE REQUIREMENTS (Nov 20, 2025):**
+> The success confirmation must:
+> 1. **Celebrate the action** - Confetti animation, green checkmark, haptic feedback
+> 2. **Show immediate value** - Before/after completion % (75% → 80%)
+> 3. **Award points** - Display Curator Points gained (+5)
+> 4. **Visual confirmation** - Radar chart updates in real-time
+>
+> This satisfies the gamification goal and confirms the action was valuable to the user.
 
 ---
 
