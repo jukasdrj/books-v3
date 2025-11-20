@@ -1,12 +1,17 @@
 openapi: 3.0.3
 info:
   title: BooksTrack API
-  version: "2.4"
+  version: "2.4.1"
   description: |
-    This OpenAPI specification defines the BooksTrack API, version 2.4.
+    This OpenAPI specification defines the BooksTrack API, version 2.4.1.
     It is derived from and complements the human-readable [API_CONTRACT.md](API_CONTRACT.md) document.
 
-    **Key Highlights (v2.4):**
+    **Key Highlights (v2.4.1):**
+    - WebSocket Hibernation API migration (70-80% cost reduction, zero user-facing changes)
+    - Automatic memory management for WebSocket connections
+    - Improved scalability and performance
+
+    **Previous Highlights (v2.4):**
     - HATEOAS search links in WorkDTO/EditionDTO (`searchLinks` field) - fixes iOS "View on Google Books" crash
     - Provider-agnostic image quality detection (accurate `X-Image-Quality` header for all providers)
     - Web Crypto API migration (better Workers compatibility)
