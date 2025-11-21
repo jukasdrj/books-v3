@@ -2,27 +2,26 @@ import Foundation
 import SwiftData
 
 /// `WorkOverride` stores work-specific exceptions to cascaded author metadata.
-/// This model is designed to be `Sendable` for use in Swift's concurrency model.
 @Model
-final class WorkOverride: Sendable {
+public final class WorkOverride {
     /// The unique identifier for the specific work (e.g., book) this override applies to.
-    var workId: String
+    public var workId: String
 
     /// The specific field of `AuthorMetadata` being overridden (e.g., "culturalBackground", "genderIdentity").
-    var field: String
+    public var field: String
 
     /// The custom value for the overridden field.
-    var customValue: String
+    public var customValue: String
 
     /// An optional reason for why this override was created (e.g., "Co-author with different background").
-    var reason: String?
+    public var reason: String?
 
     /// The date and time when this override was created.
-    var createdAt: Date
+    public var createdAt: Date
 
     /// The `AuthorMetadata` instance this override belongs to.
     /// This is the inverse of the `AuthorMetadata.workOverrides` relationship.
-    var authorMetadata: AuthorMetadata?
+    public var authorMetadata: AuthorMetadata?
 
     /// Initializes a new `WorkOverride` instance.
     /// - Parameters:

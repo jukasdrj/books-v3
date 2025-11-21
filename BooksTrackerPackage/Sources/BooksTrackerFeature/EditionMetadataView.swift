@@ -27,11 +27,9 @@ struct EditionMetadataView: View {
     // v2: Reading Session Timer State
     @State private var isSessionActive = false
     @State private var sessionStartTime: Date?
-    @State private var currentSessionMinutes: Int = 0
     @State private var showEndSessionSheet = false
     @State private var endingPage: Int = 0
     @State private var showProfilingPrompt = false
-    private var sessionService: ReadingSessionService?
 
     // User's library entry for this work (reactive to SwiftData changes)
     private var libraryEntry: UserLibraryEntry? {
@@ -395,14 +393,6 @@ struct EditionMetadataView: View {
             .presentationDetents([.medium])
             .iOS26SheetGlass()
         }
-        .task(id: isSessionActive) {
-            // Update timer every second when active
-            guard isSessionActive else { return }
-            while isSessionActive {
-                try? await Task.sleep(for: .seconds(1))
-                currentSessionMinutes = sessionStartTime.map { Int(Date().timeIntervalSince($0) / 60) } ?? 0
-            }
-        }
     }
 
     private var notesSection: some View {
@@ -578,21 +568,19 @@ struct EditionMetadataView: View {
     private func endSession() {
         guard isSessionActive, let entry = libraryEntry else { return }
 
+        // Helper to reset session state
+        func resetSessionState() {
+            isSessionActive = false
+            sessionStartTime = nil
+            showEndSessionSheet = false
+        }
+
         do {
             let service = getSessionService()
             let session = try service.endSession(endPage: endingPage)
 
-            // Update current page in library entry
-            entry.currentPage = endingPage
-            updateReadingProgress()
-            entry.touch()
-            saveContext()
-
             // Reset session state
-            isSessionActive = false
-            sessionStartTime = nil
-            currentSessionMinutes = 0
-            showEndSessionSheet = false
+            resetSessionState()
 
             #if canImport(UIKit)
             triggerHaptic(.heavy)
@@ -601,15 +589,13 @@ struct EditionMetadataView: View {
             // Show progressive profiling prompt if session >= 5 minutes
             if session.durationMinutes >= 5 {
                 // Delay slightly for better UX (sheet after sheet)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(500))
                     showProfilingPrompt = true
                 }
             }
         } catch {
-            isSessionActive = false
-            sessionStartTime = nil
-            currentSessionMinutes = 0
-            showEndSessionSheet = false
+            resetSessionState()
             #if DEBUG
             print("❌ Failed to end session: \(error)")
             #endif

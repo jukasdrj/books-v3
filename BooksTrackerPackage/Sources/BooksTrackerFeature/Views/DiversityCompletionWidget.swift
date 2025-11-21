@@ -159,12 +159,15 @@ public struct DiversityCompletionWidget: View {
         }
     }
 
+    /// Points multiplier for curator points calculation
+    /// Formula: overallCompletionPercentage (0.0-1.0) * multiplier = points
+    private let curatorPointsMultiplier: Double = 0.5
+
     @ViewBuilder
     private func curatorPointsSection(stats: EnhancedDiversityStats) -> some View {
-        // Placeholder for curator points calculation.
-        // This logic would ideally be defined in a dedicated service or the EnhancedDiversityStats model.
-        // For now, a simple heuristic based on overall completion.
-        let curatorPoints = Int(stats.overallCompletionPercentage * 0.5)
+        // Calculate curator points based on overall completion percentage
+        // This rewards users for enriching their library metadata
+        let curatorPoints = Int(stats.overallCompletionPercentage * curatorPointsMultiplier)
         HStack {
             Image(systemName: "trophy.fill")
                 .foregroundStyle(.yellow)

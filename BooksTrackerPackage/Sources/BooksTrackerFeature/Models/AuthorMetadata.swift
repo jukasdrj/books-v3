@@ -4,39 +4,39 @@ import SwiftData
 /// `AuthorMetadata` stores author-level information that can cascade to multiple works.
 /// This model is designed to be `Sendable` for use in Swift's concurrency model.
 @Model
-final class AuthorMetadata: Sendable {
+public final class AuthorMetadata {
     /// A unique identifier for the author.
-    @Attribute(.unique) var authorId: String
+    public @Attribute(.unique) var authorId: String
 
     /// A list of cultural backgrounds associated with the author.
-    var culturalBackground: [String]
+    public var culturalBackground: [String]
 
     /// The author's gender identity (optional).
-    var genderIdentity: String?
+    public var genderIdentity: String?
 
     /// A list of nationalities associated with the author.
-    var nationality: [String]
+    public var nationality: [String]
 
     /// A list of languages the author writes in or is associated with.
-    var languages: [String]
+    public var languages: [String]
 
     /// A list of marginalized identities the author may hold.
-    var marginalizedIdentities: [String]
+    public var marginalizedIdentities: [String]
 
     /// A list of `workId`s to which this author's metadata has been cascaded.
     /// This helps track which works have received the default author data.
-    var cascadedToWorkIds: [String]
+    public var cascadedToWorkIds: [String]
 
     /// The date when this author's metadata was last updated.
-    var lastUpdated: Date
+    public var lastUpdated: Date
 
     /// The ID of the user who contributed or last updated this metadata.
-    var contributedBy: String
+    public var contributedBy: String
 
     /// One-to-many relationship with `WorkOverride`.
     /// If an `AuthorMetadata` instance is deleted, all associated `WorkOverride` instances will also be deleted.
-    @Relationship(deleteRule: .cascade, inverse: \WorkOverride.authorMetadata)
-    var workOverrides: [WorkOverride] = []
+    public @Relationship(deleteRule: .cascade, inverse: \WorkOverride.authorMetadata)
+    public var workOverrides: [WorkOverride] = []
 
     /// Initializes a new `AuthorMetadata` instance.
     /// - Parameters:

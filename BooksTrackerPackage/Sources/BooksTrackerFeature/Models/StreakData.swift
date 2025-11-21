@@ -2,45 +2,44 @@ import Foundation
 import SwiftData
 
 /// `StreakData` tracks reading streaks and other session analytics for a user.
-/// This model is designed to be `Sendable` for use in Swift's concurrency model.
 @Model
-final class StreakData: Sendable {
+public final class StreakData {
     /// A unique identifier for the user.
-    @Attribute(.unique) var userId: String
+    public @Attribute(.unique) var userId: String
 
     /// The current number of consecutive days with reading sessions.
-    var currentStreak: Int
+    public var currentStreak: Int
 
     /// The longest streak achieved by the user.
-    var longestStreak: Int
+    public var longestStreak: Int
 
     /// The date of the last recorded reading session.
-    var lastSessionDate: Date
+    public var lastSessionDate: Date
 
     /// The total number of reading sessions recorded for the user.
-    var totalSessions: Int
+    public var totalSessions: Int
 
     /// The total number of minutes the user has read across all sessions.
-    var totalMinutesRead: Int
+    public var totalMinutesRead: Int
 
     /// The average number of pages read per hour across all sessions.
-    var averagePagesPerHour: Double
+    public var averagePagesPerHour: Double
 
     /// The number of reading sessions completed this calendar week.
-    var sessionsThisWeek: Int
+    public var sessionsThisWeek: Int
 
     /// The number of reading sessions completed this calendar month.
-    var sessionsThisMonth: Int
+    public var sessionsThisMonth: Int
 
     /// The count of how many times the user's streak has been broken.
-    var streakBrokenCount: Int
+    public var streakBrokenCount: Int
 
     /// The date when the streak data was last calculated or updated.
-    var lastCalculated: Date
+    public var lastCalculated: Date
 
     /// A computed property indicating whether the user is currently on an active streak.
     /// A streak is considered active if the last session was either today or yesterday.
-    var isOnStreak: Bool {
+    public var isOnStreak: Bool {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let lastSessionDay = calendar.startOfDay(for: lastSessionDate)

@@ -3,43 +3,42 @@ import SwiftData
 
 /// `BookEnrichment` stores user-added metadata for specific books,
 /// including ratings, notes, tags, and cascaded author information.
-/// This model is designed to be `Sendable` for use in Swift's concurrency model.
 @Model
-final class BookEnrichment: Sendable {
+public final class BookEnrichment {
     /// A unique identifier for the work (book) this enrichment applies to.
-    @Attribute(.unique) var workId: String
+    public @Attribute(.unique) var workId: String
 
     /// The user's rating for the book, from 1 to 5 stars (optional).
-    var userRating: Int?
+    public var userRating: Int?
 
     /// A list of genres assigned to the book by the user.
-    var genres: [String]
+    public var genres: [String]
 
     /// A list of themes identified in the book by the user.
-    var themes: [String]
+    public var themes: [String]
 
     /// A list of content warnings for the book, added by the user.
-    var contentWarnings: [String]
+    public var contentWarnings: [String]
 
     /// Personal notes or reflections on the book.
-    var personalNotes: String?
+    public var personalNotes: String?
 
     /// The author's cultural background, potentially cascaded from `AuthorMetadata`.
-    var authorCulturalBackground: String?
+    public var authorCulturalBackground: String?
 
     /// The author's gender identity, potentially cascaded from `AuthorMetadata`.
-    var authorGenderIdentity: String?
+    public var authorGenderIdentity: String?
 
     /// A flag indicating if the author-related fields (`authorCulturalBackground`, `authorGenderIdentity`)
     /// were automatically filled from `AuthorMetadata`.
-    var isCascaded: Bool
+    public var isCascaded: Bool
 
     /// The date when this book's enrichment data was last updated.
-    var lastEnriched: Date
+    public var lastEnriched: Date
 
     /// A computed property representing the percentage of key enrichment fields that have been filled.
     /// This provides a quick overview of how complete the user's enrichment data is for a book.
-    var completionPercentage: Double {
+    public var completionPercentage: Double {
         var filledFieldsCount = 0
         // Define which fields contribute to the completion percentage
         let totalFieldsToConsider = 7 // userRating, genres, themes, contentWarnings, personalNotes, authorCulturalBackground, authorGenderIdentity

@@ -38,7 +38,7 @@ public struct ProgressiveProfilingPrompt: View {
                     questionnaireView
                 }
             }
-            .navigationTitle("Help Us Learn")
+            .navigationTitle("Add Book Information")
             #if canImport(UIKit)
             .navigationBarTitleDisplayMode(.inline)
             #endif

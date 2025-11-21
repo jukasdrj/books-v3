@@ -42,7 +42,6 @@ public final class ReadingSession {
     public var entry: UserLibraryEntry?
 
     /// Denormalized work ID for efficient bulk queries
-    @Attribute(.unique)
     public var workPersistentID: PersistentIdentifier?
 
     // MARK: - Computed Properties

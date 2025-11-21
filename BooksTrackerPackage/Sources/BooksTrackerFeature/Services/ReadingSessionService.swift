@@ -59,6 +59,7 @@ public class ReadingSessionService {
         if let entry = activeEntry {
             entry.currentPage = endPage
             entry.updateReadingProgress()
+            entry.touch()
         }
 
         try modelContext.save()
