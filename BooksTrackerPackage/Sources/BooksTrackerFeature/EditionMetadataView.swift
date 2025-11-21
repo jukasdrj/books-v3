@@ -12,6 +12,11 @@ struct EditionMetadataView: View {
     @Bindable var work: Work
     let edition: Edition
 
+    public init(work: Work, edition: Edition) {
+        self.work = work
+        self.edition = edition
+    }
+
     @Environment(\.modelContext) private var modelContext
     @Environment(\.iOS26ThemeStore) private var themeStore
     @Environment(\.dtoMapper) private var dtoMapper
@@ -19,9 +24,21 @@ struct EditionMetadataView: View {
     @State private var showingNotesEditor = false
     @FocusState private var isPageFieldFocused: Bool
 
+    // v2: Reading Session Timer State
+    @State private var isSessionActive = false
+    @State private var sessionStartTime: Date?
+    @State private var showEndSessionSheet = false
+    @State private var endingPage: Int = 0
+    @State private var showProfilingPrompt = false
+
     // User's library entry for this work (reactive to SwiftData changes)
     private var libraryEntry: UserLibraryEntry? {
         work.userLibraryEntries?.first
+    }
+
+    // Initialize session service
+    private func getSessionService() -> ReadingSessionService {
+        return ReadingSessionService(modelContext: modelContext)
     }
 
     var body: some View {
@@ -42,6 +59,15 @@ struct EditionMetadataView: View {
             .padding(20)
         }
         .glassEffect(.regular, tint: themeStore.primaryColor.opacity(0.1))
+        .sheet(isPresented: $showProfilingPrompt) {
+            ProgressiveProfilingPrompt(work: work, onComplete: {
+                #if DEBUG
+                print("✅ Progressive profiling completed")
+                #endif
+            })
+            .presentationDetents([.large])
+            .iOS26SheetGlass()
+        }
         .onAppear {
             ensureLibraryEntry()
         }
@@ -130,6 +156,9 @@ struct EditionMetadataView: View {
             // Reading Progress (if currently reading)
             if libraryEntry?.readingStatus == .reading {
                 readingProgressView
+
+                // v2: Reading Session Timer
+                readingSessionTimerView
             }
 
             // Notes Field
@@ -289,6 +318,83 @@ struct EditionMetadataView: View {
         }
     }
 
+    private var readingSessionTimerView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Reading Session")
+                .font(.caption.bold())
+                .foregroundStyle(.primary)
+
+            VStack(spacing: 12) {
+                // Timer Display
+                HStack(spacing: 12) {
+                    Image(systemName: isSessionActive ? "timer.circle.fill" : "timer.circle")
+                        .foregroundColor(isSessionActive ? themeStore.primaryColor : .secondary)
+                        .font(.title2)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(isSessionActive ? "Session in Progress" : "No Active Session")
+                            .font(.subheadline.bold())
+                            .foregroundStyle(.primary)
+
+                        if isSessionActive, let startTime = sessionStartTime {
+                            Text(formatSessionDuration(startTime: startTime))
+                                .font(.caption)
+                                .foregroundColor(themeStore.primaryColor)
+                        } else {
+                            Text("Track your reading time")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    Spacer()
+                }
+                .padding()
+                .background {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(isSessionActive ? themeStore.primaryColor.opacity(0.1) : Color(uiColor: .systemBackground).opacity(0.7))
+                }
+
+                // Start/Stop Button
+                Button(action: {
+                    if isSessionActive {
+                        showEndSessionSheet = true
+                    } else {
+                        startSession()
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: isSessionActive ? "stop.circle.fill" : "play.circle.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                        Text(isSessionActive ? "End Session" : "Start Session")
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(isSessionActive ? Color.orange : themeStore.primaryColor)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .sheet(isPresented: $showEndSessionSheet) {
+            EndSessionSheet(
+                workTitle: work.title,
+                currentPage: libraryEntry?.currentPage ?? 0,
+                pageCount: edition.pageCount ?? 0,
+                endingPage: $endingPage,
+                onSave: {
+                    endSession()
+                }
+            )
+            .presentationDetents([.medium])
+            .iOS26SheetGlass()
+        }
+    }
+
     private var notesSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Your Notes")
@@ -435,6 +541,72 @@ struct EditionMetadataView: View {
             print("Failed to save context: \(error)")
             #endif
         }
+    }
+
+    // MARK: - Reading Session Methods
+
+    private func startSession() {
+        guard let entry = libraryEntry else { return }
+
+        do {
+            let service = getSessionService()
+            try service.startSession(for: entry)
+            isSessionActive = true
+            sessionStartTime = Date()
+            currentSessionMinutes = 0
+            endingPage = entry.currentPage
+            #if canImport(UIKit)
+            triggerHaptic(.medium)
+            #endif
+        } catch {
+            #if DEBUG
+            print("❌ Failed to start session: \(error)")
+            #endif
+        }
+    }
+
+    private func endSession() {
+        guard isSessionActive, let entry = libraryEntry else { return }
+
+        // Helper to reset session state
+        func resetSessionState() {
+            isSessionActive = false
+            sessionStartTime = nil
+            showEndSessionSheet = false
+        }
+
+        do {
+            let service = getSessionService()
+            let session = try service.endSession(endPage: endingPage)
+
+            // Reset session state
+            resetSessionState()
+
+            #if canImport(UIKit)
+            triggerHaptic(.heavy)
+            #endif
+
+            // Show progressive profiling prompt if session >= 5 minutes
+            if session.durationMinutes >= 5 {
+                // Delay slightly for better UX (sheet after sheet)
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(500))
+                    showProfilingPrompt = true
+                }
+            }
+        } catch {
+            resetSessionState()
+            #if DEBUG
+            print("❌ Failed to end session: \(error)")
+            #endif
+        }
+    }
+
+    private func formatSessionDuration(startTime: Date) -> String {
+        let elapsed = Int(Date().timeIntervalSince(startTime))
+        let minutes = elapsed / 60
+        let seconds = elapsed % 60
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 
     private func triggerHaptic(_ style: UIKit.UIImpactFeedbackGenerator.FeedbackStyle) {
@@ -605,6 +777,128 @@ struct NotesEditorView: View {
             }
             .onAppear {
                 isTextEditorFocused = true
+            }
+        }
+    }
+}
+
+// MARK: - End Session Sheet
+
+struct EndSessionSheet: View {
+    let workTitle: String
+    let currentPage: Int
+    let pageCount: Int
+    @Binding var endingPage: Int
+    let onSave: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.iOS26ThemeStore) private var themeStore
+    @FocusState private var isPageFieldFocused: Bool
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                // Header
+                VStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 48))
+                        .foregroundColor(.green)
+
+                    Text("End Reading Session")
+                        .font(.title2.bold())
+                        .foregroundStyle(.primary)
+
+                    Text("Great job! Update your progress")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.top)
+
+                // Page Input
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("What page did you reach?")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+
+                    HStack(spacing: 12) {
+                        TextField("Page", value: $endingPage, format: .number)
+                            #if canImport(UIKit)
+                            .keyboardType(.numberPad)
+                            #endif
+                            .textFieldStyle(.roundedBorder)
+                            .font(.title3)
+                            .multilineTextAlignment(.center)
+                            .focused($isPageFieldFocused)
+                            .frame(maxWidth: 120)
+
+                        if pageCount > 0 {
+                            Text("of \(pageCount)")
+                                .font(.title3)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+                    }
+
+                    // Validation hint
+                    if endingPage < currentPage {
+                        Label("Page number is less than your current page (\(currentPage))", systemImage: "exclamationmark.triangle")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    } else if pageCount > 0 && endingPage > pageCount {
+                        Label("Page number exceeds book length (\(pageCount))", systemImage: "exclamationmark.triangle")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                }
+                .padding()
+                .background {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(.ultraThinMaterial)
+                }
+
+                Spacer()
+
+                // Save Button
+                Button(action: {
+                    // Clamp to valid range
+                    if pageCount > 0 {
+                        endingPage = min(max(endingPage, currentPage), pageCount)
+                    }
+                    onSave()
+                    dismiss()
+                }) {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                        Text("Save Progress")
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(themeStore.primaryColor)
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(endingPage < currentPage)
+            }
+            .padding()
+            .navigationTitle("End Session")
+            #if canImport(UIKit)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .automatic) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+            .onAppear {
+                isPageFieldFocused = true
             }
         }
     }

@@ -10,6 +10,7 @@ public struct InsightsView: View {
 
     @State private var diversityStats: DiversityStats?
     @State private var readingStats: ReadingStats?
+    @State private var streakData: StreakData?
     @State private var selectedPeriod: TimePeriod = .thisYear
     @State private var isLoading = true
     @State private var errorMessage: String?
@@ -77,11 +78,35 @@ public struct InsightsView: View {
                 if let reading = readingStats {
                     ReadingStatsSection(stats: reading, selectedPeriod: $selectedPeriod)
                 }
+
+                // Session analytics section
+                if let streak = streakData {
+                    sessionAnalyticsSection(streak: streak)
+                }
             }
             .padding()
         }
         .scrollEdgeEffectStyle(.soft, for: [.top, .bottom])
         .scrollPosition($scrollPosition)
+    }
+
+    private func sessionAnalyticsSection(streak: StreakData) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Section header
+            HStack {
+                Image(systemName: "flame.fill")
+                    .font(.title3)
+                    .foregroundColor(streak.isOnStreak ? .orange : .secondary)
+
+                Text("Reading Streak")
+                    .font(.title2.bold())
+                    .foregroundStyle(.primary)
+            }
+            .padding(.bottom, 8)
+
+            // Streak visualization
+            StreakVisualizationView(streakData: streak)
+        }
     }
 
     private var diversitySection: some View {
@@ -154,6 +179,7 @@ public struct InsightsView: View {
         if reset {
             diversityStats = nil
             readingStats = nil
+            streakData = nil
         }
 
         isLoading = true
@@ -165,6 +191,10 @@ public struct InsightsView: View {
 
             // Calculate reading stats for selected period
             readingStats = try await ReadingStats.calculate(from: modelContext, period: selectedPeriod)
+
+            // Load streak data
+            let sessionService = SessionAnalyticsService(modelContext: modelContext)
+            streakData = try sessionService.fetchStreakData(userId: "default-user")
 
             isLoading = false
 

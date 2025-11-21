@@ -60,6 +60,26 @@ public final class UserLibraryEntry {
     @Relationship(deleteRule: .nullify)
     var preferredEdition: Edition?
 
+    // MARK: - v2: Reading Sessions
+
+    /// Reading sessions for this library entry (cascade delete when entry is removed)
+    @Relationship(deleteRule: .cascade, inverse: \ReadingSession.entry)
+    var readingSessions: [ReadingSession] = []
+
+    // MARK: - v2: Computed Properties
+
+    /// Total reading time across all sessions (minutes)
+    public var totalReadingMinutes: Int {
+        readingSessions.reduce(0) { $0 + $1.durationMinutes }
+    }
+
+    /// Average reading pace across all sessions (pages per hour)
+    public var averageReadingPace: Double? {
+        let sessionsWithPace = readingSessions.compactMap { $0.readingPace }
+        guard !sessionsWithPace.isEmpty else { return nil }
+        return sessionsWithPace.reduce(0, +) / Double(sessionsWithPace.count)
+    }
+
     public init(
         readingStatus: ReadingStatus = ReadingStatus.toRead
     ) {
