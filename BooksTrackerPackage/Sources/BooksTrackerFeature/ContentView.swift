@@ -90,14 +90,14 @@ public struct ContentView: View {
 
                         // Shelf Tab
                         NavigationStack {
-                            BookshelfScannerView()
-                                .environment(tabCoordinator)
+                            CombinedImportView()
+                                 .environment(tabCoordinator)
                         }
                         .tabItem {
-                            Label("Shelf", systemImage: selectedTab == .shelf ? "viewfinder.circle.fill" : "viewfinder")
+                            Label("Scan & Import", systemImage: selectedTab == .shelf ? "barcode.viewfinder" : "barcode.viewfinder")
                         }
-                        .badge(min(reviewQueueCount, 100))
-                        .tag(MainTab.shelf)
+                         .badge(min(reviewQueueCount, 100))
+                         .tag(MainTab.shelf)
 
                         // Insights Tab
                         NavigationStack {

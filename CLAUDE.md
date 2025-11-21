@@ -57,49 +57,175 @@ All slash commands use the XcodeBuildMCP server for native Xcode integration.
 
 ---
 
-## Claude Code Agent Workflow
+## 🎯 Multi-Agent Workflow System
 
-### Built-In Agents (Automatic - No @-mention needed)
+### Architecture Overview
 
-**Claude Code automatically selects the right agent for each task:**
+**Claude Code orchestrates complex tasks using specialized AI models:**
 
-**Task Tool Agents:**
+**🧠 Sonnet 4.5 (Primary)** - You (orchestration, planning, architecture)
+- Multi-file refactoring and structural changes
+- System architecture decisions
+- Complex planning and task decomposition
+- Code review coordination
+
+**⚡ Haiku (Fast Implementation)** - Via `mcp__zen__chat`
+- Rapid iteration and implementation
+- Single-file focused changes
+- Simple bug fixes
+- Boilerplate generation
+
+**🔍 Grok-4 (Expert Review)** - Via `mcp__zen__codereview` / `mcp__zen__secaudit`
+- Security and architecture validation
+- Complex code review
+- Performance analysis
+- Best practices enforcement
+
+**🧪 Gemini 2.5 (Deep Analysis)** - Via `mcp__zen__debug` / `mcp__zen__thinkdeep`
+- Root cause analysis
+- Multi-stage investigation
+- Complex debugging scenarios
+- Pattern recognition
+
+---
+
+### Workflow Patterns
+
+**Pattern 1: Fast Feature Implementation**
+```
+Sonnet (you): Plan feature architecture
+  ↓
+Haiku: Implement components rapidly via mcp__zen__chat
+  ↓
+Grok-4: Validate security/architecture via mcp__zen__codereview
+  ↓
+Sonnet (you): Final integration and testing
+```
+
+**Pattern 2: Complex Bug Investigation**
+```
+Sonnet (you): Initial triage and context gathering
+  ↓
+Gemini: Deep analysis via mcp__zen__debug or mcp__zen__thinkdeep
+  ↓
+Haiku: Implement fix via mcp__zen__chat
+  ↓
+Sonnet (you): Regression test and validation
+```
+
+**Pattern 3: Security-Critical Feature**
+```
+Sonnet (you): Security requirements planning
+  ↓
+Haiku: Initial implementation via mcp__zen__chat
+  ↓
+Grok-4: Security audit via mcp__zen__secaudit
+  ↓
+Sonnet (you): Address findings and final review
+```
+
+---
+
+### Built-In Task Tool Agents (Automatic)
+
+**These activate automatically based on task type:**
+
 - **Explore** - Finding files, understanding codebase structure
 - **Plan** - Creating implementation plans for complex features
 - **code-architecture-reviewer** - Code quality & architecture review
 - **code-refactor-master** - Refactoring & code organization
 - **refactor-planner** - Creating refactoring plans
-- **auto-error-resolver** - Fixing TypeScript/Swift compilation errors
+- **auto-error-resolver** - Fixing compilation errors
 
 **Examples:**
 ```
 User: "Where are CSV imports handled?"
-Claude: [Uses Explore agent automatically]
+Sonnet: [Uses Explore agent automatically]
 
 User: "Review my SwiftData service for best practices"
-Claude: [Uses code-architecture-reviewer agent]
+Sonnet: [Uses code-architecture-reviewer agent]
 
 User: "This LibraryView is 800 lines, help me break it down"
-Claude: [Uses refactor-planner agent]
+Sonnet: [Uses refactor-planner agent]
 ```
 
-### Zen MCP Tools (For Deep Analysis)
+---
 
-**When to use Zen MCP tools explicitly:**
-- Complex debugging → `mcp__zen__debug`
-- Comprehensive code review → `mcp__zen__codereview`
-- Multi-model consensus → `mcp__zen__consensus`
-- Strategic planning → `mcp__zen__planner`
-- Security audits → `mcp__zen__secaudit`
-- Root cause analysis → `mcp__zen__thinkdeep`
+### Zen MCP Subagent Delegation
+
+**When to delegate to specialized models:**
+
+**Haiku (Fast Implementation):**
+- Simple CRUD operations
+- View component creation
+- Model boilerplate
+- Test case generation
+- **Tool:** `mcp__zen__chat` with `model="haiku"`
+
+**Grok-4 (Expert Review):**
+- Security vulnerability scanning
+- Architecture pattern validation
+- Performance bottleneck analysis
+- API contract compliance
+- **Tools:** `mcp__zen__codereview`, `mcp__zen__secaudit` with `model="grok-4"`
+
+**Gemini 2.5 (Deep Analysis):**
+- Mysterious crashes and race conditions
+- Complex SwiftData relationship bugs
+- Performance regression investigation
+- Architectural refactoring planning
+- **Tools:** `mcp__zen__debug`, `mcp__zen__thinkdeep`, `mcp__zen__planner` with `model="gemini-2.5-pro"`
 
 **Model Selection:**
-Use `listmodels` tool to see available models (14 total: Gemini 2.5 Flash/Pro, Grok-4, etc.)
+Use `listmodels` tool to see all 14 available models. When delegating, specify the model explicitly:
 
-**Example:**
+```swift
+// Example delegation pattern
+User: "Implement the BookDetailView"
+Sonnet: [Delegates to Haiku via mcp__zen__chat]
+  mcp__zen__chat(
+    model: "haiku",
+    prompt: "Create BookDetailView with @Bindable Work, cover image, title, author, rating"
+  )
+
+User: "Review this for security issues"
+Sonnet: [Delegates to Grok-4 via mcp__zen__secaudit]
+  mcp__zen__secaudit(
+    model: "grok-4",
+    audit_focus: "owasp",
+    step: "Analyze AuthenticationService for vulnerabilities"
+  )
 ```
-User: "Use Zen to debug this SwiftData crash with Grok-4"
-Claude: [Invokes mcp__zen__debug with model="grok-4"]
+
+---
+
+### Delegation Best Practices
+
+**When to delegate:**
+- ✅ Task fits specialist model's strengths
+- ✅ Parallel work improves throughput
+- ✅ Expert validation needed (security, performance)
+- ✅ Deep investigation required (debugging)
+
+**When NOT to delegate:**
+- ❌ Simple single-file edits (you handle directly)
+- ❌ Task requires cross-file context (you orchestrate)
+- ❌ User explicitly wants you to do it
+- ❌ Delegation overhead exceeds benefit
+
+**Continuation IDs:**
+Always reuse `continuation_id` when resuming conversations with the same model:
+```swift
+// First call
+mcp__zen__debug(model: "gemini-2.5-pro", step: "Initial investigation")
+// Returns: continuation_id: "abc123"
+
+// Follow-up call (REUSE ID!)
+mcp__zen__debug(
+  model: "gemini-2.5-pro",
+  continuation_id: "abc123",  // ← CRITICAL!
+  step: "Continue investigation with new findings"
+)
 ```
 
 ### TodoWrite Tool Usage
@@ -377,52 +503,100 @@ When user names a specific model, use that exact name. When no model mentioned, 
 - [ ] Used Task tool for complex explorations
 - [ ] Used TodoWrite for multi-step tasks
 
-### Common Development Workflows
+### Multi-Agent Development Workflows
 
-**1. Implementing a Feature:**
+**1. Simple Feature (Single Agent):**
 ```
 User: "Add dark mode toggle to Settings"
-Claude:
+Sonnet (you):
   1. Uses Explore agent to find Settings code
   2. Creates TodoWrite plan (4-5 steps)
-  3. Implements feature
-  4. Uses code-architecture-reviewer to validate
-  5. Runs /test to verify
-  6. Runs /build for final check
+  3. Implements feature directly (simple, focused change)
+  4. Runs /test to verify
+  5. Runs /build for final check
 ```
 
-**2. Debugging a Crash:**
+**2. Complex Feature (Multi-Agent):**
 ```
-User: "App crashes on CSV import"
-Claude:
+User: "Add OAuth authentication with Keycloak"
+Sonnet (you):
+  1. Creates architecture plan with TodoWrite (security-critical!)
+  2. Delegates to Haiku for boilerplate:
+     - AuthenticationService stub
+     - Token storage models
+     - Login/logout flows
+  3. Reviews Haiku's implementation
+  4. Delegates to Grok-4 for security audit:
+     mcp__zen__secaudit(model="grok-4", audit_focus="owasp")
+  5. Addresses Grok-4 findings
+  6. Runs /test and /build
+  7. Final integration testing
+```
+
+**3. Mysterious Bug (Deep Analysis):**
+```
+User: "App crashes randomly on CSV import"
+Sonnet (you):
   1. Uses Explore agent to find CSV import code
-  2. Reads relevant files
-  3. Uses mcp__zen__debug for root cause analysis
-  4. Implements fix
-  5. Adds regression test
-  6. Runs /test to verify
+  2. Reads relevant files for context
+  3. Delegates to Gemini for deep analysis:
+     mcp__zen__debug(
+       model="gemini-2.5-pro",
+       step: "Investigate race condition in CSV parsing"
+     )
+  4. Gemini identifies SwiftData concurrency issue
+  5. Delegates to Haiku for fix implementation:
+     mcp__zen__chat(model="haiku", prompt="Fix actor isolation in CSVParser")
+  6. Adds regression test
+  7. Runs /test to verify
 ```
 
-**3. Code Review:**
+**4. Code Review (Expert Validation):**
 ```
 User: "Review my new Enrichment service"
-Claude:
-  1. Uses code-architecture-reviewer agent
+Sonnet (you):
+  1. Uses code-architecture-reviewer agent for initial scan
   2. Checks Swift 6 concurrency, SwiftData patterns
-  3. Validates against AGENTS.md critical rules
-  4. Suggests improvements
-  5. Optionally uses mcp__zen__codereview for deeper analysis
+  3. For security-critical paths, delegates to Grok-4:
+     mcp__zen__codereview(
+       model="grok-4",
+       review_type="security",
+       step: "Audit API key handling and network security"
+     )
+  4. Validates against AGENTS.md critical rules
+  5. Consolidates findings and presents recommendations
 ```
 
-**4. Refactoring:**
+**5. Large Refactoring (Orchestrated):**
 ```
 User: "This LibraryView is 800 lines, help me break it down"
-Claude:
+Sonnet (you):
   1. Uses refactor-planner agent to analyze
-  2. Creates refactoring plan with TodoWrite
-  3. Uses code-refactor-master to execute
-  4. Runs /test after each extracted component
-  5. Final /build to verify
+  2. Creates refactoring plan with TodoWrite (10+ steps)
+  3. Delegates component extraction to Haiku:
+     - FilterBarView (Haiku)
+     - SortOptionsView (Haiku)
+     - BookCardView (Haiku)
+  4. Reviews each component for patterns/consistency
+  5. Updates parent LibraryView (you handle orchestration)
+  6. Runs /test after each extraction
+  7. Final /build to verify
+  8. Optionally: Grok-4 architecture review
+```
+
+**6. Parallel Feature Development:**
+```
+User: "Implement user profiles AND notification system"
+Sonnet (you):
+  1. Creates parallel TodoWrite plans
+  2. Delegates UserProfile to Haiku (Branch A):
+     mcp__zen__chat(model="haiku", prompt="UserProfile model + CRUD")
+  3. Delegates NotificationService to Haiku (Branch B):
+     mcp__zen__chat(model="haiku", prompt="NotificationService with local/push")
+  4. Reviews both implementations in parallel
+  5. Integrates both features
+  6. Runs /test for integration
+  7. Final /build
 ```
 
 ---
@@ -447,6 +621,19 @@ Claude:
 
 ---
 
-**Last Updated:** November 20, 2025
+## Summary
+
+**CLAUDE.md provides:**
+- Multi-agent workflow orchestration (Sonnet → Haiku/Grok-4/Gemini)
+- MCP slash commands (/build, /test, /sim, /device-deploy)
+- TodoWrite patterns for task management
+- Git commit and PR workflows
+- Claude Code-specific debugging tips
+
+**For universal project context, see AGENTS.md.**
+
+---
+
+**Last Updated:** November 21, 2025
 **Maintained by:** oooe (jukasdrj)
 **See Also:** [`AGENTS.md`](AGENTS.md), [`MCP_SETUP.md`](MCP_SETUP.md)

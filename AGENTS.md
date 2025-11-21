@@ -10,6 +10,25 @@ Native iOS book tracking app with cultural diversity insights. SwiftUI, SwiftDat
 
 ---
 
+## 🎯 Multi-Agent Workflow (Claude Code)
+
+**Claude Code can orchestrate complex tasks using specialized AI models:**
+
+- **Sonnet 4.5** (Primary) - Planning, architecture, multi-file refactoring
+- **Haiku** - Fast implementation via `mcp__zen__chat`
+- **Grok-4** - Expert review via `mcp__zen__codereview` or `mcp__zen__secaudit`
+- **Gemini 2.5** - Deep analysis via `mcp__zen__debug` or `mcp__zen__thinkdeep`
+
+**When to use multi-agent workflows:**
+- ✅ Complex features requiring fast iteration + expert validation
+- ✅ Security-critical code (Haiku implements → Grok-4 audits)
+- ✅ Mysterious bugs (Gemini investigates → Haiku fixes)
+- ✅ Large refactorings (parallel component extraction)
+
+**See `CLAUDE.md` for detailed multi-agent workflow patterns and delegation strategies.**
+
+---
+
 ## Quick Start
 
 ### Tech Stack
@@ -815,7 +834,7 @@ Text("Publisher").foregroundColor(.tertiary)
 
 ---
 
-**Last Updated:** November 16, 2025  
-**Maintained by:** oooe (jukasdrj)  
-**License:** Proprietary  
+**Last Updated:** November 21, 2025
+**Maintained by:** oooe (jukasdrj)
+**License:** Proprietary
 **App Store:** Z67H8Y8DW.com.oooefam.booksV3

@@ -80,9 +80,13 @@ public struct AuroraGradient: View {
 @available(iOS 26.0, *)
 #Preview("AuroraGradient") {
     VStack(spacing: 20) {
-        Rectangle().fill(AuroraGradient(direction: .horizontal)).frame(height: 80)
-        Rectangle().fill(AuroraGradient(direction: .vertical)).frame(height: 80)
-        Circle().fill(AuroraGradient(direction: .radial)).frame(height: 120)
+        AuroraGradient(direction: .horizontal)
+            .frame(height: 80)
+        AuroraGradient(direction: .vertical)
+            .frame(height: 80)
+        AuroraGradient(direction: .radial)
+            .frame(width: 120, height: 120)
+            .clipShape(Circle())
     }
     .padding()
 }
