@@ -380,10 +380,114 @@ public struct GeminiCSVImportView: View {
                 #if DEBUG
                 print("[CSV WebSocket] ❌ Error: \(errorMessage)")
                 #endif
+
                 if !Task.isCancelled {
-                    importStatus = .failed("Connection lost: \(errorMessage)")
+                    // Check for POSIX error 57 "Socket is not connected" - backend closed connection
+                    // Or general URLError - could be network issues
+                    if let urlError = error as? URLError {
+                        if let underlying = urlError.errorUserInfo[NSUnderlyingErrorKey] as? NSError,
+                           underlying.domain == NSPOSIXErrorDomain && underlying.code == 57 {
+                            #if DEBUG
+                            print("[CSV WebSocket] ⚠️ WebSocket closed unexpectedly - switching to fallback polling")
+                            #endif
+                        } else {
+                            #if DEBUG
+                            print("[CSV WebSocket] ⚠️ WebSocket error: \(urlError.localizedDescription) - switching to fallback polling")
+                            #endif
+                        }
+
+                        // Switch to fallback polling to continue tracking job progress
+                        importStatus = .processing(progress: 0.1, message: "Connecting via alternate method...")
+                        await fallbackPollingForJobStatus(jobId: jobId)
+                    } else {
+                        importStatus = .failed("Connection lost: \(errorMessage)")
+                    }
                 }
             }
+        }
+    }
+
+    /// Fallback polling when WebSocket connection fails
+    /// Used when backend closes connection after ready_ack (POSIX error 57)
+    private func fallbackPollingForJobStatus(jobId: String) async {
+        #if DEBUG
+        print("[CSV Polling] Starting fallback polling for job \(jobId)")
+        #endif
+
+        let maxPolls = 60 // Poll for up to 5 minutes (60 * 5s = 5min)
+        var pollCount = 0
+
+        while pollCount < maxPolls && !Task.isCancelled {
+            do {
+                // Wait before polling (exponential backoff: 2s, 4s, then 5s)
+                let delay: TimeInterval = min(5.0, 2.0 * pow(2.0, Double(min(pollCount, 2))))
+                try await Task.sleep(for: .seconds(delay))
+
+                pollCount += 1
+
+                #if DEBUG
+                print("[CSV Polling] Poll #\(pollCount) (every \(Int(delay))s)")
+                #endif
+
+                // Check job status via REST API
+                let service = GeminiCSVImportService.shared
+                let result = try await service.checkJobStatus(jobId: jobId)
+
+                #if DEBUG
+                print("[CSV Polling] Status: \(result.status)")
+                #endif
+
+                switch result.status {
+                case "completed":
+                    if let books = result.books, let errors = result.errors {
+                        #if DEBUG
+                        print("[CSV Polling] ✅ Job complete: \(books.count) books, \(errors.count) errors")
+                        #endif
+                        importStatus = .completed(books: books, errors: errors)
+                        return
+                    } else {
+                        throw GeminiCSVImportError.serverError(500, "Job completed but missing data")
+                    }
+
+                case "failed":
+                    let errorMsg = result.error ?? "Unknown error"
+                    #if DEBUG
+                    print("[CSV Polling] ❌ Job failed: \(errorMsg)")
+                    #endif
+                    importStatus = .failed(errorMsg)
+                    return
+
+                case "processing":
+                    let progress = result.progress ?? 0.0
+                    let message = result.message ?? "Processing..."
+                    #if DEBUG
+                    print("[CSV Polling] Processing: \(Int(progress * 100))% - \(message)")
+                    #endif
+                    importStatus = .processing(progress: progress, message: message)
+
+                default:
+                    #if DEBUG
+                    print("[CSV Polling] Unknown status: \(result.status)")
+                    #endif
+                }
+
+            } catch {
+                #if DEBUG
+                print("[CSV Polling] ❌ Error: \(error)")
+                #endif
+                if !Task.isCancelled {
+                    importStatus = .failed("Polling failed: \(error.localizedDescription)")
+                }
+                return
+            }
+        }
+
+        // Timeout after max polls
+        if pollCount >= maxPolls {
+            #if DEBUG
+            print("[CSV Polling] ❌ Timeout after \(maxPolls) polls")
+            #endif
+            importStatus = .failed("Import timed out. Please try again.")
         }
     }
 

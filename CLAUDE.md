@@ -57,66 +57,49 @@ All slash commands use the XcodeBuildMCP server for native Xcode integration.
 
 ---
 
-## Claude Code-Specific Patterns
+## Claude Code Agent Workflow
 
-### Using Custom Agents (v2.0.43)
+### Built-In Agents (Automatic - No @-mention needed)
 
-**BooksTrack has 3 custom agents for specialized workflows:**
+**Claude Code automatically selects the right agent for each task:**
 
-#### `@pm` - Product Manager & Orchestrator
-**Autonomy: HIGH** - Operates independently, makes decisions
-
-**When to use:**
-- Complex feature implementation
-- Multi-step workflows requiring coordination
-- When you want Haiku (fast coding) + Grok-4 (review)
-
-**Example:**
-```
-User: "@pm implement pagination for library view"
-PM: [Clarifies requirements → Delegates to Haiku → Reviews with Grok-4 → Validates → Delivers]
-```
-
-#### `@zen` - Deep Analysis Specialist
-**Autonomy: MEDIUM** - PM orchestrates, Zen provides expert analysis
-
-**When to use:**
-- Complex debugging
-- Comprehensive code review
-- Security audits
-- Architectural decisions
-
-**Example:**
-```
-User: "@zen debug this SwiftData crash"
-Zen: [Uses mcp__zen__debug → Investigates → Reports findings]
-```
-
-#### `@xcode` - Build, Test & Deploy Specialist  
-**Autonomy: MEDIUM** - Executes build/test commands
-
-**When to use:**
-- Build validation
-- Test execution
-- Simulator/device deployment
-- TestFlight uploads
-
-**Example:**
-```
-User: "@xcode run tests"
-Xcode: [Executes /test → Reports results]
-```
-
-### Using Built-In Agents
-
-**Built-in agents (don't @-mention, they're automatic):**
+**Task Tool Agents:**
 - **Explore** - Finding files, understanding codebase structure
 - **Plan** - Creating implementation plans for complex features
+- **code-architecture-reviewer** - Code quality & architecture review
+- **code-refactor-master** - Refactoring & code organization
+- **refactor-planner** - Creating refactoring plans
+- **auto-error-resolver** - Fixing TypeScript/Swift compilation errors
+
+**Examples:**
+```
+User: "Where are CSV imports handled?"
+Claude: [Uses Explore agent automatically]
+
+User: "Review my SwiftData service for best practices"
+Claude: [Uses code-architecture-reviewer agent]
+
+User: "This LibraryView is 800 lines, help me break it down"
+Claude: [Uses refactor-planner agent]
+```
+
+### Zen MCP Tools (For Deep Analysis)
+
+**When to use Zen MCP tools explicitly:**
+- Complex debugging → `mcp__zen__debug`
+- Comprehensive code review → `mcp__zen__codereview`
+- Multi-model consensus → `mcp__zen__consensus`
+- Strategic planning → `mcp__zen__planner`
+- Security audits → `mcp__zen__secaudit`
+- Root cause analysis → `mcp__zen__thinkdeep`
+
+**Model Selection:**
+Use `listmodels` tool to see available models (14 total: Gemini 2.5 Flash/Pro, Grok-4, etc.)
 
 **Example:**
 ```
-User: "Where are errors from the client handled?"
-Claude: [Uses Explore agent automatically]
+User: "Use Zen to debug this SwiftData crash with Grok-4"
+Claude: [Invokes mcp__zen__debug with model="grok-4"]
 ```
 
 ### TodoWrite Tool Usage
@@ -394,34 +377,52 @@ When user names a specific model, use that exact name. When no model mentioned, 
 - [ ] Used Task tool for complex explorations
 - [ ] Used TodoWrite for multi-step tasks
 
-### Common Claude Code Workflows
+### Common Development Workflows
 
-**1. Adding a new feature (with @pm):**
+**1. Implementing a Feature:**
 ```
-1. "@pm implement dark mode toggle"
-2. PM clarifies requirements
-3. PM delegates to Haiku (implementation)
-4. PM delegates to Grok-4 (review)
-5. PM runs /build and /test
-6. PM delivers complete, tested feature
-```
-
-**2. Fixing a bug:**
-```
-1. Use Explore agent to find relevant code
-2. "@zen debug the crash"
-3. Zen investigates and identifies root cause
-4. Fix the bug
-5. Add regression test
-6. "@xcode run tests" to verify
+User: "Add dark mode toggle to Settings"
+Claude:
+  1. Uses Explore agent to find Settings code
+  2. Creates TodoWrite plan (4-5 steps)
+  3. Implements feature
+  4. Uses code-architecture-reviewer to validate
+  5. Runs /test to verify
+  6. Runs /build for final check
 ```
 
-**3. Refactoring:**
+**2. Debugging a Crash:**
 ```
-1. "@zen review this code for refactoring opportunities"
-2. Zen provides analysis and recommendations
-3. "@pm implement the refactoring"
-4. PM coordinates implementation and validation
+User: "App crashes on CSV import"
+Claude:
+  1. Uses Explore agent to find CSV import code
+  2. Reads relevant files
+  3. Uses mcp__zen__debug for root cause analysis
+  4. Implements fix
+  5. Adds regression test
+  6. Runs /test to verify
+```
+
+**3. Code Review:**
+```
+User: "Review my new Enrichment service"
+Claude:
+  1. Uses code-architecture-reviewer agent
+  2. Checks Swift 6 concurrency, SwiftData patterns
+  3. Validates against AGENTS.md critical rules
+  4. Suggests improvements
+  5. Optionally uses mcp__zen__codereview for deeper analysis
+```
+
+**4. Refactoring:**
+```
+User: "This LibraryView is 800 lines, help me break it down"
+Claude:
+  1. Uses refactor-planner agent to analyze
+  2. Creates refactoring plan with TodoWrite
+  3. Uses code-refactor-master to execute
+  4. Runs /test after each extracted component
+  5. Final /build to verify
 ```
 
 ---
@@ -438,7 +439,7 @@ When user names a specific model, use that exact name. When no model mentioned, 
 
 **Use CLAUDE.md for:**
 - MCP setup and slash commands
-- Custom agents (@pm, @zen, @xcode)
+- Built-in agent workflow patterns
 - TodoWrite patterns
 - Git commit workflow
 - PR creation workflow
@@ -446,6 +447,6 @@ When user names a specific model, use that exact name. When no model mentioned, 
 
 ---
 
-**Last Updated:** November 18, 2025
+**Last Updated:** November 20, 2025
 **Maintained by:** oooe (jukasdrj)
 **See Also:** [`AGENTS.md`](AGENTS.md), [`MCP_SETUP.md`](MCP_SETUP.md)

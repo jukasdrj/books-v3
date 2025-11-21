@@ -18,4 +18,4 @@ Use XcodeBuildMCP to build BooksTracker.xcworkspace for iOS Simulator and report
 **Destination:** iPhone 17 Pro (Simulator)
 **Configuration:** Debug
 
-This is for rapid iteration during development - full validation should use `/gogo`.
+This is for rapid iteration during development.

@@ -1823,50 +1823,164 @@ components:
         - progress
         - status
         - processedCount
+    JobCompletionSummary:
+      type: object
+      description: |
+        **Lightweight completion summary** (mobile-optimized, <1 KB).
+        Full results are stored in KV cache and retrieved via HTTP GET using `resourceId`.
+      properties:
+        totalProcessed:
+          type: integer
+          description: Total items processed (books, photos, etc.)
+          example: 200
+        successCount:
+          type: integer
+          description: Number of successfully processed items
+          example: 195
+        failureCount:
+          type: integer
+          description: Number of failed items
+          example: 5
+        duration:
+          type: integer
+          description: Job duration in milliseconds
+          example: 2341
+        resourceId:
+          type: string
+          nullable: true
+          description: |
+            KV cache key for fetching full results via HTTP GET.
+            Format: "job-results:{jobId}"
+            Endpoint: GET /v1/jobs/{jobId}/results
+          example: job-results:uuid-12345
+      required:
+        - totalProcessed
+        - successCount
+        - failureCount
+        - duration
+
+    AIScanSummary:
+      type: object
+      description: AI scan summary extending base summary with AI-specific stats
+      properties:
+        totalProcessed:
+          type: integer
+          example: 50
+        successCount:
+          type: integer
+          example: 50
+        failureCount:
+          type: integer
+          example: 0
+        duration:
+          type: integer
+          example: 8500
+        resourceId:
+          type: string
+          nullable: true
+          example: job-results:uuid-12345
+        totalDetected:
+          type: integer
+          nullable: true
+          description: Books detected by Gemini Vision
+          example: 50
+        approved:
+          type: integer
+          nullable: true
+          description: Auto-approved books (high confidence)
+          example: 45
+        needsReview:
+          type: integer
+          nullable: true
+          description: Books requiring manual review (low confidence)
+          example: 5
+      required:
+        - totalProcessed
+        - successCount
+        - failureCount
+        - duration
+
     JobCompletePayload:
+      type: object
+      description: |
+        **BREAKING CHANGE (v2.0 - Nov 15, 2025):**
+        Job completion payloads migrated to summary-only format for mobile optimization.
+
+        **OLD format (deprecated):** Included full arrays (books, errors, enrichedBooks) - 5-10 MB
+        **NEW format:** Lightweight summary (<1 KB) + HTTP fetch for full results
+
+        **Migration Required:** Update clients by Jan 15, 2026
+        See: WEBSOCKET_MIGRATION_V2.md for iOS Swift migration guide
+      oneOf:
+        - $ref: '#/components/schemas/CSVImportCompletePayload'
+        - $ref: '#/components/schemas/BatchEnrichmentCompletePayload'
+        - $ref: '#/components/schemas/AIScanCompletePayload'
+
+    CSVImportCompletePayload:
       type: object
       properties:
         type:
           type: string
           enum: [job_complete]
-        totalDetected:
-          type: number
-          format: int32
-          nullable: true
-          example: 25
-        approved:
-          type: number
-          format: int32
-          nullable: true
-          example: 20
-        needsReview:
-          type: number
-          format: int32
-          nullable: true
-          example: 5
-        resultsUrl:
+        pipeline:
           type: string
-          format: uri-reference
-          description: URL to fetch full results via HTTP GET.
-          example: /v1/scan/results/uuid-12345
-        metadata: # Inner metadata for job completion
-          type: object
-          properties:
-            modelUsed:
-              type: string
-              nullable: true
-              example: gemini-2.0-flash-exp
-            processingTime:
-              type: number
-              format: int32
-              nullable: true
-              example: 8500
-          required:
-            - modelUsed
-            - processingTime
+          enum: [csv_import]
+        summary:
+          $ref: '#/components/schemas/JobCompletionSummary'
+        expiresAt:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when results expire from KV cache (24 hours after completion)
+          example: '2025-11-22T03:28:45.382Z'
       required:
         - type
-        - resultsUrl
+        - pipeline
+        - summary
+        - expiresAt
+
+    BatchEnrichmentCompletePayload:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [job_complete]
+        pipeline:
+          type: string
+          enum: [batch_enrichment]
+        summary:
+          $ref: '#/components/schemas/JobCompletionSummary'
+        expiresAt:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when results expire from KV cache (24 hours after completion)
+          example: '2025-11-22T03:28:45.382Z'
+      required:
+        - type
+        - pipeline
+        - summary
+        - expiresAt
+
+    AIScanCompletePayload:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [job_complete]
+        pipeline:
+          type: string
+          enum: [ai_scan]
+        summary:
+          $ref: '#/components/schemas/AIScanSummary'
+        expiresAt:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when results expire from KV cache (24 hours after completion)
+          example: '2025-11-22T03:28:45.382Z'
+      required:
+        - type
+        - pipeline
+        - summary
+        - expiresAt
     ErrorPayload:
       type: object
       description: |

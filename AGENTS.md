@@ -250,16 +250,34 @@ let reading = all.filter { $0.readingStatus == .reading }
 
 **🚨 CRITICAL:** All backend communication MUST adhere to v2.4 canonical contract.
 
-**Last Updated:** November 18, 2025
+**Last Updated:** November 20, 2025
 **Backend Repo:** https://github.com/jukasdrj/bookstrack-backend
 **Full Contract:** `docs/API_CONTRACT.md` in backend repo
+
+**v2.4.1 Changes (Nov 20, 2025):**
+- ⚡ WebSocket Hibernation API (70-80% cost reduction, zero client changes)
 
 **v2.4 Changes (Nov 18, 2025):**
 - ✅ Secure WebSocket auth via `Sec-WebSocket-Protocol` header (implemented)
 - ✅ HTTP/1.1 enforcement for WebSocket (Issue #227 - implemented)
-- ✅ HATEOAS `SearchLinksDTO` on Work/Edition (backend provides provider URLs)
+- ✅ HATEOAS `SearchLinksDTO` on Work/Edition (backend provides provider URLs - Issue #196)
 - ✅ Image quality detection improvements (`isbndbQuality` field)
 - ✅ 24-hour result expiry (`expiresAt` field in completion payloads)
+
+#### SearchLinksDTO (HATEOAS) - Issue #196
+
+**Purpose:** Backend centralizes URL construction for external book searches. Clients follow links directly without building URLs.
+
+**Swift Usage Example:**
+```swift
+// ✅ CORRECT: Use searchLinks from backend
+if let googleBooksURL = work.searchLinks?.googleBooks {
+    openURL(URL(string: googleBooksURL)!)
+}
+
+// ❌ WRONG: Don't construct URLs manually
+// let url = "https://www.googleapis.com/books/v1/volumes?q=isbn:\(isbn)"
+```
 
 ### Base URLs
 
@@ -319,21 +337,66 @@ GET /ws/progress?jobId={uuid}               # WebSocket progress (token in heade
 - `PROVIDER_TIMEOUT` - External API timeout (HTTP 504, retryable)
 - `INTERNAL_ERROR` - Server error (HTTP 500, retryable)
 
+### DTO Field Defaults (v2.4.1)
+
+**Default Value Pattern:** Optional fields default to `nil` in Swift (NOT zero or empty arrays)
+
+**Common Defaults:**
+| Field Type | Swift Type | Default Value | Example Fields |
+|------------|------------|---------------|----------------|
+| Optional string | `String?` | `nil` | `originalLanguage`, `description`, `coverImageURL` |
+| Optional number | `Int?`, `Double?` | `nil` | `pageCount`, `firstPublicationYear`, `publicationYear` |
+| Optional object | `SearchLinksDTO?` | `nil` | `searchLinks`, `enrichment` |
+| Required array | `[String]` | `[]` (empty array) | `subjectTags`, `goodreadsWorkIDs`, `amazonASINs` |
+| Optional boolean | `Bool?` | `nil` | `synthetic` |
+
+**Critical Swift Patterns:**
+```swift
+// ✅ CORRECT: Nil-coalescing for optional fields
+let title = work.title ?? "Unknown Title"
+let pageCount = edition.pageCount ?? 0
+
+// ✅ CORRECT: Optional binding for nested objects
+if let searchLinks = work.searchLinks {
+    // Use searchLinks.googleBooks, etc.
+}
+
+// ❌ INCORRECT: Assuming default zero for optional numbers
+let pages = edition.pageCount  // Type is Int?, NOT Int!
+// Must use: let pages = edition.pageCount ?? 0
+
+// ❌ INCORRECT: Force-unwrapping optional fields
+let url = work.searchLinks!.googleBooks  // CRASH if nil!
+```
+
+**SwiftData Mapping:** When mapping DTOs to SwiftData models, use `@Attribute(.preserveValueOnDeletion)` for optional fields that should persist as `nil` rather than reverting to defaults on deletion.
+
 ### WebSocket v2.4 Contract
 
 **🚨 CRITICAL: HTTP/1.1 ONLY (Issue #227)**
 
 WebSocket connections **MUST** use HTTP/1.1. HTTP/2 and HTTP/3 are **not supported**.
 
-**iOS Configuration (MANDATORY):**
+**iOS URLRequest Configuration (MANDATORY):**
 ```swift
+// FIX (Issue #227): WebSocket connections MUST use HTTP/1.1 for RFC 6455 compliance.
+// iOS defaults to HTTP/2 for HTTPS, which is incompatible with WebSocket upgrade.
 var request = URLRequest(url: url)
-request.assumesHTTP3Capable = false  // Force HTTP/1.1
+request.assumesHTTP3Capable = false  // Forces HTTP/1.1 (disables HTTP/2 and HTTP/3)
 request.setValue("websocket", forHTTPHeaderField: "Upgrade")
 request.setValue("Upgrade", forHTTPHeaderField: "Connection")
+
+let webSocket = URLSession.shared.webSocketTask(with: request)
+webSocket.resume()
 ```
 
-**Violation Response:** `HTTP 426 Upgrade Required` (our code detects this as `-1011` error)
+**Why This Works:**
+- `assumesHTTP3Capable = false` prevents HTTP/3 (QUIC) and HTTP/2 negotiation
+- Explicit `Upgrade: websocket` header signals WebSocket upgrade intent (RFC 6455)
+- `Connection: Upgrade` header required for protocol upgrade
+- Result: iOS negotiates HTTP/1.1 → Server responds with `101 Switching Protocols`
+
+**Violation Response:** `HTTP 426 Upgrade Required` (detected as URLError code `-1011`)
 
 ---
 
@@ -394,7 +457,7 @@ let fullResults = try await fetchResults(url: payload.resultsUrl)
 // GET https://api.oooefam.net/v1/scan/results/uuid-12345
 ```
 
-**Results TTL:** 24 hours (v2.4) - check `expiresAt` field in completion payload
+**Results TTL:** 24 hours (v2.4) - `expiresAt` field (ISO 8601) indicates when results expire (24h from completion). Clients should check expiry before fetching results and either cache data locally OR handle 404 responses gracefully if fetching expired results. Example: `if Date() < expiresAt { fetchResults() }`
 
 ---
 

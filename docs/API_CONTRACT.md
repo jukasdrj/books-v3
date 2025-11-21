@@ -61,6 +61,230 @@
 
 ---
 
+## ⚠️ BREAKING CHANGE: v2.0 Summary-Only Completion Payloads (Nov 15, 2025)
+
+### **🔥 CRITICAL: WebSocket `job_complete` Schema Migration**
+
+**Status:** ⚠️ **BREAKING CHANGE - Action Required**
+**Effective Date:** November 15, 2025 (v2.0)
+**Impact:** All WebSocket clients (iOS, Flutter, Web)
+**Migration Deadline:** January 15, 2026 (60 days)
+
+---
+
+### **What Changed**
+
+WebSocket `job_complete` messages now use a **summary-only format** for mobile optimization. Full results are retrieved via HTTP GET instead of being sent in the WebSocket payload.
+
+**OLD Format (deprecated):**
+```json
+{
+  "payload": {
+    "type": "job_complete",
+    "pipeline": "csv_import",
+    "books": [...],        // ❌ No longer sent (could be 5-10 MB)
+    "errors": [...],       // ❌ No longer sent
+    "successRate": "45/50" // ❌ No longer sent
+  }
+}
+```
+
+**NEW Format (v2.0+):**
+```json
+{
+  "payload": {
+    "type": "job_complete",
+    "pipeline": "csv_import",
+    "summary": {           // ✅ New lightweight summary
+      "totalProcessed": 48,
+      "successCount": 48,
+      "failureCount": 0,
+      "duration": 394,
+      "resourceId": "job-results:uuid-12345"  // ✅ Key for HTTP fetch
+    },
+    "expiresAt": "2025-11-22T03:28:45.382Z"   // ✅ 24h expiry timestamp
+  }
+}
+```
+
+---
+
+### **Why This Change**
+
+**Problem:** Large WebSocket payloads (5-10 MB) caused:
+- UI freezes on mobile devices (10+ seconds parsing time)
+- Battery drain from JSON parsing
+- Memory pressure on low-end devices
+- Cloudflare 32 MiB message limit concerns
+
+**Solution:** Send lightweight summary (< 1 KB), store full results in KV cache with 1-hour TTL
+
+---
+
+### **Migration Guide: iOS Swift**
+
+**Step 1: Update Completion Payload Structs**
+
+Replace old structs with new summary-based structs:
+
+```swift
+// ✅ NEW: Job Completion Summary (shared across all pipelines)
+public struct JobCompletionSummary: Codable, Sendable {
+    public let totalProcessed: Int
+    public let successCount: Int
+    public let failureCount: Int
+    public let duration: Int           // Milliseconds
+    public let resourceId: String?     // KV key for HTTP fetch (e.g., "job-results:uuid")
+}
+
+// ✅ NEW: CSV Import Completion (Summary-Only)
+public struct CSVImportCompletePayload: Codable, Sendable {
+    public let type: String            // "job_complete"
+    public let pipeline: String        // "csv_import"
+    public let summary: JobCompletionSummary  // ✅ Changed from direct fields
+    public let expiresAt: String       // ISO 8601 timestamp
+}
+
+// ✅ NEW: Batch Enrichment Completion (Summary-Only)
+public struct BatchEnrichmentCompletePayload: Codable, Sendable {
+    public let type: String
+    public let pipeline: String
+    public let summary: JobCompletionSummary
+    public let expiresAt: String
+}
+
+// ✅ NEW: AI Scan Completion (Summary-Only with AI-specific stats)
+public struct AIScanCompletePayload: Codable, Sendable {
+    public let type: String
+    public let pipeline: String
+    public let summary: AIScanSummary  // Extended summary
+    public let expiresAt: String
+}
+
+// ✅ NEW: AI Scan Summary (extends JobCompletionSummary)
+public struct AIScanSummary: Codable, Sendable {
+    public let totalProcessed: Int
+    public let successCount: Int
+    public let failureCount: Int
+    public let duration: Int
+    public let resourceId: String?
+
+    // AI-specific stats
+    public let totalDetected: Int?
+    public let approved: Int?
+    public let needsReview: Int?
+}
+```
+
+**Step 2: Update WebSocket Message Handler**
+
+```swift
+func handleJobComplete(_ message: WebSocketMessage) async {
+    guard case .jobComplete(let payload) = message.payload else { return }
+
+    // Extract pipeline-specific payload
+    switch payload {
+    case .csvImport(let csvPayload):
+        // ✅ NEW: Use summary instead of direct fields
+        let summary = csvPayload.summary
+        print("CSV import complete: \(summary.successCount)/\(summary.totalProcessed) books")
+
+        // ✅ NEW: Fetch full results via HTTP if needed
+        if let resourceId = summary.resourceId {
+            await fetchJobResults(jobId: message.jobId)
+        }
+
+    case .batchEnrichment(let batchPayload):
+        let summary = batchPayload.summary
+        print("Batch enrichment complete: \(summary.successCount) books enriched")
+
+        if let resourceId = summary.resourceId {
+            await fetchJobResults(jobId: message.jobId)
+        }
+
+    case .aiScan(let aiPayload):
+        let summary = aiPayload.summary
+        print("AI scan complete: \(summary.totalDetected ?? 0) books detected")
+
+        if let resourceId = summary.resourceId {
+            await fetchJobResults(jobId: message.jobId)
+        }
+    }
+}
+```
+
+**Step 3: Implement HTTP Results Fetching**
+
+```swift
+func fetchJobResults(jobId: String) async throws -> JobResults {
+    let url = URL(string: "https://api.oooefam.net/v1/jobs/\(jobId)/results")!
+
+    let (data, response) = try await URLSession.shared.data(from: url)
+
+    guard let httpResponse = response as? HTTPURLResponse,
+          httpResponse.statusCode == 200 else {
+        throw JobError.resultsFetchFailed
+    }
+
+    // Decode full results (books, errors, etc.)
+    let envelope = try JSONDecoder().decode(ResponseEnvelope<JobResults>.self, from: data)
+
+    guard envelope.success, let results = envelope.data else {
+        throw JobError.invalidResults
+    }
+
+    return results
+}
+
+struct JobResults: Codable {
+    let books: [ParsedBook]?
+    let errors: [ImportError]?
+    let enrichedBooks: [EnrichedBookPayload]?
+}
+```
+
+---
+
+### **Migration Checklist**
+
+- [ ] Update all `*CompletePayload` structs to use `summary` field
+- [ ] Remove direct fields: `books`, `errors`, `successRate`, `enrichedBooks`, etc.
+- [ ] Add `JobCompletionSummary` struct
+- [ ] Add `AIScanSummary` struct (for AI-specific stats)
+- [ ] Implement HTTP results fetching via `/v1/jobs/{jobId}/results`
+- [ ] Handle `expiresAt` timestamp (show countdown timer if needed)
+- [ ] Update UI to show summary stats during WebSocket, full results after HTTP fetch
+- [ ] Test with all three pipelines: `csv_import`, `batch_enrichment`, `ai_scan`
+
+---
+
+### **Affected Endpoints**
+
+**WebSocket Messages:**
+- `job_complete` for `csv_import` pipeline
+- `job_complete` for `batch_enrichment` pipeline
+- `job_complete` for `ai_scan` pipeline
+
+**New HTTP Endpoints (for results retrieval):**
+- `GET /v1/jobs/{jobId}/results` - Fetch full job results (1-hour TTL)
+
+**Not Affected:**
+- `batch-complete` (batch photo scanning still includes full book array)
+- `job_progress` messages (unchanged)
+- `job_started` messages (unchanged)
+- All HTTP search/enrichment endpoints (unchanged)
+
+---
+
+### **Timeline**
+
+- **Nov 15, 2025:** Breaking change deployed (v2.0)
+- **Nov 20, 2025:** Migration guide published (this document)
+- **Jan 15, 2026:** Migration deadline (clients MUST migrate by this date)
+- **Jan 16, 2026:** Old format support removed (clients will fail to decode)
+
+---
+
 ## What's New in v2.3 (WebSocket Security Fix)
 
 ### **🔒 SECURITY FIX: WebSocket Token Authentication (Issue #163)**
@@ -1253,12 +1477,16 @@ wss://api.oooefam.net/ws/progress?jobId={jobId}&token={token}
 
 WebSocket connections **MUST** use HTTP/1.1. HTTP/2 and HTTP/3 are not supported by the WebSocket protocol (RFC 6455).
 
-**iOS URLSession Configuration:**
+**iOS URLRequest Configuration:**
 ```swift
-let configuration = URLSessionConfiguration.default
-configuration.httpProtocolOptions = [.http1_1Only: true]
-let session = URLSession(configuration: configuration)
-let websocketTask = session.webSocketTask(with: request)
+// FIX (Issue #227): WebSocket connections MUST use HTTP/1.1 for RFC 6455 compliance.
+var request = URLRequest(url: url)
+request.assumesHTTP3Capable = false  // Forces HTTP/1.1 (disables HTTP/2 and HTTP/3)
+request.setValue("websocket", forHTTPHeaderField: "Upgrade")
+request.setValue("Upgrade", forHTTPHeaderField: "Connection")
+
+let websocketTask = URLSession.shared.webSocketTask(with: request)
+websocketTask.resume()
 ```
 
 **Error if using HTTP/2:**
@@ -1409,28 +1637,49 @@ Sent periodically during processing (every 5-10% progress).
 {
   "type": "job_complete",
   "jobId": "uuid-12345",
-  "pipeline": "ai_scan",
+  "pipeline": "csv_import",
   "timestamp": 1700001000000,
   "version": "1.0.0",
   "payload": {
     "type": "job_complete",
-    "totalDetected": 25,
-    "approved": 20,
-    "needsReview": 5,
-    "resultsUrl": "/v1/scan/results/uuid-12345",
-    "expiresAt": "2025-01-16T10:00:00.000Z",
-    "metadata": {
-      "modelUsed": "gemini-2.0-flash-exp",
-      "processingTime": 8500
-    }
+    "pipeline": "csv_import",
+    "summary": {
+      "totalProcessed": 48,
+      "successCount": 48,
+      "failureCount": 0,
+      "duration": 413,
+      "resourceId": "job-results:uuid-12345"
+    },
+    "expiresAt": "2025-01-16T10:00:00.000Z"
+  }
+}
+```
+
+**For AI Scan (pipeline: "ai_scan"):**
+```json
+{
+  "payload": {
+    "type": "job_complete",
+    "pipeline": "ai_scan",
+    "summary": {
+      "totalProcessed": 25,
+      "successCount": 25,
+      "failureCount": 0,
+      "duration": 8500,
+      "resourceId": "job-results:uuid-12345",
+      "totalDetected": 25,
+      "approved": 20,
+      "needsReview": 5
+    },
+    "expiresAt": "2025-01-16T10:00:00.000Z"
   }
 }
 ```
 
 **Client Action:**
-After receiving `job_complete`, client MUST fetch full results:
+After receiving `job_complete`, client MUST fetch full results using `resourceId`:
 ```http
-GET https://api.oooefam.net/v1/scan/results/uuid-12345
+GET https://api.oooefam.net/v1/jobs/{jobId}/results
 ```
 
 **Why Summary-Only?**
@@ -2245,7 +2494,13 @@ for (index, batch) in allPhotos.chunked(into: batchSize).enumerated() {
   - Updated token refresh status to ✅ Production Ready
   - Comprehensive iOS Swift code examples for all WebSocket features
   - Updated integration checklist with reconnection and batch requirements
-- **v2.0 (Nov 15, 2025):** Cultural diversity enrichment, summary-only completions, results endpoints
+- **v2.0 (Nov 15, 2025):** ⚠️ **BREAKING CHANGE:** Summary-only WebSocket completions (migration guide above)
+  - Cultural diversity enrichment (gender, cultural region, LGBTQ+ representation)
+  - WebSocket `job_complete` migrated to summary-only format (< 1 KB payloads)
+  - New HTTP results endpoint: `GET /v1/jobs/{jobId}/results` (1-hour TTL)
+  - Full results now stored in KV cache instead of WebSocket messages
+  - Mobile optimization: Eliminated 5-10 MB WebSocket payloads causing UI freezes
+  - **Migration Required:** Update all `*CompletePayload` structs by Jan 15, 2026
 - **v1.5 (Oct 1, 2025):** ISBNs array, quality scoring
 - **v1.0 (Sep 1, 2025):** Initial release
 
