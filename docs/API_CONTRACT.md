@@ -1,14 +1,41 @@
-# BooksTrack API Contract v2.4.1
+# BooksTrack API Contract v2.5.0
 
 **Status:** Production ✅
-**Effective Date:** November 20, 2025
-**Last Updated:** November 20, 2025 (v2.4.1 - WebSocket Performance Optimization)
+**Effective Date:** November 21, 2025
+**Last Updated:** November 21, 2025 (v2.5.0 - Local Models: Cascade Metadata & Session Analytics)
 **Contract Owner:** Backend Team
 **Audience:** iOS, Flutter, Web Frontend Teams
 
 ---
 
-## 🔥 What's New in v2.4.1 (WebSocket Performance Optimization)
+## 🔥 What's New in v2.5.0 (Local Models: Cascade Metadata & Session Analytics)
+
+### **📚 NEW: Local-Only SwiftData Models (iOS Sprint 2)**
+- **Feature:** Four new client-side SwiftData models for metadata cascade and reading analytics
+- **Impact:** Local-only persistence - no backend API changes required
+- **Models:**
+  - **AuthorMetadata** - Author-level metadata propagation system
+  - **WorkOverride** - Work-specific exceptions to cascaded metadata
+  - **BookEnrichment** - User-added ratings, notes, genres, themes, and cascaded author data
+  - **StreakData** - Reading streak tracking and session analytics
+- **Services:**
+  - **CascadeMetadataService** - Manages metadata propagation from authors to works
+  - **SessionAnalyticsService** - Tracks reading streaks, session counts, and analytics
+- **Breaking Change:** None - purely additive local persistence
+- **Backend Impact:** Zero - all models are SwiftData-only (no API endpoints)
+
+**Key Features:**
+- Author metadata cascades to all works by same author
+- Work-level overrides for special cases (e.g., co-authors with different backgrounds)
+- Reading streak tracking with daily validation (today or yesterday = active)
+- Weekly/monthly session analytics with pages-per-hour calculations
+- Gamification support via completion percentages and curator points
+
+**See:** Section 5.9 (Local-Only Models) for complete schema documentation.
+
+---
+
+## What's New in v2.4.1 (WebSocket Performance Optimization)
 
 ### **⚡ PERFORMANCE: WebSocket Hibernation API (Issue #221)**
 - **Change:** Backend migrated to Cloudflare Hibernation WebSocket API
@@ -1227,6 +1254,137 @@ interface BookSearchResponse {
 - Works and Editions are **loosely coupled** (not normalized)
 - Authors are **deduplicated** across all works
 - Frontend must match Works ↔ Editions ↔ Authors by ID/ISBN
+
+---
+
+### 5.9 Local-Only Models (iOS SwiftData - Sprint 2)
+
+**NOTE:** These models are **client-side only** and do not sync with the backend API. They are persisted locally using SwiftData.
+
+#### 5.9.1 AuthorMetadata (Local Cascade System)
+
+Stores author-level metadata that cascades to all works by the same author.
+
+```swift
+@Model
+public final class AuthorMetadata {
+    @Attribute(.unique) public var authorId: String          // Unique author identifier
+    public var culturalBackground: [String]                   // Array of cultural backgrounds
+    public var genderIdentity: String?                        // Author's gender identity
+    public var nationality: [String]                          // Array of nationalities
+    public var languages: [String]                            // Languages author writes in
+    public var marginalizedIdentities: [String]               // Marginalized identities
+    public var cascadedToWorkIds: [String]                    // Works that received cascaded metadata
+    public var lastUpdated: Date                              // Last update timestamp
+    public var contributedBy: String                          // User ID who contributed metadata
+    @Relationship(deleteRule: .cascade, inverse: \WorkOverride.authorMetadata)
+    public var workOverrides: [WorkOverride]                  // Work-specific overrides
+}
+```
+
+**Usage:** Managed by CascadeMetadataService for author → work metadata propagation.
+
+#### 5.9.2 WorkOverride (Local Cascade Exceptions)
+
+Stores work-specific exceptions to cascaded author metadata.
+
+```swift
+@Model
+public final class WorkOverride {
+    public var workId: String                                 // Work persistent ID
+    public var field: String                                  // Field being overridden ("culturalBackground" | "genderIdentity")
+    public var customValue: String                            // Custom value for this work
+    public var reason: String?                                // Optional reason (e.g., "Co-author")
+    public var createdAt: Date                                // Creation timestamp
+    public var authorMetadata: AuthorMetadata?                // Inverse relationship
+}
+```
+
+**Usage:** Created via CascadeMetadataService.createOverride() for special cases.
+
+#### 5.9.3 BookEnrichment (Local User Metadata)
+
+Stores user-added metadata and cascaded author information for books.
+
+```swift
+@Model
+public final class BookEnrichment {
+    @Attribute(.unique) public var workId: String             // Unique work identifier
+    public var userRating: Int?                               // User rating (1-5 stars)
+    public var genres: [String]                               // User-assigned genres
+    public var themes: [String]                               // User-identified themes
+    public var contentWarnings: [String]                      // Content warnings
+    public var personalNotes: String?                         // Personal reading notes
+    public var authorCulturalBackground: String?              // Cascaded from AuthorMetadata
+    public var authorGenderIdentity: String?                  // Cascaded from AuthorMetadata
+    public var isCascaded: Bool                               // Flag for auto-filled author data
+    public var lastEnriched: Date                             // Last enrichment timestamp
+
+    // Computed property: 0.0-1.0 completion percentage (7 fields)
+    public var completionPercentage: Double { ... }
+}
+```
+
+**Usage:** Updated via CascadeMetadataService.updateWorkEnrichment() and user edits.
+
+**Completion Calculation:**
+- Fields considered: userRating, genres, themes, contentWarnings, personalNotes, authorCulturalBackground, authorGenderIdentity
+- Formula: (filledFields / 7.0) * 100%
+- Gamification: Used for "Curator Points" system
+
+#### 5.9.4 StreakData (Local Reading Analytics)
+
+Tracks reading streaks and session analytics per user.
+
+```swift
+@Model
+public final class StreakData {
+    @Attribute(.unique) public var userId: String             // Unique user identifier (default: "default-user")
+    public var currentStreak: Int                             // Current consecutive days with reading
+    public var longestStreak: Int                             // Longest streak achieved
+    public var lastSessionDate: Date                          // Last reading session date (default: Date.distantPast)
+    public var totalSessions: Int                             // Total reading sessions
+    public var totalMinutesRead: Int                          // Total minutes across all sessions
+    public var averagePagesPerHour: Double                    // Avg pages/hour reading pace
+    public var sessionsThisWeek: Int                          // Sessions this calendar week
+    public var sessionsThisMonth: Int                         // Sessions this calendar month
+    public var streakBrokenCount: Int                         // Times streak was broken
+    public var lastCalculated: Date                           // Last calculation timestamp
+
+    // Computed property: true if last session was today or yesterday
+    public var isOnStreak: Bool { ... }
+}
+```
+
+**Usage:** Managed by SessionAnalyticsService for reading streak tracking.
+
+**Streak Logic:**
+- Active streak: Last session was today OR yesterday
+- Broken streak: Last session was 2+ days ago
+- Multiple sessions same day: Count as 1 day for streak
+- Streak calculation runs on session completion and app launch
+
+#### 5.9.5 Local Services (Swift-only)
+
+**CascadeMetadataService** (@MainActor)
+- `updateAuthorMetadata()` - Create/update author metadata and trigger cascade
+- `cascadeToWorks()` - Propagate metadata to all works by author
+- `updateWorkEnrichment()` - Update BookEnrichment respecting overrides
+- `createOverride() / removeOverride()` - Manage work-specific exceptions
+- `fetchOrCreateAuthorMetadata() / fetchOrCreateEnrichment()` - Helper methods
+
+**SessionAnalyticsService** (@MainActor)
+- `updateStreakForSession()` - Update streak after session completion
+- `checkAndResetStreakIfBroken()` - Validate streak on app launch
+- `calculateCurrentStreak() / calculateLongestStreak()` - Streak queries
+- `updateSessionCounts()` - Recalculate weekly/monthly counts
+- `calculateAveragePagesPerHour()` - Reading pace analytics
+
+**Design Notes:**
+- All models use SwiftData @Model macro for persistence
+- Services are @MainActor for thread safety with SwiftUI
+- In-memory caching in SessionAnalyticsService reduces DB load
+- No backend API endpoints - purely local-only features
 
 ---
 
