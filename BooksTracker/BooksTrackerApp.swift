@@ -23,7 +23,10 @@ class ModelContainerFactory {
             Edition.self,
             Author.self,
             UserLibraryEntry.self,
-            TrendingActivity.self
+            TrendingActivity.self,
+            // v2 Sprint 1: Diversity & Reading Sessions
+            EnhancedDiversityStats.self,
+            ReadingSession.self
         ])
 
         #if targetEnvironment(simulator)

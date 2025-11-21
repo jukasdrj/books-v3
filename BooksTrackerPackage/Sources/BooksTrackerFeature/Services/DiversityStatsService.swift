@@ -1,0 +1,210 @@
+import SwiftData
+import Foundation
+
+/// Service for calculating and managing enhanced diversity statistics
+/// Aggregates diversity metrics from Work and Author models into EnhancedDiversityStats cache
+@MainActor
+public final class DiversityStatsService {
+
+    private let modelContext: ModelContext
+    private static let defaultUserId = "default-user"
+
+    /// Initializes the service with the required ModelContext
+    public init(modelContext: ModelContext) {
+        self.modelContext = modelContext
+    }
+
+    /// Calculate diversity statistics for a given period
+    /// - Parameter period: Time period for stats aggregation (allTime, year, month)
+    /// - Returns: EnhancedDiversityStats with aggregated metrics
+    public func calculateStats(period: StatsPeriod = .allTime) async throws -> EnhancedDiversityStats {
+        // Fetch all library entries
+        let entryDescriptor = FetchDescriptor<UserLibraryEntry>()
+        let entries = try modelContext.fetch(entryDescriptor)
+
+        // Initialize aggregation containers
+        var culturalOrigins: [String: Int] = [:]
+        var genderDistribution: [String: Int] = [:]
+        var translationStatus: [String: Int] = [:]
+
+        // Completion tracking
+        var totalBooks = 0
+        var booksWithCulturalData = 0
+        var booksWithGenderData = 0
+        var booksWithTranslationData = 0
+
+        // Aggregate data from each entry's work
+        for entry in entries {
+            guard let work = entry.work else { continue }
+            totalBooks += 1
+
+            // Cultural origin (from primary author)
+            if let primaryAuthor = work.primaryAuthor,
+               let region = primaryAuthor.culturalRegion {
+                let regionName = region.displayName
+                culturalOrigins[regionName, default: 0] += 1
+                booksWithCulturalData += 1
+            }
+
+            // Gender distribution (from primary author)
+            if let primaryAuthor = work.primaryAuthor {
+                let genderName = primaryAuthor.gender.displayName
+                if primaryAuthor.gender != .unknown {
+                    genderDistribution[genderName, default: 0] += 1
+                    booksWithGenderData += 1
+                }
+            }
+
+            // Translation status (from work)
+            if let language = work.originalLanguage, !language.isEmpty {
+                let isTranslated = language.lowercased() != "english" // TODO: Make this configurable
+                let statusKey = isTranslated ? "Translated" : "Original Language"
+                translationStatus[statusKey, default: 0] += 1
+                booksWithTranslationData += 1
+            }
+        }
+
+        // Create or update stats model
+        let defaultUserId = Self.defaultUserId
+        let statsDescriptor = FetchDescriptor<EnhancedDiversityStats>(
+            predicate: #Predicate { stats in
+                stats.userId == defaultUserId && stats.period == period
+            }
+        )
+
+        let existingStats = try modelContext.fetch(statsDescriptor).first
+
+        let stats: EnhancedDiversityStats
+        if let existing = existingStats {
+            // Update existing
+            stats = existing
+            stats.culturalOrigins = culturalOrigins
+            stats.genderDistribution = genderDistribution
+            stats.translationStatus = translationStatus
+            stats.totalBooks = totalBooks
+            stats.booksWithCulturalData = booksWithCulturalData
+            stats.booksWithGenderData = booksWithGenderData
+            stats.booksWithTranslationData = booksWithTranslationData
+            stats.lastCalculated = Date()
+        } else {
+            // Create new
+            stats = EnhancedDiversityStats(userId: Self.defaultUserId, period: period)
+            stats.culturalOrigins = culturalOrigins
+            stats.genderDistribution = genderDistribution
+            stats.translationStatus = translationStatus
+            stats.totalBooks = totalBooks
+            stats.booksWithCulturalData = booksWithCulturalData
+            stats.booksWithGenderData = booksWithGenderData
+            stats.booksWithTranslationData = booksWithTranslationData
+            modelContext.insert(stats)
+        }
+
+        try modelContext.save()
+        return stats
+    }
+
+    /// Fetch overall completion percentage for diversity data
+    /// - Returns: Percentage from 0-100
+    public func fetchCompletionPercentage() async throws -> Double {
+        let defaultUserId = Self.defaultUserId
+        let allTimePeriod = StatsPeriod.allTime
+        let statsDescriptor = FetchDescriptor<EnhancedDiversityStats>(
+            predicate: #Predicate { stats in
+                stats.userId == defaultUserId && stats.period == allTimePeriod
+            }
+        )
+
+        if let stats = try modelContext.fetch(statsDescriptor).first {
+            return stats.overallCompletionPercentage
+        }
+
+        // If no stats exist, calculate them
+        let stats = try await calculateStats(period: .allTime)
+        return stats.overallCompletionPercentage
+    }
+
+    /// Get list of missing data dimensions for a specific work
+    /// - Parameter workId: PersistentIdentifier of the work
+    /// - Returns: Array of dimension names that are missing data
+    public func getMissingDataDimensions(for workId: PersistentIdentifier) async throws -> [String] {
+        guard let work = modelContext.model(for: workId) as? Work else {
+            throw DiversityStatsError.workNotFound
+        }
+
+        var missing: [String] = []
+
+        // Check cultural origin
+        if work.primaryAuthor?.culturalRegion == nil {
+            missing.append("culturalOrigins")
+        }
+
+        // Check gender
+        if work.primaryAuthor == nil || work.primaryAuthor?.gender == .unknown {
+            missing.append("genderDistribution")
+        }
+
+        // Check translation/language
+        if work.originalLanguage == nil || work.originalLanguage?.isEmpty == true {
+            missing.append("translationStatus")
+        }
+
+        return missing
+    }
+
+    /// Update diversity data for a work
+    /// - Parameters:
+    ///   - workId: PersistentIdentifier of the work to update
+    ///   - dimension: Dimension name ("culturalOrigins", "genderDistribution", "translationStatus")
+    ///   - value: String value for the dimension
+    public func updateDiversityData(workId: PersistentIdentifier, dimension: String, value: String) async throws {
+        guard let work = modelContext.model(for: workId) as? Work else {
+            throw DiversityStatsError.workNotFound
+        }
+
+        switch dimension {
+        case "culturalOrigins":
+            // Update primary author's cultural region
+            if let primaryAuthor = work.primaryAuthor {
+                // Parse CulturalRegion from string value
+                if let region = CulturalRegion.allCases.first(where: { $0.displayName == value }) {
+                    primaryAuthor.culturalRegion = region
+                }
+            }
+
+        case "genderDistribution":
+            // Update primary author's gender
+            if let primaryAuthor = work.primaryAuthor {
+                if let gender = AuthorGender.allCases.first(where: { $0.displayName == value }) {
+                    primaryAuthor.gender = gender
+                }
+            }
+
+        case "translationStatus":
+            // Update work's original language
+            work.originalLanguage = value
+
+        default:
+            throw DiversityStatsError.invalidDimension
+        }
+
+        try modelContext.save()
+
+        // Recalculate stats after update
+        _ = try await calculateStats(period: .allTime)
+    }
+}
+
+/// Errors specific to diversity stats service
+public enum DiversityStatsError: Error, LocalizedError {
+    case workNotFound
+    case invalidDimension
+
+    public var errorDescription: String? {
+        switch self {
+        case .workNotFound:
+            return "Work not found in database"
+        case .invalidDimension:
+            return "Invalid diversity dimension specified"
+        }
+    }
+}
