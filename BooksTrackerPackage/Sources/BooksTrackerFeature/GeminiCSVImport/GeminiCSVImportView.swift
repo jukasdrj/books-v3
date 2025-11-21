@@ -6,6 +6,39 @@ import UniformTypeIdentifiers
 import UIKit
 #endif
 
+// MARK: - CSV Import Job Results (v2.0)
+
+/// Full job results fetched via HTTP GET after WebSocket completion
+/// v2.0 Migration: WebSocket now sends lightweight summary, full results stored in KV cache
+struct CSVImportJobResults: Codable, Sendable {
+    let books: [ParsedBook]?
+    let errors: [ImportError]?
+}
+
+/// CSV Import errors
+enum CSVImportError: Error, LocalizedError {
+    case invalidResponse
+    case emptyResults
+    case resultsExpired          // Results no longer available in KV cache (> 24 hours)
+    case rateLimited
+    case httpError(statusCode: Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidResponse:
+            return "Invalid response from server"
+        case .emptyResults:
+            return "No results returned from server"
+        case .resultsExpired:
+            return "Results expired (job older than 24 hours). Please re-run the import."
+        case .rateLimited:
+            return "Rate limited. Please try again later."
+        case .httpError(let statusCode):
+            return "HTTP error: \(statusCode)"
+        }
+    }
+}
+
 // MARK: - Gemini CSV Import View
 
 /// Simplified CSV import using Gemini AI for parsing with WebSocket progress
@@ -548,28 +581,57 @@ public struct GeminiCSVImportView: View {
                     }
 
                     #if DEBUG
-                    print("[CSV WebSocket] ✅ Import complete: \(csvPayload.books.count) books, \(csvPayload.errors.count) errors")
+                    print("[CSV WebSocket] ✅ Import complete: \(csvPayload.summary.successCount) books processed, \(csvPayload.summary.failureCount) errors")
+                    print("[CSV WebSocket] 📦 Fetching full results from KV cache (resourceId: \(csvPayload.summary.resourceId ?? "none"))")
                     #endif
 
-                    // Convert unified schema ParsedBook to legacy GeminiCSVImportJob.ParsedBook
-                    let legacyBooks = csvPayload.books.map { book in
-                        GeminiCSVImportJob.ParsedBook(
-                            title: book.title,
-                            author: book.author,
-                            isbn: book.isbn,
-                            coverUrl: book.coverUrl,
-                            publisher: book.publisher,
-                            publicationYear: book.publicationYear,
-                            enrichmentError: book.enrichmentError
-                        )
+                    // v2.0 Migration: Fetch full results via HTTP GET
+                    // WebSocket now only sends lightweight summary (<1 KB)
+                    // Full results stored in KV cache for 24 hours
+                    guard let resourceId = csvPayload.summary.resourceId else {
+                        #if DEBUG
+                        print("[CSV WebSocket] ❌ No resourceId provided, cannot fetch results")
+                        #endif
+                        importStatus = .failed("No results available from backend")
+                        return
                     }
 
-                    // Convert unified schema ImportError to legacy GeminiCSVImportJob.ImportError
-                    let legacyErrors = csvPayload.errors.map { error in
-                        GeminiCSVImportJob.ImportError(title: error.title, error: error.error)
-                    }
+                    // Extract jobId from resourceId format: "job-results:uuid"
+                    let jobId = self.jobId ?? resourceId.replacingOccurrences(of: "job-results:", with: "")
 
-                    importStatus = .completed(books: legacyBooks, errors: legacyErrors)
+                    // Fetch full results via HTTP
+                    do {
+                        let fullResults = try await fetchJobResults(jobId: jobId)
+
+                        // Convert unified schema ParsedBook to legacy GeminiCSVImportJob.ParsedBook
+                        let legacyBooks = (fullResults.books ?? []).map { book in
+                            GeminiCSVImportJob.ParsedBook(
+                                title: book.title,
+                                author: book.author,
+                                isbn: book.isbn,
+                                coverUrl: book.coverUrl,
+                                publisher: book.publisher,
+                                publicationYear: book.publicationYear,
+                                enrichmentError: book.enrichmentError
+                            )
+                        }
+
+                        // Convert unified schema ImportError to legacy GeminiCSVImportJob.ImportError
+                        let legacyErrors = (fullResults.errors ?? []).map { error in
+                            GeminiCSVImportJob.ImportError(title: error.title, error: error.error)
+                        }
+
+                        importStatus = .completed(books: legacyBooks, errors: legacyErrors)
+
+                        #if DEBUG
+                        print("[CSV WebSocket] ✅ Fetched full results: \(legacyBooks.count) books, \(legacyErrors.count) errors")
+                        #endif
+                    } catch {
+                        #if DEBUG
+                        print("[CSV WebSocket] ❌ Failed to fetch results: \(error)")
+                        #endif
+                        importStatus = .failed("Failed to fetch import results: \(error.localizedDescription)")
+                    }
 
                     // Proactively close the connection from the client side
                     // This prevents the ENOTCONN (57) "Socket not connected" error
@@ -614,6 +676,59 @@ public struct GeminiCSVImportView: View {
             print("[CSV WebSocket] ❌ Failed to decode WebSocket message: \(error)")
             print("[CSV WebSocket] Raw message: \(text)")
             #endif
+        }
+    }
+
+    /// Fetch full job results from KV cache via HTTP GET
+    /// v2.0 Migration: WebSocket sends lightweight summary, full results fetched on demand
+    /// Results are cached for 24 hours after job completion
+    private func fetchJobResults(jobId: String) async throws -> CSVImportJobResults {
+        let baseURL = "https://api.oooefam.net"
+        let url = URL(string: "\(baseURL)/v1/jobs/\(jobId)/results")!
+
+        #if DEBUG
+        print("[CSV Import] 🌐 Fetching results from: \(url)")
+        #endif
+
+        let (data, response) = try await URLSession.shared.data(from: url)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw CSVImportError.invalidResponse
+        }
+
+        #if DEBUG
+        print("[CSV Import] 📡 HTTP Response: \(httpResponse.statusCode)")
+        #endif
+
+        switch httpResponse.statusCode {
+        case 200:
+            // Success - decode results using ResponseEnvelope
+            let envelope = try JSONDecoder().decode(
+                ResponseEnvelope<CSVImportJobResults>.self,
+                from: data
+            )
+
+            // Check for API error in envelope
+            if envelope.error != nil {
+                throw CSVImportError.emptyResults
+            }
+
+            guard let results = envelope.data else {
+                throw CSVImportError.emptyResults
+            }
+
+            return results
+
+        case 404:
+            // Results expired (> 24 hours old)
+            throw CSVImportError.resultsExpired
+
+        case 429:
+            // Rate limited
+            throw CSVImportError.rateLimited
+
+        default:
+            throw CSVImportError.httpError(statusCode: httpResponse.statusCode)
         }
     }
 

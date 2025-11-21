@@ -70,6 +70,10 @@
 **Impact:** All WebSocket clients (iOS, Flutter, Web)
 **Migration Deadline:** January 15, 2026 (60 days)
 
+> **🚨 HOTFIX AVAILABLE (Nov 20, 2025):** iOS app crashes on `job_complete` due to missing `expiresAt` field.
+> **Quick Fix:** Make `expiresAt` optional in Swift decoders: `public let expiresAt: String?`
+> **Details:** See `/docs/IOS_HOTFIX_V2_SCHEMA.md` for complete backward-compatible fix.
+
 ---
 
 ### **What Changed**
@@ -142,7 +146,7 @@ public struct CSVImportCompletePayload: Codable, Sendable {
     public let type: String            // "job_complete"
     public let pipeline: String        // "csv_import"
     public let summary: JobCompletionSummary  // ✅ Changed from direct fields
-    public let expiresAt: String       // ISO 8601 timestamp
+    public let expiresAt: String?      // 🚨 HOTFIX: Make optional for backward compatibility
 }
 
 // ✅ NEW: Batch Enrichment Completion (Summary-Only)
@@ -150,7 +154,7 @@ public struct BatchEnrichmentCompletePayload: Codable, Sendable {
     public let type: String
     public let pipeline: String
     public let summary: JobCompletionSummary
-    public let expiresAt: String
+    public let expiresAt: String?      // 🚨 HOTFIX: Make optional for backward compatibility
 }
 
 // ✅ NEW: AI Scan Completion (Summary-Only with AI-specific stats)
@@ -158,7 +162,7 @@ public struct AIScanCompletePayload: Codable, Sendable {
     public let type: String
     public let pipeline: String
     public let summary: AIScanSummary  // Extended summary
-    public let expiresAt: String
+    public let expiresAt: String?      // 🚨 HOTFIX: Make optional for backward compatibility
 }
 
 // ✅ NEW: AI Scan Summary (extends JobCompletionSummary)
@@ -1477,16 +1481,12 @@ wss://api.oooefam.net/ws/progress?jobId={jobId}&token={token}
 
 WebSocket connections **MUST** use HTTP/1.1. HTTP/2 and HTTP/3 are not supported by the WebSocket protocol (RFC 6455).
 
-**iOS URLRequest Configuration:**
+**iOS URLSession Configuration:**
 ```swift
-// FIX (Issue #227): WebSocket connections MUST use HTTP/1.1 for RFC 6455 compliance.
-var request = URLRequest(url: url)
-request.assumesHTTP3Capable = false  // Forces HTTP/1.1 (disables HTTP/2 and HTTP/3)
-request.setValue("websocket", forHTTPHeaderField: "Upgrade")
-request.setValue("Upgrade", forHTTPHeaderField: "Connection")
-
-let websocketTask = URLSession.shared.webSocketTask(with: request)
-websocketTask.resume()
+let configuration = URLSessionConfiguration.default
+configuration.httpProtocolOptions = [.http1_1Only: true]
+let session = URLSession(configuration: configuration)
+let websocketTask = session.webSocketTask(with: request)
 ```
 
 **Error if using HTTP/2:**

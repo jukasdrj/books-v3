@@ -480,10 +480,15 @@ public final class WebSocketProgressManager: NSObject, @preconcurrency URLSessio
                     return
                 }
 
-                if let resultsUrl = aiPayload.resultsUrl {
-                    // v2.1 pattern - fetch via HTTP
+                // v2.0 Migration: Fetch full results via HTTP using resourceId
+                // WebSocket now only sends lightweight summary
+                if let resourceId = aiPayload.summary.resourceId {
+                    // Extract jobId from resourceId format: "job-results:uuid"
+                    let jobId = resourceId.replacingOccurrences(of: "job-results:", with: "")
+
                     do {
-                        let results = try await BookshelfAIService.shared.fetchScanResults(url: resultsUrl)
+                        // Fetch full results from KV cache via HTTP
+                        let results = try await BookshelfAIService.shared.fetchJobResults(jobId: jobId)
                         let progress = JobProgress(
                             totalItems: 1,
                             processedItems: 1,
@@ -496,7 +501,7 @@ public final class WebSocketProgressManager: NSObject, @preconcurrency URLSessio
                         }
                     } catch {
                         #if DEBUG
-                        print("❌ Failed to fetch scan results from \(resultsUrl): \(error)")
+                        print("❌ Failed to fetch scan results for job \(jobId): \(error)")
                         #endif
                         // Notify handler of failure
                         let progress = JobProgress(
@@ -510,100 +515,16 @@ public final class WebSocketProgressManager: NSObject, @preconcurrency URLSessio
                             progressHandler?(progress)
                         }
                     }
-                } else if let books = aiPayload.books {
-                    // Backward compatibility - embedded books
+                } else {
+                    // No resourceId - create minimal result from summary (no books data available)
                     let scanResult = ScanResultPayload(
-                        totalDetected: aiPayload.totalDetected,
-                        approved: aiPayload.approved,
-                        needsReview: aiPayload.needsReview,
-                        books: books.map { book in
-                            // Reconstruct EnrichmentPayload from flattened DetectedBookPayload fields
-                            let enrichment: ScanResultPayload.BookPayload.EnrichmentPayload? = {
-                                guard let status = book.enrichmentStatus else { return nil }
-
-                                // Build minimal WorkDTO from flattened enrichment fields
-                                let work: WorkDTO? = WorkDTO(
-                                    title: book.title ?? "",
-                                    subjectTags: [],
-                                    originalLanguage: nil,
-                                    firstPublicationYear: book.publicationYear,
-                                    description: nil,
-                                    coverImageURL: book.coverUrl,
-                                    synthetic: false,
-                                    primaryProvider: "google-books",
-                                    contributors: [],
-                                    openLibraryID: nil,
-                                    openLibraryWorkID: nil,
-                                    isbndbID: nil,
-                                    googleBooksVolumeID: nil,
-                                    goodreadsID: nil,
-                                    goodreadsWorkIDs: [],
-                                    amazonASINs: [],
-                                    librarythingIDs: [],
-                                    googleBooksVolumeIDs: [],
-                                    lastISBNDBSync: nil,
-                                    isbndbQuality: 0,
-                                    reviewStatus: .verified,
-                                    originalImagePath: nil,
-                                    boundingBox: nil
-                                )
-
-                                // Build minimal EditionDTO from flattened enrichment fields
-                                let edition: EditionDTO? = if book.publisher != nil || book.publicationYear != nil {
-                                    EditionDTO(
-                                        isbn: book.isbn,
-                                        isbns: book.isbn.map { [$0] } ?? [],
-                                        title: book.title,
-                                        publisher: book.publisher,
-                                        publicationDate: book.publicationYear.map { String($0) },
-                                        pageCount: nil,
-                                        format: .paperback,
-                                        coverImageURL: book.coverUrl,
-                                        editionTitle: nil,
-                                        editionDescription: nil,
-                                        language: nil,
-                                        primaryProvider: "google-books",
-                                        contributors: [],
-                                        openLibraryID: nil,
-                                        openLibraryEditionID: nil,
-                                        isbndbID: nil,
-                                        googleBooksVolumeID: nil,
-                                        goodreadsID: nil,
-                                        amazonASINs: [],
-                                        googleBooksVolumeIDs: [],
-                                        librarythingIDs: [],
-                                        lastISBNDBSync: nil,
-                                        isbndbQuality: 0
-                                    )
-                                } else { nil }
-
-                                return ScanResultPayload.BookPayload.EnrichmentPayload(
-                                    status: status,
-                                    work: work,
-                                    editions: edition.map { [$0] } ?? [],
-                                    authors: [],
-                                    provider: "google-books",
-                                    cachedResult: false
-                                )
-                            }()
-
-                            return ScanResultPayload.BookPayload(
-                                title: book.title ?? "",
-                                author: book.author ?? "",
-                                isbn: book.isbn,
-                                format: nil,
-                                confidence: book.confidence ?? 0.0,
-                                boundingBox: book.boundingBox.map { bbox in
-                                    ScanResultPayload.BookPayload.BoundingBoxPayload(
-                                        x1: bbox.x1, y1: bbox.y1, x2: bbox.x2, y2: bbox.y2
-                                    )
-                                } ?? ScanResultPayload.BookPayload.BoundingBoxPayload(x1: 0, y1: 0, x2: 0, y2: 0),
-                                enrichment: enrichment
-                            )
-                        },
+                        totalDetected: aiPayload.summary.totalDetected ?? 0,
+                        approved: aiPayload.summary.approved ?? 0,
+                        needsReview: aiPayload.summary.needsReview ?? 0,
+                        books: [],  // Empty - full results must be fetched via HTTP
                         metadata: ScanResultPayload.ScanMetadataPayload(
-                            processingTime: 0,
-                            enrichedCount: aiPayload.approved,
+                            processingTime: aiPayload.summary.duration,
+                            enrichedCount: aiPayload.summary.approved ?? 0,
                             timestamp: String(message.timestamp),
                             modelUsed: "gemini-2.0-flash"
                         )

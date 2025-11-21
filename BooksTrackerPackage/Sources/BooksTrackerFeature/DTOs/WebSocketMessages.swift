@@ -239,16 +239,29 @@ public enum JobCompletePayload: Codable, Sendable {
     }
 }
 
+// MARK: - Job Completion Summary (v2.0 - Mobile Optimized)
+
+/// Lightweight completion summary (<1 KB) for mobile optimization.
+/// Full results are stored in KV cache and retrieved via HTTP GET using `resourceId`.
+/// BREAKING CHANGE (v2.0 - Nov 15, 2025): Migrated from full payload to summary-only format.
+public struct JobCompletionSummary: Codable, Sendable {
+    public let totalProcessed: Int
+    public let successCount: Int
+    public let failureCount: Int
+    public let duration: Int                // Milliseconds
+    public let resourceId: String?          // KV cache key: "job-results:{jobId}"
+}
+
 // MARK: - Batch Enrichment Complete Payload
 
 public struct BatchEnrichmentCompletePayload: Codable, Sendable {
     public let type: String
     public let pipeline: String
-    public let totalProcessed: Int
-    public let successCount: Int
-    public let failureCount: Int
-    public let duration: Int                // Milliseconds
-    public let enrichedBooks: [EnrichedBookPayload]  // The actual enriched data
+    public let summary: JobCompletionSummary
+
+    /// ISO 8601 timestamp when results expire from KV cache
+    /// 24 hours after job completion (v2.4 - Issue #169)
+    public let expiresAt: String
 }
 
 // MARK: - Enriched Book Data (Batch Enrichment)
@@ -277,14 +290,18 @@ public struct EnrichedDataPayload: Codable, Sendable {
 public struct CSVImportCompletePayload: Codable, Sendable {
     public let type: String
     public let pipeline: String
-    public let books: [ParsedBook]
-    public let errors: [ImportError]
-    public let successRate: String          // e.g., "45/50"
+    public let summary: JobCompletionSummary
 
     /// ISO 8601 timestamp when results expire from KV cache
     /// 24 hours after job completion (v2.4 - Issue #169)
-    public let expiresAt: String?
+    public let expiresAt: String
 }
+
+// MARK: - Legacy CSV Import Models (Deprecated - v2.0)
+
+/// Legacy models for full CSV import results (now fetched via HTTP GET)
+/// These are kept for backward compatibility when fetching from KV cache
+/// DEPRECATED: Use GET /v1/jobs/{jobId}/results to fetch full results
 
 public struct ParsedBook: Codable, Sendable {
     public let title: String
@@ -301,31 +318,37 @@ public struct ImportError: Codable, Sendable {
     public let error: String
 }
 
+// MARK: - AI Scan Summary (v2.0 - Extends Base Summary)
+
+/// AI scan summary extending base summary with AI-specific statistics
+public struct AIScanSummary: Codable, Sendable {
+    public let totalProcessed: Int
+    public let successCount: Int
+    public let failureCount: Int
+    public let duration: Int                // Milliseconds
+    public let resourceId: String?          // KV cache key: "job-results:{jobId}"
+    public let totalDetected: Int?          // Books detected by Gemini Vision
+    public let approved: Int?               // Auto-approved books (high confidence)
+    public let needsReview: Int?            // Books requiring manual review (low confidence)
+}
+
 // MARK: - AI Scan Complete Payload
 
 public struct AIScanCompletePayload: Codable, Sendable {
     public let type: String
     public let pipeline: String
-    public let totalDetected: Int
-    public let approved: Int
-    public let needsReview: Int
-    public let resultsUrl: String?
-    public let books: [DetectedBookPayload]?
-    public let metadata: JobMetadata?
+    public let summary: AIScanSummary
 
     /// ISO 8601 timestamp when results expire from KV cache
     /// 24 hours after job completion (v2.4 - Issue #169)
-    public let expiresAt: String?
-
-    enum CodingKeys: String, CodingKey {
-        case type, pipeline, books, metadata
-        case totalDetected = "total_detected"
-        case approved
-        case needsReview = "needs_review"
-        case resultsUrl = "results_url"
-        case expiresAt = "expiresAt"
-    }
+    public let expiresAt: String
 }
+
+// MARK: - Legacy AI Scan Models (Deprecated - v2.0)
+
+/// Legacy models for full AI scan results (now fetched via HTTP GET)
+/// These are kept for backward compatibility when fetching from KV cache
+/// DEPRECATED: Use GET /v1/jobs/{jobId}/results to fetch full results
 
 public struct JobMetadata: Codable, Sendable {
     public let modelUsed: String?

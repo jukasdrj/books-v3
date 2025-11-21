@@ -688,7 +688,7 @@ actor BookshelfAIService {
         guard let fullURL = URL(string: "\(EnrichmentConfig.apiBaseURL)\(url)") else {
             throw BookshelfAIError.invalidResponse
         }
-        
+
         let (data, response) = try await URLSession.shared.data(from: fullURL)
 
         guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
@@ -697,17 +697,59 @@ actor BookshelfAIService {
 
         do {
             let envelope = try JSONDecoder().decode(ResponseEnvelope<ScanResultPayload>.self, from: data)
-            
+
             guard let results = envelope.data else {
                 if let error = envelope.error {
                     throw APIError(code: error.code ?? "UNKNOWN", message: error.message)
                 }
                 throw APIError(code: "NO_DATA", message: "Missing results data")
             }
-            
+
             return results
         } catch {
             throw BookshelfAIError.decodingFailed(error)
+        }
+    }
+
+    /// Fetch full job results from KV cache via HTTP GET
+    /// v2.0 Migration: WebSocket sends lightweight summary, full results fetched on demand
+    /// Results are cached for 24 hours after job completion
+    public func fetchJobResults(jobId: String) async throws -> ScanResultPayload {
+        let url = URL(string: "\(EnrichmentConfig.apiBaseURL)/v1/jobs/\(jobId)/results")!
+
+        let (data, response) = try await URLSession.shared.data(from: url)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw BookshelfAIError.invalidResponse
+        }
+
+        switch httpResponse.statusCode {
+        case 200:
+            do {
+                let envelope = try JSONDecoder().decode(ResponseEnvelope<ScanResultPayload>.self, from: data)
+
+                guard let results = envelope.data else {
+                    if let error = envelope.error {
+                        throw APIError(code: error.code ?? "UNKNOWN", message: error.message)
+                    }
+                    throw APIError(code: "NO_DATA", message: "Missing results data")
+                }
+
+                return results
+            } catch {
+                throw BookshelfAIError.decodingFailed(error)
+            }
+
+        case 404:
+            // Results expired (> 24 hours old)
+            throw APIError(code: "RESULTS_EXPIRED", message: "Results expired (job older than 24 hours). Please re-run the scan.")
+
+        case 429:
+            // Rate limited
+            throw APIError(code: "RATE_LIMITED", message: "Rate limited. Please try again later.")
+
+        default:
+            throw BookshelfAIError.invalidResponse
         }
     }
 

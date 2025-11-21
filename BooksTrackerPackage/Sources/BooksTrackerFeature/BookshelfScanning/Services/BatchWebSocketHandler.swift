@@ -235,12 +235,12 @@ actor BatchWebSocketHandler {
         }
     }
 
-    /// Handle batch completion (legacy job_complete format)
+    /// Handle batch completion (v2.0 summary format)
     private func processCompletion(_ aiPayload: AIScanCompletePayload) async {
-        // Extract values before crossing actor boundary
-        let totalDetected = aiPayload.totalDetected
-        let approved = aiPayload.approved
-        let needsReview = aiPayload.needsReview
+        // Extract values from summary before crossing actor boundary
+        let totalDetected = aiPayload.summary.totalDetected ?? 0
+        let approved = aiPayload.summary.approved ?? 0
+        let needsReview = aiPayload.summary.needsReview ?? 0
         let jobId = self.jobId
         let totalPhotos = self.totalPhotos
 
