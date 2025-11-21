@@ -1,8 +1,8 @@
 # BooksTracker v2 - Sprint 1 Development Snapshot
 
-**Branch:** `feature/v2-diversity-reading-sessions`  
-**Progress:** 60% complete (9/15 tasks)  
-**Commit:** 8d40a15
+**Branch:** `feature/v2-diversity-reading-sessions`
+**Progress:** 70% complete (11/15 tasks)
+**Commit:** Latest
 
 ## What's Included
 
@@ -24,15 +24,18 @@ This is a development snapshot of BooksTracker v2 Sprint 1, focusing on diversit
 - `RepresentationRadarChart` - Canvas-based 5-axis visualization
 - Timer UI in `EditionMetadataView` - Live session tracking
 - `ProgressiveProfilingPrompt` - Post-session questionnaire
+- `DiversityCompletionWidget` - Progress ring with dimension breakdown
+
+**Testing:**
+- Unit tests for `EnhancedDiversityStats` model (7 test cases)
+- Unit tests for `ReadingSession` model (8 test cases)
 
 ### ⏳ Pending Tasks
 
-- Diversity Completion Widget with progress rings
-- Unit tests for models and services
 - Integration tests for diversity + sessions flow
 - Manual testing on simulator and real devices
 - Performance profiling (radar chart <200ms target)
-- Documentation updates and sprint retrospective
+- Sprint retrospective documentation
 
 ## Technical Details
 
