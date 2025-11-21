@@ -422,6 +422,13 @@ public final class SearchModel {
                 // Add successful search to recent searches
                 if !appendResults {
                     addToRecentSearches(query)
+
+                    // Track search activity for trending calculations
+                    for result in enrichedResults.prefix(5) {  // Track top 5 results
+                        if let isbn = result.primaryEdition?.isbn ?? result.primaryEdition?.isbns.first {
+                            apiService.trackActivity(isbn: isbn, title: result.displayTitle, type: .search)
+                        }
+                    }
                 }
             }
 

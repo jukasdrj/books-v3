@@ -101,10 +101,97 @@ public class BookSearchAPIService {
         )
     }
 
-    func getTrendingBooks() async throws -> SearchResponse {
-        // Curated list of high-quality, culturally diverse books
-        // These books are selected for their literary merit and global representation
-        logger.info("📚 Loading curated trending books...")
+    /// Get trending books based on user activity within a time range
+    /// Returns top 10 most popular books (by search + add count) with optional fallback to curated list
+    func getTrendingBooks(timeRange: TimeRange = .lastWeek) async throws -> SearchResponse {
+        logger.info("📚 Loading trending books (timeRange: \(timeRange.displayName))...")
+
+        let startTime = Date()
+
+        // Fetch trending activity from SwiftData
+        let descriptor = FetchDescriptor<TrendingActivity>(
+            sortBy: [SortDescriptor(\.lastActivity, order: .reverse)]
+        )
+
+        let activities: [TrendingActivity]
+        do {
+            activities = try modelContext.fetch(descriptor)
+        } catch {
+            logger.warning("⚠️ Failed to fetch trending activities: \(error). Falling back to curated list.")
+            return try await getCuratedTrendingBooks()
+        }
+
+        // Filter by time range
+        let cutoffDate: Date
+        if timeRange == .allTime {
+            cutoffDate = Date.distantPast
+        } else {
+            cutoffDate = Date().addingTimeInterval(-timeRange.seconds)
+        }
+
+        let recentActivity = activities.filter { $0.lastActivity >= cutoffDate }
+
+        // If no recent activity, fall back to curated list
+        if recentActivity.isEmpty {
+            logger.info("📚 No recent activity found. Falling back to curated list.")
+            return try await getCuratedTrendingBooks()
+        }
+
+        // Sort by popularity (searchCount + addCount)
+        let trending = recentActivity.sorted {
+            ($0.searchCount + $0.addCount) > ($1.searchCount + $1.addCount)
+        }
+
+        // Get top 10
+        let top10 = Array(trending.prefix(10))
+
+        // Convert to SearchResults by searching for each ISBN
+        var results: [SearchResult] = []
+        var cacheHits = 0
+        var totalRequests = 0
+
+        await withTaskGroup(of: (SearchResult?, Double)?.self) { group in
+            for activity in top10 {
+                let isbn = activity.isbn  // Capture value to avoid sendability issues
+                group.addTask { [logger] in
+                    do {
+                        let response = try await self.search(query: isbn, maxResults: 1, persist: false)
+                        return (response.results.first, response.cacheHitRate)
+                    } catch {
+                        logger.warning("⚠️ Failed to load trending book (ISBN: \(isbn)): \(error)")
+                        return nil
+                    }
+                }
+            }
+
+            for await result in group {
+                if let (searchResult, cacheHitRate) = result, let searchResult = searchResult {
+                    results.append(searchResult)
+                    totalRequests += 1
+                    if cacheHitRate > 0.5 {
+                        cacheHits += 1
+                    }
+                }
+            }
+        }
+
+        let responseTime = Date().timeIntervalSince(startTime) * 1000
+        let averageCacheHitRate = totalRequests > 0 ? Double(cacheHits) / Double(totalRequests) : 0.0
+
+        logger.info("✅ Trending books loaded: \(results.count) results from user activity in \(Int(responseTime))ms")
+        return SearchResponse(
+            results: results,
+            cacheHitRate: averageCacheHitRate,
+            provider: "trending:\(timeRange.rawValue.lowercased())",
+            responseTime: responseTime,
+            totalItems: results.count
+        )
+    }
+
+    /// Fallback: Curated list of high-quality, culturally diverse books
+    /// Used when no user activity exists or as initial seed content
+    private func getCuratedTrendingBooks() async throws -> SearchResponse {
+        logger.info("📚 Loading curated trending books (fallback)...")
 
         let startTime = Date()
 
@@ -136,7 +223,7 @@ public class BookSearchAPIService {
                         return (response.results.first, response.cacheHitRate)
                     } catch {
                         // Skip books that fail to load - continue with others
-                        self.logger.warning("⚠️ Failed to load trending book '\(title)': \(error)")
+                        self.logger.warning("⚠️ Failed to load curated book '\(title)': \(error)")
                         return nil
                     }
                 }
@@ -156,7 +243,7 @@ public class BookSearchAPIService {
         let responseTime = Date().timeIntervalSince(startTime) * 1000
         let averageCacheHitRate = totalRequests > 0 ? Double(cacheHits) / Double(totalRequests) : 0.0
 
-        logger.info("✅ Trending books loaded: \(allResults.count) curated results in \(Int(responseTime))ms")
+        logger.info("✅ Curated trending books loaded: \(allResults.count) results in \(Int(responseTime))ms")
         return SearchResponse(
             results: allResults,
             cacheHitRate: averageCacheHitRate,
@@ -164,6 +251,38 @@ public class BookSearchAPIService {
             responseTime: responseTime,
             totalItems: allResults.count
         )
+    }
+
+    /// Track user activity (search or add) for trending calculations
+    func trackActivity(isbn: String, title: String, type: ActivityType) {
+        let descriptor = FetchDescriptor<TrendingActivity>(
+            predicate: #Predicate { $0.isbn == isbn }
+        )
+
+        do {
+            let existing = try modelContext.fetch(descriptor).first
+
+            if let existing = existing {
+                // Update existing activity
+                switch type {
+                case .search: existing.searchCount += 1
+                case .add: existing.addCount += 1
+                }
+                existing.lastActivity = Date()
+            } else {
+                // Create new activity record
+                let activity = TrendingActivity(isbn: isbn, title: title)
+                switch type {
+                case .search: activity.searchCount = 1
+                case .add: activity.addCount = 1
+                }
+                modelContext.insert(activity)
+            }
+
+            try modelContext.save()
+        } catch {
+            logger.warning("⚠️ Failed to track activity for ISBN \(isbn): \(error)")
+        }
     }
 
     /// Advanced search with multiple criteria (author, title, ISBN)

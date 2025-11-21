@@ -130,6 +130,7 @@ public struct SearchView: View {
                         .searchSuggestions {
                             searchSuggestionsView(searchModel: searchModel)
                         }
+                        .id(searchModel.searchSuggestions.count)  // Force re-evaluation when suggestions change
                         // HIG: Navigation destination for hierarchical navigation
                         .navigationDestination(item: $selectedBook) { book in
                             WorkDiscoveryView(searchResult: book)
@@ -307,76 +308,76 @@ public struct SearchView: View {
 
     @ViewBuilder
     private func searchContentArea(searchModel: SearchModel) -> some View {
-        ZStack(alignment: .bottom) {
+        // Removed ZStack wrapper to reduce view nesting depth (was 7-8 levels, now 6-7)
+        Group {
             switch searchModel.viewState {
-            case .loadingTrending(_):
-                LoadingTrendingView()
+        case .loadingTrending(_):
+            LoadingTrendingView()
 
-            case .initial(let trending, let recentSearches):
-                InitialStateView(
-                    trending: trending,
-                    recentSearches: recentSearches,
-                    searchModel: searchModel,
-                    onBookSelected: { book in
-                        selectedBook = book
-                    }
-                )
-
-            case .searching(let query, let scope, let previousResults):
-                SearchingView(
-                    query: query,
-                    scope: scope,
-                    previousResults: previousResults
-                )
-
-            case .results(_, _, let items, let hasMorePages, let cacheHitRate):
-                ResultsStateView(
-                    items: items,
-                    hasMorePages: hasMorePages,
-                    cacheHitRate: cacheHitRate,
-                    searchModel: searchModel,
-                    imagePrefetcher: imagePrefetcher,
-                    onBookSelected: { book in
-                        selectedBook = book
-                    },
-                    onBookTapped: { book, comparisonData in
-                        tappedBook = book
-                        editionComparisonData = comparisonData
-                    },
-                    onLoadMore: {
-                        loadMoreResults()
-                    }
-                )
-
-            case .noResults(let query, let scope):
-                NoResultsView(
-                    query: query,
-                    scope: scope,
-                    searchModel: searchModel
-                )
-
-            case .error(let message, let lastQuery, let lastScope, let recoverySuggestion):
-                ErrorStateView(
-                    message: message,
-                    lastQuery: lastQuery,
-                    lastScope: lastScope,
-                    recoverySuggestion: recoverySuggestion,
-                    searchModel: searchModel
-                )
+        case .initial(let trending, let recentSearches):
+            InitialStateView(
+                trending: trending,
+                recentSearches: recentSearches,
+                searchModel: searchModel,
+                onBookSelected: { book in
+                    selectedBook = book
+                }
+            )
+            // HIG: Safe-area-aware bottom spacing for trending books visibility (#405)
+            .safeAreaInset(edge: .bottom) {
+                Color.clear.frame(height: 16)
             }
 
-            // HIG: Debug info only in development builds
+        case .searching(let query, let scope, let previousResults):
+            SearchingView(
+                query: query,
+                scope: scope,
+                previousResults: previousResults
+            )
+
+        case .results(_, _, let items, let hasMorePages, let cacheHitRate):
+            ResultsStateView(
+                items: items,
+                hasMorePages: hasMorePages,
+                cacheHitRate: cacheHitRate,
+                searchModel: searchModel,
+                imagePrefetcher: imagePrefetcher,
+                onBookSelected: { book in
+                    selectedBook = book
+                },
+                onBookTapped: { book, comparisonData in
+                    tappedBook = book
+                    editionComparisonData = comparisonData
+                },
+                onLoadMore: {
+                    loadMoreResults()
+                }
+            )
+            // HIG: Debug info only in development builds (overlaid on results)
             #if DEBUG
-            if !performanceText(for: searchModel).isEmpty {
-                performanceSection(searchModel: searchModel)
+            .overlay(alignment: .bottom) {
+                if !performanceText(for: searchModel).isEmpty {
+                    performanceSection(searchModel: searchModel)
+                }
             }
             #endif
-        }
-        // HIG: Safe-area-aware bottom spacing for trending books visibility (#405)
-        // Uses dynamic safe area instead of hardcoded padding to prevent layout issues
-        // across different devices, orientations, and accessibility settings
-        .safeAreaInset(edge: .bottom) {
-            Color.clear.frame(height: 16)
+
+        case .noResults(let query, let scope):
+            NoResultsView(
+                query: query,
+                scope: scope,
+                searchModel: searchModel
+            )
+
+        case .error(let message, let lastQuery, let lastScope, let recoverySuggestion):
+            ErrorStateView(
+                message: message,
+                lastQuery: lastQuery,
+                lastScope: lastScope,
+                recoverySuggestion: recoverySuggestion,
+                searchModel: searchModel
+            )
+            }
         }
         .sheet(item: $editionComparisonData) { data in
             EditionComparisonSheet(searchResult: data.searchEdition, ownedEdition: data.ownedEdition)

@@ -45,24 +45,23 @@ extension SearchView {
         }
         
         private var welcomeSection: some View {
+            // Flattened: removed nested VStack (was 2 levels, now 1)
             VStack(spacing: 16) {
                 Image(systemName: "books.vertical.fill")
                     .font(.system(size: 64, weight: .ultraLight))
                     .foregroundStyle(themeStore.primaryColor)
                     .symbolEffect(.pulse, options: .repeating)
 
-                VStack(spacing: 8) {
-                    Text("Discover Your Next Great Read")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .multilineTextAlignment(.center)
+                Text("Discover Your Next Great Read")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .multilineTextAlignment(.center)
 
-                    Text("Search millions of books or scan a barcode to get started")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
-                }
+                Text("Search millions of books or scan a barcode to get started")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
             }
             .padding(.top, 32)
         }

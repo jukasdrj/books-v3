@@ -22,7 +22,8 @@ class ModelContainerFactory {
             Work.self,
             Edition.self,
             Author.self,
-            UserLibraryEntry.self
+            UserLibraryEntry.self,
+            TrendingActivity.self
         ])
 
         #if targetEnvironment(simulator)
