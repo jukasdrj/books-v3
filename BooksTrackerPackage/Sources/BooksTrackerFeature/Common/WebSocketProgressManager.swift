@@ -7,6 +7,7 @@ enum WebSocketError: Error, LocalizedError {
     case decodingFailed
     case connectionFailed(Error)
     case authenticationFailed
+    case connectionLimitExceeded
 
     var errorDescription: String? {
         switch self {
@@ -15,6 +16,7 @@ enum WebSocketError: Error, LocalizedError {
         case .decodingFailed: return "Failed to decode message"
         case .connectionFailed(let error): return "Connection failed: \(error.localizedDescription)"
         case .authenticationFailed: return "Authentication failed"
+        case .connectionLimitExceeded: return "Too many connections to this job. Close existing connections before reconnecting."
         }
     }
 }
@@ -548,6 +550,12 @@ public final class WebSocketProgressManager: NSObject, @preconcurrency URLSessio
                 print("❌ WebSocket error: \(errorPayload.message)")
                 #endif
 
+                // Handle CONNECTION_LIMIT_EXCEEDED (v2.4.1 API contract)
+                if errorPayload.code == "CONNECTION_LIMIT_EXCEEDED" {
+                    lastError = WebSocketError.connectionLimitExceeded
+                    disconnectionHandler?(lastError!)
+                }
+
             case .reconnected(let payload):
                 #if DEBUG
                 print("✅ Reconnected - syncing state: \(payload.processedCount)/\(payload.totalCount)")
@@ -645,11 +653,12 @@ extension WebSocketProgressManager {
 
     public func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
         #if DEBUG
-        print("🔌 WebSocket closed with code: \(closeCode.rawValue)")
+        let reasonString = reason.flatMap { String(data: $0, encoding: .utf8) } ?? "none"
+        print("🔌 WebSocket closed with code: \(closeCode.rawValue), reason: \(reasonString)")
         #endif
 
         self.isConnected = false
-        
+
         switch closeCode {
         case .normalClosure, .goingAway:
             #if DEBUG
@@ -658,10 +667,23 @@ extension WebSocketProgressManager {
             disconnect() // Clean up
             return
 
-        case .policyViolation:  // 1008 - Auth failure
-            lastError = WebSocketError.authenticationFailed
+        case .policyViolation:  // 1008 - Auth failure or connection limit exceeded (v2.4.1)
+            // Parse reason to differentiate between auth failure and connection limit
+            if let reason = reason,
+               let reasonString = String(data: reason, encoding: .utf8),
+               reasonString.contains("Connection limit exceeded") {
+                lastError = WebSocketError.connectionLimitExceeded
+                #if DEBUG
+                print("❌ Connection limit exceeded (5 concurrent connections per job)")
+                #endif
+            } else {
+                lastError = WebSocketError.authenticationFailed
+                #if DEBUG
+                print("❌ Authentication failed")
+                #endif
+            }
             disconnectionHandler?(lastError!)
-            disconnect() // Clean up
+            disconnect() // Clean up - don't retry on policy violations
             return
 
         default:  // Network errors, etc. - reconnect
