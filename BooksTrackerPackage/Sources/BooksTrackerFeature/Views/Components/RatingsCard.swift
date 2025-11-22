@@ -1,6 +1,8 @@
 import SwiftUI
 import SwiftData
+#if canImport(UIKit)
 import UIKit
+#endif
 
 // MARK: - RatingsCard
 /// A SwiftUI component to display and edit multi-source book ratings.
@@ -93,8 +95,10 @@ public struct RatingsCard: View {
 
     /// Triggers haptic feedback for selection style.
     private func triggerHapticFeedback() {
+        #if canImport(UIKit)
         let generator = UIImpactFeedbackGenerator(style: .light)
         generator.impactOccurred()
+        #endif
     }
 
     // MARK: - StarRatingView (Nested Helper)

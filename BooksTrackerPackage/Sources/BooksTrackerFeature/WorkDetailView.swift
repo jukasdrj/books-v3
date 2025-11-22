@@ -9,10 +9,13 @@ struct WorkDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.iOS26ThemeStore) private var themeStore
+    @Environment(\.modelContext) private var modelContext
     @State private var selectedEdition: Edition?
     @State private var showingEditionPicker = false
     @State private var selectedAuthor: Author?
     @State private var selectedEditionID: PersistentIdentifier?
+    @State private var selectedAuthorForOverride: AuthorMetadataSelection?
+    @State private var bookEnrichment: BookEnrichment?
 
     // Primary edition for display
     private var primaryEdition: Edition {
@@ -81,6 +84,21 @@ struct WorkDetailView: View {
         .sheet(item: $selectedAuthor) { author in
             AuthorSearchResultsView(author: author)
         }
+        .sheet(item: $selectedAuthorForOverride) { selection in
+            OverrideSheet(
+                work: work,
+                authorMetadata: selection.metadata,
+                onSave: {
+                    // Refresh enrichment data after override
+                    Task {
+                        await loadEnrichmentData()
+                    }
+                }
+            )
+        }
+        .task {
+            await loadEnrichmentData()
+        }
     }
 
     // MARK: - Immersive Background
@@ -139,6 +157,20 @@ struct WorkDetailView: View {
                 // MARK: - Edition Metadata Card
                 EditionMetadataView(work: work, edition: primaryEdition)
                     .padding(.horizontal, 20)
+
+                // MARK: - Sprint 3: Book Enrichment Components
+
+                // Enrichment Completion Widget
+                if let enrichment = bookEnrichment {
+                    EnrichmentCompletionWidget(enrichment: enrichment)
+                        .padding(.horizontal, 20)
+                }
+
+                // Ratings Card
+                if let enrichment = bookEnrichment {
+                    RatingsCard(enrichment: enrichment)
+                        .padding(.horizontal, 20)
+                }
 
                 // MARK: - Manual Edition Selection
                 if FeatureFlags.shared.coverSelectionStrategy == .manual,
@@ -255,6 +287,48 @@ struct WorkDetailView: View {
                 userEntry.preferredEdition = nil  // Clear when no edition selected
             }
         }
+    }
+
+    // MARK: - Data Loading
+
+    /// Loads or creates BookEnrichment data for this work
+    private func loadEnrichmentData() async {
+        let workId = work.persistentModelID
+
+        // Fetch or create BookEnrichment
+        let descriptor = FetchDescriptor<BookEnrichment>(
+            predicate: #Predicate<BookEnrichment> { enrichment in
+                enrichment.workId == workId.hashValue.description
+            }
+        )
+
+        do {
+            let enrichments = try modelContext.fetch(descriptor)
+            if let existing = enrichments.first {
+                bookEnrichment = existing
+            } else {
+                // Create new enrichment
+                let newEnrichment = BookEnrichment(workId: workId.hashValue.description)
+                modelContext.insert(newEnrichment)
+                try modelContext.save()
+                bookEnrichment = newEnrichment
+            }
+        } catch {
+            #if DEBUG
+            print("❌ Failed to load enrichment data: \(error)")
+            #endif
+        }
+    }
+}
+
+// MARK: - Supporting Types
+
+/// Wrapper to make (Author, AuthorMetadata) tuple Identifiable for sheet presentation
+extension WorkDetailView {
+    struct AuthorMetadataSelection: Identifiable {
+        let id = UUID()
+        let author: Author
+        let metadata: AuthorMetadata
     }
 }
 
