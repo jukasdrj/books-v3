@@ -30,6 +30,7 @@ struct EditionMetadataView: View {
     @State private var showEndSessionSheet = false
     @State private var endingPage: Int = 0
     @State private var showProfilingPrompt = false
+    @State private var currentSessionMinutes: Int = 0
 
     // User's library entry for this work (reactive to SwiftData changes)
     private var libraryEntry: UserLibraryEntry? {
@@ -566,7 +567,7 @@ struct EditionMetadataView: View {
     }
 
     private func endSession() {
-        guard isSessionActive, let entry = libraryEntry else { return }
+        guard isSessionActive, libraryEntry != nil else { return }
 
         // Helper to reset session state
         func resetSessionState() {
