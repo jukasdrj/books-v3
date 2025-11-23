@@ -789,6 +789,6 @@ Sonnet (you):
 
 ---
 
-**Last Updated:** November 23, 2025
+**Last Updated:** November 23, 2025 (v3.7.5, Build 189)
 **Maintained by:** oooe (jukasdrj)
 **See Also:** [`AGENTS.md`](AGENTS.md), [`MCP_SETUP.md`](MCP_SETUP.md)

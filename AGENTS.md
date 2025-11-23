@@ -834,7 +834,7 @@ Text("Publisher").foregroundColor(.tertiary)
 
 ---
 
-**Last Updated:** November 21, 2025
+**Last Updated:** November 23, 2025 (v3.7.5, Build 189)
 **Maintained by:** oooe (jukasdrj)
 **License:** Proprietary
 **App Store:** Z67H8Y8DW.com.oooefam.booksV3
