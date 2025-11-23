@@ -1,0 +1,17 @@
+# Code Owners for BooksTrack
+
+# Default owner for everything
+* @jukasdrj
+
+# Swift/iOS code
+*.swift @jukasdrj
+BooksTrackerPackage/ @jukasdrj
+
+# GitHub workflows and AI configs
+.github/ @jukasdrj
+AGENTS.md @jukasdrj
+CLAUDE.md @jukasdrj
+
+# Documentation
+*.md @jukasdrj
+docs/ @jukasdrj

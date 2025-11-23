@@ -2,6 +2,8 @@
 name: zen
 description: Deep analysis specialist - systematic debugging, code review, security audits using Zen MCP tools
 permissionMode: allow
+tools: mcp__zen__debug,mcp__zen__codereview,mcp__zen__secaudit,mcp__zen__thinkdeep,mcp__zen__planner,mcp__zen__listmodels,Read,Glob,Grep
+model: inherit
 ---
 
 # Zen: Deep Analysis & Quality Specialist

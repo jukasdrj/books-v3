@@ -1,0 +1,48 @@
+name: Swift CI
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Select Xcode
+      run: sudo xcode-select -s /Applications/Xcode_17.0.app
+
+    - name: Build
+      run: |
+        xcodebuild clean build \
+          -scheme BooksTracker \
+          -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=26.0' \
+          -configuration Debug \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          ONLY_ACTIVE_ARCH=NO \
+          | xcbeautify
+
+    - name: Run Tests
+      run: |
+        xcodebuild test \
+          -scheme BooksTracker \
+          -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=26.0' \
+          -testPlan BooksTrackerTests \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          | xcbeautify
+
+    - name: Check for Warnings
+      run: |
+        # Fail if any warnings (Zero Warnings Policy)
+        if xcodebuild build -scheme BooksTracker -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=26.0' 2>&1 | grep -i warning; then
+          echo "❌ Build contains warnings - Zero Warnings Policy violated!"
+          exit 1
+        else
+          echo "✅ Zero warnings - build passed!"
+        fi
