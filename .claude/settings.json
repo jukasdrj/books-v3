@@ -1,5 +1,30 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "model": "claude-sonnet-4-5-20250929",
+  "subagentModels": {
+    "cloudflare-specialist": "claude-sonnet-4-5-20250929",
+    "code-review-grok": "grok-4",
+    "code-architecture-reviewer": "grok-4",
+    "refactor-planner": "claude-opus-4-1-20250805",
+    "Plan": "claude-opus-4-1-20250805",
+    "Explore": "claude-haiku-4-5-20251001"
+  },
+  "env": {
+    "MAX_MCP_OUTPUT_TOKENS": "50000",
+    "CLAUDE_CODE_SUBAGENT_PARALLEL": "true"
+  },
+  "hooks": {
+    "PostToolUse": {
+      "Write": "if [[ \"$FILE_PATH\" == *\"worker.js\"* ]] || [[ \"$FILE_PATH\" == *\"durable-object.js\"* ]]; then echo 'Cloudflare Workers file modified - consider running wrangler dev for testing'; fi",
+      "Edit": "if [[ \"$FILE_PATH\" == *.sql ]]; then echo 'D1 schema modified - verify migration with wrangler d1 migrations list'; fi"
+    },
+    "SubagentStart": {
+      "Bash": "echo '🤖 Subagent $SUBAGENT_NAME starting with model $MODEL'"
+    },
+    "SubagentStop": {
+      "Bash": "echo '✅ Subagent $SUBAGENT_NAME completed. Review findings and integrate results.'"
+    }
+  },
   "permissions": {
     "rules": [
       {

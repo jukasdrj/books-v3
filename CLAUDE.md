@@ -601,6 +601,161 @@ Sonnet (you):
 
 ---
 
+## 🌐 Cloudflare Backend Development Patterns
+
+### Automatic Agent Routing
+
+**The following patterns trigger automatic delegation to specialized subagents:**
+
+**Cloudflare Infrastructure Work:**
+- Keywords: "D1 schema", "Workers API", "KV storage", "Durable Objects"
+- File patterns: `*.worker.js`, `*-api.ts`, `*-service.ts` in backend code
+- Auto-routes to: **cloudflare-specialist** subagent (Sonnet model)
+
+**Code Review Requests:**
+- Keywords: "review", "security audit", "check for vulnerabilities"
+- Context: Any code review or quality assessment
+- Auto-routes to: **code-review-grok** subagent (Grok-4 model)
+
+**API Orchestration Patterns:**
+- Keywords: "multi-provider", "fallback chain", "orchestration"
+- Context: API design or implementation
+- Auto-activates: **cloudflare-api-orchestration** skill
+
+### Cloudflare Workflow Examples
+
+**Pattern A: D1 Schema Design**
+```
+User: "Design the D1 schema for our multi-tenant book data"
+Sonnet (you):
+  1. Routes to cloudflare-specialist subagent
+  2. Specialist provides normalized schema with indexes
+  3. You review and integrate with migration plan
+  4. Delegates to Haiku for migration script implementation
+  5. Routes to code-review-grok for security validation
+```
+
+**Pattern B: Workers API Implementation**
+```
+User: "Implement the /api/v2/books/search endpoint"
+Sonnet (you):
+  1. Routes to cloudflare-specialist subagent
+  2. Specialist implements orchestration layer (Google+OpenLibrary)
+  3. cloudflare-api-orchestration skill enforces patterns:
+     - Provider tagging
+     - Fallback chains
+     - KV caching
+  4. You integrate with D1 caching strategy
+  5. Routes to code-review-grok for final validation
+```
+
+**Pattern C: Backend Security Audit**
+```
+User: "Audit the Workers API for security issues"
+Sonnet (you):
+  1. Routes to code-review-grok subagent (Grok-4)
+  2. Grok performs OWASP Top 10 audit via mcp__zen__secaudit
+  3. You review findings and prioritize fixes
+  4. Delegates fixes to Haiku via mcp__zen__chat
+  5. Routes back to code-review-grok for validation
+```
+
+**Pattern D: KV→D1 Migration**
+```
+User: "Help me migrate book data from KV to D1"
+Sonnet (you):
+  1. Routes to cloudflare-specialist for migration strategy
+  2. Specialist designs:
+     - D1 schema (normalized, indexed)
+     - Zero-downtime migration plan
+     - Rollback strategy
+  3. Creates TodoWrite plan (10+ steps)
+  4. Delegates batch migration script to Haiku
+  5. You orchestrate incremental migration
+  6. Routes to code-review-grok for data integrity validation
+```
+
+### Cloudflare-Specific Critical Rules
+
+**Always Enforced (by cloudflare-api-orchestration skill):**
+
+1. **Provider Orchestration MANDATORY**
+   - NO direct API calls (e.g., `fetch('https://googleapis.com/...')`)
+   - ALL calls go through orchestration layer
+   - Tag responses: `"orchestrated:google+openlibrary"`, `"cache:kv"`, etc.
+
+2. **D1 SQL Injection Prevention**
+   - Use prepared statements: `DB.prepare('SELECT * FROM books WHERE isbn = ?').bind(isbn)`
+   - NEVER string interpolation: `DB.prepare(\`SELECT * FROM books WHERE isbn = '${isbn}'\`)`
+
+3. **KV Key Naming Convention**
+   - Format: `namespace:entity:id`
+   - Examples: `book:isbn:9780134685991`, `search:query:swift+programming`
+
+4. **Rate Limiting & Circuit Breakers**
+   - All public endpoints rate-limited
+   - Circuit breakers protect external services
+   - Graceful degradation when limits exceeded
+
+5. **WebSocket Connection Limits**
+   - Max 1000 connections per Durable Object
+   - Implement hibernation API for idle connections
+   - Graceful handling when limits reached
+
+### Integration with iOS App
+
+**API Contract (v2.4.1):**
+- iOS app expects provider metadata in all responses
+- Caching headers inform SwiftData sync strategy
+- WebSocket events for real-time updates (Durable Objects)
+- Error responses follow standard format (see backend API docs)
+
+### Subagent Model Configuration
+
+**Configured in `.claude/settings.json`:**
+
+```json
+{
+  "subagentModels": {
+    "cloudflare-specialist": "claude-sonnet-4-5-20250929",
+    "code-review-grok": "grok-4",
+    "refactor-planner": "claude-opus-4-1-20250805",
+    "Plan": "claude-opus-4-1-20250805",
+    "Explore": "claude-haiku-4-5-20251001"
+  }
+}
+```
+
+**Why these models:**
+- **Sonnet** for Cloudflare specialist (complex architecture decisions)
+- **Grok-4** for code review (expert validation, security focus)
+- **Opus** for planning agents (strategic thinking, comprehensive plans)
+- **Haiku** for exploration (speed, efficiency)
+
+### Hooks & Automation
+
+**Configured in `.claude/settings.json`:**
+
+```json
+{
+  "hooks": {
+    "PostToolUse": {
+      "Write": "Check if Workers file modified → suggest wrangler dev",
+      "Edit": "Check if .sql file modified → suggest migration validation"
+    },
+    "SubagentStart": "Log subagent activation",
+    "SubagentStop": "Prompt PM to review findings"
+  }
+}
+```
+
+**Automatic triggers:**
+- Modify `worker.js` → reminder to test with `wrangler dev`
+- Modify `.sql` file → reminder to validate with `wrangler d1 migrations list`
+- Subagent completes → prompt PM (you) to integrate results
+
+---
+
 ## When to Use AGENTS.md vs CLAUDE.md
 
 **Use AGENTS.md for:**
@@ -634,6 +789,6 @@ Sonnet (you):
 
 ---
 
-**Last Updated:** November 21, 2025
+**Last Updated:** November 23, 2025
 **Maintained by:** oooe (jukasdrj)
 **See Also:** [`AGENTS.md`](AGENTS.md), [`MCP_SETUP.md`](MCP_SETUP.md)
