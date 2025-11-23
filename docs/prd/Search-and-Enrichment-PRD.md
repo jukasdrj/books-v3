@@ -84,12 +84,51 @@ The Search feature enables users to locate books quickly via title, ISBN, author
 - Integration tests for `EnrichmentQueue` job lifecycle.
 - Mock backend responses for success/failure scenarios.
 
+## vNext (Q1 2026): Autocomplete + Query Unification + JobStream
+
+Objective: Improve discoverability, cut time-to-first-result, and standardize long-running job comms across Search, CSV Import, and Scanner.
+
+### Architecture Changes
+1) Autocomplete service
+- Endpoint: `GET /v1/search/autocomplete?q={q}&scope={title|author|isbn}`
+- Backed by KV + Analytics Engine hot terms; updates every 15 minutes.
+- Returns top 8 suggestions with type and confidence.
+
+2) Query Unification
+- Consolidate `title`, `isbn`, `advanced` into `GET /v1/search?q=...&fields=title,author,isbn`.
+- Same canonical DTOs; server applies field-specific analyzers.
+- Deprecate old endpoints with 90-day window.
+
+3) Unified JobStream
+- Search enrichment (post-result background enrich) sends progress via `/ws/job-stream` with `phase=enrich`.
+- SSE fallback available at `/sse/job-stream/{jobId}`.
+
+### UX Improvements
+- Typeahead suggestions below search bar; keyboard selectable.
+- Sticky recent searches synced via CloudKit (P1).
+- Filter chips for Genre, Year, Language; tap to refine without leaving results.
+- Inline enrichment indicators with per-row spinners and “preview ready” badges.
+
+### KPIs
+- P50 title query latency ≤ 800ms (cache hit), P90 ≤ 2s.
+- Autocomplete adoption ≥ 60% of searches within 30 days.
+- Error rate < 0.5% for search endpoints.
+
+### Acceptance Criteria (P0)
+- Given partial query “har”, autocomplete returns “harry potter” within 150ms (edge cache hit).
+- Given mixed query “asimov 9780553293357”, unified search returns relevant rows with highlights.
+- Given enrichment running, JobStream updates per-result badges without blocking scrolling.
+
+### API Additions
+- `GET /v1/search/autocomplete?q={q}&scope={scope}`
+- `GET /v1/search?q={q}&fields={fields}`
+
+---
+
 ## Future Enhancements
-- **Search History Sync** via CloudKit.
-- **Autocomplete Endpoint** `/v1/search/autocomplete`.
-- **Filter UI** (genre, year, language).
+
 - **Batch ISBN Enrichment** for bookshelf scanner.
-- **User‑controlled Enrichment Settings** (opt‑out of auto‑enrich).
+- **User-controlled Enrichment Settings** (opt-out of auto-enrich).
 
 ## Dependencies
 - SwiftUI, SwiftData, UserDefaults (search prefs).
@@ -105,4 +144,4 @@ The Search feature enables users to locate books quickly via title, ISBN, author
 - ✅ Documentation reflects combined flow.
 
 ---
-*Documentation generated on 2025‑11‑19.*
+*Last Updated: 2025‑11‑23.*

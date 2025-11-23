@@ -5,7 +5,7 @@
 **Engineering Lead:** iOS Development Team
 **Design Lead:** iOS 26 HIG Compliance
 **Target Release:** Build 46 (October 2025)
-**Last Updated:** October 31, 2025
+**Last Updated:** November 23, 2025
 
 ---
 
@@ -79,6 +79,57 @@ Users who prefer physical books but want digital tracking for reading goals/stat
 - 30%+ of new users try Bookshelf Scanner within first session
 - 80%+ accuracy on clear, well-lit shelf images
 - <5% fallback to HTTP polling (WebSocket success rate)
+
+---
+
+## vNext (Build 47): Realtime Overlay + Unified JobStream
+
+Goal: Cut perceived waiting time and error recovery while unifying progress communication across Scanner, CSV Import, and Enrichment.
+
+### Architecture Changes
+1) Client pre-pass (on-device)
+- Perform a fast Vision-based spine OCR pass to propose candidates and alignment hints before upload.
+- If ≥1 high-confidence ISBN/Title found, prefill results and crop suggested ROIs. Always upload full image for server AI.
+- Maintain feature flag `FeatureFlags.shelfPrePass`.
+
+2) Unified JobStream (WS primary, SSE fallback)
+- Introduce a single progress schema used by all long-running jobs.
+- Primary comms: WebSocket `/ws/job-stream?jobId={jobId}`.
+- New fallback: Server-Sent Events `/sse/job-stream/{jobId}` with JSON Lines messages.
+- Keep-alive every 15s; resume tokens supported for app backgrounding up to 10 minutes.
+
+3) Durable Object refactor
+- New `JobStreamDO` multiplexes phases: `upload → ai_detect → enrich → finalize`.
+- Short-lived HMAC token (job-scoped) replaces ad-hoc tokens; parallel storage reads remain.
+- Cropped spine thumbnails persisted to R2 with 24h TTL for Review Queue context.
+
+4) Media pipeline
+- Client encodes JPEG @ 85% or HEIC with target 400–600 KB; progressive upload allowed.
+- If network type == cellular and RTT > 200ms, automatically switch to SSE fallback and lower upload quality.
+
+### UX and Visual Design Changes
+- Live Detection Overlay: optional bounding boxes animate in the viewfinder after shutter half-press; subtle haptics when locks achieved.
+- Confidence Slider: default 60%; user can raise to 70–80% to reduce review load.
+- Inline Corrections: tap a low-confidence chip in results to edit title/author without leaving the flow.
+- Batch Review: grid with quick actions (Verify, Edit, Remove) and per-book thumbnails.
+- Microcopy improvements: shorter, action-first strings; add progress subtext like “Gemini is reading spines…”.
+
+### KPIs (for GA of Build 47)
+- P50 total time ≤ 40s; P90 ≤ 75s.
+- Review Queue rate reduced by 20% vs Build 46 (quality proxy).
+- WebSocket success ≥ 98%; SSE usage ≤ 2% (fallback only).
+- User CSAT ≥ 4.6/5 for scanning session.
+
+### Acceptance Criteria (P0)
+- Given a poor network, SSE fallback maintains progress updates without UI freeze; reconnection resumes within 3s using resume token.
+- Given overlay enabled, bounding boxes render ≤ 200ms after capture on iPhone 17 Pro.
+- Given app backgrounded mid-job (<10 min), upon return, stream resumes and final results render without reupload.
+- Given confidence slider set to 80%, imported books below threshold route to Review Queue.
+
+### API Additions
+- GET `/sse/job-stream/{jobId}` → text/event-stream; data: JobStreamMessage (JSON Lines)
+- POST `/v1/scans/{jobId}/resume` → returns new resumeToken (10-minute TTL)
+- R2 lifecycle rule: `shelf-scans/*` auto-delete after 24h
 
 ---
 

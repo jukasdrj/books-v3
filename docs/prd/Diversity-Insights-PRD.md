@@ -5,7 +5,7 @@
 **Engineering Lead:** iOS Development Team
 **Design Lead:** iOS 26 HIG Compliance
 **Target Release:** v3.1.0 (October 2025)
-**Last Updated:** October 31, 2025
+**Last Updated:** November 23, 2025
 
 ---
 
@@ -512,6 +512,46 @@ public enum TimePeriod: String, CaseIterable {
 - [ ] Track empty state views (users with incomplete author metadata)
 - [ ] Collect feedback on diversity score formula
 - [ ] Measure chart interaction rates (future tappable feature)
+
+
+## vNext (Q1 2026): Interactive Insights + Goals
+
+Objective: Move from static dashboards to actionable, interactive insights that drive reading behavior change.
+
+### Architecture Changes
+1) Insights Store and Query Layer
+- Create `InsightsStore` actor to cache computed stats and expose query functions (e.g., by region, by period).
+- Persist last-computed stats snapshot for offline loading.
+
+2) Tap-to-Filter Cross-Nav
+- Introduce a lightweight routing contract so tapping a chart element opens Library with the appropriate filter pre-applied.
+- Deep link format: `bookstrack://library?filter=region:africa`.
+
+3) Goals Engine (Phase 1)
+- Local-only goals with periodic reminders and progress rings.
+- Goal model: type (region|gender|language), target %, period (This Year).
+
+### UX Improvements
+- Charts become interactive: tap a bar/sector to drill-down; long-press shows tooltip.
+- Add “What to read next” card powered by gaps in diversity metrics.
+- Empty states include a one-tap action to search recommended titles.
+- Optional “Compare This Year vs Last Year” toggle.
+
+### KPIs
+- 25% of users create at least one goal in the first month.
+- 30% of taps on charts result in a filtered Library view.
+- Increase weekly Insights tab engagement by +15%.
+
+### Acceptance Criteria (P0)
+- Given a user taps “Africa” in the bar chart, the Library opens with region:africa filter applied and badge visible.
+- Given a user creates a goal “≥50% women authors”, the progress ring updates as new books are added.
+- Given offline mode, previously computed stats load instantly with “stale” banner and recompute on reconnect.
+
+### API/Model Additions
+- `Goal` model (SwiftData) with fields: id, type, target, period, createdAt, updatedAt.
+- `InsightsStore` actor with methods: `calculate()`, `snapshot()`, `filterLink(for:)`.
+
+---
 
 ---
 
