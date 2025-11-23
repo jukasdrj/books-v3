@@ -116,3 +116,9 @@ repomix-output.xml
 .ai/*-local.md
 .ai/api-keys.md
 .ai/secrets/
+
+# gemini-cli settings
+.gemini/
+
+# GitHub App credentials
+gha-creds-*.json
