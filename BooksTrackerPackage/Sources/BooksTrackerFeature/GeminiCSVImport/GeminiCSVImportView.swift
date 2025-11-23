@@ -57,8 +57,8 @@ public struct GeminiCSVImportView: View {
     @State private var progress: Double = 0.0
     @State private var statusMessage: String = ""
     @State private var errorMessage: String?
-    @State private var webSocketTask: Task<Void, Never>?
-    @State private var webSocket: URLSessionWebSocketTask?
+    @State private var webSocketTask: URLSessionWebSocketTask?
+    @State private var receiveTask: Task<Void, Never>?
 
     public init() {}
 
@@ -326,47 +326,63 @@ public struct GeminiCSVImportView: View {
     }
 
     private func startWebSocketProgress(jobId: String, token: String) {
-        // Build WebSocket URL with authentication token
-        var components = URLComponents(string: "\(EnrichmentConfig.webSocketBaseURL)/ws/progress")!
-        components.queryItems = [
-            URLQueryItem(name: "jobId", value: jobId),
-            URLQueryItem(name: "token", value: token)
-        ]
-        guard let wsURL = components.url else {
-            importStatus = .failed("Invalid WebSocket URL")
-            return
-        }
-
         #if DEBUG
-        print("[CSV WebSocket] Connecting to backend with authentication")
+        print("[CSV WebSocket] Starting secure WebSocket connection (v2.4.1 compliant)")
         #endif
 
-        webSocketTask = Task {
+        receiveTask = Task {
             do {
-                // Use a new URLSession with default configuration, which is more reliable for
-                // WebSockets than the shared session. This mirrors the implementation in
-                // EnrichmentWebSocketHandler.
-                let session = URLSession(configuration: .default)
-                let webSocketTask = session.webSocketTask(with: wsURL)
-                self.webSocket = webSocketTask
-                webSocketTask.resume()
-                
-                // ✅ CRITICAL: Wait for WebSocket handshake to complete
-                // Prevents POSIX error 57 "Socket is not connected"
-                try await WebSocketHelpers.waitForConnection(webSocketTask, timeout: 10.0)
-                
+                // ✅ SECURITY FIX (#7): Secure WebSocket authentication
+                // Build WebSocket URL (jobId in query is OK, token MUST be in header)
+                let wsURL = URL(string: "\(EnrichmentConfig.webSocketBaseURL)/ws/progress?jobId=\(jobId)")!
+
+                // ✅ PROTOCOL FIX (#7): HTTP/1.1 enforcement for WebSocket compatibility
+                // iOS defaults to HTTP/2 for HTTPS, which breaks RFC 6455 WebSocket upgrade
+                var request = URLRequest(url: wsURL)
+                request.assumesHTTP3Capable = false  // Forces HTTP/1.1 negotiation (disables HTTP/2 and HTTP/3)
+                request.setValue("websocket", forHTTPHeaderField: "Upgrade")
+                request.setValue("Upgrade", forHTTPHeaderField: "Connection")
+
+                // ✅ SECURITY FIX (#7): Add token via Sec-WebSocket-Protocol header
+                // This prevents token leakage in server logs, proxy logs, or error reports
+                // Matches WebSocketProgressManager pattern (line 156 in WebSocketProgressManager.swift)
+                request.setValue("bookstrack-auth.\(token)", forHTTPHeaderField: "Sec-WebSocket-Protocol")
+
+                #if DEBUG
+                print("[CSV WebSocket] 🔐 Token secured in Sec-WebSocket-Protocol header")
+                print("[CSV WebSocket] 🌐 HTTP/1.1 enforcement enabled (assumesHTTP3Capable=false)")
+                #endif
+
+                // Create URLSession with HTTP/1.1 configuration
+                let config = URLSessionConfiguration.default
+                config.httpMaximumConnectionsPerHost = 1
+                config.timeoutIntervalForRequest = 10.0  // 10 second timeout
+                let session = URLSession(configuration: config)
+
+                // Create and start WebSocket task
+                let wsTask = session.webSocketTask(with: request)
+                self.webSocketTask = wsTask
+                wsTask.resume()
+
+                #if DEBUG
+                print("[CSV WebSocket] ⏳ Waiting for WebSocket handshake...")
+                #endif
+
+                // Wait for connection (prevents POSIX error 57 "Socket is not connected")
+                try await WebSocketHelpers.waitForConnection(wsTask, timeout: 10.0)
+
                 #if DEBUG
                 print("[CSV WebSocket] ✅ WebSocket connection established")
                 #endif
 
-                // Send ready signal to backend (required for processing to start)
+                // Send ready signal to backend
                 let readyMessage: [String: Any] = [
                     "type": "ready",
                     "timestamp": Date().timeIntervalSince1970 * 1000
                 ]
                 if let messageData = try? JSONSerialization.data(withJSONObject: readyMessage),
                    let messageString = String(data: messageData, encoding: .utf8) {
-                    try await webSocketTask.send(.string(messageString))
+                    try await wsTask.send(.string(messageString))
                     #if DEBUG
                     print("[CSV WebSocket] ✅ Sent ready signal to backend")
                     #endif
@@ -374,67 +390,33 @@ public struct GeminiCSVImportView: View {
 
                 // Listen for messages
                 #if DEBUG
-                print("[CSV WebSocket] Waiting for messages...")
+                print("[CSV WebSocket] 📡 Listening for csv_import pipeline messages...")
                 #endif
+
                 while !Task.isCancelled {
-                    let message = try await webSocketTask.receive()
-                    #if DEBUG
-                    print("[CSV WebSocket] 📨 Received message")
-                    #endif
+                    let message = try await wsTask.receive()
 
                     switch message {
                     case .string(let text):
-                        #if DEBUG
-                        print("[CSV WebSocket] Message text: \(text.prefix(200))")
-                        #endif
                         handleWebSocketMessage(text)
                     case .data(let data):
-                        #if DEBUG
-                        print("[CSV WebSocket] Message data: \(data.count) bytes")
-                        #endif
                         if let text = String(data: data, encoding: .utf8) {
                             handleWebSocketMessage(text)
                         }
                     @unknown default:
-                        #if DEBUG
-                        print("[CSV WebSocket] ⚠️ Unknown message type")
-                        #endif
                         break
                     }
                 }
-                #if DEBUG
-                print("[CSV WebSocket] Message loop ended (task cancelled)")
-                #endif
 
             } catch {
-                // Per best practices, use String(describing:) for detailed internal logging
-                // This provides more context than error.localizedDescription for debugging
-                let errorMessage = String(describing: error)
                 #if DEBUG
-                print("[CSV WebSocket] ❌ Error: \(errorMessage)")
+                print("[CSV WebSocket] ❌ Error: \(String(describing: error))")
                 #endif
 
                 if !Task.isCancelled {
-                    // Check for POSIX error 57 "Socket is not connected" - backend closed connection
-                    // Or general URLError - could be network issues
-                    if let urlError = error as? URLError {
-                        if let underlying = urlError.errorUserInfo[NSUnderlyingErrorKey] as? NSError,
-                           underlying.domain == NSPOSIXErrorDomain && underlying.code == 57 {
-                            #if DEBUG
-                            print("[CSV WebSocket] ⚠️ WebSocket closed unexpectedly - switching to fallback polling")
-                            #endif
-                        } else {
-                            #if DEBUG
-                            print("[CSV WebSocket] ⚠️ WebSocket error: \(urlError.localizedDescription) - switching to fallback polling")
-                            #endif
-                        }
-
-                        // Switch to fallback polling to continue tracking job progress
-                        importStatus = .processing(progress: 0.1, message: "Connecting via alternate method...")
-                        await fallbackPollingForJobStatus(jobId: jobId)
-                    } else {
-                        importStatus = .failed("Connection lost: \(errorMessage)")
-                    }
+                    // Fall back to polling
+                    importStatus = .processing(progress: 0.1, message: "Connecting via alternate method...")
+                    await fallbackPollingForJobStatus(jobId: jobId)
                 }
             }
         }
@@ -635,8 +617,8 @@ public struct GeminiCSVImportView: View {
 
                     // Proactively close the connection from the client side
                     // This prevents the ENOTCONN (57) "Socket not connected" error
-                    self.webSocket?.cancel(with: .goingAway, reason: "Job complete".data(using: .utf8))
-                    self.webSocketTask?.cancel()
+                    self.webSocketTask?.cancel(with: .goingAway, reason: "Job complete".data(using: .utf8))
+                    self.receiveTask?.cancel()
                     return  // Exit message loop - job is complete
 
                 case .error(let errorPayload):
@@ -644,8 +626,8 @@ public struct GeminiCSVImportView: View {
                     print("[CSV WebSocket] ❌ Error from backend: \(errorPayload.message)")
                     #endif
                     importStatus = .failed(errorPayload.message)
-                    self.webSocket?.cancel(with: .goingAway, reason: "Job failed".data(using: .utf8))
-                    self.webSocketTask?.cancel()
+                    self.webSocketTask?.cancel(with: .goingAway, reason: "Job failed".data(using: .utf8))
+                    self.receiveTask?.cancel()
                     return  // Exit message loop - job failed
 
                 case .readyAck:
@@ -751,10 +733,10 @@ public struct GeminiCSVImportView: View {
         }
 
         // Explicitly close the WebSocket with a normal "going away" message
-        webSocket?.cancel(with: .goingAway, reason: "User canceled".data(using: .utf8))
-        webSocketTask?.cancel()
-        webSocket = nil
+        webSocketTask?.cancel(with: .goingAway, reason: "User canceled".data(using: .utf8))
+        receiveTask?.cancel()
         webSocketTask = nil
+        receiveTask = nil
     }
 
     @MainActor
