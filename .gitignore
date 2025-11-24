@@ -122,3 +122,4 @@ repomix-output.xml
 
 # GitHub App credentials
 gha-creds-*.json
+test_output.log

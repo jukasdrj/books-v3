@@ -17,6 +17,7 @@ public enum ApiErrorCode: String, Codable, Sendable {
     case providerError = "PROVIDER_ERROR"
     case internalError = "INTERNAL_ERROR"
     case rateLimitExceeded = "RATE_LIMIT_EXCEEDED"
+    case corsBlocked = "CORS_BLOCKED" // Issue #428
 
     // MARK: - User-Facing Messages
 
@@ -34,6 +35,8 @@ public enum ApiErrorCode: String, Codable, Sendable {
             return "Something went wrong. We've been notified."
         case .rateLimitExceeded:
             return "Too many requests. Please wait before trying again."
+        case .corsBlocked:
+            return "Network security error. Check your connection or contact support."
         }
     }
 
@@ -50,6 +53,8 @@ public enum ApiErrorCode: String, Codable, Sendable {
             return "Contact support if this persists"
         case .rateLimitExceeded:
             return "Wait for countdown timer"
+        case .corsBlocked:
+            return "Check internet connection"
         }
     }
 
@@ -103,6 +108,8 @@ public enum ApiErrorCode: String, Codable, Sendable {
             return .medium // Temporary throttling, user can retry
         case .providerError:
             return .high // External API failure, impacts functionality
+        case .corsBlocked:
+            return .high // Prevents API access
         case .internalError:
             return .critical // Server error, needs investigation
         }
@@ -127,6 +134,8 @@ public enum ApiErrorCode: String, Codable, Sendable {
             return true // Can retry after waiting
         case .providerError:
             return true // Temporary external API issue
+        case .corsBlocked:
+            return false // Configuration error, retry unlikely to fix immediately
         case .internalError:
             return false // Server error, retry won't help immediately
         }
@@ -160,6 +169,8 @@ public enum ApiErrorCode: String, Codable, Sendable {
             return 4004
         case .rateLimitExceeded:
             return 4005
+        case .corsBlocked:
+            return 4006
         }
     }
 }

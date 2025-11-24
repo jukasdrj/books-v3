@@ -4,7 +4,7 @@
 **Owner:** Engineering Team
 **Engineering Lead:** iOS Developer
 **Target Release:** v3.1.0+ (Build 47+)
-**Last Updated:** October 31, 2025
+**Last Updated:** November 24, 2025
 
 ---
 
@@ -207,6 +207,51 @@ ProgressWebSocketDO (Durable Object)
 
 ---
 
+#### **Decision:** Structured JSON Decoding for WebSocket Keep-Alive (November 23, 2025)
+
+**Context:** WebSocket keep-alive detection used fragile string parsing (`json.contains("\"type\":\"ready_ack\"")`), creating maintenance risk.
+
+**Options Considered:**
+1. Keep string-based detection (simple, brittle)
+2. Structured JSON decoding via TypedWebSocketMessage (robust, maintainable)
+
+**Decision:** Option 2 (Structured JSON decoding)
+
+**Rationale:**
+- **Type safety:** Compiler-verified message type handling
+- **Maintainability:** Backend schema changes don't break detection
+- **Consistency:** Uses same decoding path as all other message types
+- **Debugging:** Clearer error messages for malformed messages
+
+**Implementation:**
+```swift
+// Before (fragile)
+if json.contains("\"type\":\"ready_ack\"") {
+    print("✅ Backend acknowledged ready signal")
+    return
+}
+
+// After (structured)
+case .readyAck:
+    #if DEBUG
+    print("✅ Backend acknowledged ready signal (structured decoding)")
+    #endif
+```
+
+**Impact:**
+- Eliminates false positives/negatives
+- Better handling of protocol evolution
+- Clearer debug logging
+
+**Outcome:** ✅ Shipped in commit `2c0c386` (November 23, 2025)
+
+**Files Modified:**
+- `WebSocketProgressManager.swift` - Removed fragile string check (Issue #4)
+
+**Closes:** Issue #4
+
+---
+
 #### **Decision:** WebSocket Progress Over HTTP Polling
 
 **Context:** Users need visibility into long-running enrichment jobs.
@@ -226,6 +271,11 @@ ProgressWebSocketDO (Durable Object)
 **Tradeoffs:**
 - WebSocket connection management (reconnection logic needed)
 - Durable Object costs (minimal for our scale)
+
+**Security & Protocol Updates (November 23, 2025):**
+- Structured JSON decoding for keep-alive detection (replaced fragile string parsing)
+- Prevents false positives/negatives as backend schema evolves
+- See commit `2c0c386` for implementation details
 
 ---
 

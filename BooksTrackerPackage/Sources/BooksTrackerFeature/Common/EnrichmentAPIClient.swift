@@ -88,6 +88,18 @@ actor EnrichmentAPIClient {
         print("[EnrichmentAPIClient] ✅ Received HTTP \(statusCode) response from \(endpoint)")
         #endif
 
+        // CORS Detection (Issue #428)
+        // NOTE: This detects backend-signaled CORS errors via X-Custom-Error header.
+        // Real CORS errors (browser/OS blocks) result in status 0 or network errors
+        // and cannot be reliably detected client-side. This is primarily for web builds
+        // where backends can explicitly signal CORS policy violations.
+        if let httpResponse = response as? HTTPURLResponse {
+            if let customError = httpResponse.value(forHTTPHeaderField: "X-Custom-Error"),
+               customError == "CORS_BLOCKED" {
+                throw ApiErrorCode.corsBlocked.toNSError()
+            }
+        }
+
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 202 else {
             // Enhanced error logging for debugging enrichment failures

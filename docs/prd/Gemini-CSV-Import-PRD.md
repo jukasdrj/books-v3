@@ -5,7 +5,7 @@
 **Engineering Lead:** iOS Development Team
 **Design Lead:** iOS 26 HIG Compliance
 **Target Release:** v3.1.0 (January 2025)
-**Last Updated:** October 31, 2025
+**Last Updated:** November 24, 2025
 
 ---
 
@@ -279,6 +279,11 @@ Books appear in Library tab with covers
 **Performance:**
 - Latency: 8ms average (WebSocket)
 - Update frequency: 2-10 updates/second during enrichment
+
+**Security Implementation (November 23, 2025):**
+- Token secured via `Sec-WebSocket-Protocol` header (not query string)
+- HTTP/1.1 enforcement (`assumesHTTP3Capable = false`) for RFC 6455 compliance
+- Prevents token leakage in server logs, proxy logs, and error reports
 
 **See:** `docs/features/WEBSOCKET_FALLBACK_ARCHITECTURE.md` for architecture details
 
@@ -742,6 +747,65 @@ Harry Potter,J.K. Rowling,9780439708180
 
 ---
 
+## Decision Log
+
+### [November 23, 2025] Decision: Secure WebSocket Authentication and HTTP/1.1 Enforcement
+
+**Context:** WebSocket connections exposed authentication tokens in query strings and had HTTP/2 upgrade failures (Issue #7).
+
+**Decision:** Implement secure token transmission and protocol compliance.
+
+**Changes:**
+1. **Token Security (CRITICAL)**
+   - Move token from query string to `Sec-WebSocket-Protocol` header
+   - Prevents leakage in server logs, proxy logs, and error reports
+   - Matches WebSocketProgressManager security pattern
+
+2. **HTTP/1.1 Enforcement**
+   - Set `request.assumesHTTP3Capable = false`
+   - Ensures RFC 6455 WebSocket upgrade compatibility
+   - Fixes iOS HTTP/2 default incompatibility
+
+**Before (5.5/10 security compliance):**
+```swift
+// ❌ Token exposed in query string
+var components = URLComponents(string: "\(baseURL)/ws/progress")!
+components.queryItems = [
+    URLQueryItem(name: "jobId", value: jobId),
+    URLQueryItem(name: "token", value: token)  // ← Security violation!
+]
+let session = URLSession(configuration: .default)  // ← HTTP/2 allowed
+```
+
+**After (8.5/10 security compliance):**
+```swift
+// ✅ Token secured in header
+let wsURL = URL(string: "\(baseURL)/ws/progress?jobId=\(jobId)")!
+var request = URLRequest(url: wsURL)
+request.assumesHTTP3Capable = false  // ← HTTP/1.1 enforcement
+request.setValue("bookstrack-auth.\(token)", forHTTPHeaderField: "Sec-WebSocket-Protocol")
+let session = URLSession(configuration: .default)
+```
+
+**Rationale:**
+- Query string tokens visible in logs/proxies/error reports (security risk)
+- HTTP/2 not compatible with WebSocket upgrade (RFC 6455)
+- iOS defaults to HTTP/2 for HTTPS connections
+
+**Impact:**
+- Security: HIGH (eliminates auth token leakage)
+- Protocol: HIGH (fixes WebSocket upgrade issues)
+- Reliability: MEDIUM (maintains existing fallback polling)
+
+**Outcome:** ✅ Shipped in commit `479ed87` (November 23, 2025)
+
+**Files Modified:**
+- `GeminiCSVImportView.swift` - 136 lines refactored (59 insertions, 77 deletions)
+
+**Closes:** Issue #7
+
+---
+
 ## Changelog
 
 | Date | Change | Author |
@@ -750,6 +814,8 @@ Harry Potter,J.K. Rowling,9780439708180
 | Jan 15, 2025 | Added Gemini provider integration details | Engineering |
 | Jan 20, 2025 | Approved for v3.1.0 | PM |
 | Jan 27, 2025 | Shipped to production | Engineering |
+| Nov 23, 2025 | Added WebSocket security decision (Issue #7) | Engineering |
+| Nov 24, 2025 | Updated PRD with security fixes | Documentation |
 
 ---
 
