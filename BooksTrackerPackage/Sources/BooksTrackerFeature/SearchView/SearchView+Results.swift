@@ -183,6 +183,7 @@ extension SearchView {
         }
         
         /// Prefetches images for upcoming search results to improve scrolling performance.
+        /// Now prefetches during normal scrolling, not just at the end of the list.
         private func prefetchImages(for items: [SearchResult], currentIndex: Int) {
             // Check for Low Power Mode (Issue #437)
             let isLowPower = ProcessInfo.processInfo.isLowPowerModeEnabled

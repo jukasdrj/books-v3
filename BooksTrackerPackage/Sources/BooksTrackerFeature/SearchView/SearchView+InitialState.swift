@@ -6,33 +6,28 @@ import SwiftData
 @available(iOS 26.0, *)
 extension SearchView {
     struct InitialStateView: View {
-        let trending: [SearchResult]
+        let trending: [SearchResult]  // Keep for future use, but display as search chips
         let recentSearches: [String]
         @Bindable var searchModel: SearchModel
         @Environment(\.iOS26ThemeStore) private var themeStore
         @Namespace private var searchTransition
-        
-        let onBookSelected: (SearchResult) -> Void
+
+        let onBookSelected: (SearchResult) -> Void  // Keep for backward compatibility
         
         var body: some View {
             ScrollView {
                 LazyVStack(spacing: 32) {
                     // Welcome section - HIG: Clear, inviting empty state
                     welcomeSection
-                    
+
+                    // Trending searches chips - HIG: Inspiration and quick discovery (Issue #16)
+                    if !searchModel.popularSearches.isEmpty {
+                        trendingSearchesSection
+                    }
+
                     // Recent searches section - HIG: Quick access to previous searches
                     if !recentSearches.isEmpty {
                         recentSearchesSection
-                    }
-                    
-                    // Trending books grid - HIG: Contextual content discovery
-                    if !trending.isEmpty {
-                        trendingBooksSection
-                    }
-                    
-                    // HIG: Helpful tips for first-time users
-                    if recentSearches.isEmpty {
-                        quickTipsSection
                     }
                 }
                 .padding(.horizontal, 20)
@@ -112,10 +107,11 @@ extension SearchView {
             }
         }
         
-        private var trendingBooksSection: some View {
+        // HIG: Trending search queries as pill-shaped chips (Issue #16)
+        private var trendingSearchesSection: some View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Label("Trending Books", systemImage: "flame.fill")
+                    Label("Trending Searches", systemImage: "flame.fill")
                         .font(.title3)
                         .fontWeight(.semibold)
                         .symbolRenderingMode(.multicolor)
@@ -123,76 +119,30 @@ extension SearchView {
                     Spacer()
                 }
 
-                iOS26FluidGridSystem<SearchResult, AnyView>.bookLibrary(
-                    items: trending
-                ) { book in
-                    AnyView(
+                LazyVGrid(columns: [
+                    GridItem(.adaptive(minimum: 120), spacing: 12)
+                ], spacing: 12) {
+                    ForEach(Array(searchModel.popularSearches.prefix(8)), id: \.self) { query in
                         Button {
-                            onBookSelected(book)
+                            searchModel.searchText = query
                         } label: {
-                            iOS26FloatingBookCard(
-                                work: book.work,
-                                namespace: searchTransition,
-                                uniqueID: book.id.uuidString
-                            )
+                            Text(query)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Capsule())
+                                .overlay(
+                                    Capsule()
+                                        .strokeBorder(themeStore.primaryColor.opacity(0.2), lineWidth: 1)
+                                )
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("Trending book: \(book.displayTitle) by \(book.displayAuthors)")
-                    )
+                        .accessibilityLabel("Search for \(query)")
+                    }
                 }
             }
-        }
-        
-        private var quickTipsSection: some View {
-            VStack(alignment: .leading, spacing: 16) {
-                Label("Quick Tips", systemImage: "lightbulb.fill")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                    .symbolRenderingMode(.multicolor)
-
-                VStack(spacing: 12) {
-                    tipRow(
-                        icon: "magnifyingglass",
-                        title: "General Search",
-                        description: "Find books by any keyword in title or author"
-                    )
-
-                    tipRow(
-                        icon: "barcode.viewfinder",
-                        title: "Barcode Scanning",
-                        description: "Tap the barcode icon to instantly look up books"
-                    )
-
-                    tipRow(
-                        icon: "line.3.horizontal.decrease",
-                        title: "Search Scopes",
-                        description: "Filter by title, author, or ISBN for precise results"
-                    )
-                }
-            }
-            .padding(.vertical, 8)
-        }
-
-        private func tipRow(icon: String, title: String, description: String) -> some View {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundStyle(themeStore.primaryColor)
-                    .frame(width: 28)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-
-                    Text(description)
-                        .font(.caption)
-                        .foregroundStyle(.primary.opacity(0.75)) // ✅ WCAG AA: Better contrast for small text
-                }
-            }
-            .padding(12)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
 }

@@ -244,7 +244,7 @@ public struct SearchView: View {
                     HStack {
                         Image(systemName: suggestionIcon(for: suggestion, searchModel: searchModel))
                             .foregroundStyle(.secondary)
-                        Text(suggestion)
+                        highlightedSuggestion(suggestion, matching: searchModel.searchText)
                         Spacer()
                     }
                 }
@@ -264,6 +264,30 @@ public struct SearchView: View {
         } else {
             return "book"
         }
+    }
+
+    // HIG: Bold matching text in suggestions for better scannability
+    private func highlightedSuggestion(_ suggestion: String, matching query: String) -> Text {
+        guard !query.isEmpty else {
+            return Text(suggestion)
+        }
+
+        var attributedString = AttributedString(suggestion)
+        let lowercasedSuggestion = suggestion.lowercased()
+        let lowercasedQuery = query.lowercased()
+
+        // Find the range of the query in the suggestion
+        if let range = lowercasedSuggestion.range(of: lowercasedQuery) {
+            let startIndex = suggestion.distance(from: suggestion.startIndex, to: range.lowerBound)
+            let endIndex = suggestion.distance(from: suggestion.startIndex, to: range.upperBound)
+
+            let start = attributedString.index(attributedString.startIndex, offsetByCharacters: startIndex)
+            let end = attributedString.index(attributedString.startIndex, offsetByCharacters: endIndex)
+
+            attributedString[start..<end].font = .subheadline.bold()
+        }
+
+        return Text(attributedString)
     }
 
     // MARK: - Barcode Button
