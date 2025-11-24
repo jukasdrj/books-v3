@@ -27,6 +27,7 @@ struct EditionMetadataView: View {
     // v2: Reading Session Timer State
     @State private var isSessionActive = false
     @State private var sessionStartTime: Date?
+    @State private var currentSessionMinutes: Int = 0
     @State private var showEndSessionSheet = false
     @State private var endingPage: Int = 0
     @State private var showProfilingPrompt = false
@@ -566,7 +567,7 @@ struct EditionMetadataView: View {
     }
 
     private func endSession() {
-        guard isSessionActive, let entry = libraryEntry else { return }
+        guard isSessionActive, let _ = libraryEntry else { return }
 
         // Helper to reset session state
         func resetSessionState() {

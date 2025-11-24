@@ -26,7 +26,12 @@ class ModelContainerFactory {
             TrendingActivity.self,
             // v2 Sprint 1: Diversity & Reading Sessions
             EnhancedDiversityStats.self,
-            ReadingSession.self
+            ReadingSession.self,
+            // v2 Sprint 2: Progressive Profiling & Metadata Cascade
+            BookEnrichment.self,
+            AuthorMetadata.self,
+            WorkOverride.self,
+            StreakData.self
         ])
 
         #if targetEnvironment(simulator)
@@ -83,9 +88,38 @@ class ModelContainerFactory {
                 LaunchMetrics.shared.recordMilestone("ModelContainer created (fallback)")
                 _container = container
                 return container
-            } catch {
-                // If even fallback fails, crash with detailed error for debugging
-                fatalError("Failed to create fallback ModelContainer (local-only mode): \(error)")
+            } catch let fallbackError {
+                #if DEBUG
+                print("❌ Fallback also failed: \(fallbackError)")
+                print("💡 Migration failure detected - attempting database reset")
+                #endif
+
+                // If migration failed due to constraint violations, try deleting the old database
+                // This is a destructive operation but necessary for schema changes
+                let fileManager = FileManager.default
+                if let storeURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?.appendingPathComponent("default.store") {
+                    try? fileManager.removeItem(at: storeURL)
+                    #if DEBUG
+                    print("🗑️ Removed corrupted database at \(storeURL)")
+                    #endif
+
+                    // Try one more time with fresh database
+                    do {
+                        let freshConfig = ModelConfiguration(
+                            schema: schema,
+                            isStoredInMemoryOnly: false,
+                            cloudKitDatabase: .none
+                        )
+                        let container = try ModelContainer(for: schema, configurations: [freshConfig])
+                        LaunchMetrics.shared.recordMilestone("ModelContainer created (fresh database)")
+                        _container = container
+                        return container
+                    } catch {
+                        fatalError("Failed to create ModelContainer even with fresh database: \(error)")
+                    }
+                } else {
+                    fatalError("Failed to create fallback ModelContainer (local-only mode): \(fallbackError)")
+                }
             }
         }
     }

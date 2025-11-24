@@ -5,7 +5,7 @@ import SwiftData
 @Model
 public final class StreakData {
     /// A unique identifier for the user.
-    public @Attribute(.unique) var userId: String
+    @Attribute(.unique) public var userId: String
 
     /// The current number of consecutive days with reading sessions.
     public var currentStreak: Int

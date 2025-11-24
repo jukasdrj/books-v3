@@ -41,8 +41,8 @@ public final class ReadingSession {
     /// Relationship to UserLibraryEntry (inverse defined on UserLibraryEntry.readingSessions)
     public var entry: UserLibraryEntry?
 
-    /// Denormalized work ID for efficient bulk queries
-    public var workPersistentID: PersistentIdentifier?
+    /// Denormalized work UUID for efficient bulk queries (stable across CloudKit sync)
+    public var workUUID: UUID?
 
     // MARK: - Computed Properties
 

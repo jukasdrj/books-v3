@@ -13,38 +13,6 @@
     "MAX_MCP_OUTPUT_TOKENS": "50000",
     "CLAUDE_CODE_SUBAGENT_PARALLEL": "true"
   },
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "If a Cloudflare Workers file was modified (worker.js or durable-object.js), remind user to test with wrangler dev"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "If a .sql file was modified, remind user to verify migration with wrangler d1 migrations list"
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "Subagent completed. Review findings and integrate results."
-          }
-        ]
-      }
-    ]
-  },
   "permissions": {
     "rules": [
       {

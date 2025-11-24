@@ -30,7 +30,7 @@ public class ReadingSessionService {
             endPage: 0
         )
 
-        newSession.workPersistentID = entry.work?.persistentModelID
+        newSession.workUUID = entry.work?.uuid
 
         activeSession = newSession
         activeEntry = entry // Keep reference to update currentPage on end

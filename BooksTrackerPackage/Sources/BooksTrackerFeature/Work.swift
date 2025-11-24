@@ -50,6 +50,9 @@ import SwiftUI
 public final class Work {
     #Index<Work>([\.title])  // Database index for title searches
 
+    /// Stable, unique identifier for this work (survives CloudKit sync)
+    @Attribute(.unique) var uuid: UUID = UUID()
+
     var title: String = "" // CloudKit: default value required
     var originalLanguage: String?
     var firstPublicationYear: Int?

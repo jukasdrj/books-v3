@@ -6,7 +6,7 @@ import SwiftData
 @Model
 public final class BookEnrichment {
     /// A unique identifier for the work (book) this enrichment applies to.
-    public @Attribute(.unique) var workId: String
+    @Attribute(.unique) public var workId: String
 
     /// The user's rating for the book, from 1 to 5 stars (optional).
     public var userRating: Int?
@@ -51,7 +51,6 @@ public final class BookEnrichment {
         if let culturalBackground = authorCulturalBackground, !culturalBackground.isEmpty { filledFieldsCount += 1 }
         if let genderIdentity = authorGenderIdentity, !genderIdentity.isEmpty { filledFieldsCount += 1 }
 
-        guard totalFieldsToConsider > 0 else { return 0.0 } // Avoid division by zero
         return Double(filledFieldsCount) / Double(totalFieldsToConsider)
     }
 

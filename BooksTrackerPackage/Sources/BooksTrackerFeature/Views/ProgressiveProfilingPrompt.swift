@@ -422,15 +422,16 @@ public struct ProgressiveProfilingPrompt: View {
     }
 
     private func countAffectedWorks(authorId: PersistentIdentifier) async -> Int {
-        let descriptor = FetchDescriptor<Work>(
-            predicate: #Predicate<Work> { work in
-                work.authors.contains(where: { $0.persistentModelID == authorId })
-            }
-        )
-
         do {
-            let works = try modelContext.fetch(descriptor)
-            return works.count
+            let descriptor = FetchDescriptor<Work>()
+            let allWorks = try modelContext.fetch(descriptor)
+
+            let count = allWorks.filter { work in
+                guard let authors = work.authors else { return false }
+                return authors.contains(where: { $0.persistentModelID == authorId })
+            }.count
+
+            return count
         } catch {
             #if DEBUG
             print("❌ Failed to count affected works: \(error)")
@@ -442,8 +443,8 @@ public struct ProgressiveProfilingPrompt: View {
     private func applyCascade(answer: String, question: ProfileQuestion) async {
         guard let author = work.primaryAuthor else { return }
 
-        let cascadeService = CascadeMetadataService(modelContext: modelContext)
-        let authorId = author.persistentModelID.id.uuidString
+        let cascadeService = BooksTrackerFeature.CascadeMetadataService(modelContext: modelContext)
+        let authorId = author.persistentModelID.hashValue.description
 
         do {
             // Map question dimension to AuthorMetadata fields

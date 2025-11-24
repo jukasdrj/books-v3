@@ -107,11 +107,12 @@ public final class CascadeMetadataService {
 
         for work in allWorks {
             // Check if this work is associated with the authorId
-            // Work.authors is [Author]? where Author has an 'id' property
-            let isAuthorOfWork = work.authors?.contains(where: { $0.id == authorId }) ?? false
+            // Work.authors is [Author]? - compare persistentModelID hash
+            guard let authors = work.authors else { continue }
+            let isAuthorOfWork = authors.contains(where: { $0.persistentModelID.hashValue.description == authorId })
 
             if isAuthorOfWork {
-                let workId = work.persistentModelID.description
+                let workId = work.persistentModelID.hashValue.description
                 logger.debug("Updating enrichment for work ID: \(workId) due to author cascade.")
                 try await updateWorkEnrichment(work: work, metadata: metadata)
                 updatedWorkIDs.insert(workId)
@@ -131,15 +132,20 @@ public final class CascadeMetadataService {
     ///   - metadata: The AuthorMetadata to apply.
     /// - Throws: `CascadeMetadataServiceError` if enrichment cannot be fetched or updated.
     public func updateWorkEnrichment(work: Work, metadata: AuthorMetadata) async throws {
-        let workId = work.persistentModelID.description
+        let workId = work.persistentModelID.hashValue.description
         let bookEnrichment = try fetchOrCreateEnrichment(workId: workId)
 
         // Fetch overrides for this specific work and author
+        let targetAuthorId = metadata.authorId
+        let targetWorkId = workId
         let overrideDescriptor = FetchDescriptor<WorkOverride>(
-            predicate: #Predicate { $0.authorMetadata?.authorId == metadata.authorId && $0.workId == workId }
+            predicate: #Predicate<WorkOverride> { override in
+                override.workId == targetWorkId
+            }
         )
-        let overrides = try modelContext.fetch(overrideDescriptor)
-        let overrideMap = Dictionary(uniqueKeysWithValues: overrides.map { ($0.field, $0.customValue) })
+        let allOverrides = try modelContext.fetch(overrideDescriptor)
+        let overrides = allOverrides.filter { $0.authorMetadata?.authorId == targetAuthorId }
+        let overrideMap: [String: String] = Dictionary(uniqueKeysWithValues: overrides.map { ($0.field, $0.customValue) })
 
         // Apply cascaded metadata, respecting overrides
         bookEnrichment.authorCulturalBackground = overrideMap["culturalBackground"] ?? metadata.culturalBackground.first
@@ -183,12 +189,15 @@ public final class CascadeMetadataService {
         }
 
         // Check if an override for this field already exists, update if so.
+        let targetWorkId = workId
+        let targetField = field
         let existingOverrideDescriptor = FetchDescriptor<WorkOverride>(
-            predicate: #Predicate {
-                $0.authorMetadata?.authorId == authorId && $0.workId == workId && $0.field == field
+            predicate: #Predicate<WorkOverride> { override in
+                override.workId == targetWorkId && override.field == targetField
             }
         )
-        if let existingOverride = try modelContext.fetch(existingOverrideDescriptor).first {
+        let candidateOverrides = try modelContext.fetch(existingOverrideDescriptor)
+        if let existingOverride = candidateOverrides.first(where: { $0.authorMetadata?.authorId == authorId }) {
             existingOverride.customValue = customValue
             existingOverride.reason = reason
             existingOverride.createdAt = Date()
@@ -223,21 +232,23 @@ public final class CascadeMetadataService {
             throw CascadeMetadataServiceError.authorMetadataNotFound
         }
 
+        let targetWorkId = workId
+        let targetField = field
         let overrideDescriptor = FetchDescriptor<WorkOverride>(
-            predicate: #Predicate {
-                $0.authorMetadata?.authorId == authorId && $0.workId == workId && $0.field == field
+            predicate: #Predicate<WorkOverride> { override in
+                override.workId == targetWorkId && override.field == targetField
             }
         )
-        if let overrideToDelete = try modelContext.fetch(overrideDescriptor).first {
+        let candidateOverrides = try modelContext.fetch(overrideDescriptor)
+        if let overrideToDelete = candidateOverrides.first(where: { $0.authorMetadata?.authorId == authorId }) {
             modelContext.delete(overrideToDelete)
             try modelContext.save()
             logger.debug("Override for field '\(field)' removed.")
 
             // Re-apply enrichment for this specific work to revert to cascaded data
-            let workDescriptor = FetchDescriptor<Work>(
-                predicate: #Predicate { $0.persistentModelID.description == workId }
-            )
-            if let work = try modelContext.fetch(workDescriptor).first {
+            let allWorksDescriptor = FetchDescriptor<Work>()
+            let allWorks = try modelContext.fetch(allWorksDescriptor)
+            if let work = allWorks.first(where: { $0.persistentModelID.hashValue.description == workId }) {
                 try await updateWorkEnrichment(work: work, metadata: authorMetadata)
             } else {
                 logger.warning("Could not find Work for workId \(workId) to re-apply enrichment after override removal.")

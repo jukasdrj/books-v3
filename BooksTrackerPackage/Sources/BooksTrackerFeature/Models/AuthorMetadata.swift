@@ -6,7 +6,7 @@ import SwiftData
 @Model
 public final class AuthorMetadata {
     /// A unique identifier for the author.
-    public @Attribute(.unique) var authorId: String
+    @Attribute(.unique) public var authorId: String
 
     /// A list of cultural backgrounds associated with the author.
     public var culturalBackground: [String]
@@ -35,8 +35,8 @@ public final class AuthorMetadata {
 
     /// One-to-many relationship with `WorkOverride`.
     /// If an `AuthorMetadata` instance is deleted, all associated `WorkOverride` instances will also be deleted.
-    public @Relationship(deleteRule: .cascade, inverse: \WorkOverride.authorMetadata)
-    public var workOverrides: [WorkOverride] = []
+    @Relationship(deleteRule: .cascade, inverse: \WorkOverride.authorMetadata)
+    var workOverrides: [WorkOverride] = []
 
     /// Initializes a new `AuthorMetadata` instance.
     /// - Parameters:
