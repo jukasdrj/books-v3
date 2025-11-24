@@ -729,10 +729,9 @@ public struct GeminiCSVImportView: View {
             throw CSVImportError.resultsExpired
 
         case 429:
-            // Rate limited
-            let retryAfter = httpResponse.allHeaderFields["Retry-After"] as? String ??
-                             (httpResponse.allHeaderFields["retry-after"] as? String)
-            throw CSVImportError.rateLimited(retryAfter: retryAfter.flatMap(Int.init))
+            // Rate limited - use value(forHTTPHeaderField:) for reliable header access
+            let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After").flatMap(Int.init)
+            throw CSVImportError.rateLimited(retryAfter: retryAfter)
 
         default:
             throw CSVImportError.httpError(statusCode: httpResponse.statusCode)

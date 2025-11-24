@@ -5,7 +5,7 @@
 **Engineering Lead:** iOS Development Team
 **Design Lead:** iOS 26 HIG Compliance
 **Target Release:** Build 46 (October 2025)
-**Last Updated:** November 23, 2025
+**Last Updated:** November 24, 2025
 
 ---
 
@@ -772,6 +772,104 @@ public static var enableBatchScanning: Bool {
 
 ---
 
+## Decision Log
+
+### [November 23, 2025] Decision: Add expiresAt Validation and Centralize API Error Handling
+
+**Context:** Bookshelf scan results lacked client-side expiration validation, and API error handling was duplicated across fetch methods (Issues #2, #3).
+
+**Decision:** Implement client-side expiration checks and extract generic envelope unwrapping helper.
+
+**Changes:**
+1. **Add expiresAt Field** (Issue #2)
+   - Added `expiresAt: String?` to `ScanResultPayload` (24-hour TTL per v2.4 API)
+   - Validates ISO 8601 timestamp with fractional seconds support
+   - Throws `BookshelfAIError.resultsExpired` if expired client-side
+   - Complements backend 404 response for expired results
+
+2. **Eliminate ResponseEnvelope Duplication** (Issue #3)
+   - Extracted `unwrapEnvelope<T>()` generic helper method
+   - Centralized error handling for API envelope responses
+   - Refactored `fetchJobResults()` and `fetchScanResults()` to use helper
+   - Eliminated ~30 lines of duplicated code
+
+**New Error Cases:**
+```swift
+case resultsExpired              // User-friendly expired results message
+case apiError(code: String, message: String)  // Generic API errors
+```
+
+**Rationale:**
+- **Defense in depth:** Client validates expiration even if backend doesn't 404
+- **User experience:** Clear "Results expired (24h limit)" error message
+- **Code quality:** DRY principle, single source of truth for envelope unwrapping
+- **Maintainability:** Future API endpoints reuse unwrapEnvelope helper
+
+**Implementation:**
+```swift
+// Before (duplicated)
+guard response.success else {
+    throw BookshelfAIError.jobNotFound
+}
+guard let data = response.data else {
+    throw BookshelfAIError.invalidData
+}
+
+// After (centralized)
+let result = try self.unwrapEnvelope(response, as: ScanResultPayload.self)
+
+// Expiration check
+if let expiresAtString = result.expiresAt {
+    let dateFormatter = ISO8601DateFormatter()
+    dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    if let expiresAt = dateFormatter.date(from: expiresAtString),
+       expiresAt < Date() {
+        throw BookshelfAIError.resultsExpired
+    }
+}
+```
+
+**Impact:**
+- **Reliability:** Client catches expired results before attempting to display
+- **UX:** Clear error message instead of generic "failed to fetch"
+- **Maintainability:** 3 files changed, 99 insertions(+), 28 deletions(-)
+
+**Outcome:** ✅ Shipped in commit `7810279` (November 23, 2025)
+
+**Files Modified:**
+- `JobModels.swift` - Added expiresAt field to ScanResultPayload
+- `BookshelfAIService.swift` - Added unwrapEnvelope helper, new error cases
+- `WebSocketProgressManager.swift` - Pass through expiresAt from backend
+
+**Closes:** Issues #2, #3
+
+---
+
+### [November 23, 2025] Decision: Structured WebSocket Keep-Alive Detection
+
+**Context:** WebSocket keep-alive detection used fragile string parsing, creating maintenance risk (Issue #4).
+
+**Decision:** Replace string-based detection with structured JSON decoding.
+
+**Changes:**
+- Removed `json.contains("\"type\":\"ready_ack\"")` check
+- Separated `.readyAck` case in switch statement with debug logging
+- Uses TypedWebSocketMessage decoding consistently for all messages
+
+**Rationale:**
+- Type safety: Compiler-verified message type handling
+- Maintainability: Backend schema changes don't break detection
+- Prevents false positives/negatives
+
+**Outcome:** ✅ Shipped in commit `2c0c386` (November 23, 2025)
+
+**Files Modified:**
+- `WebSocketProgressManager.swift` - Enhanced switch statement (Issue #4)
+
+**Closes:** Issue #4
+
+---
+
 ## Changelog
 
 | Date | Change | Author |
@@ -782,6 +880,9 @@ public static var enableBatchScanning: Bool {
 | Oct 20, 2025 | Approved for Build 46 | PM |
 | Oct 23, 2025 | Post-launch metrics added | Analytics |
 | Oct 25, 2025 | Converted to PRD format from feature doc | Documentation |
+| Nov 23, 2025 | Added expiresAt validation (Issues #2, #3) | Engineering |
+| Nov 23, 2025 | Added WebSocket keep-alive fix (Issue #4) | Engineering |
+| Nov 24, 2025 | Updated PRD with November decisions | Documentation |
 
 ---
 

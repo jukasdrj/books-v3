@@ -89,9 +89,12 @@ actor EnrichmentAPIClient {
         #endif
 
         // CORS Detection (Issue #428)
+        // NOTE: This detects backend-signaled CORS errors via X-Custom-Error header.
+        // Real CORS errors (browser/OS blocks) result in status 0 or network errors
+        // and cannot be reliably detected client-side. This is primarily for web builds
+        // where backends can explicitly signal CORS policy violations.
         if let httpResponse = response as? HTTPURLResponse {
-            // Check for explicit backend signal
-            if let customError = httpResponse.allHeaderFields["X-Custom-Error"] as? String,
+            if let customError = httpResponse.value(forHTTPHeaderField: "X-Custom-Error"),
                customError == "CORS_BLOCKED" {
                 throw ApiErrorCode.corsBlocked.toNSError()
             }
