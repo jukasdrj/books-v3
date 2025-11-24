@@ -485,8 +485,8 @@ public final class SearchModel {
                 return code >= 500 // Retry on server errors
             case .networkError, .invalidResponse:
                 return true
-            case .invalidQuery, .invalidURL, .decodingError, .apiError:
-                return false // Don't retry client errors
+            case .invalidQuery, .invalidURL, .decodingError, .apiError, .rateLimitExceeded, .corsBlocked:
+                return false // Don't retry client errors, rate limits, or CORS issues
             }
         }
 
@@ -507,6 +507,10 @@ public final class SearchModel {
                 return "Network connection issue. Check your internet connection."
             case .invalidQuery:
                 return "Please enter a valid search term."
+            case .rateLimitExceeded:
+                return "Too many requests. Please wait before trying again."
+            case .corsBlocked:
+                return "Network access blocked. Check your connection or VPN."
             default:
                 return searchError.localizedDescription
             }

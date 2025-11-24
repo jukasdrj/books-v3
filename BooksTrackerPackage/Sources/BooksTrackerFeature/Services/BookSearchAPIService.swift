@@ -67,14 +67,20 @@ public class BookSearchAPIService {
             throw SearchError.invalidResponse
         }
 
-        // CORS Detection (Issue #428)
+        // CORS Detection (Issue #428, Issue #10)
         // NOTE: This detects backend-signaled CORS errors via X-Custom-Error header.
         // Real CORS errors (browser/OS blocks) result in status 0 or network errors
         // and cannot be reliably detected client-side. This is primarily for web builds
         // where backends can explicitly signal CORS policy violations.
         if let customError = httpResponse.value(forHTTPHeaderField: "X-Custom-Error"),
            customError == "CORS_BLOCKED" {
-            throw SearchError.apiError("CORS Blocked: Network security error")
+            throw SearchError.corsBlocked
+        }
+
+        // Rate Limit Detection (Issue #9)
+        if httpResponse.statusCode == 429 {
+            let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After").flatMap(Int.init)
+            throw SearchError.rateLimitExceeded(retryAfter: retryAfter)
         }
 
         guard httpResponse.statusCode == 200 else {
@@ -84,8 +90,8 @@ public class BookSearchAPIService {
         let responseTime = Date().timeIntervalSince(startTime) * 1000 // Convert to milliseconds
 
         // Extract performance headers
-        let cacheStatus = httpResponse.allHeaderFields["X-Cache"] as? String ?? "MISS"
-        let provider = httpResponse.allHeaderFields["X-Provider"] as? String ?? "unknown"
+        let cacheStatus = httpResponse.value(forHTTPHeaderField: "X-Cache") ?? "MISS"
+        let provider = httpResponse.value(forHTTPHeaderField: "X-Provider") ?? "unknown"
         let cacheHitRate = calculateCacheHitRate(from: cacheStatus)
 
         // Update cache health metrics (actor-isolated call)
@@ -493,6 +499,8 @@ public enum SearchError: LocalizedError {
     case decodingError(Error)
     case networkError(Error)
     case apiError(String)
+    case rateLimitExceeded(retryAfter: Int?)
+    case corsBlocked
 
     public var errorDescription: String? {
         switch self {
@@ -510,6 +518,14 @@ public enum SearchError: LocalizedError {
             return "Network error: \(error.localizedDescription)"
         case .apiError(let message):
             return "API error: \(message)"
+        case .rateLimitExceeded(let retryAfter):
+            if let retryAfter = retryAfter {
+                return "Rate limit exceeded. Try again in \(retryAfter) seconds."
+            } else {
+                return "Rate limit exceeded. Please try again later."
+            }
+        case .corsBlocked:
+            return "Network security error. Check your connection or contact support."
         }
     }
 }
