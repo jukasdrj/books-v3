@@ -529,7 +529,8 @@ public final class WebSocketProgressManager: NSObject, @preconcurrency URLSessio
                             enrichedCount: aiPayload.summary.approved ?? 0,
                             timestamp: String(message.timestamp),
                             modelUsed: "gemini-2.0-flash"
-                        )
+                        ),
+                        expiresAt: aiPayload.expiresAt  // Pass through from backend
                     )
 
                     let progress = JobProgress(

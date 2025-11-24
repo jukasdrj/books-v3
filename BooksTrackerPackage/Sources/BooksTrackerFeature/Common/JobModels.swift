@@ -82,6 +82,9 @@ public struct ScanResultPayload: Codable, Sendable, Equatable {
     public let books: [BookPayload]
     public let metadata: ScanMetadataPayload
 
+    /// ISO 8601 timestamp when results expire from KV cache (24-hour TTL per v2.4 API contract)
+    public let expiresAt: String?
+
     public struct BookPayload: Codable, Sendable, Equatable {
         public let title: String
         public let author: String

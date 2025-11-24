@@ -13,6 +13,8 @@ enum BookshelfAIError: Error, LocalizedError {
     case rateLimitExceeded(retryAfter: Int) // New case for HTTP 429
     case decodingFailed(Error)
     case imageQualityRejected(String)
+    case resultsExpired // NEW: For expired scan results (Issue #2)
+    case apiError(code: String, message: String) // NEW: For generic API errors from ResponseEnvelope (Issue #3)
 
     var errorDescription: String? {
         switch self {
@@ -30,6 +32,10 @@ enum BookshelfAIError: Error, LocalizedError {
             return "Failed to decode response: \(error.localizedDescription)"
         case .imageQualityRejected(let reason):
             return "Image quality issue: \(reason)"
+        case .resultsExpired:
+            return "The scan results have expired. Please re-run the scan to get fresh results."
+        case .apiError(let code, let message):
+            return "API Error (\(code)): \(message)"
         }
     }
 }
@@ -684,6 +690,38 @@ actor BookshelfAIService {
         return submissionResponse
     }
 
+    // MARK: - Response Envelope Helper
+
+    /// Generic helper to unwrap ResponseEnvelope and handle common API errors.
+    /// This eliminates duplication in `fetchJobResults` and `fetchScanResults`.
+    /// (Issue #3 - Eliminate ResponseEnvelope unwrapping duplication)
+    private func unwrapEnvelope<T: Codable>(_ data: Data) throws -> T {
+        let decoder = JSONDecoder()
+        do {
+            let envelope = try decoder.decode(ResponseEnvelope<T>.self, from: data)
+
+            guard let result = envelope.data else {
+                if let error = envelope.error {
+                    // Map API error info to BookshelfAIError for consistency
+                    throw BookshelfAIError.apiError(code: error.code ?? "UNKNOWN", message: error.message)
+                }
+                // If data is nil and no specific error, throw a generic "NO_DATA" error
+                throw BookshelfAIError.apiError(code: "NO_DATA", message: "Missing results data")
+            }
+
+            return result
+        } catch let error as DecodingError {
+            // Catch decoding errors specifically and wrap them
+            throw BookshelfAIError.decodingFailed(error)
+        } catch let error as BookshelfAIError {
+            // Re-throw BookshelfAIError if it was already thrown by the helper
+            throw error
+        } catch {
+            // Catch any other unexpected errors
+            throw BookshelfAIError.networkError(error)
+        }
+    }
+
     public func fetchScanResults(url: String) async throws -> ScanResultPayload {
         guard let fullURL = URL(string: "\(EnrichmentConfig.apiBaseURL)\(url)") else {
             throw BookshelfAIError.invalidResponse
@@ -691,24 +729,42 @@ actor BookshelfAIService {
 
         let (data, response) = try await URLSession.shared.data(from: fullURL)
 
-        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+        guard let httpResponse = response as? HTTPURLResponse else {
             throw BookshelfAIError.invalidResponse
         }
 
-        do {
-            let envelope = try JSONDecoder().decode(ResponseEnvelope<ScanResultPayload>.self, from: data)
-
-            guard let results = envelope.data else {
-                if let error = envelope.error {
-                    throw APIError(code: error.code ?? "UNKNOWN", message: error.message)
-                }
-                throw APIError(code: "NO_DATA", message: "Missing results data")
+        // Handle non-2xx responses
+        guard (200...299).contains(httpResponse.statusCode) else {
+            // 404 indicates expired results
+            if httpResponse.statusCode == 404 {
+                throw BookshelfAIError.resultsExpired
             }
-
-            return results
-        } catch {
-            throw BookshelfAIError.decodingFailed(error)
+            throw BookshelfAIError.invalidResponse
         }
+
+        // Unwrap ResponseEnvelope using helper
+        let results: ScanResultPayload = try unwrapEnvelope(data)
+
+        // Validate expiresAt field (Issue #2 - Missing expiresAt validation)
+        // According to v2.4 API contract, results have a 24-hour TTL
+        if let expiresAtString = results.expiresAt {
+            let formatter = ISO8601DateFormatter()
+            // Ensure formatter can handle fractional seconds if present
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let expiryDate = formatter.date(from: expiresAtString) {
+                if expiryDate < Date() {
+                    // Results are expired client-side
+                    throw BookshelfAIError.resultsExpired
+                }
+            } else {
+                // Log if expiresAt string is malformed
+                #if DEBUG
+                print("⚠️ Failed to parse expiresAt date: \(expiresAtString)")
+                #endif
+            }
+        }
+
+        return results
     }
 
     /// Fetch full job results from KV cache via HTTP GET
@@ -725,31 +781,42 @@ actor BookshelfAIService {
 
         switch httpResponse.statusCode {
         case 200:
-            do {
-                let envelope = try JSONDecoder().decode(ResponseEnvelope<ScanResultPayload>.self, from: data)
+            // Unwrap ResponseEnvelope using helper
+            let results: ScanResultPayload = try unwrapEnvelope(data)
 
-                guard let results = envelope.data else {
-                    if let error = envelope.error {
-                        throw APIError(code: error.code ?? "UNKNOWN", message: error.message)
+            // Validate expiresAt field (Issue #2 - Missing expiresAt validation)
+            // According to v2.4 API contract, results have a 24-hour TTL
+            if let expiresAtString = results.expiresAt {
+                let formatter = ISO8601DateFormatter()
+                // Ensure formatter can handle fractional seconds if present
+                formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                if let expiryDate = formatter.date(from: expiresAtString) {
+                    if expiryDate < Date() {
+                        // Results are expired client-side
+                        throw BookshelfAIError.resultsExpired
                     }
-                    throw APIError(code: "NO_DATA", message: "Missing results data")
+                } else {
+                    // Log if expiresAt string is malformed
+                    #if DEBUG
+                    print("⚠️ Failed to parse expiresAt date: \(expiresAtString)")
+                    #endif
                 }
-
-                return results
-            } catch {
-                throw BookshelfAIError.decodingFailed(error)
             }
 
+            return results
+
         case 404:
-            // Results expired (> 24 hours old)
-            throw APIError(code: "RESULTS_EXPIRED", message: "Results expired (job older than 24 hours). Please re-run the scan.")
+            // Results expired (> 24 hours old) or not found
+            throw BookshelfAIError.resultsExpired
 
         case 429:
-            // Rate limited
-            throw APIError(code: "RATE_LIMITED", message: "Rate limited. Please try again later.")
+            // Rate limited - attempt to parse retryAfter from body
+            let retryAfter = parseRetryAfterFromBody(data) ?? 60
+            throw BookshelfAIError.rateLimitExceeded(retryAfter: retryAfter)
 
         default:
-            throw BookshelfAIError.invalidResponse
+            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown server error"
+            throw BookshelfAIError.serverError(httpResponse.statusCode, errorMessage)
         }
     }
 
