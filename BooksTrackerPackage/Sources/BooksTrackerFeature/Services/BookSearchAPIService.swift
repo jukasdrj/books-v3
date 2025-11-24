@@ -67,6 +67,13 @@ public class BookSearchAPIService {
             throw SearchError.invalidResponse
         }
 
+        // CORS Detection (Issue #428)
+        if let customError = httpResponse.allHeaderFields["X-Custom-Error"] as? String,
+           customError == "CORS_BLOCKED" {
+            // Check for explicit backend signal
+            throw SearchError.apiError("CORS Blocked: Network security error")
+        }
+
         guard httpResponse.statusCode == 200 else {
             throw SearchError.httpError(httpResponse.statusCode)
         }

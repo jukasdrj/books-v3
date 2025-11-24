@@ -20,7 +20,7 @@ enum CSVImportError: Error, LocalizedError {
     case invalidResponse
     case emptyResults
     case resultsExpired          // Results no longer available in KV cache (> 24 hours)
-    case rateLimited
+    case rateLimited(retryAfter: Int?)
     case httpError(statusCode: Int)
 
     var errorDescription: String? {
@@ -31,7 +31,10 @@ enum CSVImportError: Error, LocalizedError {
             return "No results returned from server"
         case .resultsExpired:
             return "Results expired (job older than 24 hours). Please re-run the import."
-        case .rateLimited:
+        case .rateLimited(let retryAfter):
+            if let seconds = retryAfter {
+                return "Rate limited. Try again in \(seconds)s."
+            }
             return "Rate limited. Please try again later."
         case .httpError(let statusCode):
             return "HTTP error: \(statusCode)"
@@ -60,6 +63,10 @@ public struct GeminiCSVImportView: View {
     @State private var webSocketTask: URLSessionWebSocketTask?
     @State private var receiveTask: Task<Void, Never>?
 
+    // Rate limit banner (Issue #426)
+    @State private var showRateLimitBanner = false
+    @State private var rateLimitRetryAfter = 0
+
     public init() {}
 
     public enum ImportStatus: Equatable {
@@ -78,6 +85,14 @@ public struct GeminiCSVImportView: View {
                     .ignoresSafeArea()
 
                 VStack(spacing: 24) {
+                    // Rate Limit Banner (Issue #426)
+                    if showRateLimitBanner {
+                        RateLimitBanner(retryAfter: rateLimitRetryAfter) {
+                            showRateLimitBanner = false
+                        }
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+
                     switch importStatus {
                     case .idle:
                         idleStateView
@@ -612,7 +627,15 @@ public struct GeminiCSVImportView: View {
                         #if DEBUG
                         print("[CSV WebSocket] ❌ Failed to fetch results: \(error)")
                         #endif
-                        importStatus = .failed("Failed to fetch import results: \(error.localizedDescription)")
+
+                        if let csvError = error as? CSVImportError, case .rateLimited(let retryAfter) = csvError {
+                            // Show rate limit banner
+                            self.rateLimitRetryAfter = retryAfter ?? 60
+                            self.showRateLimitBanner = true
+                            importStatus = .failed("Rate limited fetching results. Please wait and try again.")
+                        } else {
+                            importStatus = .failed("Failed to fetch import results: \(error.localizedDescription)")
+                        }
                     }
 
                     // Proactively close the connection from the client side
@@ -707,7 +730,9 @@ public struct GeminiCSVImportView: View {
 
         case 429:
             // Rate limited
-            throw CSVImportError.rateLimited
+            let retryAfter = httpResponse.allHeaderFields["Retry-After"] as? String ??
+                             (httpResponse.allHeaderFields["retry-after"] as? String)
+            throw CSVImportError.rateLimited(retryAfter: retryAfter.flatMap(Int.init))
 
         default:
             throw CSVImportError.httpError(statusCode: httpResponse.statusCode)

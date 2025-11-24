@@ -1,6 +1,10 @@
 import SwiftUI
 import SwiftData
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
 // MARK: - Results State View
 
 @available(iOS 26.0, *)
@@ -80,6 +84,10 @@ extension SearchView {
                 insertion: .move(edge: .trailing).combined(with: .opacity),
                 removal: .move(edge: .leading).combined(with: .opacity)
             ))
+            // HIG: Memory pressure monitoring (Issue #437)
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
+                imagePrefetcher.cancelPrefetching()
+            }
         }
         
         private var resultsHeader: some View {
@@ -176,12 +184,13 @@ extension SearchView {
         
         /// Prefetches images for upcoming search results to improve scrolling performance.
         private func prefetchImages(for items: [SearchResult], currentIndex: Int) {
-            let prefetchThreshold = 5 // Start prefetching when 5 items from the end are displayed
-            let prefetchWindow = 10 // Prefetch next 10 items
+            // Check for Low Power Mode (Issue #437)
+            let isLowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
+            let prefetchWindow = isLowPower ? 3 : 10
 
-            // Ensure we are near the end of the current items
-            guard currentIndex >= items.count - prefetchThreshold else { return }
-
+            // Prefetch upcoming items relative to current position
+            // We want to prefetch regardless of where we are in the list,
+            // unlike pagination triggering which only happens at the end.
             let startIndex = currentIndex + 1
             let endIndex = min(startIndex + prefetchWindow, items.count)
 

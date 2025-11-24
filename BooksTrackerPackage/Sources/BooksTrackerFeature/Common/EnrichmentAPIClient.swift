@@ -88,6 +88,15 @@ actor EnrichmentAPIClient {
         print("[EnrichmentAPIClient] ✅ Received HTTP \(statusCode) response from \(endpoint)")
         #endif
 
+        // CORS Detection (Issue #428)
+        if let httpResponse = response as? HTTPURLResponse {
+            // Check for explicit backend signal
+            if let customError = httpResponse.allHeaderFields["X-Custom-Error"] as? String,
+               customError == "CORS_BLOCKED" {
+                throw ApiErrorCode.corsBlocked.toNSError()
+            }
+        }
+
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 202 else {
             // Enhanced error logging for debugging enrichment failures
