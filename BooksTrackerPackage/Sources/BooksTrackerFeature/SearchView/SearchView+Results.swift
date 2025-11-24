@@ -175,14 +175,12 @@ extension SearchView {
         }
         
         /// Prefetches images for upcoming search results to improve scrolling performance.
+        /// Now prefetches during normal scrolling, not just at the end of the list.
         private func prefetchImages(for items: [SearchResult], currentIndex: Int) {
-            let prefetchThreshold = 5 // Start prefetching when 5 items from the end are displayed
-            let prefetchWindow = 10 // Prefetch next 10 items
+            let prefetchWindow = 10 // Prefetch next 10 items from current position
 
-            // Ensure we are near the end of the current items
-            guard currentIndex >= items.count - prefetchThreshold else { return }
-
-            let startIndex = currentIndex + 1
+            // Prefetch from current position onwards (not just at the end)
+            let startIndex = currentIndex
             let endIndex = min(startIndex + prefetchWindow, items.count)
 
             guard startIndex < endIndex else { return }

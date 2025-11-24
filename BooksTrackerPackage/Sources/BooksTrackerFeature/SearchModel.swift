@@ -39,7 +39,7 @@ public final class SearchModel {
     // Search suggestions (still separate - UI-specific feature)
     var searchSuggestions: [String] = []
     var recentSearches: [String] = []  // Public for SearchView access (TODO: move to viewState in Task 4)
-    private var popularSearches: [String] = [
+    var popularSearches: [String] = [  // Made public for trending search chips (Issue #16)
         "Andy Weir", "Stephen King", "Agatha Christie", "J.K. Rowling",
         "The Martian", "Dune", "1984", "Pride and Prejudice",
         "science fiction", "mystery", "romance", "fantasy"
@@ -194,18 +194,18 @@ public final class SearchModel {
             return 0.1
         }
 
-        // Short queries (1-3 chars) get longer debounce to reduce API calls
+        // Short queries (1-3 chars) - optimized for mobile responsiveness (was 0.8s)
         if query.count <= 3 {
-            return 0.8
+            return 0.3
         }
 
-        // Medium queries (4-6 chars) get standard debounce
+        // Medium queries (4-6 chars) - fast response (was 0.5s)
         if query.count <= 6 {
-            return 0.5
+            return 0.2
         }
 
-        // Longer queries get shorter debounce (user is more specific)
-        return 0.3
+        // Longer queries - immediate response (was 0.3s)
+        return 0.15
     }
 
     private func isISBNPattern(_ query: String) -> Bool {
