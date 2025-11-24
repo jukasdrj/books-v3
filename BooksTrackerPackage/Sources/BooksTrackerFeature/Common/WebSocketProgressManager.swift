@@ -437,14 +437,6 @@ public final class WebSocketProgressManager: NSObject, @preconcurrency URLSessio
     private func parseProgressUpdate(_ json: String) async {
         guard let data = json.data(using: .utf8) else { return }
 
-        // Check for legacy ready_ack message
-        if json.contains("\"type\":\"ready_ack\"") {
-            #if DEBUG
-            print("✅ Backend acknowledged ready signal")
-            #endif
-            return
-        }
-
         do {
             let decoder = JSONDecoder()
             // Use unified WebSocket schema (Phase 1 #363)
@@ -573,9 +565,14 @@ public final class WebSocketProgressManager: NSObject, @preconcurrency URLSessio
                     handler(progress)
                 }
 
-            case .readyAck, .jobStarted, .ping, .pong:
+            case .readyAck:
+                // Backend acknowledged ready signal - no action needed
+                #if DEBUG
+                print("✅ Backend acknowledged ready signal (structured decoding)")
+                #endif
+
+            case .jobStarted, .ping, .pong:
                 // No action needed for infrastructure messages
-                // readyAck: Backend acknowledgment of client ready signal
                 // jobStarted: Optional pre-processing notification
                 // ping/pong: Keep-alive messages
                 break
