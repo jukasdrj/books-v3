@@ -39,11 +39,19 @@ public final class SearchModel {
     // Search suggestions (still separate - UI-specific feature)
     var searchSuggestions: [String] = []
     var recentSearches: [String] = []  // Public for SearchView access (TODO: move to viewState in Task 4)
-    var popularSearches: [String] = [  // Made public for trending search chips (Issue #16)
+    var popularSearches: [String] = []  // Dynamic from backend API (Issue #20)
+
+    /// Fallback searches when API is unavailable
+    private let fallbackPopularSearches = [
         "Andy Weir", "Stephen King", "Agatha Christie", "J.K. Rowling",
         "The Martian", "Dune", "1984", "Pride and Prejudice",
         "science fiction", "mystery", "romance", "fantasy"
     ]
+
+    /// Cache duration for trending searches (24 hours)
+    private static let trendingSearchesCacheDuration: TimeInterval = 24 * 60 * 60
+    private static let trendingSearchesCacheKey = "TrendingSearchesCache"
+    private static let trendingSearchesCacheTimestampKey = "TrendingSearchesCacheTimestamp"
 
     // Performance tracking
     var lastSearchTime: TimeInterval = 0
@@ -70,7 +78,11 @@ public final class SearchModel {
             self.viewState = .loadingTrending(recentSearches: savedSearches)
         }
 
+        // Load cached trending searches immediately (Issue #20)
+        self.popularSearches = loadCachedTrendingSearches() ?? fallbackPopularSearches
+
         Task {
+            await loadTrendingSearches()  // Refresh from API if cache expired
             await loadTrendingBooks()
             generateSearchSuggestions(for: "")
         }
@@ -568,6 +580,61 @@ public final class SearchModel {
             // Show initial state without trending books
             viewState = .initial(trending: [], recentSearches: recentSearches)
         }
+    }
+
+    // MARK: - Trending Searches (Issue #20)
+
+    /// Load trending searches from backend API with caching
+    /// - Uses 24-hour cache to reduce API calls
+    /// - Falls back to hardcoded list if API unavailable
+    private func loadTrendingSearches() async {
+        // Check if cache is still valid
+        if let cached = loadCachedTrendingSearches(), isTrendingSearchesCacheValid() {
+            #if DEBUG
+            print("✅ SearchModel: Using cached trending searches (\(cached.count) items)")
+            #endif
+            popularSearches = cached
+            return
+        }
+
+        // Fetch from API
+        #if DEBUG
+        print("🔄 SearchModel: Fetching trending searches from API...")
+        #endif
+
+        do {
+            let searches = try await apiService.getTrendingSearches(limit: 12)
+            popularSearches = searches
+            saveTrendingSearchesToCache(searches)
+            #if DEBUG
+            print("✅ SearchModel: Loaded \(searches.count) trending searches from API")
+            #endif
+        } catch {
+            // Use fallback - API not available or failed
+            #if DEBUG
+            print("⚠️ SearchModel: Trending searches API unavailable, using fallback: \(error)")
+            #endif
+            popularSearches = loadCachedTrendingSearches() ?? fallbackPopularSearches
+        }
+    }
+
+    /// Load cached trending searches from UserDefaults
+    private func loadCachedTrendingSearches() -> [String]? {
+        UserDefaults.standard.array(forKey: Self.trendingSearchesCacheKey) as? [String]
+    }
+
+    /// Check if trending searches cache is still valid (within 24 hours)
+    private func isTrendingSearchesCacheValid() -> Bool {
+        guard let timestamp = UserDefaults.standard.object(forKey: Self.trendingSearchesCacheTimestampKey) as? Date else {
+            return false
+        }
+        return Date().timeIntervalSince(timestamp) < Self.trendingSearchesCacheDuration
+    }
+
+    /// Save trending searches to cache with timestamp
+    private func saveTrendingSearchesToCache(_ searches: [String]) {
+        UserDefaults.standard.set(searches, forKey: Self.trendingSearchesCacheKey)
+        UserDefaults.standard.set(Date(), forKey: Self.trendingSearchesCacheTimestampKey)
     }
 
     private func enrichResultsWithLibraryStatus(_ results: [SearchResult]) async -> [SearchResult] {

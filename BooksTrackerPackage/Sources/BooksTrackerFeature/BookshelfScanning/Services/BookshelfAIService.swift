@@ -373,9 +373,21 @@ actor BookshelfAIService {
                     if let retryAfterHeader = httpResponse.value(forHTTPHeaderField: "Retry-After"),
                        let seconds = Int(retryAfterHeader) {
                         retryAfter = seconds
-                    } else {
+                        #if DEBUG
+                        print("⏱️ Rate limit: using Retry-After header value: \(seconds)s")
+                        #endif
+                    } else if let bodyValue = parseRetryAfterFromBody(data) {
                         // Fallback: try to parse from response body
-                        retryAfter = parseRetryAfterFromBody(data) ?? 60 // Default 60s
+                        retryAfter = bodyValue
+                        #if DEBUG
+                        print("⏱️ Rate limit: using body retryAfter value: \(bodyValue)s")
+                        #endif
+                    } else {
+                        // Final fallback: 60s default (Issue #6 - verify backend alignment)
+                        retryAfter = 60
+                        #if DEBUG
+                        print("⚠️ Rate limit fallback: using default 60s (verify backend rate limit config)")
+                        #endif
                     }
                     throw BookshelfAIError.rateLimitExceeded(retryAfter: retryAfter)
                 }

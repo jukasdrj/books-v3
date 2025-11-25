@@ -386,6 +386,60 @@ public class BookSearchAPIService {
         )
     }
 
+    // MARK: - Trending Searches API (Issue #20)
+
+    /// Response structure for trending searches endpoint
+    struct TrendingSearchesResponse: Codable {
+        let trendingSearches: [TrendingSearchItem]
+        let generatedAt: String
+    }
+
+    struct TrendingSearchItem: Codable {
+        let query: String
+        let searchCount: Int
+    }
+
+    /// Fetch dynamic trending searches from backend API
+    /// Falls back to nil if endpoint unavailable (allows client-side fallback)
+    ///
+    /// Backend endpoint: GET /api/v2/trending-searches?limit=12
+    /// Returns top N search queries by frequency (last 7 days)
+    func getTrendingSearches(limit: Int = 12) async throws -> [String] {
+        let urlString = "\(EnrichmentConfig.baseURL)/api/v2/trending-searches?limit=\(limit)"
+        guard let url = URL(string: urlString) else {
+            throw SearchError.invalidURL
+        }
+
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await urlSession.data(from: url)
+        } catch {
+            logger.warning("⚠️ Trending searches API unavailable: \(error.localizedDescription)")
+            throw SearchError.networkError(error)
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw SearchError.invalidResponse
+        }
+
+        // Handle 404 gracefully - endpoint may not be deployed yet
+        if httpResponse.statusCode == 404 {
+            logger.info("📊 Trending searches endpoint not available (404) - using fallback")
+            throw SearchError.httpError(404)
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            throw SearchError.httpError(httpResponse.statusCode)
+        }
+
+        // Decode response
+        let decoder = JSONDecoder()
+        let trendingResponse = try decoder.decode(TrendingSearchesResponse.self, from: data)
+
+        logger.info("✅ Loaded \(trendingResponse.trendingSearches.count) trending searches from API")
+        return trendingResponse.trendingSearches.map { $0.query }
+    }
+
     // MARK: - Helper Methods
 
     /// Convert BookSearchResponse to SearchResult array

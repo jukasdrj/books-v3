@@ -540,13 +540,52 @@ public final class WebSocketProgressManager: NSObject, @preconcurrency URLSessio
 
             case .error(let errorPayload):
                 #if DEBUG
-                print("❌ WebSocket error: \(errorPayload.message)")
+                print("❌ WebSocket error: \(errorPayload.message) (code: \(errorPayload.code), retryable: \(errorPayload.retryable ?? false))")
                 #endif
 
-                // Handle CONNECTION_LIMIT_EXCEEDED (v2.4.1 API contract)
-                if errorPayload.code == "CONNECTION_LIMIT_EXCEEDED" {
+                // Use retryable field from v2.0 API contract (Issue #5)
+                let shouldRetry = errorPayload.retryable ?? false
+
+                // Handle specific error codes
+                switch errorPayload.code {
+                case "CONNECTION_LIMIT_EXCEEDED":
+                    // Never retry connection limits (v2.4.1 API contract)
                     lastError = WebSocketError.connectionLimitExceeded
                     disconnectionHandler?(lastError!)
+
+                case "AUTHENTICATION_FAILED":
+                    // Never retry auth failures
+                    lastError = WebSocketError.authenticationFailed
+                    disconnectionHandler?(lastError!)
+
+                case "PROVIDER_TIMEOUT", "NETWORK_ERROR":
+                    // Retry transient errors if backend says retryable
+                    if shouldRetry {
+                        #if DEBUG
+                        print("🔄 Transient error (\(errorPayload.code)) - will attempt reconnection")
+                        #endif
+                        // Let natural reconnection handle it
+                    } else {
+                        let error = NSError(
+                            domain: "WebSocket",
+                            code: -1,
+                            userInfo: [NSLocalizedDescriptionKey: errorPayload.message]
+                        )
+                        lastError = WebSocketError.connectionFailed(error)
+                        disconnectionHandler?(lastError!)
+                    }
+
+                default:
+                    // Use retryable field for unknown error codes
+                    if !shouldRetry {
+                        let error = NSError(
+                            domain: "WebSocket",
+                            code: -1,
+                            userInfo: [NSLocalizedDescriptionKey: errorPayload.message]
+                        )
+                        lastError = WebSocketError.connectionFailed(error)
+                        disconnectionHandler?(lastError!)
+                    }
                 }
 
             case .reconnected(let payload):
