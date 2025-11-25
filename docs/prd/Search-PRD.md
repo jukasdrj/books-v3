@@ -31,13 +31,18 @@ Users need to find books quickly to add to their library, but don't always know 
 
 ## Solution Overview
 
-**Multi-Mode Search:**
+**V1 Search (Legacy & Barcode):**
 1. **Title Search:** `/v1/search/title?q={query}` - Fuzzy matching, partial titles
 2. **ISBN Search:** `/v1/search/isbn?isbn={isbn}` - Exact match, barcode scanner integration
 3. **Advanced Search:** `/v1/search/advanced?title={title}&author={author}` - Combined filters
 
+**V2 Search & Discovery (Intelligence Layer):**
+1. **Unified Search:** `GET /api/v2/search` with `mode=text` (replaces V1 title/advanced) and `mode=semantic` for conceptual search.
+2. **Weekly Recommendations:** `GET /api/v2/recommendations/weekly` for AI-curated picks.
+3. **Similar Books:** `GET /v1/search/similar?isbn={isbn}` to find related works.
+
 **Key Features:**
-- Canonical DTOs (WorkDTO, EditionDTO, AuthorDTO) from all endpoints
+- Canonical DTOs (WorkDTO, EditionDTO, AuthorDTO) from all V1 endpoints
 - DTOMapper converts to SwiftData models (zero provider-specific logic)
 - 6-hour cache for title/advanced, 7-day cache for ISBN
 - Genre normalization built-in (backend)
@@ -71,6 +76,21 @@ As a user with poor network, I want clear error messages when search fails, so I
 - **AC:** Network timeout → Show "Search failed. Please try again." with retry button
 - **Implementation:** ResponseEnvelope error handling, user-friendly messages
 
+**US-6: AI-Powered Semantic Search**
+As a user, I want to search for "books about dystopian futures with a strong female lead" and get relevant results like "The Hunger Games", so I can find books based on themes and concepts, not just keywords.
+- **AC:** Search "dystopian futures" → Results include "1984", "Brave New World", "The Handmaid's Tale".
+- **Implementation:** `GET /api/v2/search?q=...&mode=semantic`
+
+**US-7: Weekly Recommendations**
+As a user looking for something new, I want to see a curated list of weekly recommendations on the search screen, so I can discover books I might not find otherwise.
+- **AC:** Open Search tab → See "Weekly Picks" section with 3-5 recommended books.
+- **Implementation:** `GET /api/v2/recommendations/weekly`
+
+**US-8: Finding Similar Books**
+As a user who just finished a book I loved, I want to find similar books from the book details page, so I can explore other works I might enjoy.
+- **AC:** View details for "Dune" → See "Similar Books" section with titles like "Hyperion" and "Foundation".
+- **Implementation:** `GET /v1/search/similar?isbn={isbn}`
+
 ---
 
 ## Technical Implementation
@@ -81,7 +101,7 @@ As a user with poor network, I want clear error messages when search fails, so I
 - `SearchView.swift` - Main search UI
 - `SearchModel.swift` - @Observable model managing search state
 - `SearchViewState.swift` - State enum (initial, searching, results, error, empty)
-- `BookSearchAPIService.swift` - API client for `/v1/*` endpoints
+- `BookSearchAPIService.swift` - API client for `/v1/*` and `/v2/*` endpoints
 - `DTOMapper.swift` - Converts DTOs to SwiftData models
 
 **Search Flow:**
@@ -91,7 +111,7 @@ SearchView (UI)
 SearchModel.updateSearchQuery("Harry Potter")
   ↓ debounced 300ms
 BookSearchAPIService.searchByTitle("Harry Potter")
-  ↓ GET /v1/search/title?q=Harry+Potter
+  ↓ GET /v1/search/title?q=Harry+Potter or /api/v2/search?q=...
 ResponseEnvelope<WorkDTO[], EditionDTO[], AuthorDTO[]>
   ↓ parse JSON
 DTOMapper.mapToWorks(data, modelContext)
@@ -103,7 +123,7 @@ SearchViewState.results(query, scope, items, provider, cached)
 SearchView displays results
 ```
 
-### Backend Endpoints
+### Backend Endpoints (V1)
 
 **1. Title Search:**
 ```
@@ -130,7 +150,7 @@ GET /v1/search/advanced?title={title}&author={author}
 - Cache: 6 hours (KV)
 - Returns: Canonical DTOs
 
-**Response Format (All Endpoints):**
+**Response Format (All V1 Endpoints):**
 ```json
 {
   "success": true,
@@ -154,6 +174,31 @@ GET /v1/search/advanced?title={title}&author={author}
   }
 }
 ```
+
+### V2 Endpoints (Intelligence Layer)
+
+**1. Unified Search:**
+```
+GET /api/v2/search?q={query}&mode={text|semantic}
+```
+- **mode=text:** Replaces `/v1/search/title` and `/v1/search/advanced`.
+- **mode=semantic:** AI-powered conceptual search using vector embeddings.
+- **Rate Limit:** 5 req/min for semantic search.
+- **Returns:** Simplified search results DTO.
+
+**2. Weekly Recommendations:**
+```
+GET /api/v2/recommendations/weekly
+```
+- Returns a pre-generated, cached list of AI-curated book recommendations.
+- **Returns:** List of recommendation DTOs with a "reason" for each pick.
+
+**3. Similar Books:**
+```
+GET /v1/search/similar?isbn={isbn}
+```
+- Finds books similar to a given ISBN using vector embeddings.
+- **Returns:** List of similar book DTOs with a similarity score.
 
 ### Integration Points
 
@@ -179,6 +224,7 @@ GET /v1/search/advanced?title={title}&author={author}
 **Performance:**
 - ✅ **Title search <2s** (avg 800ms uncached, <50ms cached)
 - ✅ **ISBN search <3s** (scan + API, avg 1.3s total)
+- ✅ **Semantic Search <800ms** P95
 - ✅ **95% cache hit rate** (7-day ISBN, 6-hour title)
 
 **Reliability:**
