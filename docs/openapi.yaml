@@ -1,12 +1,41 @@
 openapi: 3.0.3
 info:
   title: BooksTrack API
-  version: "2.4.1"
+  version: "2.7.0"
   description: |
-    This OpenAPI specification defines the BooksTrack API, version 2.4.1.
+    This OpenAPI specification defines the BooksTrack API, version 2.7.0.
     It is derived from and complements the human-readable [API_CONTRACT.md](API_CONTRACT.md) document.
 
-    **Key Highlights (v2.4.1):**
+    **Key Highlights (v2.7.0 - V2 API & Intelligence Layer):**
+    - NEW: Semantic search using Cloudflare Vectorize (`GET /api/v2/search?mode=semantic`)
+    - NEW: Similar books API (`GET /v1/search/similar?isbn=`)
+    - NEW: Weekly AI recommendations (`GET /api/v2/recommendations/weekly`)
+    - NEW: Feature discovery endpoint (`GET /api/v2/capabilities`)
+    - NEW: V2 HTTP/SSE API namespace for modern frontend integration
+    - Infrastructure: Vectorize (BGE-M3 1024-dim), Workers AI, Gemini API
+    - Rate limits: Semantic search 5 req/min, text search 100 req/min
+
+    **Previous Highlights (v2.6.1):**
+    - WebSocket security hardening (10KB incoming message size limit, DoS protection)
+    - Backpressure handling (1MB threshold, prevents memory bloat from slow clients)
+    - Session metadata tracking (IP, country, user agent for diagnostics)
+    - Atomic token operations (storage transactions prevent race conditions)
+
+    **Previous Highlights (v2.6.0):**
+    - Native RPC for Durable Objects (85% latency reduction: 10-15ms → <2ms for internal operations)
+    - Hibernation DO storage fix (enables 70-80% cost savings, currently disabled pending gradual rollout)
+    - Enhanced WebSocket error handling with categorization
+    - Faster cache metrics operations using direct method calls
+    - Zero user-facing API changes (transparent backend optimization)
+
+    **Previous Highlights (v2.5.0):**
+    - Author-driven harvest system (4.8x performance increase: 1,050 → 5,000 ISBNs/day)
+    - Intelligent cache depth checking (prevents redundant harvesting)
+    - Complete author bibliographies (instead of random scattered covers)
+    - Daily harvest schedule restored (fixed cron bug that caused weekly-only runs)
+    - Zero user-facing API changes (transparent backend optimization)
+
+    **Previous Highlights (v2.4.1):**
     - WebSocket Hibernation API migration (70-80% cost reduction, zero user-facing changes)
     - Automatic memory management for WebSocket connections
     - Improved scalability and performance
@@ -48,6 +77,8 @@ tags:
     description: Health and metrics endpoints
   - name: Book Search
     description: Search for books by ISBN, title, or author
+  - name: V2 API
+    description: V2 API endpoints with semantic search, recommendations, and SSE streaming
   - name: Results Retrieval
     description: Retrieve job results after WebSocket completion
   - name: WebSocket
@@ -476,6 +507,102 @@ paths:
         default:
           $ref: '#/components/responses/InternalServerError'
 
+  /v1/jobs/{jobId}/results:
+    get:
+      summary: Retrieve Job Results (Unified)
+      operationId: getJobResults
+      tags:
+        - Results Retrieval
+      description: |
+        Unified endpoint to retrieve full results for any completed job (CSV import, batch enrichment, or AI scan).
+
+        **Supported Pipelines:**
+        - `csv_import` - CSV file import results
+        - `batch_enrichment` - Batch enrichment job results
+        - `ai_scan` - AI bookshelf scan results
+
+        **Storage:**
+        - Results stored for 1 hour after job completion
+        - Automatically expires after TTL
+
+        **API Contract:** This is the canonical results endpoint as of v2.0 (Nov 15, 2025).
+        Legacy pipeline-specific endpoints (`/v1/csv/results`, `/v1/scan/results`) are deprecated.
+      parameters:
+        - $ref: '#/components/parameters/jobIdPathParam'
+      responses:
+        '200':
+          description: Job results retrieved successfully.
+          headers:
+            X-Router:
+              description: Indicates which router handled the request.
+              schema:
+                type: string
+                enum: [hono]
+            X-Response-Time:
+              description: Processing time in milliseconds (Hono router only).
+              schema:
+                type: string
+            Access-Control-Allow-Origin:
+              description: Dynamic CORS origin header based on request origin.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResultsResponseEnvelope'
+              examples:
+                csvImportExample:
+                  value:
+                    data:
+                      books:
+                        - title: '1984'
+                          author: George Orwell
+                          isbn: '9780451524935'
+                      errors: []
+                      successRate: '48/48'
+                    metadata:
+                      timestamp: '2025-11-22T20:00:00.000Z'
+                      cached: true
+                      provider: kv_cache
+                      resourceId: csv-results:uuid-12345
+                aiScanExample:
+                  value:
+                    data:
+                      books:
+                        - title: The Great Gatsby
+                          author: F. Scott Fitzgerald
+                          isbn: '9780743273565'
+                      confidence: 0.95
+                    metadata:
+                      timestamp: '2025-11-22T20:00:00.000Z'
+                      cached: true
+                      provider: kv_cache
+                      resourceId: scan-results:uuid-67890
+        '404':
+          description: Job results not found or expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                notFound:
+                  value:
+                    data: null
+                    metadata:
+                      timestamp: '2025-11-22T20:00:00.000Z'
+                    error:
+                      message: Job results not found or expired. Results are stored for 1 hour after job completion.
+                      code: NOT_FOUND
+                      details:
+                        jobId: uuid-12345
+                        ttl: 1 hour
+                        checkedKeys:
+                          - csv-results:uuid-12345
+                          - scan-results:uuid-12345
+                          - job-results:uuid-12345
+        default:
+          $ref: '#/components/responses/InternalServerError'
+
   /v1/csv/results/{jobId}:
     get:
       summary: Retrieve CSV Import Results
@@ -726,10 +853,10 @@ paths:
             schema:
               type: object
               properties:
-                csvFile:
+                file:
                   type: string
                   format: binary
-                  description: The CSV file to import.
+                  description: The CSV file to import (field name must be "file").
       responses:
         '202':
           description: CSV import job accepted. Returns a `jobId` and `token` for WebSocket connection.
@@ -839,6 +966,594 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         default:
           $ref: '#/components/responses/InternalServerError'
+
+  # V2 API Endpoints (Sprint 3 - Intelligence Layer)
+
+  /v1/search/similar:
+    get:
+      summary: Find Similar Books
+      operationId: findSimilarBooks
+      tags:
+        - V2 API
+        - Book Search
+      description: |
+        Find books similar to a given book using vector embeddings (Cloudflare Vectorize).
+        Uses BGE-M3 model for 1024-dimensional embeddings with cosine similarity.
+      parameters:
+        - name: isbn
+          in: query
+          description: ISBN of the source book to find similar books for.
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{10}|\d{13}$'
+          example: '9780747532743'
+        - name: limit
+          in: query
+          description: Maximum number of similar books to return.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+          example: 5
+      responses:
+        '200':
+          description: Similar books found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        isbn:
+                          type: string
+                        title:
+                          type: string
+                        authors:
+                          type: array
+                          items:
+                            type: string
+                        similarity_score:
+                          type: number
+                          format: float
+                        cover_url:
+                          type: string
+                  source_isbn:
+                    type: string
+                  total:
+                    type: integer
+                  latency_ms:
+                    type: integer
+              example:
+                results:
+                  - isbn: '9780439064866'
+                    title: Harry Potter and the Chamber of Secrets
+                    authors: ['J.K. Rowling']
+                    similarity_score: 0.94
+                    cover_url: 'https://...'
+                source_isbn: '9780747532743'
+                total: 5
+                latency_ms: 85
+        '404':
+          description: Source book not found in vector index.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Vectorize service unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /api/v2/search:
+    get:
+      summary: Unified Search (Text + Semantic)
+      operationId: unifiedSearch
+      tags:
+        - V2 API
+      description: |
+        Unified search supporting both text-based and semantic (AI-powered) search modes.
+
+        **Text mode:** Traditional SQL LIKE query (fast, 100 req/min).
+        **Semantic mode:** Natural language search using Vectorize embeddings (slower, 5 req/min).
+      parameters:
+        - name: q
+          in: query
+          description: Search query (min 2 characters).
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 200
+          example: 'books about wizards and magic schools'
+        - name: mode
+          in: query
+          description: Search mode.
+          required: false
+          schema:
+            type: string
+            enum: [text, semantic]
+            default: text
+          example: semantic
+        - name: limit
+          in: query
+          description: Maximum results to return.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Pagination offset.
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Search results.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        isbn:
+                          type: string
+                        title:
+                          type: string
+                        authors:
+                          type: array
+                          items:
+                            type: string
+                        cover_url:
+                          type: string
+                        relevance_score:
+                          type: number
+                          format: float
+                        match_type:
+                          type: string
+                          enum: [text, semantic]
+                  total:
+                    type: integer
+                  mode:
+                    type: string
+                  query:
+                    type: string
+                  latency_ms:
+                    type: integer
+              example:
+                results:
+                  - id: 'book_abc123'
+                    isbn: '9780747532743'
+                    title: Harry Potter and the Philosopher's Stone
+                    authors: ['J.K. Rowling']
+                    cover_url: 'https://...'
+                    relevance_score: 0.95
+                    match_type: semantic
+                total: 42
+                mode: semantic
+                query: 'books about wizards and magic schools'
+                latency_ms: 120
+        '400':
+          description: Invalid query parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          description: Vectorize service unavailable (semantic mode only).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /api/v2/recommendations/weekly:
+    get:
+      summary: Get Weekly Recommendations
+      operationId: getWeeklyRecommendations
+      tags:
+        - V2 API
+      description: |
+        Returns pre-generated weekly book recommendations (global, non-personalized).
+        Generated every Sunday at midnight UTC via cron job using Gemini API.
+        Cached in KV with 1-week TTL.
+      responses:
+        '200':
+          description: Weekly recommendations.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  week_of:
+                    type: string
+                    format: date
+                    description: Monday of the recommendation week.
+                  books:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        isbn:
+                          type: string
+                        title:
+                          type: string
+                        authors:
+                          type: array
+                          items:
+                            type: string
+                        cover_url:
+                          type: string
+                        reason:
+                          type: string
+                          description: AI-generated reason for recommendation.
+                  generated_at:
+                    type: string
+                    format: date-time
+                  next_refresh:
+                    type: string
+                    format: date-time
+              example:
+                week_of: '2025-11-25'
+                books:
+                  - isbn: '9780747532743'
+                    title: Harry Potter and the Philosopher's Stone
+                    authors: ['J.K. Rowling']
+                    cover_url: 'https://...'
+                    reason: A beloved fantasy classic perfect for readers seeking magical escapism
+                generated_at: '2025-11-24T00:00:00Z'
+                next_refresh: '2025-12-01T00:00:00Z'
+        '404':
+          description: Weekly recommendations not yet generated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /api/v2/capabilities:
+    get:
+      summary: Get API Capabilities
+      operationId: getCapabilities
+      tags:
+        - V2 API
+      description: Feature discovery endpoint for client capability detection.
+      responses:
+        '200':
+          description: API capabilities.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  features:
+                    type: object
+                    properties:
+                      semantic_search:
+                        type: boolean
+                      similar_books:
+                        type: boolean
+                      weekly_recommendations:
+                        type: boolean
+                      sse_streaming:
+                        type: boolean
+                      batch_enrichment:
+                        type: boolean
+                      csv_import:
+                        type: boolean
+                  limits:
+                    type: object
+                    properties:
+                      semantic_search_rpm:
+                        type: integer
+                      text_search_rpm:
+                        type: integer
+                      csv_max_rows:
+                        type: integer
+                      batch_max_photos:
+                        type: integer
+                  infrastructure:
+                    type: object
+                    properties:
+                      vectorize_available:
+                        type: boolean
+                      workers_ai_available:
+                        type: boolean
+                      d1_available:
+                        type: boolean
+                  version:
+                    type: string
+              example:
+                features:
+                  semantic_search: true
+                  similar_books: true
+                  weekly_recommendations: true
+                  sse_streaming: true
+                  batch_enrichment: true
+                  csv_import: true
+                limits:
+                  semantic_search_rpm: 5
+                  text_search_rpm: 100
+                  csv_max_rows: 500
+                  batch_max_photos: 5
+                infrastructure:
+                  vectorize_available: true
+                  workers_ai_available: true
+                  d1_available: true
+                version: '2.7.0'
+
+  /api/v2/books/enrich:
+    post:
+      summary: Enrich Book by Barcode
+      operationId: enrichBook
+      tags:
+        - V2 API
+      description: |
+        Synchronous HTTP book enrichment (alternative to WebSocket-based enrichment).
+        Orchestrates multiple providers (Google Books, OpenLibrary) and optionally
+        generates vector embeddings for the book.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - barcode
+              properties:
+                barcode:
+                  type: string
+                  description: ISBN-10 or ISBN-13 barcode.
+                prefer_provider:
+                  type: string
+                  enum: [auto, google, openlibrary]
+                  default: auto
+                idempotency_key:
+                  type: string
+                  description: Optional key for retry safety.
+            example:
+              barcode: '9780747532743'
+              prefer_provider: auto
+              idempotency_key: 'scan_20251125_abc123'
+      responses:
+        '200':
+          description: Book enriched successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isbn:
+                    type: string
+                  title:
+                    type: string
+                  authors:
+                    type: array
+                    items:
+                      type: string
+                  publisher:
+                    type: string
+                  published_date:
+                    type: string
+                  page_count:
+                    type: integer
+                  cover_url:
+                    type: string
+                  description:
+                    type: string
+                  categories:
+                    type: array
+                    items:
+                      type: string
+                  language:
+                    type: string
+                  provider:
+                    type: string
+                  enriched_at:
+                    type: string
+                    format: date-time
+                  vectorized:
+                    type: boolean
+              example:
+                isbn: '9780747532743'
+                title: Harry Potter and the Philosopher's Stone
+                authors: ['J.K. Rowling']
+                publisher: Bloomsbury
+                published_date: '1997-06-26'
+                page_count: 223
+                cover_url: 'https://...'
+                description: Harry Potter has never been...
+                categories: ['Fiction', 'Fantasy']
+                language: en
+                provider: 'orchestrated:google+openlibrary'
+                enriched_at: '2025-11-25T10:30:00Z'
+                vectorized: true
+        '404':
+          description: Book not found in any provider.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /api/v2/imports:
+    post:
+      summary: Initiate CSV Import
+      operationId: initiateImport
+      tags:
+        - V2 API
+      description: |
+        Initiate CSV import job. Returns job ID for status polling or SSE streaming.
+        Delegates to existing import infrastructure.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV file to import.
+                options:
+                  type: string
+                  description: JSON-encoded import options.
+      responses:
+        '202':
+          description: Import job accepted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id:
+                    type: string
+                  status:
+                    type: string
+                    enum: [queued]
+                  created_at:
+                    type: string
+                    format: date-time
+                  sse_url:
+                    type: string
+                  status_url:
+                    type: string
+                  estimated_rows:
+                    type: integer
+              example:
+                job_id: 'import_abc123def456'
+                status: queued
+                created_at: '2025-11-25T10:30:00Z'
+                sse_url: '/api/v2/imports/import_abc123def456/stream'
+                status_url: '/api/v2/imports/import_abc123def456'
+                estimated_rows: 150
+        '400':
+          description: Invalid CSV format or options.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '413':
+          description: File too large.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /api/v2/imports/{jobId}:
+    get:
+      summary: Get Import Status
+      operationId: getImportStatus
+      tags:
+        - V2 API
+      description: Get import job status (polling fallback for SSE).
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: 'import_abc123def456'
+      responses:
+        '200':
+          description: Import job status.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id:
+                    type: string
+                  status:
+                    type: string
+                    enum: [queued, processing, complete, failed]
+                  progress:
+                    type: number
+                    format: float
+                  total_rows:
+                    type: integer
+                  processed_rows:
+                    type: integer
+                  successful_rows:
+                    type: integer
+                  failed_rows:
+                    type: integer
+              example:
+                job_id: 'import_abc123def456'
+                status: processing
+                progress: 0.67
+                total_rows: 150
+                processed_rows: 100
+                successful_rows: 95
+                failed_rows: 5
+        '404':
+          description: Import job not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /api/v2/imports/{jobId}/stream:
+    get:
+      summary: Stream Import Progress (SSE)
+      operationId: streamImportProgress
+      tags:
+        - V2 API
+      description: |
+        Server-Sent Events stream for real-time import progress.
+        Events: started, progress, complete, error.
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: 'import_abc123def456'
+      responses:
+        '200':
+          description: SSE event stream.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+              example: |
+                event: started
+                data: {"status": "processing", "total_rows": 150}
+
+                event: progress
+                data: {"progress": 0.5, "processed_rows": 75}
+
+                event: complete
+                data: {"status": "complete", "result_summary": {...}}
+        '404':
+          description: Import job not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
 
 components:
   parameters:
@@ -1690,6 +2405,43 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/CsvResultsData'
+
+    JobResultsResponseEnvelope:
+      description: |
+        Unified response envelope for job results across all pipeline types.
+        Supports csv_import, batch_enrichment, and ai_scan pipelines.
+      allOf:
+        - $ref: '#/components/schemas/SuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              oneOf:
+                - $ref: '#/components/schemas/CsvResultsData'
+                - $ref: '#/components/schemas/AiScanResultsData'
+                - $ref: '#/components/schemas/BatchEnrichmentResultsData'
+            metadata:
+              type: object
+              properties:
+                resourceId:
+                  type: string
+                  description: KV cache key where results are stored
+                  example: csv-results:uuid-12345
+
+    BatchEnrichmentResultsData:
+      type: object
+      description: Results data for batch enrichment jobs
+      properties:
+        enrichedBooks:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnrichedBookPayload'
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportError'
+        successRate:
+          type: string
+          example: '48/50'
 
     JobInitResponse:
       type: object

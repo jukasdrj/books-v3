@@ -1,20 +1,77 @@
-# BooksTrack API Contract v2.0 - Migration Proposal
+# BooksTrack API Contract v2.1 - Unified Specification
 
-**Status:** PROPOSAL (Revised)
-**Date:** 2025-01-22 (Updated: 2025-01-22)
+**Status:** BACKEND INFRASTRUCTURE READY ✅
+**Date:** 2025-01-22 (Updated: 2025-11-25)
 **Authors:** Development Team
-**Target Implementation:** Q1 2025 (7-8 weeks)
+**Target Implementation:** Sprint 3 (January 2026)
+
+---
+
+## Backend Readiness Summary (November 25, 2025)
+
+**✅ Infrastructure Deployed:**
+| Component | Status | Details |
+|-----------|--------|---------|
+| D1 Database | ✅ Live | `bookstrack-library` with all migrations (0001-0008) |
+| Vectorize Index | ✅ Created | `book-embeddings` (1024 dims, cosine metric) |
+| Workers AI | ✅ Bound | `AI` binding for BGE-M3 embeddings |
+| Embedding Service | ✅ Implemented | `src/services/embedding-service.ts` |
+| Semantic Search | ✅ Implemented | `src/handlers/semantic-search-handler.ts` |
+| KV Cache | ✅ Created | `RECOMMENDATIONS_CACHE` namespace |
+| Enrichment Queue | ✅ Created | `enrichment-queue` for async processing |
+| Cron Triggers | ✅ Configured | Weekly Sunday midnight for recommendations |
+| Gemini API Key | ✅ In Secrets | Available as `GEMINI_API_KEY` |
+
+**🔧 Endpoint Implementation Status:**
+- V1 search endpoints: ✅ **Live** (`/v1/search/semantic`, `/v1/search/similar`)
+- V2 namespace routes: ✅ **Implemented**
+  - `GET /api/v2/search` - Unified search (text + semantic)
+  - `GET /api/v2/recommendations/weekly` - Weekly picks
+  - `GET /api/v2/capabilities` - Feature discovery
+  - `POST /api/v2/books/enrich` - Barcode enrichment
+  - `POST /api/v2/imports` - CSV import initiation
+  - `GET /api/v2/imports/{jobId}` - Import status
+  - `GET /api/v2/imports/{jobId}/stream` - SSE progress
+- SSE streaming: ✅ **Implemented** (polling-based from Durable Object)
+- Recommendations cron: ✅ **Implemented** (Sunday midnight UTC)
 
 ---
 
 ## Executive Summary
 
-This proposal outlines a migration from WebSocket-based communication to a modern, hybrid HTTP/SSE approach optimized for Cloudflare Workers infrastructure. The new contract provides better reliability, simpler state management, and improved battery efficiency for mobile clients.
+This document is the unified V2 API specification consolidating:
+1. **Original V2 Migration** - WebSocket → HTTP/SSE migration for enrichment and imports
+2. **Sprint 3 Intelligence** - Semantic search and weekly recommendations
 
-**Key Changes:**
-- **Barcode Enrichment:** WebSocket → Synchronous HTTP
-- **CSV Import:** WebSocket → Async Job Pattern with SSE streaming
-- **Migration Period:** 60-day dual-support phase
+The new contract provides modern, reliable, AI-enhanced book management with Cloudflare Workers infrastructure.
+
+**Core Endpoints:**
+- **Barcode Enrichment:** `POST /api/v2/books/enrich` (sync HTTP)
+- **CSV Import:** `POST /api/v2/imports` + SSE streaming
+- **Unified Search:** `GET /api/v2/search` (text + semantic modes) **[NEW]**
+- **Recommendations:** `GET /api/v2/recommendations/weekly` **[NEW]**
+
+**Key Infrastructure:**
+- **Cloudflare D1:** Book storage, recommendations persistence ✅
+- **Cloudflare Vectorize:** Semantic search (1024-dim BGE-M3 embeddings) ✅
+- **Workers AI:** Embedding generation ✅
+- **Gemini API:** Weekly recommendation generation (cron job) ✅ Key in secrets
+
+**Migration Period:** 60-day dual-support phase (WebSocket → HTTP/SSE)
+
+---
+
+## Quick Reference: All V2 Endpoints
+
+| Method | Endpoint | Description | Priority |
+|--------|----------|-------------|----------|
+| `POST` | `/api/v2/books/enrich` | Barcode enrichment (sync HTTP) | P0 |
+| `POST` | `/api/v2/imports` | CSV upload (async job) | P0 |
+| `GET` | `/api/v2/imports/{jobId}` | Import status (polling) | P0 |
+| `GET` | `/api/v2/imports/{jobId}/stream` | Import progress (SSE) | P0 |
+| `GET` | `/api/v2/search?q=&mode=text\|semantic` | Unified search | P0 |
+| `GET` | `/api/v2/recommendations/weekly` | Global weekly picks | P1 |
+| `GET` | `/api/v2/capabilities` | Feature discovery | P1 |
 
 ---
 
@@ -22,6 +79,11 @@ This proposal outlines a migration from WebSocket-based communication to a moder
 
 1. [Architecture Overview](#architecture-overview)
 2. [API Contract Specification](#api-contract-specification)
+   - 2.1 [Barcode Enrichment API](#1-barcode-enrichment-api)
+   - 2.2 [CSV Import API](#2-csv-import-api)
+   - 2.3 [Unified Search API (NEW)](#3-unified-search-api-new---sprint-3)
+   - 2.4 [Weekly Recommendations API (NEW)](#4-weekly-recommendations-api-new---sprint-3)
+   - 2.5 [Capability Discovery API](#5-capability-discovery-api)
 3. [Cloudflare Infrastructure](#cloudflare-infrastructure)
 4. [Security Considerations](#security-considerations)
 5. [Cost Estimation](#cost-estimation)
@@ -481,7 +543,125 @@ Try SSE connection
 
 ---
 
-### 3. Capability Discovery API
+### 3. Unified Search API (NEW - Sprint 3)
+
+**Use Case:** Search books in user's library with text or semantic (AI-powered) search
+
+#### Endpoint: `GET /api/v2/search`
+
+**Request Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Query Parameters:**
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `q` | string | Yes | Search query |
+| `mode` | string | No | `text` (default) or `semantic` |
+| `limit` | int | No | Max results (default: 20, max: 100) |
+| `offset` | int | No | Pagination offset |
+
+**Response: 200 OK**
+```json
+{
+  "results": [
+    {
+      "id": "book_abc123",
+      "isbn": "9780747532743",
+      "title": "Harry Potter and the Philosopher's Stone",
+      "authors": ["J.K. Rowling"],
+      "cover_url": "https://...",
+      "relevance_score": 0.95,
+      "match_type": "semantic"
+    }
+  ],
+  "total": 42,
+  "mode": "semantic",
+  "query": "books about wizards and magic schools",
+  "latency_ms": 120
+}
+```
+
+**Response: 400 Bad Request**
+```json
+{
+  "error": "invalid_query",
+  "message": "Search query must be at least 2 characters",
+  "min_length": 2
+}
+```
+
+**Response: 429 Too Many Requests (Semantic Mode)**
+```json
+{
+  "error": "rate_limit_exceeded",
+  "message": "Semantic search rate limit of 5 requests per minute exceeded",
+  "retry_after": 60,
+  "mode": "semantic"
+}
+```
+
+**Rate Limits:**
+- Text mode: 100 req/min (standard)
+- Semantic mode: 5 req/min (AI compute intensive)
+
+**Implementation Notes:**
+- Text mode uses D1 SQL `LIKE` queries
+- Semantic mode generates embeddings via Workers AI (BGE-M3) and queries Cloudflare Vectorize
+- Semantic mode requires book descriptions to have been vectorized during enrichment
+
+---
+
+### 4. Weekly Recommendations API (NEW - Sprint 3)
+
+**Use Case:** Fetch curated weekly book recommendations (global, non-personalized)
+
+#### Endpoint: `GET /api/v2/recommendations/weekly`
+
+**Request Headers:**
+```
+Authorization: Bearer <token> (optional - works unauthenticated)
+```
+
+**Response: 200 OK**
+```json
+{
+  "week_of": "2026-01-06",
+  "books": [
+    {
+      "id": "book_abc123",
+      "isbn": "9780747532743",
+      "title": "Harry Potter and the Philosopher's Stone",
+      "authors": ["J.K. Rowling"],
+      "cover_url": "https://...",
+      "reason": "A beloved fantasy classic perfect for readers seeking magical escapism"
+    }
+  ],
+  "generated_at": "2026-01-05T00:00:00Z",
+  "next_refresh": "2026-01-12T00:00:00Z"
+}
+```
+
+**Response: 404 Not Found**
+```json
+{
+  "error": "no_recommendations",
+  "message": "No recommendations available for this week",
+  "next_refresh": "2026-01-12T00:00:00Z"
+}
+```
+
+**Implementation Notes:**
+- Generated weekly via cron job (Sunday 00:00 UTC)
+- Uses Gemini API to analyze book catalog and select recommendations
+- Cached in KV with 1-hour TTL for fast responses
+- Stored in D1 for persistence
+- P1 endpoint (can be skipped for MVP if needed)
+
+---
+
+### 5. Capability Discovery API
 
 **Use Case:** Client detects server capabilities and API version
 
@@ -495,7 +675,7 @@ Authorization: Bearer <token> (optional)
 **Response: 200 OK**
 ```json
 {
-  "api_version": "2.0",
+  "api_version": "2.1",
   "server_time": "2025-01-22T10:30:00Z",
   "features": {
     "barcode_enrichment": {
@@ -514,6 +694,22 @@ Authorization: Bearer <token> (optional)
       "max_file_size_mb": 50,
       "max_rows": 10000,
       "supported_columns": ["isbn", "title", "author", "publisher", "published_date", "read_status"]
+    },
+    "search": {
+      "supported": true,
+      "endpoint": "/api/v2/search",
+      "modes": ["text", "semantic"],
+      "semantic_enabled": true,
+      "rate_limits": {
+        "text": { "requests_per_minute": 100 },
+        "semantic": { "requests_per_minute": 5 }
+      }
+    },
+    "recommendations": {
+      "supported": true,
+      "endpoint": "/api/v2/recommendations/weekly",
+      "refresh_schedule": "weekly",
+      "next_refresh": "2026-01-12T00:00:00Z"
     },
     "websocket": {
       "supported": true,
@@ -2144,6 +2340,9 @@ artillery run tests/load/import.yml
 | `/imports` | 10 uploads/hour | 3 uploads/min | Per user |
 | `/imports/{id}` | 600 req/hour | 60 req/min | Per job |
 | `/imports/{id}/stream` | 10 connections | 3 connections | Per job |
+| `/search?mode=text` | 100 req/min | 20 req/burst | Per user |
+| `/search?mode=semantic` | 5 req/min | 2 req/burst | Per user |
+| `/recommendations/weekly` | 60 req/hour | 10 req/min | Per user |
 
 ### SSE Event Types
 

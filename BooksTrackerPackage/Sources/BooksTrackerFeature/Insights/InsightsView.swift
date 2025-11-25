@@ -9,6 +9,7 @@ public struct InsightsView: View {
     @Environment(\.iOS26ThemeStore) private var themeStore
 
     @State private var diversityStats: DiversityStats?
+    @State private var enhancedDiversityStats: EnhancedDiversityStats?
     @State private var readingStats: ReadingStats?
     @State private var streakData: StreakData?
     @State private var selectedPeriod: TimePeriod = .thisYear
@@ -71,7 +72,28 @@ public struct InsightsView: View {
                     }
                 }
 
-                // Diversity section
+                // Diversity Completion Widget (Sprint 2)
+                if #available(iOS 26.0, *) {
+                    DiversityCompletionWidget(
+                        onDimensionTapped: { dimension in
+                            #if DEBUG
+                            print("📊 Tapped dimension: \(dimension)")
+                            #endif
+                            // TODO: Navigate to dimension detail (Phase 4)
+                        },
+                        onFillMissingData: {
+                            #if DEBUG
+                            print("📊 Fill missing data tapped")
+                            #endif
+                            // TODO: Navigate to progressive profiling flow (Phase 4)
+                        }
+                    )
+                }
+
+                // Representation Radar Chart (Sprint 2)
+                representationRadarSection
+
+                // Diversity section (existing charts)
                 diversitySection
 
                 // Reading stats section
@@ -106,6 +128,61 @@ public struct InsightsView: View {
 
             // Streak visualization
             StreakVisualizationView(streakData: streak)
+        }
+    }
+
+    private var representationRadarSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Section header
+            HStack {
+                Image(systemName: "chart.pie.fill")
+                    .font(.title3)
+                    .foregroundStyle(.purple)
+
+                Text("Representation Overview")
+                    .font(.title2.bold())
+                    .foregroundStyle(.primary)
+            }
+            .padding(.bottom, 8)
+
+            // Radar chart with diversity dimensions (using EnhancedDiversityStats)
+            if let enhanced = enhancedDiversityStats {
+                let radarData = RadarChartData(dimensions: [
+                    RadarDimension(
+                        name: "Cultural",
+                        completionPercentage: enhanced.culturalCompletionPercentage,
+                        isComplete: enhanced.culturalCompletionPercentage >= 80
+                    ),
+                    RadarDimension(
+                        name: "Gender",
+                        completionPercentage: enhanced.genderCompletionPercentage,
+                        isComplete: enhanced.genderCompletionPercentage >= 80
+                    ),
+                    RadarDimension(
+                        name: "Translation",
+                        completionPercentage: enhanced.translationCompletionPercentage,
+                        isComplete: enhanced.translationCompletionPercentage >= 80
+                    ),
+                    RadarDimension(
+                        name: "Own Voices",
+                        completionPercentage: enhanced.ownVoicesCompletionPercentage,
+                        isComplete: enhanced.ownVoicesCompletionPercentage >= 80
+                    ),
+                    RadarDimension(
+                        name: "Accessibility",
+                        completionPercentage: enhanced.accessibilityCompletionPercentage,
+                        isComplete: enhanced.accessibilityCompletionPercentage >= 80
+                    )
+                ])
+
+                RepresentationRadarChart(data: radarData) { dimensionName in
+                    #if DEBUG
+                    print("📊 Radar tapped: \(dimensionName)")
+                    #endif
+                    // TODO: Navigate to add data for this dimension (Phase 4)
+                }
+                .frame(maxWidth: .infinity)
+            }
         }
     }
 
@@ -178,6 +255,7 @@ public struct InsightsView: View {
         // If resetting, clear existing data immediately
         if reset {
             diversityStats = nil
+            enhancedDiversityStats = nil
             readingStats = nil
             streakData = nil
         }
@@ -188,6 +266,10 @@ public struct InsightsView: View {
         do {
             // Calculate diversity stats
             diversityStats = try DiversityStats.calculate(from: modelContext)
+
+            // Calculate enhanced diversity stats for radar chart (Sprint 2)
+            let diversityService = DiversityStatsService(modelContext: modelContext)
+            enhancedDiversityStats = try await diversityService.calculateStats(period: .allTime)
 
             // Calculate reading stats for selected period
             readingStats = try await ReadingStats.calculate(from: modelContext, period: selectedPeriod)

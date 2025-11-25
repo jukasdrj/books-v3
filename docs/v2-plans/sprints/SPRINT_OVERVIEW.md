@@ -1,11 +1,36 @@
 # BooksTracker v2 - Sprint Planning Overview
 
 **Planning Date:** November 20, 2025
-**Last Updated:** November 23, 2025 (Sprint 1 Complete!)
+**Last Updated:** November 25, 2025 (Consolidated V2 API + Intelligence Roadmap)
 **Target Release:** Q4 2026
 **Current Branch:** `main`
 
 > **✅ Sprint 1 COMPLETE!** Shipped in PR #1 (Nov 21, 2025). See [sprint-01-REVISED.md](sprint-01-REVISED.md) for details.
+
+---
+
+## 3-Sprint Checkpoint: Intelligence Layer Live
+
+**Goal:** Ship semantic search + weekly recommendations in 3 sprints
+
+```
+Sprint 2 (Current)     Sprint 3              Sprint 4
+================       ================      ================
+iOS Polish &           Backend Foundation    Intelligence Live
+Analytics              + V2 API
+
+- Cascade metadata     - Vectorize index     - Semantic search UI
+- Session analytics    - D1 schema           - Recommendations widget
+- Real device test     - Unified V2 API      - SSE client (CSV)
+- Documentation        - Enrichment pipeline - End-to-end testing
+
+Target: Dec 2025       Target: Jan 2026      Target: Feb 2026
+
+                       🎯 CHECKPOINT: Semantic Search +
+                          Weekly Recommendations LIVE
+```
+
+**Key Decision:** Ship with **global recommendations** first (non-personalized), add personalization in Phase 2 after user data sync infrastructure.
 
 ---
 
@@ -21,7 +46,7 @@ Each sprint is **2 weeks** with the following structure:
 
 ### Phase 1: Engagement Foundation (Q1 2026) - IN PROGRESS
 
-**Goal:** Enable diversity tracking, reading habit analytics, and book enrichment
+**Goal:** Enable diversity tracking, reading habit analytics, and AI-powered search/recommendations
 
 **Sprint Status:**
 
@@ -34,50 +59,89 @@ Each sprint is **2 weeks** with the following structure:
   - ✅ Timer UI in `EditionMetadataView`
   - ✅ 26 tests (unit + integration + performance)
 
-- **🏃 Sprint 2:** Cascade Metadata System + Session Analytics **[IN PROGRESS]**
-  - Complete diversity completion widget integration
-  - Session analytics aggregation (weekly/monthly trends)
-  - Real device testing and keyboard input validation
-  - Documentation updates
-  - **Target:** December 2025
+- **✅ Sprint 2:** Cascade Metadata + Session Analytics **[COMPLETE - Nov 25, 2025]**
+  - ✅ `DiversityCompletionWidget` integrated into InsightsView
+  - ✅ `RepresentationRadarChart` integrated into InsightsView
+  - ✅ Session analytics with `StreakVisualizationView`
+  - ✅ All Sprint 2 views wired into app navigation
+  - ✅ Build passes with zero errors
 
-- **Sprint 3:** API Orchestration Layer (KV→D1 Migration) **[PLANNED]**
-  - Multi-provider orchestration (Google Books + OpenLibrary)
-  - D1 database migration from KV storage
-  - WebSocket Hibernation API integration
-  - Provider tagging and fallback chains
-  - **Target:** Q1 2026
+- **✅ Sprint 3:** Backend Foundation + V2 API **[COMPLETE - Nov 25, 2025]**
+  - ✅ **Vectorize Infrastructure:** `book-embeddings` index (1024 dims, cosine)
+  - ✅ **D1 Database:** `bookstrack-library` with 8 migrations
+  - ✅ **Workers AI:** BGE-M3 binding for embeddings
+  - ✅ **All V2 API Endpoints Implemented:**
+    - `POST /api/v2/books/enrich` - Barcode enrichment (sync HTTP)
+    - `POST /api/v2/imports` - CSV upload (async job + SSE)
+    - `GET /api/v2/imports/{jobId}/stream` - SSE progress
+    - `GET /api/v2/search?q=&mode=text|semantic` - Unified search
+    - `GET /api/v2/recommendations/weekly` - Global recommendations
+    - `GET /api/v2/capabilities` - Feature discovery
+    - `GET /v1/search/similar?isbn=` - Similar books (bonus!)
+  - ✅ **Enrichment Pipeline:** Queue-based async processing with auto-vectorization
+  - ✅ **Cron Job:** Weekly recommendation generation (Gemini) - Sunday midnight UTC
+  - ✅ **KV Cache:** `RECOMMENDATIONS_CACHE` namespace
+  - **Completed:** November 25, 2025
+  - **Docs:** See [SPRINT_3_BACKEND_HANDOFF.md](../../SPRINT_3_BACKEND_HANDOFF.md), [API_CONTRACT_V2_PROPOSAL.md](../../API_CONTRACT_V2_PROPOSAL.md), [openapi.yaml](../../openapi.yaml)
 
-- **Sprint 4:** Intelligence v2 (Gemini-Powered Recommendations) **[PLANNED]**
-  - Enhanced diversity analytics with ML insights
-  - Reading pattern recognition
-  - Personalized recommendations
-  - Advanced insights dashboard
-  - **Target:** Q1 2026
+- **📋 Sprint 4:** Intelligence v2 - iOS Integration **[PLANNING COMPLETE]**
+  - **Week 1:** Capabilities Service + Recommendations Widget + V2 Enrichment
+  - **Week 2:** Semantic Search UI + Similar Books Section
+  - **Week 3:** SSE Client + CSV Import Migration (Critical Path)
+  - **Week 4:** Polish + Integration Testing
+  - **Features:**
+    - `APICapabilitiesService` - Feature detection on app launch
+    - `SemanticSearchService` - Natural language queries (5 req/min)
+    - `SimilarBooksService` - Vector similarity recommendations
+    - `WeeklyRecommendationsWidget` - AI-generated picks in InsightsView
+    - `SSEClient` - Native URLSession SSE for import progress
+    - `V2ImportService` - HTTP/SSE migration (remove WebSocket)
+  - **Target:** February 2026
+  - **Docs:** See [SPRINT_4_IOS_INTEGRATION.md](SPRINT_4_IOS_INTEGRATION.md)
 
 **Key Deliverables (Phase 1):**
 - ✅ Representation Radar chart (diversity visualization)
 - ✅ Reading session tracking with timer
-- 🏃 Cascade metadata (add author info once, applies to all books)
-- 🏃 Session analytics and streak tracking
-- 🏃 Ratings system (user vs. critics vs. community)
-- 📋 Book enrichment system (ratings + metadata + annotations)
+- ✅ Cascade metadata (add author info once, applies to all books)
+- ✅ Session analytics and streak tracking
+- ✅ V2 API Backend (semantic search, recommendations, SSE) - Backend Complete
+- 📋 Semantic search UI (natural language queries)
+- 📋 Weekly book recommendations widget
+- 📋 HTTP/SSE API migration (from WebSocket)
 
 ---
 
-### Phase 2: Intelligence Layer (Q2 2026)
+### Phase 2: Personalization Layer (Q2 2026)
 
-**Goal:** Add AI-powered insights and personalized recommendations
+**Goal:** Evolve from global to personalized recommendations
 
-- **Sprint 5:** UserPreferenceProfile & Local AI Foundation
-- **Sprint 6:** Pattern Recognition Engine
-- **Sprint 7:** Recommendation System (Federated Learning)
-- **Sprint 8:** Advanced Reading Insights
+**Prerequisite:** Intelligence checkpoint complete (Sprint 4)
+
+- **Sprint 5:** User Data Sync Infrastructure
+  - Design user activity sync API (`POST /api/v2/user/activity`)
+  - SwiftData → D1 sync mechanism
+  - D1 user reading history tables
+  - Cold start handling (fallback to global recommendations)
+
+- **Sprint 6:** Personalized Recommendations
+  - Per-user recommendation generation
+  - Reading pattern recognition
+  - Preference learning from history
+
+- **Sprint 7:** Advanced Insights Dashboard
+  - Reading habit analytics
+  - Genre/author affinity visualization
+  - Goal tracking integration
+
+- **Sprint 8:** Performance & Optimization
+  - Recommendation quality tuning
+  - Latency optimization
+  - A/B testing framework
 
 **Key Deliverables:**
-- Local AI preference modeling
-- Reading pattern recognition
-- Privacy-preserving recommendations
+- User reading history sync (iOS → D1)
+- Personalized weekly recommendations
+- Reading pattern insights
 - Advanced analytics dashboard
 
 ---
@@ -141,34 +205,91 @@ Each sprint is **2 weeks** with the following structure:
 
 ---
 
-### 🏃 Sprint 2: In Progress
+### ✅ Sprint 2: Complete (iOS Polish) - November 25, 2025
 
-**Focus:** Complete Sprint 1 integration and polish
+**Focus:** Complete cascade metadata + session analytics
 
 **Tasks:**
-- Complete diversity completion widget integration
-- Session analytics aggregation (weekly/monthly trends)
-- Real device testing (keyboard input validation)
-- Documentation updates
-- Architecture verification
+- [x] Complete diversity completion widget integration ✅
+- [x] Integrate RepresentationRadarChart into InsightsView ✅
+- [x] Session analytics aggregation (weekly/monthly trends) ✅
+- [x] Wire all Sprint 2 views into app navigation ✅
+- [ ] Real device testing (keyboard input validation) - *Deferred to Sprint 3 prep*
+- [x] Documentation updates ✅
 
-**Target Completion:** December 2025
+**Completed:** November 25, 2025
+
+**What Was Delivered:**
+- `DiversityCompletionWidget` integrated into InsightsView (4th tab)
+- `RepresentationRadarChart` integrated into InsightsView
+- `StreakVisualizationView` displaying weekly/monthly session analytics
+- `EnhancedDiversityStats` loaded alongside `DiversityStats` for radar chart
+- All views accessible via Insights tab in main navigation
+- Build passes with zero errors
 
 ---
 
-### 📋 Sprint 3: Planned
+### ✅ Sprint 3: Backend Foundation + V2 API - COMPLETE (November 25, 2025)
 
-**Focus:** API Orchestration Layer (Backend)
+**Focus:** Unified V2 API infrastructure for Intelligence features
 
-See [SPRINT_3_ORCHESTRATION.md](SPRINT_3_ORCHESTRATION.md) for details.
+**Completed Infrastructure:**
+- [x] Cloudflare Vectorize index `book-embeddings` (1024 dims, cosine)
+- [x] Workers AI binding (BGE-M3 model)
+- [x] D1 database `bookstrack-library` with 8 migrations
+- [x] Async enrichment pipeline (Queue → Worker)
+- [x] All V2 API endpoints:
+  - [x] `POST /api/v2/books/enrich`
+  - [x] `POST /api/v2/imports` + SSE stream
+  - [x] `GET /api/v2/search?mode=text|semantic`
+  - [x] `GET /api/v2/recommendations/weekly`
+  - [x] `GET /api/v2/capabilities`
+  - [x] `GET /v1/search/similar?isbn=` (bonus!)
+- [x] Weekly cron job (Gemini recommendations) - Sunday midnight UTC
+- [x] KV namespace `RECOMMENDATIONS_CACHE`
+- [x] OpenAPI spec v2.7.0
+
+**Exit Criteria - All Met:**
+- ✅ All V2 endpoints deployed and live
+- ✅ Semantic search returns relevant results
+- ✅ Weekly recommendations cron configured
+- ✅ API contract documented (openapi.yaml v2.7.0)
+
+**Docs:** [SPRINT_3_BACKEND_HANDOFF.md](../../SPRINT_3_BACKEND_HANDOFF.md), [API_CONTRACT_V2_PROPOSAL.md](../../API_CONTRACT_V2_PROPOSAL.md), [openapi.yaml](../../openapi.yaml)
 
 ---
 
-### 📋 Sprint 4: Planned
+### 📋 Sprint 4: Intelligence Live (February 2026) - PLANNING COMPLETE
 
-**Focus:** Intelligence v2 (Gemini-Powered Recommendations)
+**Focus:** iOS integration + feature launch
 
-See [SPRINT_4_INTELLIGENCE_V2.md](SPRINT_4_INTELLIGENCE_V2.md) for details.
+**Week-by-Week Plan:**
+- **Week 1:** Foundation + Quick Wins
+  - [ ] `APICapabilitiesService` (feature detection)
+  - [ ] V2 Enrichment migration
+  - [ ] `WeeklyRecommendationsWidget` + service
+- **Week 2:** Search Intelligence
+  - [ ] `SemanticSearchService` (5 req/min rate limit)
+  - [ ] Search mode toggle UI
+  - [ ] `SimilarBooksService` + UI section
+- **Week 3:** SSE Migration (Critical Path)
+  - [ ] `SSEClient` (native URLSession)
+  - [ ] `V2ImportService` (replace WebSocket)
+  - [ ] Polling fallback
+- **Week 4:** Polish + Testing
+  - [ ] Integration tests
+  - [ ] Edge case handling
+  - [ ] Documentation
+
+**Exit Criteria:**
+- Semantic search live in App Store build
+- Weekly recommendations visible to users
+- CSV import uses SSE (WebSocket deprecated)
+- P95 latency < 800ms for semantic search
+
+**Risk:** SSE stability on mobile networks (mitigated by polling fallback)
+
+**Docs:** [SPRINT_4_IOS_INTEGRATION.md](SPRINT_4_IOS_INTEGRATION.md)
 
 ---
 
@@ -177,9 +298,9 @@ See [SPRINT_4_INTELLIGENCE_V2.md](SPRINT_4_INTELLIGENCE_V2.md) for details.
 Detailed sprint planning documents:
 
 - ✅ [`sprint-01-REVISED.md`](sprint-01-REVISED.md) - Diversity Stats + Reading Sessions (COMPLETE)
-- 🏃 Sprint 2 - Cascade Metadata + Session Analytics (IN PROGRESS)
-- 📋 [`SPRINT_3_ORCHESTRATION.md`](SPRINT_3_ORCHESTRATION.md) - API Orchestration Layer (PLANNED)
-- 📋 [`SPRINT_4_INTELLIGENCE_V2.md`](SPRINT_4_INTELLIGENCE_V2.md) - Intelligence v2 (PLANNED)
+- ✅ Sprint 2 - Cascade Metadata + Session Analytics (COMPLETE)
+- ✅ [`SPRINT_3_BACKEND_HANDOFF.md`](../../SPRINT_3_BACKEND_HANDOFF.md) - Backend Foundation + V2 API (COMPLETE)
+- 📋 [`SPRINT_4_IOS_INTEGRATION.md`](SPRINT_4_IOS_INTEGRATION.md) - iOS Intelligence Integration (PLANNING COMPLETE)
 
 ---
 
@@ -245,27 +366,67 @@ Detailed technical specifications by feature area:
 
 ## Next Actions
 
-### Immediate (Sprint 2)
-1. **Complete Sprint 1 Integration**
+### Immediate (Sprint 2 - December 2025)
+1. **Complete iOS Polish**
    - Finalize diversity completion widget
-   - Session analytics aggregation
+   - Session analytics aggregation (weekly/monthly)
    - Real device keyboard testing
 
-2. **Documentation Updates**
+2. **Documentation Sync**
    - Update PRDs to reflect Sprint 1 completion
    - Verify architecture docs match codebase
-   - Update v2-plans with current status
+   - Finalize V2 API contract (merge proposal)
 
-### Upcoming (Sprint 3)
-1. **API Orchestration Planning**
-   - Design D1 schema migration
-   - Plan KV→D1 transition strategy
-   - WebSocket Hibernation API integration
+### Sprint 3 Preparation (Late December)
+1. **Backend Infrastructure Planning**
+   - Finalize D1 schema (books, enrichment)
+   - Vectorize index configuration
+   - Unified V2 API endpoint design
 
-2. **Backend Development**
-   - Implement provider orchestration layer
-   - Set up D1 database and migrations
-   - Test fallback chains
+2. **API Contract Finalization**
+   - Merge V2 Proposal into API_CONTRACT.md
+   - Define SSE event schema
+   - Document rate limits for AI endpoints
+
+### Sprint 4 Preparation (Late January)
+1. **iOS Architecture**
+   - Design SSEClient actor (Swift 6 concurrency)
+   - Plan SearchView enhancements for semantic search
+   - Recommendations widget mockups
+
+---
+
+## Critical Decisions Made
+
+### Decision 1: Global Recommendations First
+**Context:** Personalized recommendations require user data sync infrastructure (reading history from iOS to D1).
+
+**Decision:** Ship with global, non-personalized recommendations in Sprint 4. Add personalization in Phase 2 (Sprint 5+).
+
+**Rationale:** De-risks the project by decoupling immediate goal (shipping UI + AI infra) from the harder problem of data synchronization.
+
+### Decision 2: Unified `/api/v2/*` Namespace
+**Context:** V2 Proposal used `/api/v2/*` while Sprint 4 used `/v2/*`.
+
+**Decision:** Standardize on `/api/v2/*` for all new endpoints.
+
+**Endpoints:**
+- `POST /api/v2/books/enrich`
+- `POST /api/v2/imports`
+- `GET /api/v2/search?mode=text|semantic`
+- `GET /api/v2/recommendations/weekly`
+- `GET /api/v2/capabilities`
+
+### Decision 3: Proactive Enrichment Pipeline
+**Context:** V2 Proposal had on-demand enrichment via GET request.
+
+**Decision:** Implement proactive, async enrichment pipeline:
+1. `POST /api/v2/imports` accepts raw book data
+2. Queue job for background processing
+3. Worker enriches + generates embeddings + inserts to Vectorize
+4. Search/recommendations query pre-processed data
+
+**Rationale:** Clients shouldn't trigger long-running processes via GET. Pre-processed data makes search/recommendations simpler and faster.
 
 ---
 
@@ -273,13 +434,18 @@ Detailed technical specifications by feature area:
 
 | Date | Change | Author |
 |------|--------|--------|
+| Nov 25, 2025 | **Sprint 4 Planning Complete**: Created SPRINT_4_IOS_INTEGRATION.md with 4-week implementation plan | Claude |
+| Nov 25, 2025 | **Sprint 3 Complete**: Backend team delivered V2 API + openapi.yaml v2.7.0 | Backend Team |
+| Nov 25, 2025 | **Sprint 2 Complete**: Integrated DiversityCompletionWidget + RepresentationRadarChart into InsightsView | Claude |
+| Nov 25, 2025 | Consolidated V2 API Proposal + Sprint 4 into unified 3-sprint roadmap | Claude |
 | Nov 23, 2025 | Updated with Sprint 1 completion, Sprint 2 in progress | oooe |
 | Nov 20, 2025 | Revised Sprint 1 based on user interview (diversity priority) | oooe |
 | Nov 20, 2025 | Initial v2 sprint planning | oooe |
 
 ---
 
-**Last Updated:** November 23, 2025
+**Last Updated:** November 25, 2025
 **Maintained by:** oooe (jukasdrj)
-**Status:** Sprint 2 In Progress
+**Status:** Sprint 2 ✅ | Sprint 3 ✅ | Sprint 4 Planning Complete 📋
+**Next Checkpoint:** Intelligence Layer Live (Sprint 4, February 2026)
 **Current Version:** v3.7.5 (Build 189)
