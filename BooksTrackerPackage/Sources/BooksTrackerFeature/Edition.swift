@@ -37,6 +37,7 @@ public final class Edition {
     var format: EditionFormat = EditionFormat.hardcover
     var coverImageURL: String?
     var editionTitle: String? // "Deluxe Edition", "Abridged", etc.
+    var originalLanguage: String?
 
     // External API identifiers for syncing and deduplication
     var openLibraryID: String?      // e.g., "OL123456M" (legacy, prefer openLibraryEditionID)
