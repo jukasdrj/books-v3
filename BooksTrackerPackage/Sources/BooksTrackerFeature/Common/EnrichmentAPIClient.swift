@@ -288,9 +288,13 @@ actor EnrichmentAPIClient {
     /// Generate idempotency key for a barcode to prevent duplicate enrichments
     /// Format: scan_YYYYMMDD_<barcode>_<timestamp>
     private func generateIdempotencyKey(for barcode: String) -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyyMMdd"
-        let dateString = dateFormatter.string(from: Date())
+        // Use ISO8601 date formatting (efficient, built-in)
+        let dateString = ISO8601DateFormatter.string(
+            from: Date(),
+            timeZone: TimeZone.current,
+            formatOptions: [.withYear, .withMonth, .withDay]
+        ).replacingOccurrences(of: "-", with: "")  // Convert "2025-11-25" to "20251125"
+        
         let timestamp = String(Int(Date().timeIntervalSince1970))
         return "scan_\(dateString)_\(barcode)_\(timestamp)"
     }
