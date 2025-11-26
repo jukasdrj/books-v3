@@ -132,7 +132,32 @@ public struct RepresentationRadarChart: View {
             lineWidth: 1
         )
 
-        // Data polygon segments
+        // Ghost polygon (100% target outline) - MVP Sprint 1
+        context.stroke(
+            Path { path in
+                path.addPolygon(center: center, radius: model.maxRadius, sides: dimensionCount, startAngle: -.pi / 2)
+            },
+            with: .color(.secondary.opacity(0.4)),
+            style: StrokeStyle(lineWidth: 2, dash: [8, 4])
+        )
+
+        // Filled polygon showing actual scores - MVP Sprint 1
+        let dataPolygonPath = Path { path in
+            for (i, point) in model.dataPoints.enumerated() {
+                let screenPoint = CGPoint(x: point.x + center.x, y: point.y + center.y)
+                if i == 0 {
+                    path.move(to: screenPoint)
+                } else {
+                    path.addLine(to: screenPoint)
+                }
+            }
+            path.closeSubpath()
+        }
+        
+        // Fill the polygon with semi-transparent color
+        context.fill(dataPolygonPath, with: .color(.green.opacity(0.2)))
+
+        // Data polygon segments (outline)
         for i in 0..<dimensionCount {
             let currentPoint = model.dataPoints[i]
             let nextPoint = model.dataPoints[(i + 1) % dimensionCount]
@@ -156,6 +181,19 @@ public struct RepresentationRadarChart: View {
                 )
             }
         }
+
+        // Center percentage label - MVP Sprint 1
+        let percentageText = Text("\(Int(data.overallCompletionPercentage))%")
+            .font(.system(size: 24, weight: .bold))
+            .foregroundStyle(.primary)
+        
+        let percentageRect = CGRect(
+            x: center.x - 30,
+            y: center.y - 12,
+            width: 60,
+            height: 24
+        )
+        context.draw(percentageText, in: percentageRect)
 
         // Axis labels
         for (i, dimension) in data.dimensions.enumerated() {
