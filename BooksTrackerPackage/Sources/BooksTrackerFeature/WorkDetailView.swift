@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import OSLog
 
 /// Single Book Detail View - iOS 26 Immersive Design
 /// Features blurred cover art background with floating metadata card
@@ -8,11 +9,20 @@ struct WorkDetailView: View {
     @Bindable var work: Work
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dtoMapper) private var dtoMapper
+    @Environment(\.bookSearchAPIService) private var bookSearchAPIService
     @Environment(\.iOS26ThemeStore) private var themeStore
     @State private var selectedEdition: Edition?
     @State private var showingEditionPicker = false
     @State private var selectedAuthor: Author?
     @State private var selectedEditionID: PersistentIdentifier?
+    @State private var similarBooks: [SearchResult] = []
+    @State private var similarBooksState: LoadingState = .idle
+    @State private var selectedSimilarBook: SearchResult?
+
+    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "WorkDetailView")
+
 
     // Primary edition for display
     private var primaryEdition: Edition {
@@ -81,6 +91,12 @@ struct WorkDetailView: View {
         .sheet(item: $selectedAuthor) { author in
             AuthorSearchResultsView(author: author)
         }
+        .navigationDestination(item: $selectedSimilarBook) { result in
+            WorkDiscoveryView(searchResult: result)
+        }
+        .task(id: work.id) {
+            await loadSimilarBooks()
+        }
     }
 
     // MARK: - Immersive Background
@@ -139,6 +155,10 @@ struct WorkDetailView: View {
                 // MARK: - Edition Metadata Card
                 EditionMetadataView(work: work, edition: primaryEdition)
                     .padding(.horizontal, 20)
+
+                // MARK: - Similar Books Section
+                similarBooksSection
+                    .padding(.vertical)
 
                 // MARK: - Manual Edition Selection
                 if FeatureFlags.shared.coverSelectionStrategy == .manual,
@@ -254,6 +274,85 @@ struct WorkDetailView: View {
             } else {
                 userEntry.preferredEdition = nil  // Clear when no edition selected
             }
+        }
+    }
+
+    // MARK: - Similar Books Logic
+
+    @ViewBuilder
+    private var similarBooksSection: some View {
+        switch similarBooksState {
+        case .loading:
+            HorizontalBookCarouselSkeleton()
+        case .loaded where !similarBooks.isEmpty:
+            HorizontalBookCarousel(
+                title: "You Might Also Like",
+                books: similarBooks,
+                selectedBook: $selectedSimilarBook
+            )
+        case .idle, .loaded, .error:
+            EmptyView()
+        }
+    }
+
+    private func loadSimilarBooks() async {
+        guard let isbn = primaryEdition.primaryISBN else {
+            similarBooksState = .idle
+            return
+        }
+
+        similarBooksState = .loading
+
+        // Check cache first
+        if let cachedBooks = await fetchSimilarBooksFromCache(for: isbn), !cachedBooks.isEmpty {
+            self.similarBooks = cachedBooks
+            similarBooksState = .loaded
+            return
+        }
+
+        // Fetch from network if cache is empty or expired
+        await fetchSimilarBooksFromNetwork(for: isbn)
+    }
+
+    private func fetchSimilarBooksFromCache(for isbn: String) async -> [SearchResult]? {
+        let descriptor = FetchDescriptor<SimilarBooksCache>(
+            predicate: #Predicate { $0.sourceISBN == isbn }
+        )
+
+        if let cacheEntry = try? modelContext.fetch(descriptor).first, !cacheEntry.isExpired {
+            let workIDs = cacheEntry.similarBookWorkIDs.compactMap {
+                try? JSONDecoder().decode(PersistentIdentifier.self, from: Data($0.utf8))
+            }
+
+            let works = try? modelContext.fetch(FetchDescriptor<Work>(predicate: #Predicate { workIDs.contains($0.persistentModelID) }))
+
+            return works?.map { SearchResult(work: $0, editions: [], authors: [], relevanceScore: 1.0, provider: "cache") }
+        }
+
+        return nil
+    }
+
+    private func fetchSimilarBooksFromNetwork(for isbn: String) async {
+        guard let service = bookSearchAPIService else {
+            similarBooksState = .error("API service not available.")
+            return
+        }
+
+        do {
+            let response = try await service.findSimilarBooks(isbn: isbn, limit: 10)
+            let results = response.results.filter { $0.work.id != work.id }
+            self.similarBooks = results
+
+            // Save to cache
+            let workIDs = results.compactMap { try? JSONEncoder().encode($0.work.persistentModelID).toString() }
+            let cacheEntry = SimilarBooksCache(sourceISBN: isbn, similarBookWorkIDs: workIDs, timestamp: Date())
+            modelContext.insert(cacheEntry)
+            try? modelContext.save()
+
+            similarBooksState = .loaded
+        } catch {
+            logger.error("Failed to load similar books: \(error.localizedDescription)")
+            similarBooksState = .error("Failed to load similar books.")
         }
     }
 }

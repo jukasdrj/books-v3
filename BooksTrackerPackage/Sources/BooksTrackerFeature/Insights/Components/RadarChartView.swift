@@ -67,33 +67,38 @@ public struct RadarChartView: View {
     }
 
     private func axisLabels(size: CGFloat) -> some View {
-        let radius = size / 2 * radiusScale
+        let radius: CGFloat = size / 2 * radiusScale
+        let centerOffset: CGFloat = size / 2
         return ZStack {
             ForEach(0..<axisCount, id: \.self) { i in
-                let axis = DiversityMetric.Axis.allCases[i]
-                let angle = (2 * .pi / Double(axisCount)) * Double(i) - .pi / 2
-                let point = CGPoint(
-                    x: cos(angle) * (radius + labelOffset),
-                    y: sin(angle) * (radius + labelOffset)
-                )
-                let metric = metricsByAxis[axis]
-
-                VStack {
-                    if metric?.isMissing == true {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.secondary)
-                    } else {
-                        Image(systemName: axis.systemImage)
-                            .font(.title2)
-                            .foregroundColor(.accentColor)
-                    }
-                    Text(axis.rawValue)
-                        .font(.caption)
-                }
-                .position(x: size / 2 + point.x, y: size / 2 + point.y)
+                axisLabelView(index: i, radius: radius, centerOffset: centerOffset)
             }
         }
+    }
+
+    @ViewBuilder
+    private func axisLabelView(index i: Int, radius: CGFloat, centerOffset: CGFloat) -> some View {
+        let axis = DiversityMetric.Axis.allCases[i]
+        let angle: Double = (2 * .pi / Double(axisCount)) * Double(i) - .pi / 2
+        let xPos: CGFloat = cos(angle) * (radius + labelOffset)
+        let yPos: CGFloat = sin(angle) * (radius + labelOffset)
+        let metric = metricsByAxis[axis]
+        let isMissing = metric?.isMissing == true
+
+        VStack {
+            if isMissing {
+                Image(systemName: "plus.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            } else {
+                Image(systemName: axis.systemImage)
+                    .font(.title2)
+                    .foregroundColor(.accentColor)
+            }
+            Text(axis.rawValue)
+                .font(.caption)
+        }
+        .position(x: centerOffset + xPos, y: centerOffset + yPos)
     }
 
     private func drawAxes(context: inout GraphicsContext, center: CGPoint, radius: CGFloat) {
