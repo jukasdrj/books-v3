@@ -57,7 +57,6 @@ struct WorkDetailView: View {
                         }
                 }
                 .accessibilityLabel("Back")
-                .accessibilityHint("Return to previous screen")
             }
 
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -320,13 +319,19 @@ struct WorkDetailView: View {
         )
 
         if let cacheEntry = try? modelContext.fetch(descriptor).first, !cacheEntry.isExpired {
-            let workIDs = cacheEntry.similarBookWorkIDs.compactMap {
-                try? JSONDecoder().decode(PersistentIdentifier.self, from: Data($0.utf8))
+            // Parse cached UUIDs (stored as UUID strings, not PersistentIdentifier)
+            let workUUIDs = cacheEntry.similarBookWorkIDs.compactMap { UUID(uuidString: $0) }
+
+            // Fetch works matching the cached UUIDs
+            var results: [SearchResult] = []
+            for uuid in workUUIDs {
+                let workDescriptor = FetchDescriptor<Work>(predicate: #Predicate { $0.uuid == uuid })
+                if let work = try? modelContext.fetch(workDescriptor).first {
+                    results.append(SearchResult(work: work, editions: [], authors: [], relevanceScore: 1.0, provider: "cache"))
+                }
             }
 
-            let works = try? modelContext.fetch(FetchDescriptor<Work>(predicate: #Predicate { workIDs.contains($0.persistentModelID) }))
-
-            return works?.map { SearchResult(work: $0, editions: [], authors: [], relevanceScore: 1.0, provider: "cache") }
+            return results.isEmpty ? nil : results
         }
 
         return nil
@@ -343,9 +348,9 @@ struct WorkDetailView: View {
             let results = response.results.filter { $0.work.id != work.id }
             self.similarBooks = results
 
-            // Save to cache
-            let workIDs = results.compactMap { try? JSONEncoder().encode($0.work.persistentModelID).toString() }
-            let cacheEntry = SimilarBooksCache(sourceISBN: isbn, similarBookWorkIDs: workIDs, timestamp: Date())
+            // Save to cache using stable Work UUIDs (not PersistentIdentifier)
+            let workUUIDs = results.map { $0.work.uuid.uuidString }
+            let cacheEntry = SimilarBooksCache(sourceISBN: isbn, similarBookWorkIDs: workUUIDs, timestamp: Date())
             modelContext.insert(cacheEntry)
             try? modelContext.save()
 
