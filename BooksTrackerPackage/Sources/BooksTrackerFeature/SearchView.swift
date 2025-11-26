@@ -369,6 +369,7 @@ public struct SearchView: View {
                     selectedBook = book
                 }
             )
+            .environment(searchModel)
             // HIG: Safe-area-aware bottom spacing for trending books visibility (#405)
             .safeAreaInset(edge: .bottom) {
                 Color.clear.frame(height: 16)
