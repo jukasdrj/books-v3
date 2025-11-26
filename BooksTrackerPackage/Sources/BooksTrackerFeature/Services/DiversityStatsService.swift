@@ -26,12 +26,16 @@ public final class DiversityStatsService {
         var culturalOrigins: [String: Int] = [:]
         var genderDistribution: [String: Int] = [:]
         var translationStatus: [String: Int] = [:]
+        var ownVoicesTheme: [String: Int] = [:]
+        var nicheAccessibility: [String: Int] = [:]
 
         // Completion tracking
         var totalBooks = 0
         var booksWithCulturalData = 0
         var booksWithGenderData = 0
         var booksWithTranslationData = 0
+        var booksWithOwnVoicesData = 0
+        var booksWithAccessibilityData = 0
 
         // Aggregate data from each entry's work
         for entry in entries {
@@ -62,6 +66,22 @@ public final class DiversityStatsService {
                 translationStatus[statusKey, default: 0] += 1
                 booksWithTranslationData += 1
             }
+
+            // Own Voices theme (from work)
+            if let ownVoices = work.isOwnVoices {
+                let themeKey = ownVoices ? "Own Voices" : "Not Own Voices"
+                ownVoicesTheme[themeKey, default: 0] += 1
+                booksWithOwnVoicesData += 1
+            }
+
+            // Accessibility/Niche features (from work)
+            if !work.accessibilityTags.isEmpty {
+                nicheAccessibility["Has Accessibility Features", default: 0] += 1
+                booksWithAccessibilityData += 1
+            } else {
+                // Don't count books without tags as "complete" - they may just be missing data
+                // Only count if we have explicit accessibility data
+            }
         }
 
         // Create or update stats model
@@ -81,10 +101,14 @@ public final class DiversityStatsService {
             stats.culturalOrigins = culturalOrigins
             stats.genderDistribution = genderDistribution
             stats.translationStatus = translationStatus
+            stats.ownVoicesTheme = ownVoicesTheme
+            stats.nicheAccessibility = nicheAccessibility
             stats.totalBooks = totalBooks
             stats.booksWithCulturalData = booksWithCulturalData
             stats.booksWithGenderData = booksWithGenderData
             stats.booksWithTranslationData = booksWithTranslationData
+            stats.booksWithOwnVoicesData = booksWithOwnVoicesData
+            stats.booksWithAccessibilityData = booksWithAccessibilityData
             stats.lastCalculated = Date()
         } else {
             // Create new
@@ -92,10 +116,14 @@ public final class DiversityStatsService {
             stats.culturalOrigins = culturalOrigins
             stats.genderDistribution = genderDistribution
             stats.translationStatus = translationStatus
+            stats.ownVoicesTheme = ownVoicesTheme
+            stats.nicheAccessibility = nicheAccessibility
             stats.totalBooks = totalBooks
             stats.booksWithCulturalData = booksWithCulturalData
             stats.booksWithGenderData = booksWithGenderData
             stats.booksWithTranslationData = booksWithTranslationData
+            stats.booksWithOwnVoicesData = booksWithOwnVoicesData
+            stats.booksWithAccessibilityData = booksWithAccessibilityData
             modelContext.insert(stats)
         }
 
@@ -148,13 +176,23 @@ public final class DiversityStatsService {
             missing.append("translationStatus")
         }
 
+        // Check Own Voices
+        if work.isOwnVoices == nil {
+            missing.append("ownVoicesTheme")
+        }
+
+        // Check accessibility tags
+        if work.accessibilityTags.isEmpty {
+            missing.append("nicheAccessibility")
+        }
+
         return missing
     }
 
     /// Update diversity data for a work
     /// - Parameters:
     ///   - workId: PersistentIdentifier of the work to update
-    ///   - dimension: Dimension name ("culturalOrigins", "genderDistribution", "translationStatus")
+    ///   - dimension: Dimension name ("culturalOrigins", "genderDistribution", "translationStatus", "ownVoicesTheme", "nicheAccessibility")
     ///   - value: String value for the dimension
     public func updateDiversityData(workId: PersistentIdentifier, dimension: String, value: String) async throws {
         guard let work = modelContext.model(for: workId) as? Work else {
@@ -182,6 +220,17 @@ public final class DiversityStatsService {
         case "translationStatus":
             // Update work's original language
             work.originalLanguage = value
+
+        case "ownVoicesTheme":
+            // Update work's Own Voices flag
+            // Parse boolean from string ("true", "false", "yes", "no")
+            work.isOwnVoices = value.lowercased() == "true" || value.lowercased() == "yes"
+
+        case "nicheAccessibility":
+            // Update work's accessibility tags
+            // Value should be a comma-separated list of tags
+            let tags = value.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+            work.accessibilityTags = tags.filter { !$0.isEmpty }
 
         default:
             throw DiversityStatsError.invalidDimension

@@ -60,6 +60,16 @@ public final class Work {
     @Attribute(.externalStorage)
     var subjectTags: [String] = []
 
+    // Diversity & Representation Metadata (for Representation Radar Chart)
+    /// Indicates if this work represents "Own Voices" - where the author's identity matches the subject matter
+    /// User-contributed flag for diversity tracking
+    var isOwnVoices: Bool?
+
+    /// Accessibility and niche features (e.g., "Dyslexia Friendly", "Large Print", "Audio Description")
+    /// User-contributed tags for accessibility tracking
+    @Attribute(.externalStorage)
+    var accessibilityTags: [String] = []
+
     /// Cover image URL (copied from EditionDTO for enrichment)
     /// Populated by backend normalizers (google-books, openlibrary, isbndb)
     var coverImageURL: String?

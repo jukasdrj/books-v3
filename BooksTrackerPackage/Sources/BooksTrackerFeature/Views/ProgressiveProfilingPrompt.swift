@@ -338,6 +338,37 @@ public struct ProgressiveProfilingPrompt: View {
             )
         }
 
+        // 4. Own Voices (if missing)
+        if work.isOwnVoices == nil {
+            questionsToAsk.append(
+                ProfileQuestion(
+                    dimension: "ownVoicesTheme",
+                    title: "Is this an 'Own Voices' work?",
+                    subtitle: "Does the author's identity match the subject matter they're writing about?",
+                    options: ["Yes", "No", "Not Sure"]
+                )
+            )
+        }
+
+        // 5. Accessibility Features (if missing)
+        if work.accessibilityTags.isEmpty {
+            questionsToAsk.append(
+                ProfileQuestion(
+                    dimension: "nicheAccessibility",
+                    title: "Does this book have accessibility features?",
+                    subtitle: "Select any that apply",
+                    options: [
+                        "Large Print",
+                        "Dyslexia Friendly",
+                        "Audio Description",
+                        "Braille Available",
+                        "High Contrast",
+                        "None"
+                    ]
+                )
+            )
+        }
+
         // Limit to 3-5 questions (take first 3-5)
         await MainActor.run {
             questions = Array(questionsToAsk.prefix(5))
@@ -496,7 +527,7 @@ public struct ProgressiveProfilingPrompt: View {
 // MARK: - Supporting Types
 
 private struct ProfileQuestion {
-    let dimension: String // "culturalOrigins", "genderDistribution", "translationStatus"
+    let dimension: String // "culturalOrigins", "genderDistribution", "translationStatus", "ownVoicesTheme", "nicheAccessibility"
     let title: String
     let subtitle: String?
     let options: [String]
