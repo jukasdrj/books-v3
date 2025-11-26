@@ -42,6 +42,13 @@ enum EnrichmentConfig {
         URL(string: "\(baseURL)/api/enrichment/cancel")!
     }
 
+    /// V2 synchronous book enrichment (single ISBN)
+    /// NEW: Replaces WebSocket-based enrichment for single-book lookups
+    /// Returns book metadata synchronously without job tracking
+    static var enrichmentV2URL: URL {
+        URL(string: "\(baseURL)/api/v2/books/enrich")!
+    }
+
     // MARK: - Bookshelf Scanning Endpoints
 
     /// AI-powered bookshelf scanning

@@ -186,4 +186,153 @@ actor EnrichmentAPIClient {
 
         return result
     }
+
+    // MARK: - V2 Synchronous Enrichment
+
+    /// Enrich a single book using V2 synchronous HTTP endpoint
+    /// - Parameters:
+    ///   - barcode: ISBN-10 or ISBN-13 barcode
+    ///   - preferProvider: Optional provider preference ("google", "openlibrary", or "auto")
+    /// - Returns: Enriched book data
+    /// - Throws: EnrichmentV2Error for various failure cases
+    /// - Note: This is a synchronous HTTP call, no WebSocket tracking needed
+    func enrichBookV2(barcode: String, preferProvider: String? = "auto") async throws -> V2EnrichmentResponse {
+        let url = EnrichmentConfig.enrichmentV2URL
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("ios-v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown")", forHTTPHeaderField: "X-Client-Version")
+        request.timeoutInterval = 30  // 30 second timeout for sync enrichment
+
+        // Generate idempotency key for safe retries
+        let idempotencyKey = generateIdempotencyKey(for: barcode)
+
+        let payload = V2EnrichmentRequest(
+            barcode: barcode,
+            preferProvider: preferProvider,
+            idempotencyKey: idempotencyKey
+        )
+        request.httpBody = try JSONEncoder().encode(payload)
+
+        #if DEBUG
+        print("[EnrichmentAPIClient] 📤 V2 Enrichment request: \(barcode)")
+        #endif
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw EnrichmentV2Error.invalidResponse
+        }
+
+        #if DEBUG
+        print("[EnrichmentAPIClient] ✅ V2 Enrichment HTTP \(httpResponse.statusCode)")
+        #endif
+
+        // Handle different status codes
+        switch httpResponse.statusCode {
+        case 200:
+            // Success - decode enriched book data
+            let decoder = JSONDecoder()
+            return try decoder.decode(V2EnrichmentResponse.self, from: data)
+
+        case 404:
+            // Book not found in any provider
+            let decoder = JSONDecoder()
+            if let errorResponse = try? decoder.decode(V2EnrichmentErrorResponse.self, from: data) {
+                throw EnrichmentV2Error.bookNotFound(
+                    message: errorResponse.message,
+                    providersChecked: errorResponse.providersChecked ?? []
+                )
+            }
+            throw EnrichmentV2Error.bookNotFound(
+                message: "No book data found for ISBN",
+                providersChecked: []
+            )
+
+        case 429:
+            // Rate limit exceeded
+            let decoder = JSONDecoder()
+            if let rateLimitError = try? decoder.decode(V2RateLimitErrorResponse.self, from: data) {
+                throw EnrichmentV2Error.rateLimitExceeded(
+                    retryAfter: rateLimitError.retryAfter ?? 3600,
+                    message: rateLimitError.message
+                )
+            }
+            throw EnrichmentV2Error.rateLimitExceeded(
+                retryAfter: 3600,
+                message: "Rate limit exceeded"
+            )
+
+        case 503:
+            // Service unavailable - all providers down
+            throw EnrichmentV2Error.serviceUnavailable(
+                message: "Book metadata providers are currently unavailable"
+            )
+
+        case 400:
+            // Invalid barcode format
+            throw EnrichmentV2Error.invalidBarcode(barcode: barcode)
+
+        default:
+            // Other HTTP errors
+            #if DEBUG
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("🚨 V2 Enrichment error response: \(responseString)")
+            }
+            #endif
+            throw EnrichmentV2Error.httpError(statusCode: httpResponse.statusCode)
+        }
+    }
+
+    /// Generate idempotency key for a barcode to prevent duplicate enrichments
+    /// Format: scan_YYYYMMDD_<barcode>_<timestamp>
+    private func generateIdempotencyKey(for barcode: String) -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyyMMdd"
+        let dateString = dateFormatter.string(from: Date())
+        let timestamp = String(Int(Date().timeIntervalSince1970))
+        return "scan_\(dateString)_\(barcode)_\(timestamp)"
+    }
+}
+
+// MARK: - V2 Enrichment Errors
+
+/// Errors specific to V2 synchronous enrichment
+enum EnrichmentV2Error: Error, LocalizedError, Sendable {
+    case bookNotFound(message: String, providersChecked: [String])
+    case rateLimitExceeded(retryAfter: Int, message: String)
+    case serviceUnavailable(message: String)
+    case invalidBarcode(barcode: String)
+    case invalidResponse
+    case httpError(statusCode: Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .bookNotFound(let message, let providers):
+            if providers.isEmpty {
+                return message
+            }
+            return "\(message) (checked: \(providers.joined(separator: ", ")))"
+
+        case .rateLimitExceeded(let retryAfter, let message):
+            let minutes = retryAfter / 60
+            if minutes > 0 {
+                return "\(message). Please try again in \(minutes) minute\(minutes == 1 ? "" : "s")."
+            }
+            return "\(message). Please try again in \(retryAfter) seconds."
+
+        case .serviceUnavailable(let message):
+            return message
+
+        case .invalidBarcode(let barcode):
+            return "Invalid ISBN format: \(barcode)"
+
+        case .invalidResponse:
+            return "Invalid server response"
+
+        case .httpError(let statusCode):
+            return "Server error (HTTP \(statusCode))"
+        }
+    }
 }

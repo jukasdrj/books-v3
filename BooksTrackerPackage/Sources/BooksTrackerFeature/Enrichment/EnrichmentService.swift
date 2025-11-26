@@ -31,6 +31,59 @@ public final class EnrichmentService {
 
     // MARK: - Public Methods
 
+    /// Enrich a single book using ISBN barcode (V2 synchronous endpoint)
+    /// - Parameters:
+    ///   - isbn: ISBN-10 or ISBN-13 barcode
+    ///   - modelContext: SwiftData model context for saving enriched data
+    /// - Returns: EnrichmentResult indicating success or failure
+    /// - Note: Uses V2 /api/v2/books/enrich endpoint for fast, synchronous enrichment
+    public func enrichWorkByISBN(
+        _ isbn: String,
+        in modelContext: ModelContext
+    ) async -> EnrichmentResult {
+        do {
+            let response = try await apiClient.enrichBookV2(barcode: isbn)
+
+            #if DEBUG
+            print("✅ V2 Enrichment successful: \(response.title) by \(response.authors.joined(separator: ", "))")
+            #endif
+
+            // Find or create work with enriched data
+            let work = await findOrCreateWork(from: response, in: modelContext)
+
+            totalEnriched += 1
+            return .success
+
+        } catch let error as EnrichmentV2Error {
+            totalFailed += 1
+
+            #if DEBUG
+            print("🚨 V2 Enrichment failed: \(error.localizedDescription)")
+            #endif
+
+            // Map V2 errors to existing EnrichmentError
+            switch error {
+            case .bookNotFound:
+                return .failure(.noMatchFound)
+            case .invalidBarcode:
+                return .failure(.invalidQuery)
+            case .rateLimitExceeded, .serviceUnavailable, .invalidResponse:
+                return .failure(.apiError(error.localizedDescription))
+            case .httpError(let statusCode):
+                return .failure(.httpError(statusCode))
+            }
+
+        } catch {
+            totalFailed += 1
+
+            #if DEBUG
+            print("🚨 Unexpected V2 enrichment error: \(error)")
+            #endif
+
+            return .failure(.apiError(String(describing: error)))
+        }
+    }
+
     /// Enrich a single work with metadata from the API
     public func enrichWork(
         _ work: Work,
@@ -365,6 +418,149 @@ public final class EnrichmentService {
         // This prevents crash if UI accesses the model before next save cycle
         // Fatal error occurs when: Edition created → temporary ID → UI accesses → context invalidated → crash
         try? modelContext.save()
+    }
+
+    /// Find existing work by ISBN or create new work from V2 enrichment response
+    private func findOrCreateWork(
+        from response: V2EnrichmentResponse,
+        in modelContext: ModelContext
+    ) async -> Work {
+        // Try to find existing work by ISBN
+        if let existingWork = findWorkByISBN(response.isbn, in: modelContext) {
+            // Update existing work with new data if missing
+            updateWorkFromV2Response(existingWork, with: response, in: modelContext)
+            return existingWork
+        }
+
+        // Create new work
+        let work = Work(
+            title: response.title,
+            authors: []  // Will be set after insertion
+        )
+
+        // Insert work first to get permanent ID
+        modelContext.insert(work)
+
+        // Set publication year from date if available
+        if let publishedDate = response.publishedDate {
+            work.firstPublicationYear = extractYear(from: publishedDate)
+        }
+
+        // Create author if we have author names
+        if !response.authors.isEmpty {
+            let authorName = response.authors.first ?? "Unknown Author"
+            let author = Author(name: authorName)
+            modelContext.insert(author)
+
+            // Set bidirectional relationship
+            work.authors = [author]
+        }
+
+        // Create edition with enriched data
+        let edition = Edition(
+            isbn: response.isbn,
+            publisher: response.publisher,
+            publicationDate: response.publishedDate,
+            pageCount: response.pageCount,
+            format: .paperback,
+            coverImageURL: response.coverUrl
+        )
+        modelContext.insert(edition)
+
+        // Set bidirectional relationship
+        edition.work = work
+
+        work.touch()
+
+        try? modelContext.save()
+
+        return work
+    }
+
+    /// Find work by ISBN in model context
+    private func findWorkByISBN(_ isbn: String, in modelContext: ModelContext) -> Work? {
+        let descriptor = FetchDescriptor<Edition>(
+            predicate: #Predicate<Edition> { edition in
+                edition.isbn == isbn
+            }
+        )
+
+        if let edition = try? modelContext.fetch(descriptor).first {
+            return edition.work
+        }
+
+        return nil
+    }
+
+    /// Update existing work with V2 enrichment data
+    private func updateWorkFromV2Response(
+        _ work: Work,
+        with response: V2EnrichmentResponse,
+        in modelContext: ModelContext
+    ) {
+        // Update publication year if missing
+        if work.firstPublicationYear == nil, let publishedDate = response.publishedDate {
+            work.firstPublicationYear = extractYear(from: publishedDate)
+        }
+
+        // Find or create edition
+        var edition: Edition?
+
+        if let existingEditions = work.editions, !existingEditions.isEmpty {
+            edition = existingEditions.first
+        } else {
+            let newEdition = Edition(
+                isbn: response.isbn,
+                publisher: response.publisher,
+                publicationDate: response.publishedDate,
+                pageCount: response.pageCount,
+                format: .paperback,
+                coverImageURL: response.coverUrl
+            )
+            modelContext.insert(newEdition)
+            newEdition.work = work
+            edition = newEdition
+        }
+
+        // Update edition with missing data
+        if let edition = edition {
+            if edition.coverImageURL == nil, let coverURL = response.coverUrl {
+                edition.coverImageURL = coverURL
+            }
+
+            if edition.pageCount == nil {
+                edition.pageCount = response.pageCount
+            }
+
+            if edition.publisher == nil {
+                edition.publisher = response.publisher
+            }
+
+            edition.touch()
+        }
+
+        work.touch()
+
+        try? modelContext.save()
+    }
+
+    /// Extract year from date string (formats: YYYY, YYYY-MM-DD)
+    private func extractYear(from dateString: String) -> Int? {
+        // Try full ISO date format first
+        let isoFormatter = DateFormatter()
+        isoFormatter.dateFormat = "yyyy-MM-dd"
+
+        if let date = isoFormatter.date(from: dateString) {
+            let calendar = Calendar.current
+            return calendar.component(.year, from: date)
+        }
+
+        // Try just year
+        if let year = Int(dateString.prefix(4)) {
+            return year
+        }
+
+        return nil
     }
 }
 
