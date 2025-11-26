@@ -3,8 +3,8 @@ import SwiftData
 
 @Model
 final class SimilarBooksCache {
-    /// Configurable cache expiration duration (default: 24 hours)
-    static var cacheExpirationSeconds: TimeInterval = 24 * 60 * 60
+    /// Cache expiration duration (24 hours)
+    static let cacheExpirationSeconds: TimeInterval = 24 * 60 * 60
 
     @Attribute(.unique)
     var sourceISBN: String

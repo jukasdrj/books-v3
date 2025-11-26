@@ -8,32 +8,43 @@ public actor CapabilitiesService {
     // Cache properties
     private var cachedCapabilities: APICapabilities?
     private var lastFetchTimestamp: Date?
-    private let cacheTTL: TimeInterval = 3600 // 1 hour in seconds
+    private let cacheTTL: TimeInterval
 
-    public init() {
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 10.0
-        config.timeoutIntervalForResource = 30.0
-        self.urlSession = URLSession(configuration: config)
+    /// Capabilities API endpoint URL (uses EnrichmentConfig.baseURL)
+    private static var capabilitiesURL: URL {
+        URL(string: "\(EnrichmentConfig.baseURL)/api/v2/capabilities")!
+    }
+
+    /// Initialize with configurable URLSession and cache TTL for testing
+    /// - Parameters:
+    ///   - urlSession: URLSession to use for requests (default: configured session)
+    ///   - cacheTTL: Cache time-to-live in seconds (default: 1 hour)
+    public init(urlSession: URLSession? = nil, cacheTTL: TimeInterval = 3600) {
+        if let session = urlSession {
+            self.urlSession = session
+        } else {
+            let config = URLSessionConfiguration.default
+            config.timeoutIntervalForRequest = 10.0
+            config.timeoutIntervalForResource = 30.0
+            self.urlSession = URLSession(configuration: config)
+        }
+        self.cacheTTL = cacheTTL
     }
 
     public func fetchCapabilities() async throws -> APICapabilities {
         if let cached = cachedCapabilities, let lastFetch = lastFetchTimestamp, Date().timeIntervalSince(lastFetch) < cacheTTL {
-            logger.info("✅ Returning cached capabilities.")
+            logger.info("Returning cached capabilities.")
             return cached
         }
 
-        logger.info("🚀 Fetching capabilities from network...")
-        let urlString = "https://api.oooefam.net/api/v2/capabilities"
-        guard let url = URL(string: urlString) else {
-            throw CapabilitiesError.invalidURL
-        }
+        logger.info("Fetching capabilities from network...")
+        let url = Self.capabilitiesURL
 
         let (data, response): (Data, URLResponse)
         do {
             (data, response) = try await urlSession.data(from: url)
         } catch {
-            logger.error("🚨 Network request failed: \(error.localizedDescription)")
+            logger.error("Network request failed: \(error.localizedDescription)")
             throw CapabilitiesError.networkError(error)
         }
 
@@ -42,7 +53,7 @@ public actor CapabilitiesService {
         }
 
         guard httpResponse.statusCode == 200 else {
-            logger.error("🚨 Received HTTP status code: \(httpResponse.statusCode)")
+            logger.error("Received HTTP status code: \(httpResponse.statusCode)")
             throw CapabilitiesError.httpError(httpResponse.statusCode)
         }
 
@@ -50,10 +61,10 @@ public actor CapabilitiesService {
             let capabilities = try JSONDecoder().decode(APICapabilities.self, from: data)
             self.cachedCapabilities = capabilities
             self.lastFetchTimestamp = Date()
-            logger.info("✅ Successfully fetched and cached new capabilities. Version: \(capabilities.version)")
+            logger.info("Successfully fetched and cached capabilities. Version: \(capabilities.version)")
             return capabilities
         } catch {
-            logger.error("🚨 Failed to decode capabilities response: \(error.localizedDescription)")
+            logger.error("Failed to decode capabilities response: \(error.localizedDescription)")
             throw CapabilitiesError.decodingError(error)
         }
     }

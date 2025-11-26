@@ -180,19 +180,6 @@ struct WorkDetailView: View {
         }
     }
 
-    private var similarBooksSection: some View {
-        GroupBox {
-            VStack(alignment: .leading) {
-                Text("Similar Books")
-                    .font(.headline)
-                    .foregroundColor(themeStore.primaryColor)
-                Text("Users who enjoyed this book also liked:")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-        }
-    }
-
     private var bookCoverHero: some View {
         VStack(spacing: 16) {
             // Large cover image

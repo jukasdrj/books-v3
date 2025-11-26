@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import BooksTrackerFeature
+import OSLog
 
 // MARK: - Model Container Factory
 
@@ -163,6 +164,7 @@ class DTOMapperFactory {
 
 @main
 struct BooksTrackerApp: App {
+    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "BooksTrackerApp")
     @State private var themeStore = iOS26ThemeStore()
     @State private var featureFlags = FeatureFlags.shared
     @State private var capabilitiesService = CapabilitiesService()
@@ -179,7 +181,7 @@ struct BooksTrackerApp: App {
                         let capabilities = try await capabilitiesService.fetchCapabilities()
                         featureFlags.apiCapabilities = capabilities
                     } catch {
-                        print("Failed to fetch capabilities: \(error)")
+                        logger.error("Failed to fetch capabilities: \(error.localizedDescription)")
                     }
                 }
                 .iOS26ThemeStore(themeStore)
