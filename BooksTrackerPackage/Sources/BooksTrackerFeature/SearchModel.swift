@@ -716,4 +716,22 @@ public struct SearchResult: Identifiable, Hashable, @unchecked Sendable {
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
+
+    /// Primary initializer for API search results
+    public init(work: Work, editions: [Edition], authors: [Author], relevanceScore: Double, provider: String) {
+        self.work = work
+        self.editions = editions
+        self.authors = authors
+        self.relevanceScore = relevanceScore
+        self.provider = provider
+    }
+
+    /// Convenience initializer for local/scanned books
+    init(from work: Work) {
+        self.work = work
+        self.editions = work.editions ?? []
+        self.authors = work.authors ?? []
+        self.relevanceScore = 1.0 // Scanned books are always relevant
+        self.provider = "local"
+    }
 }
