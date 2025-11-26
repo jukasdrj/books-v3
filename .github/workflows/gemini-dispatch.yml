@@ -1,25 +1,22 @@
 name: '🔀 Gemini Dispatch'
 
-# DISABLED: Auto-reviews generate too many email notifications
-# To re-enable, uncomment the triggers below
 on:
-  workflow_dispatch:  # Manual trigger only
-  # pull_request_review_comment:
-  #   types:
-  #     - 'created'
-  # pull_request_review:
-  #   types:
-  #     - 'submitted'
-  # pull_request:
-  #   types:
-  #     - 'opened'
-  # issues:
-  #   types:
-  #     - 'opened'
-  #     - 'reopened'
-  # issue_comment:
-  #   types:
-  #     - 'created'
+  pull_request_review_comment:
+    types:
+      - 'created'
+  pull_request_review:
+    types:
+      - 'submitted'
+  pull_request:
+    types:
+      - 'opened'
+  issues:
+    types:
+      - 'opened'
+      - 'reopened'
+  issue_comment:
+    types:
+      - 'created'
 
 defaults:
   run:
