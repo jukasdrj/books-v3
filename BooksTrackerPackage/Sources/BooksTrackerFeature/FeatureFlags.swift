@@ -99,6 +99,25 @@ public final class FeatureFlags: Sendable {
         }
     }
 
+    /// Enable V2 Unified Search API with semantic mode support
+    ///
+    /// When enabled, uses /api/v2/search endpoint with text and semantic modes.
+    /// Semantic mode provides AI-powered conceptual search using Vectorize embeddings.
+    ///
+    /// Default: `false` (V1 endpoints used)
+    ///
+    /// Rate Limits:
+    /// - Text mode: 100 req/min
+    /// - Semantic mode: 5 req/min (AI compute intensive)
+    public var enableV2Search: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: "feature.enableV2Search")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "feature.enableV2Search")
+        }
+    }
+
     public static let shared = FeatureFlags()
 
     private init() {}
@@ -109,8 +128,9 @@ public final class FeatureFlags: Sendable {
         enableTabBarMinimize = true  // Default enabled
         coverSelectionStrategy = .auto  // Default auto
         disableCanonicalEnrichment = false  // Default canonical endpoint
+        enableV2Search = false  // Default V1 endpoints
         #if DEBUG
-        print("✅ FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true)")
+        print("✅ FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true, v2Search: false)")
         #endif
     }
 }

@@ -27,6 +27,11 @@ enum EnrichmentConfig {
         URL(string: "\(baseURL)/search/advanced")!
     }
 
+    /// V2 Unified Search (text and semantic modes)
+    static var searchV2URL: URL {
+        URL(string: "\(baseURL)/api/v2/search")!
+    }
+
     // MARK: - Enrichment Endpoints
 
     /// Start batch enrichment job

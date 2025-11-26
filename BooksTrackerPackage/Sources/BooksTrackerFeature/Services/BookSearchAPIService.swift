@@ -117,6 +117,97 @@ public class BookSearchAPIService {
         )
     }
 
+    // MARK: - V2 Unified Search API
+    
+    /// V2 Unified Search with text and semantic modes
+    /// Endpoint: GET /api/v2/search?q={query}&mode={text|semantic}&limit={limit}
+    ///
+    /// - Parameters:
+    ///   - query: Search query string (min 2 characters)
+    ///   - mode: Search mode (.text or .semantic)
+    ///   - limit: Maximum number of results (default: 20, max: 100)
+    /// - Returns: SearchResponse with results matching existing format
+    /// - Throws: SearchError for validation, network, or API errors
+    func searchV2(query: String, mode: SearchMode = .text, limit: Int = 20) async throws -> SearchResponse {
+        guard query.count >= 2 else {
+            throw SearchError.invalidQuery
+        }
+        
+        guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            throw SearchError.invalidQuery
+        }
+        
+        // Build V2 search URL
+        let urlString = "\(EnrichmentConfig.baseURL)/api/v2/search?q=\(encodedQuery)&mode=\(mode.rawValue)&limit=\(limit)"
+        guard let url = URL(string: urlString) else {
+            throw SearchError.invalidURL
+        }
+        
+        logger.info("🔍 V2 Search: query='\(query)', mode=\(mode.rawValue), limit=\(limit)")
+        
+        let startTime = Date()
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await urlSession.data(from: url)
+        } catch {
+            throw SearchError.networkError(error)
+        }
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw SearchError.invalidResponse
+        }
+        
+        // Handle rate limiting (429) - especially important for semantic mode (5 req/min)
+        if httpResponse.statusCode == 429 {
+            let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After").flatMap(Int.init)
+            logger.warning("⚠️ V2 Search rate limited (mode: \(mode.rawValue), retry after: \(retryAfter ?? 0)s)")
+            throw SearchError.rateLimitExceeded(retryAfter: retryAfter)
+        }
+        
+        // Handle service unavailable (503) - may happen for semantic mode if Vectorize is down
+        if httpResponse.statusCode == 503 {
+            logger.warning("⚠️ V2 Search service unavailable (mode: \(mode.rawValue))")
+            throw SearchError.httpError(503)
+        }
+        
+        // Handle client errors (400)
+        if httpResponse.statusCode == 400 {
+            // Try to decode error message
+            if let errorResponse = try? JSONDecoder().decode(SearchV2ErrorResponse.self, from: data) {
+                logger.warning("⚠️ V2 Search error: \(errorResponse.error.message)")
+                throw SearchError.apiError(errorResponse.error.message)
+            }
+            throw SearchError.httpError(400)
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            throw SearchError.httpError(httpResponse.statusCode)
+        }
+        
+        let responseTime = Date().timeIntervalSince(startTime) * 1000
+        
+        // Parse V2 response
+        let v2Response: SearchV2Response
+        do {
+            v2Response = try JSONDecoder().decode(SearchV2Response.self, from: data)
+            logger.info("✅ V2 Search successful: \(v2Response.results.count) results in \(Int(responseTime))ms (mode: \(v2Response.mode))")
+        } catch {
+            logger.error("❌ Failed to decode V2 response: \(error)")
+            throw SearchError.decodingError(error)
+        }
+        
+        // Convert V2 results to SearchResult format
+        let results = try convertV2ResultsToSearchResults(v2Response.results)
+        
+        return SearchResponse(
+            results: results,
+            cacheHitRate: 0.0, // V2 doesn't expose cache metrics yet
+            provider: "v2:\(v2Response.mode)",
+            responseTime: responseTime,
+            totalItems: v2Response.total
+        )
+    }
+
     /// Get trending books based on user activity within a time range
     /// Returns top 10 most popular books (by search + add count) with optional fallback to curated list
     func getTrendingBooks(timeRange: TimeRange = .lastWeek) async throws -> SearchResponse {
@@ -498,6 +589,49 @@ public class BookSearchAPIService {
                 )
             } catch {
                 logger.warning("⚠️ Failed to map Work DTO '\(workDTO.title)': \(String(describing: error))")
+                return nil
+            }
+        }
+    }
+
+    /// Convert V2 search results to SearchResult array
+    /// V2 API returns a simpler format that needs to be mapped to our Work/Edition/Author models
+    /// Note: V2 results are not automatically persisted - they are preview/search results only
+    private func convertV2ResultsToSearchResults(_ v2Results: [SearchV2Result]) throws -> [SearchResult] {
+        logger.debug("📦 Processing V2 search response: \(v2Results.count) results")
+        
+        return v2Results.compactMap { v2Result in
+            do {
+                // Create minimal Work object (not persisted by default)
+                let work = Work(title: v2Result.title)
+                
+                // Create Author objects from name strings
+                let authors = v2Result.authors.map { authorName in
+                    Author(name: authorName)
+                }
+                
+                // Create minimal Edition with cover URL and ISBN
+                var edition: Edition? = nil
+                if !v2Result.isbn.isEmpty {
+                    edition = Edition(
+                        isbn: v2Result.isbn,
+                        coverImageURL: v2Result.coverUrl
+                    )
+                    // Add ISBN to isbns array for primaryISBN computation
+                    if let edition = edition {
+                        edition.isbns = [v2Result.isbn]
+                    }
+                }
+                
+                return SearchResult(
+                    work: work,
+                    editions: edition.map { [$0] } ?? [],
+                    authors: authors,
+                    relevanceScore: v2Result.relevanceScore,
+                    provider: "v2:\(v2Result.matchType)"
+                )
+            } catch {
+                logger.warning("⚠️ Failed to convert V2 result '\(v2Result.title)': \(String(describing: error))")
                 return nil
             }
         }

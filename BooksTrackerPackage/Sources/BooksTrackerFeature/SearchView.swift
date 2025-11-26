@@ -143,6 +143,13 @@ public struct SearchView: View {
                             ToolbarItem(placement: .navigationBarLeading) {
                                 advancedSearchButton
                             }
+                            
+                            // V2 Search Mode Toggle (only when feature flag enabled)
+                            if FeatureFlags.shared.enableV2Search, let searchModel = searchModel {
+                                ToolbarItem(placement: .principal) {
+                                    searchModeToggle(searchModel: searchModel)
+                                }
+                            }
 
                             ToolbarItem(placement: .navigationBarTrailing) {
                                 barcodeButton
@@ -377,6 +384,12 @@ public struct SearchView: View {
                     loadMoreResults()
                 }
             )
+            // Rate limit indicator for semantic search (V2 API)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if FeatureFlags.shared.enableV2Search && searchModel.searchMode == .semantic {
+                    rateLimitIndicator(searchModel: searchModel)
+                }
+            }
             // HIG: Debug info only in development builds (overlaid on results)
             #if DEBUG
             .overlay(alignment: .bottom) {
@@ -419,6 +432,67 @@ public struct SearchView: View {
         }
         .accessibilityLabel("Advanced Search")
         .accessibilityHint("Open advanced search form with multiple filter fields")
+    }
+
+    // MARK: - Search Mode Toggle (V2 API)
+    
+    private func searchModeToggle(searchModel: SearchModel) -> some View {
+        Picker("Search Mode", selection: Binding(
+            get: { searchModel.searchMode },
+            set: { newMode in
+                searchModel.searchMode = newMode
+                // Re-run search if there's active text
+                if !searchModel.searchText.isEmpty {
+                    performScopedSearch(query: searchModel.searchText, scope: searchScope, searchModel: searchModel)
+                }
+            }
+        )) {
+            ForEach(SearchMode.allCases) { mode in
+                Text(mode.displayName)
+                    .tag(mode)
+            }
+        }
+        .pickerStyle(.segmented)
+        .frame(maxWidth: 200)
+        .disabled(searchModel.searchMode == .semantic && searchModel.isSemanticSearchRateLimited)
+        .accessibilityLabel("Search mode: \(searchModel.searchMode.displayName)")
+        .accessibilityHint(searchModel.searchMode.description)
+    }
+    
+    // MARK: - Rate Limit Indicator (Semantic Search)
+    
+    private func rateLimitIndicator(searchModel: SearchModel) -> some View {
+        Group {
+            if searchModel.isSemanticSearchRateLimited {
+                // Show rate limit exceeded message
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Text("Rate limit reached. Resets in \(searchModel.secondsUntilSemanticSearchAvailable)s")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(.ultraThinMaterial)
+                .accessibilityLabel("Semantic search rate limit reached. Resets in \(searchModel.secondsUntilSemanticSearchAvailable) seconds")
+            } else if searchModel.remainingSemanticSearches < 3 {
+                // Show warning when getting close to limit
+                HStack(spacing: 8) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundStyle(.blue)
+                    Text("\(searchModel.remainingSemanticSearches) AI searches remaining")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(.ultraThinMaterial)
+                .accessibilityLabel("\(searchModel.remainingSemanticSearches) AI searches remaining")
+            }
+        }
+        .animation(.easeInOut, value: searchModel.remainingSemanticSearches)
+        .animation(.easeInOut, value: searchModel.isSemanticSearchRateLimited)
     }
 
     // MARK: - Performance Section (Debug Only)

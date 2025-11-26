@@ -27,6 +27,54 @@ public enum SearchScope: String, CaseIterable, Identifiable, Sendable {
 
 }
 
+// MARK: - Search Mode Enum
+
+/// Search mode for V2 Unified Search API
+/// Determines the type of search algorithm used by the backend
+public enum SearchMode: String, CaseIterable, Identifiable, Sendable {
+    /// Text-based search using traditional keyword matching
+    /// Rate limit: 100 requests/minute
+    case text = "text"
+    
+    /// AI-powered semantic search using vector embeddings
+    /// Rate limit: 5 requests/minute (compute intensive)
+    case semantic = "semantic"
+    
+    public var id: String { rawValue }
+    
+    /// HIG: Provide clear, concise mode labels
+    public var displayName: String {
+        switch self {
+        case .text: return "Text"
+        case .semantic: return "AI Search"
+        }
+    }
+    
+    /// HIG: Accessibility - descriptive labels for VoiceOver
+    public var accessibilityLabel: String {
+        switch self {
+        case .text: return "Text-based keyword search"
+        case .semantic: return "AI-powered semantic search"
+        }
+    }
+    
+    /// User-facing description explaining the search mode
+    public var description: String {
+        switch self {
+        case .text: return "Traditional keyword matching"
+        case .semantic: return "AI understands meaning and context"
+        }
+    }
+    
+    /// Rate limit in requests per minute
+    public var rateLimitPerMinute: Int {
+        switch self {
+        case .text: return 100
+        case .semantic: return 5
+        }
+    }
+}
+
 // MARK: - Search State Management
 
 @Observable
@@ -35,6 +83,36 @@ public final class SearchModel {
     // Unified search state
     var searchText: String = ""
     var viewState: SearchViewState = .loadingTrending(recentSearches: [])
+
+    // V2 Search mode state
+    var searchMode: SearchMode = .text
+    
+    // Rate limit tracking for semantic search (5 req/min)
+    private var semanticSearchTimestamps: [Date] = []
+    private let semanticSearchWindowSeconds: TimeInterval = 60
+    
+    // Computed property for remaining semantic searches in current window
+    var remainingSemanticSearches: Int {
+        cleanupOldTimestamps()
+        let used = semanticSearchTimestamps.count
+        let limit = SearchMode.semantic.rateLimitPerMinute
+        return max(0, limit - used)
+    }
+    
+    // Computed property for seconds until semantic search is available again
+    var secondsUntilSemanticSearchAvailable: Int {
+        cleanupOldTimestamps()
+        guard semanticSearchTimestamps.count >= SearchMode.semantic.rateLimitPerMinute else {
+            return 0
+        }
+        // Find the oldest timestamp in the window
+        if let oldestTimestamp = semanticSearchTimestamps.first {
+            let resetTime = oldestTimestamp.addingTimeInterval(semanticSearchWindowSeconds)
+            let secondsRemaining = Int(resetTime.timeIntervalSinceNow)
+            return max(0, secondsRemaining)
+        }
+        return 0
+    }
 
     // Search suggestions (still separate - UI-specific feature)
     var searchSuggestions: [String] = []
@@ -379,9 +457,30 @@ public final class SearchModel {
         let startTime = CFAbsoluteTimeGetCurrent()
 
         do {
-            // Call appropriate API based on search type
+            // Call appropriate API based on search type and feature flags
             let response: SearchResponse
-            if options.isAdvanced, let authorName = options.authorFilter, options.titleFilter == nil, options.isbnFilter == nil {
+            
+            // Check if V2 search is enabled via feature flag
+            let useV2Search = FeatureFlags.shared.enableV2Search
+            
+            if useV2Search && !options.isAdvanced {
+                // Use V2 unified search API
+                logger.debug("🔍 Using V2 search API (mode: \(searchMode.rawValue))")
+                
+                // Check rate limit for semantic mode
+                if searchMode == .semantic {
+                    guard !isSemanticSearchRateLimited else {
+                        throw SearchError.rateLimitExceeded(retryAfter: secondsUntilSemanticSearchAvailable)
+                    }
+                }
+                
+                response = try await apiService.searchV2(query: query, mode: searchMode, limit: 20)
+                
+                // Record semantic search for rate limit tracking
+                if searchMode == .semantic {
+                    recordSemanticSearch()
+                }
+            } else if options.isAdvanced, let authorName = options.authorFilter, options.titleFilter == nil, options.isbnFilter == nil {
                 // This is an author-only advanced search, use the dedicated endpoint
                 response = try await apiService.advancedSearch(
                     author: authorName,
@@ -635,6 +734,25 @@ public final class SearchModel {
     private func saveTrendingSearchesToCache(_ searches: [String]) {
         UserDefaults.standard.set(searches, forKey: Self.trendingSearchesCacheKey)
         UserDefaults.standard.set(Date(), forKey: Self.trendingSearchesCacheTimestampKey)
+    }
+
+    // MARK: - Rate Limit Tracking
+    
+    /// Clean up timestamps older than the rate limit window (60 seconds)
+    private func cleanupOldTimestamps() {
+        let cutoffTime = Date().addingTimeInterval(-semanticSearchWindowSeconds)
+        semanticSearchTimestamps.removeAll { $0 < cutoffTime }
+    }
+    
+    /// Record a semantic search request for rate limit tracking
+    private func recordSemanticSearch() {
+        cleanupOldTimestamps()
+        semanticSearchTimestamps.append(Date())
+    }
+    
+    /// Check if semantic search is rate limited
+    var isSemanticSearchRateLimited: Bool {
+        return remainingSemanticSearches <= 0
     }
 
     private func enrichResultsWithLibraryStatus(_ results: [SearchResult]) async -> [SearchResult] {
