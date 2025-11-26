@@ -415,7 +415,10 @@ public final class EnrichmentService {
             work = Work(title: dto.title)
             modelContext.insert(work)
 
-            work.authors = findOrCreateAuthors(named: dto.authors, in: modelContext)
+            // Create and insert authors FIRST, then set relationship
+            // Per SwiftData lifecycle: both objects must be inserted before setting relationships
+            let authors = findOrCreateAuthors(named: dto.authors, in: modelContext)
+            work.authors = authors
 
             let newEdition = Edition(
                 isbn: dto.isbn,
@@ -435,15 +438,19 @@ public final class EnrichmentService {
     }
 
     private func findOrCreateAuthors(named authorNames: [String], in modelContext: ModelContext) -> [Author] {
+        // Deduplicate input names to prevent creating duplicate authors
+        let uniqueAuthorNames = Set(authorNames)
+        guard !uniqueAuthorNames.isEmpty else { return [] }
+
         let predicate = #Predicate<Author> { author in
-            authorNames.contains(author.name)
+            uniqueAuthorNames.contains(author.name)
         }
         let existingAuthors = (try? modelContext.fetch(FetchDescriptor<Author>(predicate: predicate))) ?? []
         let existingAuthorNames = Set(existingAuthors.map { $0.name })
 
         var finalAuthors = existingAuthors
 
-        for name in authorNames where !existingAuthorNames.contains(name) {
+        for name in uniqueAuthorNames where !existingAuthorNames.contains(name) {
             let newAuthor = Author(name: name)
             modelContext.insert(newAuthor)
             finalAuthors.append(newAuthor)

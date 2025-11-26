@@ -200,7 +200,7 @@ actor EnrichmentAPIClient {
 
         // Use provided idempotency key or generate a stable one based on barcode
         // This ensures retries use the same key, preserving idempotency semantics
-        let key = idempotencyKey ?? "scan_\(barcode)_\(UUID().uuidString)"
+        let key = idempotencyKey ?? "scan_\(barcode)"
         let payload = EnrichBookV2Request(barcode: barcode, preferProvider: preferProvider, idempotencyKey: key)
         request.httpBody = try JSONEncoder().encode(payload)
 
