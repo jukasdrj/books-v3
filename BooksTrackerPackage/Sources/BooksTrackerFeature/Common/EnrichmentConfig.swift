@@ -61,9 +61,30 @@ enum EnrichmentConfig {
 
     // MARK: - CSV Import Endpoints
 
-    /// AI-powered CSV import with Gemini
+    /// AI-powered CSV import with Gemini (V1)
     static var csvImportURL: URL {
         URL(string: "\(baseURL)/api/import/csv-gemini")!
+    }
+    
+    // MARK: - V2 CSV Import Endpoints
+    
+    /// V2 CSV import initiation (SSE-based progress)
+    static var csvImportV2URL: URL {
+        URL(string: "\(baseURL)/api/v2/imports")!
+    }
+    
+    /// V2 CSV import status (polling fallback)
+    /// - Parameter jobId: Import job identifier
+    /// - Returns: Status endpoint URL
+    static func csvImportStatusV2URL(jobId: String) -> URL {
+        URL(string: "\(baseURL)/api/v2/imports/\(jobId)")!
+    }
+    
+    /// V2 CSV import SSE stream
+    /// - Parameter jobId: Import job identifier
+    /// - Returns: SSE stream endpoint URL
+    static func csvImportStreamV2URL(jobId: String) -> URL {
+        URL(string: "\(baseURL)/api/v2/imports/\(jobId)/stream")!
     }
 
     // MARK: - WebSocket Endpoints

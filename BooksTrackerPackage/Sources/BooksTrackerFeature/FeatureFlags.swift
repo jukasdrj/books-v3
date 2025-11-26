@@ -98,6 +98,27 @@ public final class FeatureFlags: Sendable {
             UserDefaults.standard.set(newValue, forKey: "feature.disableCanonicalEnrichment")
         }
     }
+    
+    /// Enable V2 CSV import with SSE streaming
+    ///
+    /// When enabled, uses new SSE-based progress tracking instead of WebSocket.
+    /// SSE provides better reliability across network transitions and firewalls.
+    ///
+    /// Default: `false` (WebSocket still in use, gradual rollout)
+    ///
+    /// Benefits of V2 SSE:
+    /// - Survives WiFi ↔ cellular transitions
+    /// - Works through corporate firewalls/proxies
+    /// - Battery efficient (radio sleep between events)
+    /// - Auto-reconnect built into SSE spec
+    public var useV2CSVImport: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: "feature.useV2CSVImport")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "feature.useV2CSVImport")
+        }
+    }
 
     public static let shared = FeatureFlags()
 
@@ -109,8 +130,9 @@ public final class FeatureFlags: Sendable {
         enableTabBarMinimize = true  // Default enabled
         coverSelectionStrategy = .auto  // Default auto
         disableCanonicalEnrichment = false  // Default canonical endpoint
+        useV2CSVImport = false  // Default V1 WebSocket
         #if DEBUG
-        print("✅ FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true)")
+        print("✅ FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true, v2CSVImport: false)")
         #endif
     }
 }

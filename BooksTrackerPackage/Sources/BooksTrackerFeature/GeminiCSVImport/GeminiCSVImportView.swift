@@ -62,6 +62,11 @@ public struct GeminiCSVImportView: View {
     @State private var errorMessage: String?
     @State private var webSocketTask: URLSessionWebSocketTask?
     @State private var receiveTask: Task<Void, Never>?
+    
+    // V2 SSE state
+    @State private var sseClient: SSEClient?
+    @State private var sseTask: Task<Void, Never>?
+    @State private var sseRetryCount = 0
 
     // Rate limit banner (Issue #426)
     @State private var showRateLimitBanner = false
@@ -320,18 +325,42 @@ public struct GeminiCSVImportView: View {
             defer { url.stopAccessingSecurityScopedResource() }
 
             let csvText = try String(contentsOf: url, encoding: .utf8)
-
-            // Upload to backend and get auth token
             let service = GeminiCSVImportService.shared
-            let (uploadedJobId, authToken) = try await service.uploadCSV(csvText: csvText)
+            
+            // Check feature flag for V2 API
+            if FeatureFlags.shared.useV2CSVImport {
+                #if DEBUG
+                print("[CSV Upload] Using V2 SSE API")
+                #endif
+                
+                // Upload using V2 API
+                let v2Response = try await service.uploadCSVV2(csvText: csvText)
+                jobId = v2Response.jobId
+                
+                #if DEBUG
+                print("[CSV Upload V2] ✅ Job queued: \(v2Response.jobId)")
+                print("[CSV Upload V2] SSE URL: \(v2Response.sseUrl)")
+                #endif
+                
+                // Start SSE progress tracking with 3-retry fallback
+                await startSSEProgress(jobId: v2Response.jobId)
+                
+            } else {
+                #if DEBUG
+                print("[CSV Upload] Using V1 WebSocket API")
+                #endif
+                
+                // Upload to backend and get auth token (V1)
+                let (uploadedJobId, authToken) = try await service.uploadCSV(csvText: csvText)
 
-            #if DEBUG
-            print("[CSV Upload] 🔐 Auth token received (length: \(authToken.count))")
-            #endif
+                #if DEBUG
+                print("[CSV Upload] 🔐 Auth token received (length: \(authToken.count))")
+                #endif
 
-            // Start WebSocket connection with authentication
-            jobId = uploadedJobId
-            startWebSocketProgress(jobId: uploadedJobId, token: authToken)
+                // Start WebSocket connection with authentication
+                jobId = uploadedJobId
+                startWebSocketProgress(jobId: uploadedJobId, token: authToken)
+            }
 
         } catch let error as GeminiCSVImportError {
             importStatus = .failed(error.localizedDescription)
@@ -737,6 +766,282 @@ public struct GeminiCSVImportView: View {
             throw CSVImportError.httpError(statusCode: httpResponse.statusCode)
         }
     }
+    
+    // MARK: - V2 SSE Progress Tracking
+    
+    /// Start SSE progress tracking with 3-retry fallback to polling
+    /// - Parameter jobId: Import job identifier
+    private func startSSEProgress(jobId: String) async {
+        #if DEBUG
+        print("[CSV SSE] Starting SSE progress tracking for job: \(jobId)")
+        #endif
+        
+        // Initialize SSE client
+        let client = SSEClient()
+        self.sseClient = client
+        self.sseRetryCount = 0
+        
+        // Try SSE with up to 3 retries
+        let maxRetries = 3
+        var lastEventID: String? = nil
+        
+        for attempt in 0..<maxRetries {
+            #if DEBUG
+            print("[CSV SSE] Attempt \(attempt + 1)/\(maxRetries)")
+            #endif
+            
+            do {
+                // Connect to SSE stream
+                let sseURL = EnrichmentConfig.csvImportStreamV2URL(jobId: jobId)
+                let eventStream = try await client.connectAndStream(to: sseURL, lastEventID: lastEventID)
+                
+                #if DEBUG
+                print("[CSV SSE] ✅ Connected to SSE stream")
+                #endif
+                
+                // Listen for events
+                self.sseTask = Task { @MainActor in
+                    do {
+                        for await event in eventStream {
+                            // Update last event ID for reconnection
+                            if let id = event.id {
+                                lastEventID = id
+                            }
+                            
+                            #if DEBUG
+                            print("[CSV SSE] Event: \(event.event ?? "message"), data: \(event.data.prefix(100))")
+                            #endif
+                            
+                            // Parse event data
+                            guard let eventData = event.data.data(using: .utf8) else {
+                                continue
+                            }
+                            
+                            let decoder = JSONDecoder()
+                            let eventPayload = try decoder.decode(V2SSEEventData.self, from: eventData)
+                            
+                            // Handle different event types
+                            switch event.event {
+                            case "started":
+                                #if DEBUG
+                                print("[CSV SSE] Job started, total rows: \(eventPayload.totalRows ?? 0)")
+                                #endif
+                                importStatus = .processing(progress: 0.0, message: "Starting import...")
+                                
+                            case "progress":
+                                let progress = eventPayload.progress ?? 0.0
+                                let message = "Processing row \(eventPayload.processedRows ?? 0) of \(eventPayload.totalRows ?? 0)"
+                                #if DEBUG
+                                print("[CSV SSE] Progress: \(Int(progress * 100))% - \(message)")
+                                #endif
+                                importStatus = .processing(progress: progress, message: message)
+                                
+                            case "complete":
+                                #if DEBUG
+                                print("[CSV SSE] ✅ Job complete")
+                                #endif
+                                
+                                // Fetch full results via polling API
+                                await self.fetchAndCompleteV2Job(jobId: jobId)
+                                
+                                // Cleanup SSE connection
+                                await client.disconnect()
+                                self.sseTask?.cancel()
+                                return
+                                
+                            case "error":
+                                let errorMsg = eventPayload.error ?? "Unknown error"
+                                #if DEBUG
+                                print("[CSV SSE] ❌ Job failed: \(errorMsg)")
+                                #endif
+                                importStatus = .failed(errorMsg)
+                                
+                                // Cleanup SSE connection
+                                await client.disconnect()
+                                self.sseTask?.cancel()
+                                return
+                                
+                            default:
+                                #if DEBUG
+                                print("[CSV SSE] Unknown event type: \(event.event ?? "none")")
+                                #endif
+                            }
+                        }
+                        
+                        #if DEBUG
+                        print("[CSV SSE] Stream ended")
+                        #endif
+                        
+                    } catch {
+                        #if DEBUG
+                        print("[CSV SSE] ❌ Stream error: \(error)")
+                        #endif
+                        throw error
+                    }
+                }
+                
+                // Wait for SSE task to complete
+                await sseTask?.value
+                
+                // SSE completed successfully
+                #if DEBUG
+                print("[CSV SSE] SSE tracking completed")
+                #endif
+                return
+                
+            } catch {
+                #if DEBUG
+                print("[CSV SSE] ❌ Attempt \(attempt + 1) failed: \(error)")
+                #endif
+                
+                // Cleanup before retry
+                await client.disconnect()
+                self.sseTask?.cancel()
+                
+                // Increment retry count
+                self.sseRetryCount = attempt + 1
+                
+                // If this was the last retry, fall back to polling
+                if attempt == maxRetries - 1 {
+                    #if DEBUG
+                    print("[CSV SSE] ❌ All SSE attempts failed, falling back to polling")
+                    #endif
+                    importStatus = .processing(progress: 0.1, message: "Connecting via fallback method...")
+                    await fallbackPollingForJobStatusV2(jobId: jobId)
+                    return
+                }
+                
+                // Wait before retrying (exponential backoff)
+                let retryInterval = await client.getRetryInterval()
+                let backoffDelay = retryInterval * pow(2.0, Double(attempt))
+                try? await Task.sleep(for: .seconds(backoffDelay))
+            }
+        }
+    }
+    
+    /// Fetch full job results and update UI when V2 job completes
+    /// - Parameter jobId: Import job identifier
+    private func fetchAndCompleteV2Job(jobId: String) async {
+        do {
+            let service = GeminiCSVImportService.shared
+            let status = try await service.checkJobStatusV2(jobId: jobId)
+            
+            #if DEBUG
+            print("[CSV SSE] Fetched final status: \(status.status)")
+            #endif
+            
+            // For V2, we need to fetch the full results from the results endpoint
+            // The V2 status endpoint returns summary, full results are in KV cache
+            let fullResults = try await fetchJobResults(jobId: jobId)
+            
+            // Convert to legacy format
+            let legacyBooks = (fullResults.books ?? []).map { book in
+                GeminiCSVImportJob.ParsedBook(
+                    title: book.title,
+                    author: book.author,
+                    isbn: book.isbn,
+                    coverUrl: book.coverUrl,
+                    publisher: book.publisher,
+                    publicationYear: book.publicationYear,
+                    enrichmentError: book.enrichmentError
+                )
+            }
+            
+            let legacyErrors = (fullResults.errors ?? []).map { error in
+                GeminiCSVImportJob.ImportError(title: error.title, error: error.error)
+            }
+            
+            importStatus = .completed(books: legacyBooks, errors: legacyErrors)
+            
+        } catch {
+            #if DEBUG
+            print("[CSV SSE] ❌ Failed to fetch results: \(error)")
+            #endif
+            importStatus = .failed("Failed to fetch import results: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Fallback V2 polling when SSE fails after retries
+    /// - Parameter jobId: Import job identifier
+    private func fallbackPollingForJobStatusV2(jobId: String) async {
+        #if DEBUG
+        print("[CSV Polling V2] Starting fallback polling for job \(jobId)")
+        #endif
+
+        let maxPolls = 60 // Poll for up to 5 minutes (60 * 5s = 5min)
+        var pollCount = 0
+
+        while pollCount < maxPolls && !Task.isCancelled {
+            do {
+                // Wait before polling (exponential backoff: 2s, 4s, then 5s)
+                let delay: TimeInterval = min(5.0, 2.0 * pow(2.0, Double(min(pollCount, 2))))
+                try await Task.sleep(for: .seconds(delay))
+
+                pollCount += 1
+
+                #if DEBUG
+                print("[CSV Polling V2] Poll #\(pollCount) (every \(Int(delay))s)")
+                #endif
+
+                // Check job status via V2 REST API
+                let service = GeminiCSVImportService.shared
+                let result = try await service.checkJobStatusV2(jobId: jobId)
+
+                #if DEBUG
+                print("[CSV Polling V2] Status: \(result.status)")
+                #endif
+
+                switch result.status {
+                case "complete":
+                    #if DEBUG
+                    print("[CSV Polling V2] ✅ Job complete")
+                    #endif
+                    
+                    // Fetch full results
+                    await fetchAndCompleteV2Job(jobId: jobId)
+                    return
+
+                case "failed":
+                    let errorMsg = result.error ?? "Unknown error"
+                    #if DEBUG
+                    print("[CSV Polling V2] ❌ Job failed: \(errorMsg)")
+                    #endif
+                    importStatus = .failed(errorMsg)
+                    return
+
+                case "processing", "queued":
+                    let progress = result.progress ?? 0.0
+                    let message = "Processing row \(result.processedRows ?? 0) of \(result.totalRows ?? 0)"
+                    #if DEBUG
+                    print("[CSV Polling V2] Processing: \(Int(progress * 100))% - \(message)")
+                    #endif
+                    importStatus = .processing(progress: progress, message: message)
+
+                default:
+                    #if DEBUG
+                    print("[CSV Polling V2] Unknown status: \(result.status)")
+                    #endif
+                }
+
+            } catch {
+                #if DEBUG
+                print("[CSV Polling V2] ❌ Error: \(error)")
+                #endif
+                if !Task.isCancelled {
+                    importStatus = .failed("Polling failed: \(error.localizedDescription)")
+                }
+                return
+            }
+        }
+
+        // Timeout after max polls
+        if pollCount >= maxPolls {
+            #if DEBUG
+            print("[CSV Polling V2] ❌ Timeout after \(maxPolls) polls")
+            #endif
+            importStatus = .failed("Import timed out. Please try again.")
+        }
+    }
 
     private func cancelImport() {
         // Cancel backend job if one is running
@@ -756,11 +1061,21 @@ public struct GeminiCSVImportView: View {
             }
         }
 
-        // Explicitly close the WebSocket with a normal "going away" message
+        // Cleanup V1 WebSocket connection
         webSocketTask?.cancel(with: .goingAway, reason: "User canceled".data(using: .utf8))
         receiveTask?.cancel()
         webSocketTask = nil
         receiveTask = nil
+        
+        // Cleanup V2 SSE connection
+        if let sseClient = sseClient {
+            Task {
+                await sseClient.disconnect()
+            }
+        }
+        sseTask?.cancel()
+        sseClient = nil
+        sseTask = nil
     }
 
     @MainActor
