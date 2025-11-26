@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import SwiftData
+import OSLog
 
 // MARK: - Search Scope Enum
 
@@ -142,6 +143,7 @@ public final class SearchModel {
     private let apiService: BookSearchAPIService
     private let modelContext: ModelContext
     private var searchTask: Task<Void, Never>?
+    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "SearchModel")
 
     // Pagination state
     private var currentPage: Int = 1
