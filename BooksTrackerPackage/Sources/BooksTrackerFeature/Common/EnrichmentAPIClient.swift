@@ -186,4 +186,34 @@ actor EnrichmentAPIClient {
 
         return result
     }
+
+    func enrichBookV2(barcode: String) async throws -> EnrichedBookDTO {
+        let url = EnrichmentConfig.enrichBookV2URL
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let idempotencyKey = "scan_\(Date().timeIntervalSince1970)_\(UUID().uuidString)"
+        let payload = EnrichBookV2Request(barcode: barcode, preferProvider: "auto", idempotencyKey: idempotencyKey)
+        request.httpBody = try JSONEncoder().encode(payload)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(EnrichedBookDTO.self, from: data)
+        case 404:
+            throw EnrichmentError.noMatchFound
+        case 429:
+            let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After")
+            let retryAfterSeconds = Int(retryAfter ?? "0") ?? 0
+            throw EnrichmentError.rateLimitExceeded(retryAfter: retryAfterSeconds)
+        default:
+            throw URLError(.badServerResponse)
+        }
+    }
 }
