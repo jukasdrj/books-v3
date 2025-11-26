@@ -42,6 +42,8 @@ public struct RepresentationRadarChart: View {
     private let gridLevels: [CGFloat] = [0.25, 0.5, 0.75, 1.0]
     private let dimensionCount = 5
     private let angleStep: Double = .pi * 2 / 5 // 72 degrees
+    private let centerLabelWidth: CGFloat = 60
+    private let centerLabelHeight: CGFloat = 24
 
     public init(data: RadarChartData, onAddData: @escaping (String) -> Void) {
         self.data = data
@@ -188,10 +190,10 @@ public struct RepresentationRadarChart: View {
             .foregroundStyle(.primary)
         
         let percentageRect = CGRect(
-            x: center.x - 30,
-            y: center.y - 12,
-            width: 60,
-            height: 24
+            x: center.x - centerLabelWidth / 2,
+            y: center.y - centerLabelHeight / 2,
+            width: centerLabelWidth,
+            height: centerLabelHeight
         )
         context.draw(percentageText, in: percentageRect)
 
