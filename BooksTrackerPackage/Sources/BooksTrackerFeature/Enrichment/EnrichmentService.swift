@@ -384,8 +384,9 @@ public final class EnrichmentService {
 
     private func createOrUpdateWork(from dto: EnrichedBookDTO, in modelContext: ModelContext) -> Work {
         let isbn = dto.isbn
+        // Check primary isbn field OR isbns array for matching ISBN
         let predicate = #Predicate<Edition> { edition in
-            edition.isbn13 == isbn || edition.isbn10 == isbn
+            edition.isbn == isbn || edition.isbns.contains(isbn)
         }
         var descriptor = FetchDescriptor<Edition>(predicate: predicate)
         descriptor.fetchLimit = 1
