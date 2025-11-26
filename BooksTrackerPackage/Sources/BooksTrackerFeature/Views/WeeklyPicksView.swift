@@ -355,14 +355,3 @@ private struct RecommendationCardSkeleton: View {
         }
     }
 }
-
-// MARK: - Display Mode
-
-@available(iOS 26.0, *)
-enum AdaptiveDisplayMode {
-    case automatic
-    case compact
-    case standard
-    case detailed
-    case hero
-}
