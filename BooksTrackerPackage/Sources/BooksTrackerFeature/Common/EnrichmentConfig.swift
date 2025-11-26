@@ -42,6 +42,11 @@ enum EnrichmentConfig {
         URL(string: "\(baseURL)/api/enrichment/cancel")!
     }
 
+    /// Synchronous V2 book enrichment
+    static var enrichBookV2URL: URL {
+        URL(string: "\(baseURL)/api/v2/books/enrich")!
+    }
+
     // MARK: - Bookshelf Scanning Endpoints
 
     /// AI-powered bookshelf scanning

@@ -261,10 +261,16 @@ public struct ISBNScannerView: View {
     @State private var shouldResetScanner = false
     @State private var invalidFeedbackVisible = false
     @State private var invalidFeedbackTask: Task<Void, Never>?
-    let onISBNScanned: (ISBNValidator.ISBN) -> Void
+    @State private var isLoading = false
+    @State private var scannedISBN: String?
+    @State private var rateLimitMessage: String?
+    @State private var countdown: Int = 0
+    @State private var timer: Timer?
+    let onWorkReceived: (Work) -> Void
+    @Environment(\.modelContext) private var modelContext
 
-    public init(onISBNScanned: @escaping (ISBNValidator.ISBN) -> Void) {
-        self.onISBNScanned = onISBNScanned
+    public init(onWorkReceived: @escaping (Work) -> Void) {
+        self.onWorkReceived = onWorkReceived
     }
 
     public var body: some View {
@@ -275,12 +281,18 @@ public struct ISBNScannerView: View {
                 PermissionDeniedView()
             } else {
                 ZStack {
-                    DataScannerRepresentable(
-                        onISBNScanned: onISBNScanned,
-                        onInvalidBarcode: triggerInvalidBarcodeFeedback,
-                        errorMessage: $errorMessage,
-                        shouldResetScanner: $shouldResetScanner
-                    )
+                    if isLoading {
+                        ProgressView("Looking up ISBN...")
+                    } else {
+                        DataScannerRepresentable(
+                            onISBNScanned: { isbn in
+                                handleScannedISBN(isbn.isbn)
+                            },
+                            onInvalidBarcode: triggerInvalidBarcodeFeedback,
+                            errorMessage: $errorMessage,
+                            shouldResetScanner: $shouldResetScanner
+                        )
+                    }
                     .ignoresSafeArea()
 
                     ScannerOverlayView()
@@ -304,7 +316,9 @@ public struct ISBNScannerView: View {
                 dismiss()
             }
         } message: {
-            if let errorMessage {
+            if let rateLimitMessage {
+                Text(rateLimitMessage)
+            } else if let errorMessage {
                 Text(errorMessage)
             }
         }
@@ -314,10 +328,61 @@ public struct ISBNScannerView: View {
         }
     }
 
+    private func handleScannedISBN(_ isbn: String) {
+        isLoading = true
+        scannedISBN = isbn
+        Task {
+            let result = await EnrichmentService.shared.enrichBookV2(barcode: isbn, in: modelContext)
+            isLoading = false
+            switch result {
+            case .success(let work):
+                onWorkReceived(work)
+                dismiss()
+            case .failure(let error):
+                if case .rateLimitExceeded(let retryAfter) = error {
+                    countdown = retryAfter
+                    rateLimitMessage = "Rate limit exceeded. Please try again in \(countdown) seconds."
+                    startTimer()
+                } else {
+                    errorMessage = userFriendlyError(error, isbn: isbn)
+                }
+            }
+        }
+    }
+
+    private func userFriendlyError(_ error: Error, isbn: String) -> String {
+        if let enrichmentError = error as? EnrichmentError {
+            switch enrichmentError {
+            case .noMatchFound:
+                return "No book found for ISBN \(isbn). Please try a different barcode."
+            case .apiError(let message):
+                return "An error occurred: \(message). Please try again."
+            default:
+                return "An unexpected error occurred. Please try again."
+            }
+        }
+        return "An unexpected error occurred. Please try again."
+    }
+
+    private func startTimer() {
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            if countdown > 0 {
+                countdown -= 1
+                rateLimitMessage = "Rate limit exceeded. Please try again in \(countdown) seconds."
+            } else {
+                timer?.invalidate()
+                rateLimitMessage = nil
+            }
+        }
+    }
+
     private var errorBinding: Binding<Bool> {
-        Binding(get: { errorMessage != nil }, set: { isPresented in
+        Binding(get: { errorMessage != nil || rateLimitMessage != nil }, set: { isPresented in
             if !isPresented {
                 errorMessage = nil
+                rateLimitMessage = nil
+                timer?.invalidate()
             }
         })
     }
