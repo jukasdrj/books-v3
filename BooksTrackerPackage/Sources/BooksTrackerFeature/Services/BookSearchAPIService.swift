@@ -529,6 +529,119 @@ public class BookSearchAPIService {
         }
     }
 
+    // MARK: - V2 Search
+
+    /// V2 Unified Search API Response DTOs
+    private struct V2SearchResponse: Codable {
+        let results: [V2SearchResultItem]
+        let total: Int
+        let mode: String
+        let query: String
+        let latencyMs: Int
+
+        enum CodingKeys: String, CodingKey {
+            case results, total, mode, query
+            case latencyMs = "latency_ms"
+        }
+    }
+
+    private struct V2SearchResultItem: Codable {
+        let isbn: String?
+        let title: String
+        let authors: [String]
+        let coverUrl: String?
+        let relevanceScore: Double
+
+        enum CodingKeys: String, CodingKey {
+            case isbn, title, authors
+            case coverUrl = "cover_url"
+            case relevanceScore = "relevance_score"
+        }
+    }
+
+    public func searchV2(query: String, mode: SearchMode, limit: Int = 20) async throws -> SearchResponse {
+        guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            throw SearchError.invalidQuery
+        }
+
+        let urlString = "\(EnrichmentConfig.baseURL)/api/v2/search?q=\(encodedQuery)&mode=\(mode.rawValue)&limit=\(limit)"
+        guard let url = URL(string: urlString) else {
+            throw SearchError.invalidURL
+        }
+
+        let startTime = Date()
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await urlSession.data(from: url)
+        } catch {
+            throw SearchError.networkError(error)
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw SearchError.invalidResponse
+        }
+
+        if httpResponse.statusCode == 429 {
+            let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After").flatMap(Int.init)
+            logger.warning("V2 Search rate limited. Retry after: \(retryAfter ?? 0)s")
+            throw SearchError.rateLimitExceeded(retryAfter: retryAfter)
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            logger.error("V2 Search failed with HTTP status code: \(httpResponse.statusCode)")
+            throw SearchError.httpError(httpResponse.statusCode)
+        }
+
+        let responseTime = Date().timeIntervalSince(startTime) * 1000
+
+        let v2Response: V2SearchResponse
+        do {
+            v2Response = try JSONDecoder().decode(V2SearchResponse.self, from: data)
+        } catch {
+            logger.error("V2 Search decoding error: \(error)")
+            throw SearchError.decodingError(error)
+        }
+
+        let results = convertV2ResultsToSearchResults(v2Response.results, mode: mode)
+
+        return SearchResponse(
+            results: results,
+            cacheHitRate: 0.0, // V2 API doesn't provide cache headers yet
+            provider: "v2-unified-\(mode.rawValue)",
+            responseTime: responseTime,
+            totalItems: v2Response.total
+        )
+    }
+
+    /// Converts the flat V2 search results into the SwiftData-based `SearchResult` models.
+    /// This creates non-persisted, in-memory model instances for display in the search results.
+    private func convertV2ResultsToSearchResults(_ v2Results: [V2SearchResultItem], mode: SearchMode) -> [SearchResult] {
+        return v2Results.map { item in
+            // Create non-persisted SwiftData models for the UI
+            let work = Work(title: item.title)
+
+            let authors = item.authors.map { authorName in
+                Author(name: authorName)
+            }
+            work.authors = authors
+
+            var editions: [Edition] = []
+            if let isbn = item.isbn {
+                let edition = Edition(isbn: isbn)
+                edition.coverImageURL = item.coverUrl
+                edition.work = work
+                editions.append(edition)
+            }
+
+            return SearchResult(
+                work: work,
+                editions: editions,
+                authors: authors,
+                relevanceScore: item.relevanceScore,
+                provider: "v2-unified-\(mode.rawValue)"
+            )
+        }
+    }
 }
 
 // MARK: - Response Models

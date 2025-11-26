@@ -99,6 +99,25 @@ public final class FeatureFlags: Sendable {
         }
     }
 
+    /// Enable V2 Unified Search API (/api/v2/search)
+    ///
+    /// When enabled, all search queries (title, advanced) will use the
+    /// new V2 unified search endpoint. This supports both text and
+    /// semantic search modes.
+    ///
+    /// Default: `false` (disabled, uses legacy v1 search)
+    ///
+    /// Note: This is a P0 feature for Sprint 4 and will be enabled by
+    /// default once stable.
+    public var enableV2Search: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: "feature.enableV2Search")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "feature.enableV2Search")
+        }
+    }
+
     public static let shared = FeatureFlags()
 
     private init() {}
@@ -109,8 +128,9 @@ public final class FeatureFlags: Sendable {
         enableTabBarMinimize = true  // Default enabled
         coverSelectionStrategy = .auto  // Default auto
         disableCanonicalEnrichment = false  // Default canonical endpoint
+        enableV2Search = false // Default v2 search disabled
         #if DEBUG
-        print("✅ FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true)")
+        print("✅ FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true, v2Search: false)")
         #endif
     }
 }

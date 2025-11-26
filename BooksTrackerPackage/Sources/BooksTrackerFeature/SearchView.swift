@@ -143,9 +143,25 @@ public struct SearchView: View {
                             ToolbarItem(placement: .navigationBarLeading) {
                                 advancedSearchButton
                             }
-
                             ToolbarItem(placement: .navigationBarTrailing) {
                                 barcodeButton
+                            }
+
+                            if FeatureFlags.shared.enableV2Search {
+                                ToolbarItemGroup(placement: .bottomBar) {
+                                    Picker("Search Mode", selection: Binding(
+                                        get: { searchModel.searchMode },
+                                        set: { searchModel.searchMode = $0 }
+                                    )) {
+                                        ForEach(SearchMode.allCases, id: \.self) { mode in
+                                            Text(mode.rawValue.capitalized).tag(mode)
+                                        }
+                                    }
+                                    .pickerStyle(.segmented)
+                                    .padding(.horizontal)
+
+                                    Spacer()
+                                }
                             }
                         }
                         .background(backgroundView.ignoresSafeArea())
@@ -171,6 +187,12 @@ public struct SearchView: View {
                             // Re-search with new scope if there's active text
                             if !searchModel.searchText.isEmpty {
                                 performScopedSearch(query: searchModel.searchText, scope: newValue, searchModel: searchModel)
+                            }
+                        }
+                        .onChange(of: searchModel.searchMode) {
+                            // Re-search with new mode if there's active text
+                            if !searchModel.searchText.isEmpty {
+                                performScopedSearch(query: searchModel.searchText, scope: searchScope, searchModel: searchModel)
                             }
                         }
             } else {
