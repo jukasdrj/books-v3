@@ -9,6 +9,8 @@ struct WorkDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.iOS26ThemeStore) private var themeStore
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dtoMapper) private var dtoMapper
     @State private var selectedEdition: Edition?
     @State private var showingEditionPicker = false
     @State private var selectedAuthor: Author?
@@ -139,6 +141,14 @@ struct WorkDetailView: View {
                 // MARK: - Edition Metadata Card
                 EditionMetadataView(work: work, edition: primaryEdition)
                     .padding(.horizontal, 20)
+
+                // MARK: - Similar Books Section
+                if let dtoMapper = dtoMapper {
+                    SimilarBooksSection(
+                        sourceWork: work,
+                        apiService: BookSearchAPIService(modelContext: modelContext, dtoMapper: dtoMapper)
+                    )
+                }
 
                 // MARK: - Manual Edition Selection
                 if FeatureFlags.shared.coverSelectionStrategy == .manual,

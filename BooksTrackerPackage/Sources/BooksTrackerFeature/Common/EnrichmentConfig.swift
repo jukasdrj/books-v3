@@ -27,6 +27,11 @@ enum EnrichmentConfig {
         URL(string: "\(baseURL)/search/advanced")!
     }
 
+    /// Similar books search using vector embeddings (semantic search)
+    static var searchSimilarURL: URL {
+        URL(string: "\(baseURL)/v1/search/similar")!
+    }
+
     // MARK: - Enrichment Endpoints
 
     /// Start batch enrichment job

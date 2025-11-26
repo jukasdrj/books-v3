@@ -440,6 +440,71 @@ public class BookSearchAPIService {
         return trendingResponse.trendingSearches.map { $0.query }
     }
 
+    // MARK: - Similar Books API (Vector Embeddings)
+
+    /// Find books similar to a given book using vector embeddings
+    /// Uses BGE-M3 embeddings (1024 dimensions) for semantic similarity
+    ///
+    /// Backend endpoint: GET /v1/search/similar?isbn={isbn}&limit={limit}
+    /// Rate limit: Part of semantic search budget (5 req/min)
+    /// Cache: 24h TTL on backend
+    ///
+    /// - Parameters:
+    ///   - isbn: ISBN of the source book to find similar books for
+    ///   - limit: Maximum number of results (default: 10, max: 50)
+    /// - Returns: Array of similar books with similarity scores
+    /// - Throws: SearchError on network or API errors
+    func findSimilarBooks(isbn: String, limit: Int = 10) async throws -> SimilarBooksResponse {
+        let urlString = "\(EnrichmentConfig.baseURL)/v1/search/similar?isbn=\(isbn)&limit=\(limit)"
+        guard let url = URL(string: urlString) else {
+            throw SearchError.invalidURL
+        }
+
+        let startTime = Date()
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await urlSession.data(from: url)
+        } catch {
+            logger.warning("⚠️ Similar books API error for ISBN \(isbn): \(error.localizedDescription)")
+            throw SearchError.networkError(error)
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw SearchError.invalidResponse
+        }
+
+        // Handle 404 - source book not found in vector index
+        if httpResponse.statusCode == 404 {
+            logger.info("📊 Source book not found in vector index (ISBN: \(isbn))")
+            throw SearchError.httpError(404)
+        }
+
+        // Rate limit detection (semantic search has stricter limits)
+        if httpResponse.statusCode == 429 {
+            let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After").flatMap(Int.init)
+            throw SearchError.rateLimitExceeded(retryAfter: retryAfter)
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            throw SearchError.httpError(httpResponse.statusCode)
+        }
+
+        let responseTime = Date().timeIntervalSince(startTime) * 1000
+
+        // Decode response
+        let decoder = JSONDecoder()
+        let similarBooksResponse: SimilarBooksResponse
+        do {
+            similarBooksResponse = try decoder.decode(SimilarBooksResponse.self, from: data)
+        } catch {
+            logger.error("❌ Failed to decode similar books response: \(error)")
+            throw SearchError.decodingError(error)
+        }
+
+        logger.info("✅ Found \(similarBooksResponse.results.count) similar books for ISBN \(isbn) in \(Int(responseTime))ms")
+        return similarBooksResponse
+    }
+
     // MARK: - Helper Methods
 
     /// Convert BookSearchResponse to SearchResult array
