@@ -303,7 +303,8 @@ struct SearchModelScopeTests {
         SearchScope.title,
         SearchScope.author,
         SearchScope.isbn,
-        SearchScope.all
+        SearchScope.all,
+        SearchScope.semantic
     ])
     @MainActor
     func testSearchScopes(scope: SearchScope) async {

@@ -65,6 +65,7 @@ public struct SearchView: View {
     @Environment(\.dtoMapper) private var dtoMapper
     @Environment(SearchCoordinator.self) private var searchCoordinator
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(FeatureFlags.self) private var featureFlags
 
     // MARK: - State Management
     // HIG: Use SwiftUI's standard state management patterns
@@ -100,6 +101,18 @@ public struct SearchView: View {
     // Image prefetching
     @StateObject private var imagePrefetcher = ImagePrefetcher()
     
+    // MARK: - Computed Properties
+
+    private var availableSearchScopes: [SearchScope] {
+        var scopes = SearchScope.allCases
+        // Only show semantic search if the capability is explicitly true.
+        // Defaults to hidden if the API call fails or the flag is false.
+        if featureFlags.apiCapabilities?.features.semanticSearch != true {
+            scopes.removeAll { $0 == .semantic }
+        }
+        return scopes
+    }
+
     // MARK: - Body
 
     public var body: some View {
@@ -120,7 +133,7 @@ public struct SearchView: View {
                         )
                         // HIG: Search scopes for filtering
                         .searchScopes($searchScope) {
-                            ForEach(SearchScope.allCases) { scope in
+                            ForEach(availableSearchScopes) { scope in
                                 Text(scope.displayName)
                                     .tag(scope)
                                     .accessibilityLabel(scope.accessibilityLabel)
@@ -346,6 +359,8 @@ public struct SearchView: View {
             return "Enter author name"
         case .isbn:
             return "Enter ISBN (10 or 13 digits)"
+        case .semantic:
+            return "Describe the book you're looking for"
         }
     }
 

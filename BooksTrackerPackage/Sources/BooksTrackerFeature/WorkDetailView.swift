@@ -13,6 +13,7 @@ struct WorkDetailView: View {
     @Environment(\.dtoMapper) private var dtoMapper
     @Environment(\.bookSearchAPIService) private var bookSearchAPIService
     @Environment(\.iOS26ThemeStore) private var themeStore
+    @Environment(FeatureFlags.self) private var featureFlags
     @State private var selectedEdition: Edition?
     @State private var showingEditionPicker = false
     @State private var selectedAuthor: Author?
@@ -167,8 +168,27 @@ struct WorkDetailView: View {
                         .padding(.horizontal, 20)
                 }
 
+                // MARK: - Similar Books Section
+                if featureFlags.apiCapabilities?.features.similarBooks == true {
+                    similarBooksSection
+                        .padding(.horizontal, 20)
+                }
+
                 // Bottom padding
                 Color.clear.frame(height: 40)
+            }
+        }
+    }
+
+    private var similarBooksSection: some View {
+        GroupBox {
+            VStack(alignment: .leading) {
+                Text("Similar Books")
+                    .font(.headline)
+                    .foregroundColor(themeStore.primaryColor)
+                Text("Users who enjoyed this book also liked:")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
             }
         }
     }

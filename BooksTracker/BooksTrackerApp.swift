@@ -165,6 +165,7 @@ class DTOMapperFactory {
 struct BooksTrackerApp: App {
     @State private var themeStore = iOS26ThemeStore()
     @State private var featureFlags = FeatureFlags.shared
+    @State private var capabilitiesService = CapabilitiesService()
 
     var body: some Scene {
         WindowGroup {
@@ -172,6 +173,14 @@ struct BooksTrackerApp: App {
             ContentView()
                 .onAppear {
                     LaunchMetrics.shared.recordMilestone("ContentView appeared")
+                }
+                .task {
+                    do {
+                        let capabilities = try await capabilitiesService.fetchCapabilities()
+                        featureFlags.apiCapabilities = capabilities
+                    } catch {
+                        print("Failed to fetch capabilities: \(error)")
+                    }
                 }
                 .iOS26ThemeStore(themeStore)
                 .modelContainer(container)

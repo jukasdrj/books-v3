@@ -99,7 +99,9 @@ actor GeminiCSVImportService {
 
         // Validate CSV format (fail fast before network call)
         do {
-            try CSVValidator.validate(csvText: csvText)
+            try await MainActor.run {
+                try CSVValidator.validate(csvText: csvText, featureFlags: FeatureFlags.shared)
+            }
             #if DEBUG
             print("[CSV Upload] ✅ CSV validation passed")
             #endif

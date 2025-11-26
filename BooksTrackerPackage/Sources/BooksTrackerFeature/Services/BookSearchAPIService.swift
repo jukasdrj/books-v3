@@ -50,6 +50,10 @@ public class BookSearchAPIService {
             // Dedicated ISBN endpoint for ISBNdb lookups (7-day cache, most accurate)
             endpoint = "/v1/search/isbn"
             urlString = "\(EnrichmentConfig.baseURL)\(endpoint)?isbn=\(encodedQuery)"
+        case .semantic:
+            // Use v2 unified search endpoint for semantic queries
+            endpoint = "/api/v2/search"
+            urlString = "\(EnrichmentConfig.baseURL)\(endpoint)?q=\(encodedQuery)&mode=semantic"
         }
         guard let url = URL(string: urlString) else {
             throw SearchError.invalidURL

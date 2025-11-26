@@ -21,7 +21,7 @@ actor EnrichmentAPIClient {
         // Use canonical /v1 endpoint by default (Issue #425)
         // Legacy /api endpoint will be removed in backend v2.0 (January 2026)
         // Feature flag available to disable canonical endpoint if needed via FeatureFlags.disableCanonicalEnrichment
-        let disableCanonical = FeatureFlags.shared.disableCanonicalEnrichment
+        let disableCanonical = await FeatureFlags.shared.disableCanonicalEnrichment
 
         let primaryEndpoint = disableCanonical ? "/api/enrichment/batch" : "/v1/enrichment/batch"
         let fallbackEndpoint = "/api/enrichment/batch"
