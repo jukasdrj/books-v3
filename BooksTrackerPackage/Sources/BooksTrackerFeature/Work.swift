@@ -121,6 +121,14 @@ public final class Work {
     /// Will be deleted after all books from scan are reviewed
     public var originalImagePath: String?
 
+    // Diversity & Accessibility
+    /// User-contributed flag indicating if the work is "own voices"
+    var isOwnVoices: Bool?
+
+    /// Accessibility tags (e.g., "Large Print", "Audiobook")
+    @Attribute(.externalStorage)
+    var accessibilityTags: [String]?
+
     /// Bounding box coordinates for cropping spine from original image
     /// Stored as separate components to avoid CGRect encoding issues in SwiftData
     public var boundingBoxX: Double?

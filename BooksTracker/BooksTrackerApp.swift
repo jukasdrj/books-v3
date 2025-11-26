@@ -26,7 +26,6 @@ class ModelContainerFactory {
             UserLibraryEntry.self,
             TrendingActivity.self,
             // v2 Sprint 1: Diversity & Reading Sessions
-            EnhancedDiversityStats.self,
             ReadingSession.self,
             // v2 Sprint 2: Progressive Profiling & Metadata Cascade
             BookEnrichment.self,
@@ -60,6 +59,7 @@ class ModelContainerFactory {
         do {
             let container = try ModelContainer(
                 for: schema,
+                migrationPlan: DiversityStatsMigrationPlan.self,
                 configurations: [modelConfiguration]
             )
             LaunchMetrics.shared.recordMilestone("ModelContainer created successfully")

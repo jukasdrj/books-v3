@@ -26,12 +26,16 @@ public final class DiversityStatsService {
         var culturalOrigins: [String: Int] = [:]
         var genderDistribution: [String: Int] = [:]
         var translationStatus: [String: Int] = [:]
+        var ownVoicesCount = 0
+        var accessibilityTags: [String: Int] = [:]
 
         // Completion tracking
         var totalBooks = 0
         var booksWithCulturalData = 0
         var booksWithGenderData = 0
         var booksWithTranslationData = 0
+        var booksWithOwnVoicesData = 0
+        var booksWithAccessibilityData = 0
 
         // Aggregate data from each entry's work
         for entry in entries {
@@ -55,12 +59,28 @@ public final class DiversityStatsService {
                 }
             }
 
-            // Translation status (from work)
-            if let language = work.originalLanguage, !language.isEmpty {
+            // Translation status (from edition)
+            if let edition = entry.edition, let language = edition.originalLanguage, !language.isEmpty {
                 let isTranslated = language.lowercased() != "english" // TODO: Make this configurable
                 let statusKey = isTranslated ? "Translated" : "Original Language"
                 translationStatus[statusKey, default: 0] += 1
                 booksWithTranslationData += 1
+            }
+
+            // Own Voices
+            if let isOwnVoices = work.isOwnVoices {
+                if isOwnVoices {
+                    ownVoicesCount += 1
+                }
+                booksWithOwnVoicesData += 1
+            }
+
+            // Accessibility
+            if let tags = work.accessibilityTags, !tags.isEmpty {
+                for tag in tags {
+                    accessibilityTags[tag, default: 0] += 1
+                }
+                booksWithAccessibilityData += 1
             }
         }
 
@@ -81,10 +101,14 @@ public final class DiversityStatsService {
             stats.culturalOrigins = culturalOrigins
             stats.genderDistribution = genderDistribution
             stats.translationStatus = translationStatus
+            stats.ownVoicesCount = ownVoicesCount
+            stats.accessibilityTags = accessibilityTags
             stats.totalBooks = totalBooks
             stats.booksWithCulturalData = booksWithCulturalData
             stats.booksWithGenderData = booksWithGenderData
             stats.booksWithTranslationData = booksWithTranslationData
+            stats.booksWithOwnVoicesData = booksWithOwnVoicesData
+            stats.booksWithAccessibilityData = booksWithAccessibilityData
             stats.lastCalculated = Date()
         } else {
             // Create new
@@ -92,10 +116,14 @@ public final class DiversityStatsService {
             stats.culturalOrigins = culturalOrigins
             stats.genderDistribution = genderDistribution
             stats.translationStatus = translationStatus
+            stats.ownVoicesCount = ownVoicesCount
+            stats.accessibilityTags = accessibilityTags
             stats.totalBooks = totalBooks
             stats.booksWithCulturalData = booksWithCulturalData
             stats.booksWithGenderData = booksWithGenderData
             stats.booksWithTranslationData = booksWithTranslationData
+            stats.booksWithOwnVoicesData = booksWithOwnVoicesData
+            stats.booksWithAccessibilityData = booksWithAccessibilityData
             modelContext.insert(stats)
         }
 
@@ -123,11 +151,11 @@ public final class DiversityStatsService {
         return stats.overallCompletionPercentage
     }
 
-    /// Get list of missing data dimensions for a specific work
-    /// - Parameter workId: PersistentIdentifier of the work
+    /// Get list of missing data dimensions for a specific entry
+    /// - Parameter entryId: PersistentIdentifier of the UserLibraryEntry
     /// - Returns: Array of dimension names that are missing data
-    public func getMissingDataDimensions(for workId: PersistentIdentifier) async throws -> [String] {
-        guard let work = modelContext.model(for: workId) as? Work else {
+    public func getMissingDataDimensions(for entryId: PersistentIdentifier) async throws -> [String] {
+        guard let entry = modelContext.model(for: entryId) as? UserLibraryEntry, let work = entry.work else {
             throw DiversityStatsError.workNotFound
         }
 
@@ -144,8 +172,18 @@ public final class DiversityStatsService {
         }
 
         // Check translation/language
-        if work.originalLanguage == nil || work.originalLanguage?.isEmpty == true {
+        if entry.edition?.originalLanguage == nil || entry.edition?.originalLanguage?.isEmpty == true {
             missing.append("translationStatus")
+        }
+
+        // Check Own Voices
+        if work.isOwnVoices == nil {
+            missing.append("ownVoicesCount")
+        }
+
+        // Check Accessibility
+        if work.accessibilityTags == nil || work.accessibilityTags?.isEmpty == true {
+            missing.append("accessibilityTags")
         }
 
         return missing
@@ -153,18 +191,18 @@ public final class DiversityStatsService {
 
     /// Update diversity data for a work
     /// - Parameters:
-    ///   - workId: PersistentIdentifier of the work to update
-    ///   - dimension: Dimension name ("culturalOrigins", "genderDistribution", "translationStatus")
-    ///   - value: String value for the dimension
-    public func updateDiversityData(workId: PersistentIdentifier, dimension: String, value: String) async throws {
-        guard let work = modelContext.model(for: workId) as? Work else {
+    ///   - entryId: PersistentIdentifier of the UserLibraryEntry to update
+    ///   - dimension: Dimension name ("culturalOrigins", "genderDistribution", "translationStatus", "ownVoicesCount", "accessibilityTags")
+    ///   - value: The value to set for the dimension
+    public func updateDiversityData(entryId: PersistentIdentifier, dimension: String, value: Any) async throws {
+        guard let entry = modelContext.model(for: entryId) as? UserLibraryEntry, let work = entry.work else {
             throw DiversityStatsError.workNotFound
         }
 
         switch dimension {
         case "culturalOrigins":
             // Update primary author's cultural region
-            if let primaryAuthor = work.primaryAuthor {
+            if let primaryAuthor = work.primaryAuthor, let value = value as? String {
                 // Parse CulturalRegion from string value
                 if let region = CulturalRegion.allCases.first(where: { $0.displayName == value }) {
                     primaryAuthor.culturalRegion = region
@@ -173,15 +211,30 @@ public final class DiversityStatsService {
 
         case "genderDistribution":
             // Update primary author's gender
-            if let primaryAuthor = work.primaryAuthor {
+            if let primaryAuthor = work.primaryAuthor, let value = value as? String {
                 if let gender = AuthorGender.allCases.first(where: { $0.displayName == value }) {
                     primaryAuthor.gender = gender
                 }
             }
 
         case "translationStatus":
-            // Update work's original language
-            work.originalLanguage = value
+            // Update edition's original language
+            if let edition = entry.edition, let value = value as? String {
+                edition.originalLanguage = value
+            }
+
+        case "ownVoicesCount":
+            if let value = value as? Bool {
+                work.isOwnVoices = value
+            }
+
+        case "accessibilityTags":
+            if let value = value as? String {
+                if work.accessibilityTags == nil {
+                    work.accessibilityTags = []
+                }
+                work.accessibilityTags?.append(value)
+            }
 
         default:
             throw DiversityStatsError.invalidDimension
