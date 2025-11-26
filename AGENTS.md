@@ -338,7 +338,7 @@ GET /v1/search/isbn?isbn={isbn}             # ISBN lookup (ISBN-10 or ISBN-13)
 GET /v1/search/advanced?title=&author=      # Multi-field search
 GET /v1/scan/results/{jobId}                # Fetch AI scan results (24hr TTL)
 GET /v1/csv/results/{jobId}                 # Fetch CSV import results (24hr TTL)
-POST /api/batch-scan                        # Upload 1-5 photos for AI processing
+POST /api/scan-bookshelf/batch              # Upload 1-5 photos for AI processing
 GET /ws/progress?jobId={uuid}               # WebSocket progress (token in header)
 ```
 

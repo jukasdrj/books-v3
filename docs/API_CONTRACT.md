@@ -484,7 +484,7 @@ This update documents the **complete Hono router migration** and new default rou
 ### **Router Migration (Week 2 - COMPLETE)**
 - ✅ **12/12 Endpoints Migrated:** All API endpoints now available in Hono router
 - ✅ **Hono Default Enabled:** `ENABLE_HONO_ROUTER != 'false'` (opt-out model)
-- ✅ **New Endpoints Added:** `/v1/scan/results/{jobId}`, `/v1/csv/results/{jobId}`, `/POST /api/batch-scan`
+- ✅ **New Endpoints Added:** `/v1/scan/results/{jobId}`, `/v1/csv/results/{jobId}`, `/POST /api/scan-bookshelf/batch`
 - ✅ **Security Hardening:** Input validation (200-char limits), CORS whitelist, error handler tests
 - 📊 **Performance Headers:** `X-Router: hono`, `X-Response-Time: {ms}ms` for monitoring
 
@@ -719,7 +719,6 @@ Rate limiting is enforced via **Durable Objects** (not router-specific):
 - `POST /v1/enrichment/batch` - 10 requests/minute per IP
 - `POST /api/scan-bookshelf/batch` - 5 requests/minute per IP
 - `POST /api/import/csv-gemini` - 5 requests/minute per IP
-- `POST /api/batch-scan` - 5 requests/minute per IP
 
 ### Testing the Router
 
@@ -903,7 +902,7 @@ All API responses include:
 **Endpoint-Specific Limits:**
 - Search endpoints (`/v1/search/*`): **100 requests/minute** per IP
 - Batch enrichment (`/api/enrichment/start`): **10 requests/minute** per IP
-- **AI batch scanning (`/api/batch-scan`)**: **5 requests/minute** per IP
+- **AI batch scanning (`/api/scan-bookshelf/batch`)**: **5 requests/minute** per IP
   - **Important:** Limit applies per batch request, not per photo
   - Example: 4 photos in 1 batch = 1 request counted
   - Each batch can contain up to 5 photos
@@ -2671,7 +2670,7 @@ Batch scanning allows users to upload **1-5 photos** in a single request, with *
 
 **1. Upload Batch**
 ```http
-POST /api/batch-scan HTTP/1.1
+POST /api/scan-bookshelf/batch HTTP/1.1
 Host: api.oooefam.net
 Content-Type: multipart/form-data
 
@@ -3098,7 +3097,7 @@ for (index, batch) in allPhotos.chunked(into: batchSize).enumerated() {
   - ✅ **Hono Default Enabled:** Feature flag now defaults to `true` (opt-out model)
   - 📄 **NEW: OpenAPI 3.0.3 Specification:** Machine-readable spec at [`docs/openapi.yaml`](./openapi.yaml) (Section 1.4)
   - Added Section 2.1: Router Architecture (feature flag, headers, input limits, CORS, testing)
-  - New endpoints: `/v1/scan/results/{jobId}`, `/v1/csv/results/{jobId}`, `POST /api/batch-scan`
+  - New endpoints: `/v1/scan/results/{jobId}`, `/v1/csv/results/{jobId}`, `POST /api/scan-bookshelf/batch`
   - Security hardening: Input validation (200-char limits), CORS whitelist, error handler coverage
   - Performance monitoring: `X-Router` and `X-Response-Time` headers for analytics
   - Zero breaking changes: Both routers produce identical responses
@@ -3150,7 +3149,7 @@ console.log(`Gender: ${authors[0].gender}, Cultural Region: ${authors[0].cultura
 
 ```typescript
 // 1. Start AI scan job
-const initResponse = await fetch('https://api.oooefam.net/api/batch-scan', {
+const initResponse = await fetch('https://api.oooefam.net/api/scan-bookshelf/batch', {
   method: 'POST',
   body: formData
 });
