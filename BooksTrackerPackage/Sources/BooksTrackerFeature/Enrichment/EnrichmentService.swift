@@ -391,8 +391,10 @@ public final class EnrichmentService {
         descriptor.fetchLimit = 1
 
         let work: Work
-        if let existingEdition = (try? modelContext.fetch(descriptor))?.first {
-            work = existingEdition.work!
+        if let existingEdition = (try? modelContext.fetch(descriptor))?.first,
+           let existingWork = existingEdition.work {
+            // Update existing edition and work
+            work = existingWork
 
             existingEdition.publisher = dto.publisher ?? existingEdition.publisher
             existingEdition.publicationDate = dto.publishedDate ?? existingEdition.publicationDate
@@ -400,7 +402,8 @@ public final class EnrichmentService {
             existingEdition.coverImageURL = dto.coverUrl ?? existingEdition.coverImageURL
             existingEdition.touch()
 
-            if work.title.isEmpty || work.title == "Unknown Title" {
+            // Only update title if it's empty or has the placeholder value
+            if (work.title.isEmpty || work.title == "Unknown Title"), !dto.title.isEmpty {
                 work.title = dto.title
             }
 
