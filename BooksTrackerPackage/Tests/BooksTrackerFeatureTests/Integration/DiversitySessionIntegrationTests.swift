@@ -39,8 +39,9 @@ struct DiversitySessionIntegrationTests {
         let author = Author(name: authorName, culturalRegion: culturalRegion, gender: gender)
         modelContext.insert(author)
 
-        let work = Work(title: title, originalLanguage: originalLanguage, primaryAuthor: author)
+        let work = Work(title: title, originalLanguage: originalLanguage)
         modelContext.insert(work)
+        work.addAuthor(author)
 
         let entry = UserLibraryEntry(work: work, currentPage: 0, totalPages: 200)
         modelContext.insert(entry)
@@ -363,5 +364,173 @@ struct DiversitySessionIntegrationTests {
                 value: "someValue"
             )
         }
+    }
+    
+    // MARK: - New Dimension Tests (Own Voices & Accessibility)
+    
+    @Test("Own Voices dimension aggregation works correctly")
+    func test_own_voices_dimension_aggregation() async throws {
+        // Create work with Own Voices set to true
+        let author1 = Author(name: "Author 1", culturalRegion: .africa, gender: .female)
+        modelContext.insert(author1)
+        let work1 = Work(title: "Own Voices Book", originalLanguage: "English")
+        work1.isOwnVoices = true
+        modelContext.insert(work1)
+        work1.addAuthor(author1)
+        let entry1 = UserLibraryEntry(work: work1, currentPage: 0, totalPages: 200)
+        modelContext.insert(entry1)
+        
+        // Create work with Own Voices set to false
+        let author2 = Author(name: "Author 2", culturalRegion: .asia, gender: .male)
+        modelContext.insert(author2)
+        let work2 = Work(title: "Not Own Voices Book", originalLanguage: "Japanese")
+        work2.isOwnVoices = false
+        modelContext.insert(work2)
+        work2.addAuthor(author2)
+        let entry2 = UserLibraryEntry(work: work2, currentPage: 0, totalPages: 300)
+        modelContext.insert(entry2)
+        
+        try modelContext.save()
+        
+        // Calculate stats
+        let stats = try await diversityStatsService.calculateStats(period: .allTime)
+        
+        #expect(stats.totalBooks == 2)
+        #expect(stats.ownVoicesTheme["Own Voices"] == 1)
+        #expect(stats.ownVoicesTheme["Not Own Voices"] == 1)
+        #expect(stats.booksWithOwnVoicesData == 2)
+        #expect(stats.ownVoicesCompletionPercentage == 100.0)
+    }
+    
+    @Test("Accessibility dimension aggregation works correctly")
+    func test_accessibility_dimension_aggregation() async throws {
+        // Create work with accessibility tags
+        let author1 = Author(name: "Author 1", culturalRegion: .europe, gender: .female)
+        modelContext.insert(author1)
+        let work1 = Work(title: "Accessible Book", originalLanguage: "English")
+        work1.accessibilityTags = ["Large Print", "Audio Available"]
+        modelContext.insert(work1)
+        work1.addAuthor(author1)
+        let entry1 = UserLibraryEntry(work: work1, currentPage: 0, totalPages: 200)
+        modelContext.insert(entry1)
+        
+        // Create work without accessibility tags
+        let author2 = Author(name: "Author 2", culturalRegion: .asia, gender: .male)
+        modelContext.insert(author2)
+        let work2 = Work(title: "Standard Book", originalLanguage: "Chinese")
+        modelContext.insert(work2)
+        work2.addAuthor(author2)
+        let entry2 = UserLibraryEntry(work: work2, currentPage: 0, totalPages: 300)
+        modelContext.insert(entry2)
+        
+        try modelContext.save()
+        
+        // Calculate stats
+        let stats = try await diversityStatsService.calculateStats(period: .allTime)
+        
+        #expect(stats.totalBooks == 2)
+        #expect(stats.nicheAccessibility["Large Print"] == 1)
+        #expect(stats.nicheAccessibility["Audio Available"] == 1)
+        #expect(stats.booksWithAccessibilityData == 1)
+        #expect(stats.accessibilityCompletionPercentage == 50.0)
+    }
+    
+    @Test("Missing dimensions includes Own Voices and Accessibility")
+    func test_missing_dimensions_includes_new_dimensions() async throws {
+        let author = Author(name: "Test Author", culturalRegion: nil, gender: .unknown)
+        modelContext.insert(author)
+        let work = Work(title: "Test Book", originalLanguage: nil)
+        // Leave isOwnVoices as nil and accessibilityTags empty
+        modelContext.insert(work)
+        work.addAuthor(author)
+        try modelContext.save()
+        
+        let missingDimensions = try await diversityStatsService.getMissingDataDimensions(for: work.persistentModelID)
+        
+        #expect(missingDimensions.contains("culturalOrigins"))
+        #expect(missingDimensions.contains("genderDistribution"))
+        #expect(missingDimensions.contains("translationStatus"))
+        #expect(missingDimensions.contains("ownVoicesTheme"))
+        #expect(missingDimensions.contains("nicheAccessibility"))
+    }
+    
+    @Test("Update Own Voices dimension updates stats")
+    func test_update_own_voices_dimension() async throws {
+        let author = Author(name: "Test Author", culturalRegion: .africa, gender: .female)
+        modelContext.insert(author)
+        let work = Work(title: "Test Book", originalLanguage: "English")
+        modelContext.insert(work)
+        work.addAuthor(author)
+        let entry = UserLibraryEntry(work: work, currentPage: 0, totalPages: 200)
+        modelContext.insert(entry)
+        try modelContext.save()
+        
+        // Update Own Voices status
+        try await diversityStatsService.updateDiversityData(
+            workId: work.persistentModelID,
+            dimension: "ownVoicesTheme",
+            value: "Own Voices"
+        )
+        
+        // Verify the field was updated
+        #expect(work.isOwnVoices == true)
+        
+        // Verify stats reflect the update
+        let stats = try await diversityStatsService.calculateStats(period: .allTime)
+        #expect(stats.ownVoicesTheme["Own Voices"] == 1)
+        #expect(stats.booksWithOwnVoicesData == 1)
+    }
+    
+    @Test("Update Accessibility dimension updates stats")
+    func test_update_accessibility_dimension() async throws {
+        let author = Author(name: "Test Author", culturalRegion: .asia, gender: .male)
+        modelContext.insert(author)
+        let work = Work(title: "Test Book", originalLanguage: "Japanese")
+        modelContext.insert(work)
+        work.addAuthor(author)
+        let entry = UserLibraryEntry(work: work, currentPage: 0, totalPages: 300)
+        modelContext.insert(entry)
+        try modelContext.save()
+        
+        // Add accessibility tag
+        try await diversityStatsService.updateDiversityData(
+            workId: work.persistentModelID,
+            dimension: "nicheAccessibility",
+            value: "Dyslexia-Friendly"
+        )
+        
+        // Verify the tag was added
+        #expect(work.accessibilityTags.contains("Dyslexia-Friendly"))
+        
+        // Verify stats reflect the update
+        let stats = try await diversityStatsService.calculateStats(period: .allTime)
+        #expect(stats.nicheAccessibility["Dyslexia-Friendly"] == 1)
+        #expect(stats.booksWithAccessibilityData == 1)
+    }
+    
+    @Test("Overall completion percentage includes all 5 dimensions")
+    func test_overall_completion_includes_all_dimensions() async throws {
+        // Create work with only 3 of 5 dimensions filled
+        let author = Author(name: "Test Author", culturalRegion: .europe, gender: .female)
+        modelContext.insert(author)
+        let work = Work(title: "Partial Book", originalLanguage: "English")
+        // isOwnVoices = nil, accessibilityTags = []
+        modelContext.insert(work)
+        work.addAuthor(author)
+        let entry = UserLibraryEntry(work: work, currentPage: 0, totalPages: 200)
+        modelContext.insert(entry)
+        try modelContext.save()
+        
+        let stats = try await diversityStatsService.calculateStats(period: .allTime)
+        
+        #expect(stats.totalBooks == 1)
+        #expect(stats.booksWithCulturalData == 1)
+        #expect(stats.booksWithGenderData == 1)
+        #expect(stats.booksWithTranslationData == 1)
+        #expect(stats.booksWithOwnVoicesData == 0)
+        #expect(stats.booksWithAccessibilityData == 0)
+        
+        // 3 out of 5 dimensions filled = (3 / 5) * 100 = 60%
+        #expect(stats.overallCompletionPercentage == 60.0)
     }
 }
