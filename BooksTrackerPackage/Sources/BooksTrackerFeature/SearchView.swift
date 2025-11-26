@@ -90,6 +90,11 @@ public struct SearchView: View {
 
     // Scanner state
     @State private var showingScanner = false
+    @State private var showingWorkflow = false
+    @State private var workflowId: String?
+    @State private var workflowError: String?
+    @State private var showingWorkflowError = false
+    private let workflowImportService = WorkflowImportService()
 
     // Advanced search state
     @State private var showingAdvancedSearch = false
@@ -181,16 +186,37 @@ public struct SearchView: View {
             setupSearchModel()
         }
         .sheet(isPresented: $showingScanner) {
-            #if DEBUG
-            print("📷 Sheet is presenting ISBNScannerView")
-            #endif
-            return ISBNScannerView { isbn in
-                #if DEBUG
-                print("📷 ISBN scanned: \(isbn.normalizedValue)")
-                #endif
-                // Handle scanned ISBN - set scope to ISBN
-                searchScope = .isbn
-                searchModel?.searchByISBN(isbn.normalizedValue)
+            ISBNScannerView { isbn in
+                Task {
+                    do {
+                        let response = try await workflowImportService.createWorkflow(isbn: isbn.value)
+                        self.workflowId = response.workflowId
+                        self.showingScanner = false
+                        self.showingWorkflow = true
+                    } catch {
+                        self.workflowError = error.localizedDescription
+                        self.showingWorkflowError = true
+                    }
+                }
+            }
+        }
+        .alert("Failed to Start Import", isPresented: $showingWorkflowError) {
+            Button("OK") {}
+        } message: {
+            Text(workflowError ?? "An unknown error occurred.")
+        }
+        .sheet(isPresented: $showingWorkflow) {
+            if let workflowId = workflowId {
+                WorkflowProgressView(
+                    workflowId: workflowId,
+                    onRetry: {
+                        showingWorkflow = false
+                        showingScanner = true
+                    },
+                    onDismiss: {
+                        showingWorkflow = false
+                    }
+                )
             }
         }
         .sheet(isPresented: $showingAdvancedSearch) {
