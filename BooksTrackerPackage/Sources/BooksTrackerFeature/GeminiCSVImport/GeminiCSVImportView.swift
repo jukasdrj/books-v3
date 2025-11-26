@@ -67,6 +67,12 @@ public struct GeminiCSVImportView: View {
     @State private var sseClient: SSEClient?
     @State private var sseTask: Task<Void, Never>?
     @State private var sseRetryCount = 0
+    
+    // V2 SSE configuration constants
+    private let maxSSERetries = 3
+    private let maxPollingAttempts = 60  // 5 minutes at 5s intervals
+    private let pollingInitialDelay: TimeInterval = 2.0
+    private let pollingMaxDelay: TimeInterval = 5.0
 
     // Rate limit banner (Issue #426)
     @State private var showRateLimitBanner = false
@@ -776,18 +782,18 @@ public struct GeminiCSVImportView: View {
         print("[CSV SSE] Starting SSE progress tracking for job: \(jobId)")
         #endif
         
-        // Initialize SSE client
-        let client = SSEClient()
+        // Initialize SSE client with 60s connection timeout
+        // SSE streams can be long-lived once connected, but initial connection should timeout reasonably
+        let client = SSEClient(connectionTimeout: 60.0)
         self.sseClient = client
         self.sseRetryCount = 0
         
-        // Try SSE with up to 3 retries
-        let maxRetries = 3
+        // Try SSE with up to maxSSERetries
         var lastEventID: String? = nil
         
-        for attempt in 0..<maxRetries {
+        for attempt in 0..<maxSSERetries {
             #if DEBUG
-            print("[CSV SSE] Attempt \(attempt + 1)/\(maxRetries)")
+            print("[CSV SSE] Attempt \(attempt + 1)/\(maxSSERetries)")
             #endif
             
             do {
@@ -902,7 +908,7 @@ public struct GeminiCSVImportView: View {
                 self.sseRetryCount = attempt + 1
                 
                 // If this was the last retry, fall back to polling
-                if attempt == maxRetries - 1 {
+                if attempt == maxSSERetries - 1 {
                     #if DEBUG
                     print("[CSV SSE] ❌ All SSE attempts failed, falling back to polling")
                     #endif
@@ -911,9 +917,9 @@ public struct GeminiCSVImportView: View {
                     return
                 }
                 
-                // Wait before retrying (exponential backoff)
+                // Wait before retrying (exponential backoff with cap)
                 let retryInterval = await client.getRetryInterval()
-                let backoffDelay = retryInterval * pow(2.0, Double(attempt))
+                let backoffDelay = min(pollingMaxDelay, retryInterval * pow(2.0, Double(attempt)))
                 try? await Task.sleep(for: .seconds(backoffDelay))
             }
         }
@@ -968,13 +974,12 @@ public struct GeminiCSVImportView: View {
         print("[CSV Polling V2] Starting fallback polling for job \(jobId)")
         #endif
 
-        let maxPolls = 60 // Poll for up to 5 minutes (60 * 5s = 5min)
         var pollCount = 0
 
-        while pollCount < maxPolls && !Task.isCancelled {
+        while pollCount < maxPollingAttempts && !Task.isCancelled {
             do {
-                // Wait before polling (exponential backoff: 2s, 4s, then 5s)
-                let delay: TimeInterval = min(5.0, 2.0 * pow(2.0, Double(min(pollCount, 2))))
+                // Wait before polling (exponential backoff with cap)
+                let delay: TimeInterval = min(pollingMaxDelay, pollingInitialDelay * pow(2.0, Double(min(pollCount, 2))))
                 try await Task.sleep(for: .seconds(delay))
 
                 pollCount += 1
@@ -1035,9 +1040,9 @@ public struct GeminiCSVImportView: View {
         }
 
         // Timeout after max polls
-        if pollCount >= maxPolls {
+        if pollCount >= maxPollingAttempts {
             #if DEBUG
-            print("[CSV Polling V2] ❌ Timeout after \(maxPolls) polls")
+            print("[CSV Polling V2] ❌ Timeout after \(maxPollingAttempts) polls")
             #endif
             importStatus = .failed("Import timed out. Please try again.")
         }

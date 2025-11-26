@@ -55,10 +55,15 @@ actor SSEClient {
     private var lastEventID: String?
     private var retryInterval: TimeInterval = 5.0
     private var isConnected = false
+    private let connectionTimeout: TimeInterval
     
     // MARK: - Initialization
     
-    init() {}
+    /// Initialize SSE client with configurable timeout
+    /// - Parameter connectionTimeout: Maximum time to wait for connection (default: 30s, 0 = infinite)
+    init(connectionTimeout: TimeInterval = 30.0) {
+        self.connectionTimeout = connectionTimeout
+    }
     
     // MARK: - Connection Management
     
@@ -74,7 +79,7 @@ actor SSEClient {
         var request = URLRequest(url: url)
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
         request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
-        request.timeoutInterval = 0 // SSE connections can be long-lived
+        request.timeoutInterval = connectionTimeout  // Configurable timeout for initial connection
         
         // Add Last-Event-ID for reconnection
         if let eventID = lastEventID ?? self.lastEventID {
