@@ -49,7 +49,7 @@ info:
     **Previous Highlights (v2.2):**
     - Complete Hono router migration.
     - Hono router enabled by default.
-    - New endpoints: `/v1/scan/results/{jobId}`, `/v1/csv/results/{jobId}`, `POST /api/batch-scan`.
+    - New endpoints: `/v1/scan/results/{jobId}`, `/v1/csv/results/{jobId}`, `POST /api/scan-bookshelf/batch`.
     - Enhanced WebSocket API with reconnection support and batch scanning messages.
     - Input validation limits for DoS prevention.
     - Function-based CORS policy (see `API_CONTRACT.md` Section 3.2 for details on allowed origins).
@@ -703,7 +703,7 @@ paths:
         ```
 
         **Authentication:**
-        Requires `jobId` and `token` obtained from the initial `POST` request (e.g., `/api/batch-scan`).
+        Requires `jobId` and `token` obtained from the initial `POST` request (e.g., `/api/scan-bookshelf/batch`).
 
         **Reconnection:**
         Clients should add `reconnect=true` query parameter when attempting to re-establish a connection after a disconnect to sync job state.
@@ -897,7 +897,7 @@ paths:
         default:
           $ref: '#/components/responses/InternalServerError'
 
-  /api/batch-scan:
+  /api/scan-bookshelf/batch:
     post:
       summary: Start Photo AI Scan Job (Single or Batch)
       operationId: startPhotoScan
@@ -2986,7 +2986,7 @@ components:
       name: token
       description: |
         JWT-like authentication token for WebSocket connections.
-        Obtained from the initial POST request (e.g., /api/batch-scan, /v1/enrichment/batch).
+        Obtained from the initial POST request (e.g., /api/scan-bookshelf/batch, /v1/enrichment/batch).
         Token lifecycle: Valid for job duration, auto-refreshed within 30 minutes of expiration for active connections.
 
 security:
