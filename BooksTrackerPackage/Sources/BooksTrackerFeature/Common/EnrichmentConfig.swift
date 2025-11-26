@@ -66,6 +66,20 @@ enum EnrichmentConfig {
         URL(string: "\(baseURL)/api/import/csv-gemini")!
     }
 
+    // MARK: - Workflow Import Endpoints
+
+    /// Create workflow import job (Cloudflare Workflows API)
+    static var workflowCreateURL: URL {
+        URL(string: "\(baseURL)/v2/import/workflow")!
+    }
+
+    /// Get workflow status by ID
+    /// - Parameter workflowId: The workflow identifier
+    /// - Returns: URL for workflow status endpoint
+    static func workflowStatusURL(workflowId: String) -> URL {
+        URL(string: "\(baseURL)/v2/import/workflow/\(workflowId)")!
+    }
+
     // MARK: - WebSocket Endpoints
 
     /// WebSocket progress tracking for background jobs (v2.4 - Secure Auth)
