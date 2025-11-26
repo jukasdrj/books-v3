@@ -66,44 +66,10 @@ enum EnrichmentConfig {
         URL(string: "\(baseURL)/api/import/csv-gemini")!
     }
 
-    // MARK: - WebSocket Endpoints
-
-    /// WebSocket progress tracking for background jobs (v2.4 - Secure Auth)
-    ///
-    /// ⚠️ SECURITY (Issue #163): Token authentication now uses Sec-WebSocket-Protocol header
-    /// instead of query parameters to prevent token leakage in server logs.
-    ///
-    /// **NEW (Secure) - Recommended:**
-    /// ```swift
-    /// let url = EnrichmentConfig.webSocketURL(jobId: jobId)
-    /// var request = URLRequest(url: url)
-    /// request.setValue("bookstrack-auth.\(token)", forHTTPHeaderField: "Sec-WebSocket-Protocol")
-    /// let webSocket = URLSession.shared.webSocketTask(with: request)
-    /// ```
-    ///
-    /// - Parameter jobId: The unique job identifier
-    /// - Returns: WebSocket URL for the specified job (WITHOUT token in query params)
-    static func webSocketURL(jobId: String) -> URL {
-        URL(string: "\(webSocketBaseURL)/ws/progress?jobId=\(jobId)")!
-    }
-
     // MARK: - Health Check
 
     /// Health check endpoint
     static var healthCheckURL: URL {
         URL(string: "\(baseURL)/health")!
     }
-
-    // MARK: - Timeout Configuration
-
-    /// WebSocket connection timeout for background jobs
-    /// - AI processing (Gemini): 25-40s
-    /// - Enrichment: 5-10s
-    /// - Network buffer: ~20s
-    /// - Total: 70s recommended for most networks
-    static let webSocketTimeout: TimeInterval = 70.0
-
-    /// Slow network timeout (2x standard)
-    /// For users on slower connections or high-latency networks
-    static let webSocketTimeoutSlow: TimeInterval = 140.0
 }
