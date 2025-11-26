@@ -3,8 +3,8 @@
   "model": "claude-sonnet-4-5-20250929",
   "subagentModels": {
     "cloudflare-specialist": "claude-sonnet-4-5-20250929",
-    "code-review-grok": "grok-4-1-fast-non-reasoning",
-    "code-architecture-reviewer": "grok-4-1-fast-non-reasoning",
+    "code-review-grok": "grok-code-fast-1",
+    "code-architecture-reviewer": "grok-code-fast-1",
     "refactor-planner": "claude-opus-4-20250514",
     "Plan": "claude-opus-4-20250514",
     "Explore": "claude-haiku-4-20250514"

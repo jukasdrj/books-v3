@@ -75,7 +75,7 @@ All slash commands use the XcodeBuildMCP server for native Xcode integration.
 - Simple bug fixes
 - Boilerplate generation
 
-**🔍 Grok-4 (Expert Review)** - Via `mcp__zen__codereview` / `mcp__zen__secaudit`
+**🔍 Grok (Expert Review)** - Via `mcp__zen__codereview` / `mcp__zen__secaudit`
 - Security and architecture validation
 - Complex code review
 - Performance analysis
@@ -97,7 +97,7 @@ Sonnet (you): Plan feature architecture
   ↓
 Haiku: Implement components rapidly via mcp__zen__chat
   ↓
-Grok-4: Validate security/architecture via mcp__zen__codereview
+Grok: Validate security/architecture via mcp__zen__codereview
   ↓
 Sonnet (you): Final integration and testing
 ```
@@ -119,7 +119,7 @@ Sonnet (you): Security requirements planning
   ↓
 Haiku: Initial implementation via mcp__zen__chat
   ↓
-Grok-4: Security audit via mcp__zen__secaudit
+Grok: Security audit via mcp__zen__secaudit
   ↓
 Sonnet (you): Address findings and final review
 ```
@@ -162,12 +162,12 @@ Sonnet: [Uses refactor-planner agent]
 - Test case generation
 - **Tool:** `mcp__zen__chat` with `model="haiku"`
 
-**Grok-4 (Expert Review):**
+**Grok (Expert Review):**
 - Security vulnerability scanning
 - Architecture pattern validation
 - Performance bottleneck analysis
 - API contract compliance
-- **Tools:** `mcp__zen__codereview`, `mcp__zen__secaudit` with `model="grok-4"`
+- **Tools:** `mcp__zen__codereview`, `mcp__zen__secaudit` with `model="grok-code-fast-1"` or `"grok-4-1-fast-non-reasoning"`
 
 **Gemini 2.5 (Deep Analysis):**
 - Mysterious crashes and race conditions
@@ -189,9 +189,9 @@ Sonnet: [Delegates to Haiku via mcp__zen__chat]
   )
 
 User: "Review this for security issues"
-Sonnet: [Delegates to Grok-4 via mcp__zen__secaudit]
+Sonnet: [Delegates to Grok via mcp__zen__secaudit]
   mcp__zen__secaudit(
-    model: "grok-4",
+    model: "grok-code-fast-1",
     audit_focus: "owasp",
     step: "Analyze AuthenticationService for vulnerabilities"
   )
@@ -466,10 +466,10 @@ Skill: "mcp-zen-usage"
 **Model Selection:**
 When user names a specific model, use that exact name. When no model mentioned, use `listmodels` tool to see available options.
 
-**Available Models (14 total):**
-- gemini-2.5-flash, gemini-2.5-flash-preview-09-2025, gemini-2.5-pro
-- grok-4, grok-4-fast-reasoning
-- Use `listmodels` for complete catalog
+**Available Models (7 total):**
+- **Gemini**: gemini-3-pro-preview, gemini-2.5-pro, gemini-2.5-flash, gemini-2.0-flash, gemini-2.0-flash-lite
+- **Grok**: grok-4-1-fast-non-reasoning (2M context), grok-code-fast-1 (256K context, code specialist)
+- Use `listmodels` for complete catalog with aliases
 
 ---
 
@@ -526,8 +526,8 @@ Sonnet (you):
      - Token storage models
      - Login/logout flows
   3. Reviews Haiku's implementation
-  4. Delegates to Grok-4 for security audit:
-     mcp__zen__secaudit(model="grok-4", audit_focus="owasp")
+  4. Delegates to Grok for security audit:
+     mcp__zen__secaudit(model="grok-code-fast-1", audit_focus="owasp")
   5. Addresses Grok-4 findings
   6. Runs /test and /build
   7. Final integration testing
@@ -557,9 +557,9 @@ User: "Review my new Enrichment service"
 Sonnet (you):
   1. Uses code-architecture-reviewer agent for initial scan
   2. Checks Swift 6 concurrency, SwiftData patterns
-  3. For security-critical paths, delegates to Grok-4:
+  3. For security-critical paths, delegates to Grok:
      mcp__zen__codereview(
-       model="grok-4",
+       model="grok-code-fast-1",
        review_type="security",
        step: "Audit API key handling and network security"
      )
@@ -581,7 +581,7 @@ Sonnet (you):
   5. Updates parent LibraryView (you handle orchestration)
   6. Runs /test after each extraction
   7. Final /build to verify
-  8. Optionally: Grok-4 architecture review
+  8. Optionally: Grok architecture review
 ```
 
 **6. Parallel Feature Development:**
@@ -615,7 +615,7 @@ Sonnet (you):
 **Code Review Requests:**
 - Keywords: "review", "security audit", "check for vulnerabilities"
 - Context: Any code review or quality assessment
-- Auto-routes to: **code-review-grok** subagent (Grok-4 model)
+- Auto-routes to: **code-review-grok** subagent (Grok model)
 
 **API Orchestration Patterns:**
 - Keywords: "multi-provider", "fallback chain", "orchestration"
@@ -653,7 +653,7 @@ Sonnet (you):
 ```
 User: "Audit the Workers API for security issues"
 Sonnet (you):
-  1. Routes to code-review-grok subagent (Grok-4)
+  1. Routes to code-review-grok subagent (Grok)
   2. Grok performs OWASP Top 10 audit via mcp__zen__secaudit
   3. You review findings and prioritize fixes
   4. Delegates fixes to Haiku via mcp__zen__chat
@@ -728,7 +728,7 @@ Sonnet (you):
 
 **Why these models:**
 - **Sonnet** for Cloudflare specialist (complex architecture decisions)
-- **Grok-4** for code review (expert validation, security focus)
+- **Grok** (grok-4-1-fast-non-reasoning) for code review (expert validation, security focus)
 - **Opus** for planning agents (strategic thinking, comprehensive plans)
 - **Haiku** for exploration (speed, efficiency)
 
@@ -789,6 +789,6 @@ Sonnet (you):
 
 ---
 
-**Last Updated:** November 23, 2025 (v3.7.5, Build 189)
+**Last Updated:** November 26, 2025 (v3.7.5, Build 189)
 **Maintained by:** oooe (jukasdrj)
 **See Also:** [`AGENTS.md`](AGENTS.md), [`MCP_SETUP.md`](MCP_SETUP.md)

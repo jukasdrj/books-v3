@@ -16,13 +16,13 @@ Native iOS book tracking app with cultural diversity insights. SwiftUI, SwiftDat
 
 - **Sonnet 4.5** (Primary) - Planning, architecture, multi-file refactoring
 - **Haiku** - Fast implementation via `mcp__zen__chat`
-- **Grok-4** - Expert review via `mcp__zen__codereview` or `mcp__zen__secaudit`
-- **Gemini 2.5** - Deep analysis via `mcp__zen__debug` or `mcp__zen__thinkdeep`
+- **Grok Code Fast 1** - Expert code review via `mcp__zen__codereview` or `mcp__zen__secaudit` (70.8% SWE-Bench-Verified)
+- **Gemini 3 Pro** - Deep analysis via `mcp__zen__debug` or `mcp__zen__thinkdeep`
 
 **When to use multi-agent workflows:**
 - ✅ Complex features requiring fast iteration + expert validation
-- ✅ Security-critical code (Haiku implements → Grok-4 audits)
-- ✅ Mysterious bugs (Gemini investigates → Haiku fixes)
+- ✅ Security-critical code (Haiku implements → Grok Code Fast audits)
+- ✅ Mysterious bugs (Gemini 3 Pro investigates → Haiku fixes)
 - ✅ Large refactorings (parallel component extraction)
 
 **See `CLAUDE.md` for detailed multi-agent workflow patterns and delegation strategies.**
@@ -834,7 +834,7 @@ Text("Publisher").foregroundColor(.tertiary)
 
 ---
 
-**Last Updated:** November 23, 2025 (v3.7.5, Build 189)
+**Last Updated:** November 26, 2025 (v3.7.5, Build 189)
 **Maintained by:** oooe (jukasdrj)
 **License:** Proprietary
 **App Store:** Z67H8Y8DW.com.oooefam.booksV3
