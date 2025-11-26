@@ -6,6 +6,7 @@ import SwiftData
 @available(iOS 26.0, *)
 public struct ProgressiveProfilingPrompt: View {
     let work: Work
+    let session: ReadingSession?
     let onComplete: () -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -26,8 +27,9 @@ public struct ProgressiveProfilingPrompt: View {
     @State private var totalPointsAwarded = 0
     @State private var completionPercentage: Double = 0.0
 
-    public init(work: Work, onComplete: @escaping () -> Void) {
+    public init(work: Work, session: ReadingSession? = nil, onComplete: @escaping () -> Void) {
         self.work = work
+        self.session = session
         self.onComplete = onComplete
     }
 
@@ -253,6 +255,13 @@ public struct ProgressiveProfilingPrompt: View {
 
             // Done button
             Button(action: {
+                // Mark session as enrichment completed if session was provided
+                if let session = session {
+                    Task {
+                        let sessionService = ReadingSessionService(modelContext: modelContext)
+                        try? await sessionService.recordEnrichmentCompleted(for: session)
+                    }
+                }
                 dismiss()
                 onComplete()
             }) {

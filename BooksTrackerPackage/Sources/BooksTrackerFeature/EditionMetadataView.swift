@@ -31,6 +31,7 @@ struct EditionMetadataView: View {
     @State private var showEndSessionSheet = false
     @State private var endingPage: Int = 0
     @State private var showProfilingPrompt = false
+    @State private var completedSession: ReadingSession?
 
     // User's library entry for this work (reactive to SwiftData changes)
     private var libraryEntry: UserLibraryEntry? {
@@ -61,13 +62,15 @@ struct EditionMetadataView: View {
         }
         .glassEffect(.regular, tint: themeStore.primaryColor.opacity(0.1))
         .sheet(isPresented: $showProfilingPrompt) {
-            ProgressiveProfilingPrompt(work: work, onComplete: {
-                #if DEBUG
-                print("✅ Progressive profiling completed")
-                #endif
-            })
-            .presentationDetents([.large])
-            .iOS26SheetGlass()
+            if let session = completedSession {
+                ProgressiveProfilingPrompt(work: work, session: session, onComplete: {
+                    #if DEBUG
+                    print("✅ Progressive profiling completed")
+                    #endif
+                })
+                .presentationDetents([.large])
+                .iOS26SheetGlass()
+            }
         }
         .onAppear {
             ensureLibraryEntry()
@@ -589,6 +592,9 @@ struct EditionMetadataView: View {
 
             // Show progressive profiling prompt if session >= 5 minutes
             if session.durationMinutes >= 5 {
+                // Store the completed session for the prompt
+                completedSession = session
+                
                 // Delay slightly for better UX (sheet after sheet)
                 Task { @MainActor in
                     try? await Task.sleep(for: .milliseconds(500))

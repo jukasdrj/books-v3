@@ -11,6 +11,8 @@ public struct CelebrationView: View {
     @State private var showPoints = false
     @State private var showCompletion = false
     @State private var particles: [ConfettiParticle] = []
+    @State private var screenWidth: CGFloat = 400
+    @State private var screenHeight: CGFloat = 800
     
     public init(pointsAwarded: Int, completionPercentage: Double) {
         self.pointsAwarded = pointsAwarded
@@ -18,82 +20,86 @@ public struct CelebrationView: View {
     }
     
     public var body: some View {
-        ZStack {
-            // Confetti particles layer
-            ForEach(particles) { particle in
-                ConfettiParticleView(particle: particle)
-            }
-            
-            // Main content
-            VStack(spacing: 24) {
-                // Success checkmark
-                if showCheckmark {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 72))
-                        .foregroundStyle(.green)
-                        .transition(.scale.combined(with: .opacity))
+        GeometryReader { geometry in
+            ZStack {
+                // Confetti particles layer
+                ForEach(particles) { particle in
+                    ConfettiParticleView(particle: particle, screenHeight: screenHeight)
                 }
                 
-                // Points award badge
-                if showPoints {
-                    HStack(spacing: 6) {
-                        Image(systemName: "sparkles")
-                            .font(.title3)
-                            .foregroundColor(.yellow)
-                        Text("+\(pointsAwarded) Curator Points")
-                            .font(.headline.bold())
+                // Main content
+                VStack(spacing: 24) {
+                    // Success checkmark
+                    if showCheckmark {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 72))
+                            .foregroundStyle(.green)
+                            .transition(.scale.combined(with: .opacity))
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background {
-                        Capsule()
-                            .fill(Color.green.opacity(0.15))
-                    }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-                
-                // Completion percentage update
-                if showCompletion {
-                    VStack(spacing: 8) {
-                        Text("Diversity Data Completion")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        
-                        // Progress bar
-                        GeometryReader { geometry in
-                            ZStack(alignment: .leading) {
-                                // Background
-                                Capsule()
-                                    .fill(Color.secondary.opacity(0.2))
-                                    .frame(height: 8)
-                                
-                                // Progress fill
-                                Capsule()
-                                    .fill(LinearGradient(
-                                        colors: [
-                                            Color(red: 0.42, green: 0.39, blue: 1.00),
-                                            Color(red: 0.00, green: 0.82, blue: 1.00)
-                                        ],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    ))
-                                    .frame(width: geometry.size.width * completionPercentage / 100, height: 8)
-                                    .animation(.easeInOut(duration: 1.0), value: completionPercentage)
-                            }
+                    
+                    // Points award badge
+                    if showPoints {
+                        HStack(spacing: 6) {
+                            Image(systemName: "sparkles")
+                                .font(.title3)
+                                .foregroundColor(.yellow)
+                            Text("+\(pointsAwarded) Curator Points")
+                                .font(.headline.bold())
                         }
-                        .frame(height: 8)
-                        
-                        Text("\(Int(completionPercentage))% Complete")
-                            .font(.subheadline.bold())
-                            .foregroundStyle(.primary)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background {
+                            Capsule()
+                                .fill(Color.green.opacity(0.15))
+                        }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
-                    .padding(.horizontal, 20)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    
+                    // Completion percentage update
+                    if showCompletion {
+                        VStack(spacing: 8) {
+                            Text("Diversity Data Completion")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            
+                            // Progress bar
+                            GeometryReader { progressGeometry in
+                                ZStack(alignment: .leading) {
+                                    // Background
+                                    Capsule()
+                                        .fill(Color.secondary.opacity(0.2))
+                                        .frame(height: 8)
+                                    
+                                    // Progress fill
+                                    Capsule()
+                                        .fill(LinearGradient(
+                                            colors: [
+                                                Color(red: 0.42, green: 0.39, blue: 1.00),
+                                                Color(red: 0.00, green: 0.82, blue: 1.00)
+                                            ],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        ))
+                                        .frame(width: progressGeometry.size.width * completionPercentage / 100, height: 8)
+                                        .animation(.easeInOut(duration: 1.0), value: completionPercentage)
+                                }
+                            }
+                            .frame(height: 8)
+                            
+                            Text("\(Int(completionPercentage))% Complete")
+                                .font(.subheadline.bold())
+                                .foregroundStyle(.primary)
+                        }
+                        .padding(.horizontal, 20)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
                 }
             }
-        }
-        .onAppear {
-            startCelebrationAnimation()
+            .onAppear {
+                screenWidth = geometry.size.width
+                screenHeight = geometry.size.height
+                startCelebrationAnimation()
+            }
         }
     }
     
@@ -103,7 +109,7 @@ public struct CelebrationView: View {
         // Generate confetti particles
         particles = (0..<30).map { _ in
             ConfettiParticle(
-                x: .random(in: 0...UIScreen.main.bounds.width),
+                x: .random(in: 0...screenWidth),
                 y: -20,
                 color: [.red, .blue, .green, .yellow, .purple, .orange].randomElement()!,
                 rotation: .random(in: 0...360)
@@ -141,6 +147,7 @@ private struct ConfettiParticle: Identifiable {
 
 private struct ConfettiParticleView: View {
     let particle: ConfettiParticle
+    let screenHeight: CGFloat
     
     @State private var yOffset: Double = 0
     @State private var xOffset: Double = 0
@@ -156,7 +163,7 @@ private struct ConfettiParticleView: View {
             .onAppear {
                 // Animate particles falling down
                 withAnimation(.easeInOut(duration: 2.0)) {
-                    yOffset = UIScreen.main.bounds.height + 50
+                    yOffset = screenHeight + 50
                     xOffset = .random(in: -50...50)
                     opacity = 0
                 }
