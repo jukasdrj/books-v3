@@ -197,7 +197,7 @@ public class BookSearchAPIService {
         }
         
         // Convert V2 results to SearchResult format
-        let results = try convertV2ResultsToSearchResults(v2Response.results)
+        let results = convertV2ResultsToSearchResults(v2Response.results)
         
         return SearchResponse(
             results: results,
@@ -597,43 +597,38 @@ public class BookSearchAPIService {
     /// Convert V2 search results to SearchResult array
     /// V2 API returns a simpler format that needs to be mapped to our Work/Edition/Author models
     /// Note: V2 results are not automatically persisted - they are preview/search results only
-    private func convertV2ResultsToSearchResults(_ v2Results: [SearchV2Result]) throws -> [SearchResult] {
+    private func convertV2ResultsToSearchResults(_ v2Results: [SearchV2Result]) -> [SearchResult] {
         logger.debug("📦 Processing V2 search response: \(v2Results.count) results")
         
         return v2Results.compactMap { v2Result in
-            do {
-                // Create minimal Work object (not persisted by default)
-                let work = Work(title: v2Result.title)
-                
-                // Create Author objects from name strings
-                let authors = v2Result.authors.map { authorName in
-                    Author(name: authorName)
-                }
-                
-                // Create minimal Edition with cover URL and ISBN
-                var edition: Edition? = nil
-                if !v2Result.isbn.isEmpty {
-                    edition = Edition(
-                        isbn: v2Result.isbn,
-                        coverImageURL: v2Result.coverUrl
-                    )
-                    // Add ISBN to isbns array for primaryISBN computation
-                    if let edition = edition {
-                        edition.isbns = [v2Result.isbn]
-                    }
-                }
-                
-                return SearchResult(
-                    work: work,
-                    editions: edition.map { [$0] } ?? [],
-                    authors: authors,
-                    relevanceScore: v2Result.relevanceScore,
-                    provider: "v2:\(v2Result.matchType)"
-                )
-            } catch {
-                logger.warning("⚠️ Failed to convert V2 result '\(v2Result.title)': \(String(describing: error))")
-                return nil
+            // Create minimal Work object (not persisted by default)
+            let work = Work(title: v2Result.title)
+            
+            // Create Author objects from name strings
+            let authors = v2Result.authors.map { authorName in
+                Author(name: authorName)
             }
+            
+            // Create minimal Edition with cover URL and ISBN
+            var edition: Edition? = nil
+            if !v2Result.isbn.isEmpty {
+                edition = Edition(
+                    isbn: v2Result.isbn,
+                    coverImageURL: v2Result.coverUrl
+                )
+                // Add ISBN to isbns array for primaryISBN computation
+                if let edition = edition {
+                    edition.isbns = [v2Result.isbn]
+                }
+            }
+            
+            return SearchResult(
+                work: work,
+                editions: edition.map { [$0] } ?? [],
+                authors: authors,
+                relevanceScore: v2Result.relevanceScore,
+                provider: "v2:\(v2Result.matchType)"
+            )
         }
     }
 
