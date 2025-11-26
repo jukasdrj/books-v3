@@ -244,6 +244,7 @@ public final class Work {
     /// Get the primary edition (best quality for display)
     /// Respects user's cover selection strategy from Settings
     /// Prioritizes: 1) User's owned edition, 2) Strategy-based selection (auto/recent/hardcover/manual)
+    @MainActor
     var primaryEdition: Edition? {
         return primaryEdition(using: FeatureFlags.shared.coverSelectionStrategy)
     }

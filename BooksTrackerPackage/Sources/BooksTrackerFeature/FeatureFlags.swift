@@ -38,8 +38,9 @@ public enum CoverSelectionStrategy: String, CaseIterable, Sendable {
 ///
 /// This observable class manages feature toggles that can be enabled/disabled
 /// via Settings. Flags are persisted using UserDefaults for user preference retention.
+@MainActor
 @Observable
-public final class FeatureFlags: Sendable {
+public final class FeatureFlags {
     /// Enable tab bar minimize behavior on scroll
     ///
     /// When enabled, the tab bar automatically hides when scrolling down
@@ -117,6 +118,11 @@ public final class FeatureFlags: Sendable {
             UserDefaults.standard.set(newValue, forKey: "feature.enableV2Search")
         }
     }
+
+    /// Stores the API capabilities fetched from the backend.
+    /// This property is populated on app launch and is used to conditionally
+    /// enable or disable features based on backend support.
+    public var apiCapabilities: APICapabilities?
 
     public static let shared = FeatureFlags()
 

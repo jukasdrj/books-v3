@@ -9,6 +9,7 @@ public enum SearchScope: String, CaseIterable, Identifiable, Sendable {
     case title = "Title"
     case author = "Author"
     case isbn = "ISBN"
+    case semantic = "Semantic"
 
     public var id: String { rawValue }
 
@@ -22,9 +23,9 @@ public enum SearchScope: String, CaseIterable, Identifiable, Sendable {
         case .title: return "Search by book title"
         case .author: return "Search by author name"
         case .isbn: return "Search by ISBN number"
+        case .semantic: return "AI-powered semantic search"
         }
     }
-
 }
 
 // MARK: - Search State Management

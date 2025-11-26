@@ -13,6 +13,7 @@ struct WorkDetailView: View {
     @Environment(\.dtoMapper) private var dtoMapper
     @Environment(\.bookSearchAPIService) private var bookSearchAPIService
     @Environment(\.iOS26ThemeStore) private var themeStore
+    @Environment(FeatureFlags.self) private var featureFlags
     @State private var selectedEdition: Edition?
     @State private var showingEditionPicker = false
     @State private var selectedAuthor: Author?
@@ -164,6 +165,12 @@ struct WorkDetailView: View {
                    let userEntry = work.userEntry,
                    work.availableEditions.count > 1 {
                     editionSelectionSection(userEntry: userEntry)
+                        .padding(.horizontal, 20)
+                }
+
+                // MARK: - Similar Books Section
+                if featureFlags.apiCapabilities?.features.similarBooks == true {
+                    similarBooksSection
                         .padding(.horizontal, 20)
                 }
 

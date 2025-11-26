@@ -131,6 +131,8 @@ extension SearchView {
                 return "Finding authors..."
             case .isbn:
                 return "Looking up ISBN..."
+            case .semantic:
+                return "Searching by description..."
             }
         }
     }
