@@ -537,15 +537,26 @@ public class BookSearchAPIService {
         let total: Int
         let mode: String
         let query: String
-        let latency_ms: Int
+        let latencyMs: Int
+
+        enum CodingKeys: String, CodingKey {
+            case results, total, mode, query
+            case latencyMs = "latency_ms"
+        }
     }
 
     private struct V2SearchResultItem: Codable {
         let isbn: String?
         let title: String
         let authors: [String]
-        let cover_url: String?
-        let relevance_score: Double
+        let coverUrl: String?
+        let relevanceScore: Double
+
+        enum CodingKeys: String, CodingKey {
+            case isbn, title, authors
+            case coverUrl = "cover_url"
+            case relevanceScore = "relevance_score"
+        }
     }
 
     public func searchV2(query: String, mode: SearchMode, limit: Int = 20) async throws -> SearchResponse {
@@ -617,7 +628,7 @@ public class BookSearchAPIService {
             var editions: [Edition] = []
             if let isbn = item.isbn {
                 let edition = Edition(isbn: isbn)
-                edition.coverImageURL = item.cover_url
+                edition.coverImageURL = item.coverUrl
                 edition.work = work
                 editions.append(edition)
             }
@@ -626,7 +637,7 @@ public class BookSearchAPIService {
                 work: work,
                 editions: editions,
                 authors: authors,
-                relevanceScore: item.relevance_score,
+                relevanceScore: item.relevanceScore,
                 provider: "v2-unified-\(mode.rawValue)"
             )
         }
