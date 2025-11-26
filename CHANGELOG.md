@@ -6,6 +6,51 @@ All notable changes, achievements, and debugging victories for this project.
 
 ## [Unreleased]
 
+### iOS 🍎 - Capabilities API Integration (November 26, 2025)
+
+**Implemented feature discovery endpoint to enable runtime capability detection and graceful degradation.**
+
+#### What Was Built
+
+**Core Services:**
+- ✅ `APICapabilities` model - Matches backend schema with features, limits, infrastructure
+- ✅ `CapabilitiesService` actor - Thread-safe fetch with 1-hour TTL caching
+- ✅ `FeatureFlags` integration - Expose capabilities via type-safe API
+- ✅ CSV row limit validation - Dynamic limits from backend capabilities
+- ✅ App launch integration - High-priority background task in ContentView
+
+**Features:**
+```
+GET /api/v2/capabilities → Cache (1hr) → FeatureFlags
+                                              ↓
+                        +-----------------------+
+                        |           |           |
+                  isFeatureAvailable  getRateLimit  getResourceLimit
+                  (.semanticSearch)   (.textSearch)  (.csvMaxRows)
+```
+
+#### Impact
+
+- **Feature Detection:** Client detects semantic search, similar books, weekly recommendations
+- **Rate Limits:** Exposes limits (5 req/min semantic, 100 req/min text) before user hits them
+- **CSV Validation:** Respects backend row limits (default 500, configurable via API)
+- **Graceful Degradation:** Falls back to V1 defaults if endpoint unavailable (404)
+- **Version Tracking:** Stores API version for debugging/analytics
+
+#### Testing
+
+- 9 unit tests for `APICapabilities` model (encoding, decoding, feature checking)
+- 8 unit tests for `CapabilitiesService` (caching, fallback, thread safety)
+- 8 new CSV validator tests for row limit validation
+- 1 integration test for live `/api/v2/capabilities` endpoint
+
+#### Design Decisions
+
+1. **Actor Isolation:** Thread-safe concurrency via `CapabilitiesService` actor
+2. **In-Memory Cache:** 1-hour TTL with `fetchedAt` timestamp (no UserDefaults pollution)
+3. **Optimistic Fallback:** Assumes V1 capabilities if endpoint 404 (no crashes)
+4. **Lazy Evaluation:** CSV row counting uses `lazy.filter` to avoid array allocation
+
 ### Backend 🌾 - ISBNdb Cover Harvest Automation (January 10, 2025)
 
 **Deployed automated ISBNdb cover harvesting system to pre-populate R2 cache before paid membership expires.**

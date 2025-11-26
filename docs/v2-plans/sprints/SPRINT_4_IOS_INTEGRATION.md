@@ -77,12 +77,12 @@ App Launch --> GET /api/v2/capabilities --> Cache in UserDefaults (1hr TTL)
 ```
 
 **Tasks:**
-- [ ] Create `APICapabilitiesService` actor
-- [ ] Define `APICapabilities` model matching response schema
-- [ ] Implement caching with 1-hour TTL in UserDefaults
-- [ ] Expose feature flags as published properties
-- [ ] Handle offline gracefully (use cached or disable features)
-- [ ] Call on app launch in `BooksTrackerApp.swift`
+- [x] Create `APICapabilitiesService` actor (✅ Implemented as `CapabilitiesService`)
+- [x] Define `APICapabilities` model matching response schema (✅ Complete with all fields)
+- [x] Implement caching with 1-hour TTL in UserDefaults (✅ In-memory actor cache with TTL)
+- [x] Expose feature flags as published properties (✅ Integrated with `FeatureFlags.shared`)
+- [x] Handle offline gracefully (use cached or disable features) (✅ Falls back to V1 defaults)
+- [x] Call on app launch in `BooksTrackerApp.swift` (✅ High-priority background task in ContentView)
 
 **Response Schema:**
 ```json
