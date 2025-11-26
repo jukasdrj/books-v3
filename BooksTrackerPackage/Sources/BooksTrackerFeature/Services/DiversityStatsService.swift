@@ -224,7 +224,8 @@ public final class DiversityStatsService {
         case "ownVoicesTheme":
             // Update work's Own Voices flag
             // Parse boolean from string ("true", "false", "yes", "no")
-            work.isOwnVoices = value.lowercased() == "true" || value.lowercased() == "yes"
+            let lowercasedValue = value.lowercased()
+            work.isOwnVoices = lowercasedValue == "true" || lowercasedValue == "yes"
 
         case "nicheAccessibility":
             // Update work's accessibility tags
