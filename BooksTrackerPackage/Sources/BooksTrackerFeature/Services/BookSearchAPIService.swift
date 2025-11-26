@@ -612,14 +612,13 @@ public class BookSearchAPIService {
             // Create minimal Edition with cover URL and ISBN
             var edition: Edition? = nil
             if !v2Result.isbn.isEmpty {
-                edition = Edition(
+                let newEdition = Edition(
                     isbn: v2Result.isbn,
                     coverImageURL: v2Result.coverUrl
                 )
                 // Add ISBN to isbns array for primaryISBN computation
-                if let edition = edition {
-                    edition.isbns = [v2Result.isbn]
-                }
+                newEdition.isbns = [v2Result.isbn]
+                edition = newEdition
             }
             
             return SearchResult(
