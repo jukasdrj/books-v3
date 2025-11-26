@@ -1,15 +1,17 @@
 import Foundation
+import OSLog
 
 class WeeklyRecommendationsCache {
     private let cacheKey = "weeklyRecommendationsCache"
     private let userDefaults = UserDefaults.standard
+    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "WeeklyRecommendationsCache")
 
     func save(_ response: WeeklyRecommendationsResponse) {
         do {
             let data = try JSONEncoder().encode(response)
             userDefaults.set(data, forKey: cacheKey)
         } catch {
-            print("Error caching weekly recommendations: \(error)")
+            logger.error("Error caching weekly recommendations: \(error.localizedDescription)")
         }
     }
 
@@ -27,7 +29,7 @@ class WeeklyRecommendationsCache {
                 return nil
             }
         } catch {
-            print("Error loading cached weekly recommendations: \(error)")
+            logger.error("Error loading cached weekly recommendations: \(error.localizedDescription)")
             return nil
         }
     }
