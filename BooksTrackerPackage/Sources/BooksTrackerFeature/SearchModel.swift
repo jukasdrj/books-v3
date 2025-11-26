@@ -176,6 +176,17 @@ public final class SearchModel {
         }
     }
 
+    /// Search for a specific ISBN and return the result for navigation
+    func searchByISBNForNavigation(_ isbn: String) async -> SearchResult? {
+        do {
+            let response = try await apiService.search(query: isbn, maxResults: 1, scope: .isbn)
+            return await enrichResultsWithLibraryStatus(response.results).first
+        } catch {
+            // Handle or log the error as needed
+            return nil
+        }
+    }
+
     /// Load more results for pagination
     func loadMoreResults() async {
         guard hasMoreResults, !viewState.isSearching else { return }

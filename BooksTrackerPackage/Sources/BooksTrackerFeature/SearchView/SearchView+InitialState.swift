@@ -17,6 +17,8 @@ extension SearchView {
         var body: some View {
             ScrollView {
                 LazyVStack(spacing: 32) {
+                    WeeklyPicksView()
+
                     // Welcome section - HIG: Clear, inviting empty state
                     welcomeSection
 
