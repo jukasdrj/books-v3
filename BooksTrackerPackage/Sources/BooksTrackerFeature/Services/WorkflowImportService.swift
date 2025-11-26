@@ -185,18 +185,25 @@ public actor WorkflowImportService {
             throw WorkflowImportError.serverError(httpResponse.statusCode, errorMessage)
         }
         
-        // Decode response envelope
-        let envelope = try JSONDecoder().decode(ResponseEnvelope<WorkflowCreateResponse>.self, from: data)
+        // Try to decode with ResponseEnvelope wrapper first (canonical format)
+        let decoder = JSONDecoder()
         
-        if let error = envelope.error {
-            throw WorkflowImportError.serverError(httpResponse.statusCode, error.message)
+        if let envelope = try? decoder.decode(ResponseEnvelope<WorkflowCreateResponse>.self, from: data) {
+            // Canonical ResponseEnvelope format
+            if let error = envelope.error {
+                throw WorkflowImportError.serverError(httpResponse.statusCode, error.message)
+            }
+            
+            guard let result = envelope.data else {
+                throw WorkflowImportError.invalidResponse
+            }
+            
+            return result.workflowId
+        } else {
+            // Fallback: Try direct unwrapped response (backward compatibility)
+            let result = try decoder.decode(WorkflowCreateResponse.self, from: data)
+            return result.workflowId
         }
-        
-        guard let result = envelope.data else {
-            throw WorkflowImportError.invalidResponse
-        }
-        
-        return result.workflowId
     }
     
     /// Get current status of a workflow
@@ -229,18 +236,25 @@ public actor WorkflowImportService {
             throw WorkflowImportError.serverError(httpResponse.statusCode, errorMessage)
         }
         
-        // Decode response envelope
-        let envelope = try JSONDecoder().decode(ResponseEnvelope<WorkflowStatusResponse>.self, from: data)
+        // Try to decode with ResponseEnvelope wrapper first (canonical format)
+        let decoder = JSONDecoder()
         
-        if let error = envelope.error {
-            throw WorkflowImportError.serverError(httpResponse.statusCode, error.message)
+        if let envelope = try? decoder.decode(ResponseEnvelope<WorkflowStatusResponse>.self, from: data) {
+            // Canonical ResponseEnvelope format
+            if let error = envelope.error {
+                throw WorkflowImportError.serverError(httpResponse.statusCode, error.message)
+            }
+            
+            guard let status = envelope.data else {
+                throw WorkflowImportError.invalidResponse
+            }
+            
+            return status
+        } else {
+            // Fallback: Try direct unwrapped response (backward compatibility)
+            let status = try decoder.decode(WorkflowStatusResponse.self, from: data)
+            return status
         }
-        
-        guard let status = envelope.data else {
-            throw WorkflowImportError.invalidResponse
-        }
-        
-        return status
     }
     
     /// Poll workflow status until completion or timeout
