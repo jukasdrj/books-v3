@@ -38,6 +38,84 @@ public struct GeminiCSVImportResponse: Codable, Sendable {
     public let token: String  // NEW: Auth token for WebSocket
 }
 
+// MARK: - V2 API Response Models
+
+/// V2 API import initiation response
+public struct V2ImportResponse: Codable, Sendable {
+    public let jobId: String
+    public let status: String
+    public let createdAt: String
+    public let sseUrl: String
+    public let statusUrl: String
+    public let fileSizeBytes: Int?
+    public let estimatedRows: Int?
+    
+    enum CodingKeys: String, CodingKey {
+        case jobId = "job_id"
+        case status
+        case createdAt = "created_at"
+        case sseUrl = "sse_url"
+        case statusUrl = "status_url"
+        case fileSizeBytes = "file_size_bytes"
+        case estimatedRows = "estimated_rows"
+    }
+}
+
+/// V2 API import status response (for polling)
+public struct V2ImportStatus: Codable, Sendable {
+    public let jobId: String
+    public let status: String
+    public let progress: Double
+    public let totalRows: Int?
+    public let processedRows: Int?
+    public let successfulRows: Int?
+    public let failedRows: Int?
+    public let createdAt: String
+    public let startedAt: String?
+    public let completedAt: String?
+    public let error: String?
+    public let resultSummary: V2ResultSummary?
+    
+    public struct V2ResultSummary: Codable, Sendable {
+        public let booksCreated: Int?
+        public let booksUpdated: Int?
+        public let duplicatesSkipped: Int?
+        public let enrichmentSucceeded: Int?
+        public let enrichmentFailed: Int?
+        public let errors: [V2ImportError]?
+        
+        enum CodingKeys: String, CodingKey {
+            case booksCreated = "books_created"
+            case booksUpdated = "books_updated"
+            case duplicatesSkipped = "duplicates_skipped"
+            case enrichmentSucceeded = "enrichment_succeeded"
+            case enrichmentFailed = "enrichment_failed"
+            case errors
+        }
+    }
+    
+    public struct V2ImportError: Codable, Sendable {
+        public let row: Int?
+        public let isbn: String?
+        public let error: String?
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case jobId = "job_id"
+        case status
+        case progress
+        case totalRows = "total_rows"
+        case processedRows = "processed_rows"
+        case successfulRows = "successful_rows"
+        case failedRows = "failed_rows"
+        case createdAt = "created_at"
+        case startedAt = "started_at"
+        case completedAt = "completed_at"
+        case error
+        case resultSummary = "result_summary"
+    }
+}
+
 public struct GeminiCSVImportJob: Codable, Sendable {
     public let books: [ParsedBook]
     public let errors: [ImportError]
@@ -331,6 +409,175 @@ actor GeminiCSVImportService {
         } catch {
             #if DEBUG
             print("[CSV Cancel] ❌ Network Error: \(error.localizedDescription)")
+            #endif
+            throw GeminiCSVImportError.networkError(error)
+        }
+    }
+    
+    // MARK: - V2 API Methods
+    
+    /// Upload CSV file using V2 API with SSE support
+    /// - Parameter csvText: Raw CSV content
+    /// - Returns: V2 import response with job ID and SSE URL
+    /// - Throws: GeminiCSVImportError on failure
+    func uploadCSVV2(csvText: String) async throws -> V2ImportResponse {
+        #if DEBUG
+        print("[CSV Upload V2] Starting upload, size: \(csvText.utf8.count) bytes")
+        #endif
+        
+        // Validate CSV format
+        do {
+            try CSVValidator.validate(csvText: csvText)
+            #if DEBUG
+            print("[CSV Upload V2] ✅ CSV validation passed")
+            #endif
+        } catch let validationError as CSVValidationError {
+            #if DEBUG
+            print("[CSV Upload V2] ❌ CSV validation failed: \(validationError.localizedDescription)")
+            #endif
+            throw GeminiCSVImportError.parsingFailed(validationError.localizedDescription)
+        }
+        
+        // Validate file size (V2 allows up to 50MB)
+        let dataSize = csvText.utf8.count
+        let maxV2FileSize = 50_000_000  // 50MB for V2 API
+        guard dataSize <= maxV2FileSize else {
+            #if DEBUG
+            print("[CSV Upload V2] ❌ File too large: \(dataSize) bytes")
+            #endif
+            throw GeminiCSVImportError.fileTooLarge(dataSize)
+        }
+        
+        // Create V2 endpoint URL
+        guard let url = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/v2/imports") else {
+            throw GeminiCSVImportError.invalidResponse
+        }
+        
+        // Create multipart/form-data request
+        let boundary = UUID().uuidString
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 120
+        
+        var body = Data()
+        
+        // Add CSV file field
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"import.csv\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: text/csv\r\n\r\n".data(using: .utf8)!)
+        body.append(csvText.data(using: .utf8)!)
+        body.append("\r\n".data(using: .utf8)!)
+        
+        // Add options field with V2 API parameters
+        let options: [String: Any] = [
+            "auto_enrich": true,
+            "skip_duplicates": true
+        ]
+        
+        if let optionsData = try? JSONSerialization.data(withJSONObject: options),
+           let optionsString = String(data: optionsData, encoding: .utf8) {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"options\"\r\n".data(using: .utf8)!)
+            body.append("Content-Type: application/json\r\n\r\n".data(using: .utf8)!)
+            body.append(optionsString.data(using: .utf8)!)
+            body.append("\r\n".data(using: .utf8)!)
+        }
+        
+        // Close boundary
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        
+        request.httpBody = body
+        
+        #if DEBUG
+        print("[CSV Upload V2] Sending request to \(url)")
+        #endif
+        
+        // Execute request
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw GeminiCSVImportError.invalidResponse
+            }
+            
+            #if DEBUG
+            print("[CSV Upload V2] Response status: \(httpResponse.statusCode)")
+            #endif
+            
+            // V2 API returns 202 Accepted for async jobs
+            guard httpResponse.statusCode == 202 else {
+                let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+                throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessage)
+            }
+            
+            // Decode V2 response
+            let decoder = JSONDecoder()
+            let importResponse = try decoder.decode(V2ImportResponse.self, from: data)
+            
+            #if DEBUG
+            print("[CSV Upload V2] ✅ Job created: \(importResponse.jobId)")
+            #endif
+            
+            return importResponse
+            
+        } catch let error as GeminiCSVImportError {
+            throw error
+        } catch {
+            #if DEBUG
+            print("[CSV Upload V2] ❌ Error: \(error)")
+            #endif
+            throw GeminiCSVImportError.networkError(error)
+        }
+    }
+    
+    /// Check V2 import job status (polling fallback)
+    /// - Parameter jobId: The job ID to check
+    /// - Returns: V2 import status with progress and results
+    /// - Throws: GeminiCSVImportError on failure
+    func checkV2JobStatus(jobId: String) async throws -> V2ImportStatus {
+        #if DEBUG
+        print("[CSV Status V2] Checking status for job: \(jobId)")
+        #endif
+        
+        guard let statusURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/v2/imports/\(jobId)") else {
+            throw GeminiCSVImportError.invalidResponse
+        }
+        
+        var request = URLRequest(url: statusURL)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 30
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw GeminiCSVImportError.invalidResponse
+            }
+            
+            #if DEBUG
+            print("[CSV Status V2] Status code: \(httpResponse.statusCode)")
+            #endif
+            
+            guard httpResponse.statusCode == 200 else {
+                let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+                throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessage)
+            }
+            
+            let decoder = JSONDecoder()
+            let status = try decoder.decode(V2ImportStatus.self, from: data)
+            
+            #if DEBUG
+            print("[CSV Status V2] ✅ Status: \(status.status), progress: \(status.progress)")
+            #endif
+            
+            return status
+            
+        } catch let error as GeminiCSVImportError {
+            throw error
+        } catch {
+            #if DEBUG
+            print("[CSV Status V2] ❌ Error: \(error)")
             #endif
             throw GeminiCSVImportError.networkError(error)
         }

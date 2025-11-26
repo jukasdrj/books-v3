@@ -62,6 +62,10 @@ public struct GeminiCSVImportView: View {
     @State private var errorMessage: String?
     @State private var webSocketTask: URLSessionWebSocketTask?
     @State private var receiveTask: Task<Void, Never>?
+    
+    // V2 API SSE support
+    @State private var progressTracker: V2ImportProgressTracker?
+    @State private var useV2API = false  // Feature flag for V2 API with SSE
 
     // Rate limit banner (Issue #426)
     @State private var showRateLimitBanner = false
@@ -309,6 +313,13 @@ public struct GeminiCSVImportView: View {
     }
 
     private func uploadCSV(from url: URL) async {
+        // Use V2 API if feature flag is enabled
+        if useV2API {
+            await uploadCSVV2(from: url)
+            return
+        }
+        
+        // Otherwise use V1 WebSocket-based import
         importStatus = .uploading
 
         do {
@@ -337,6 +348,115 @@ public struct GeminiCSVImportView: View {
             importStatus = .failed(error.localizedDescription)
         } catch {
             importStatus = .failed("Upload failed: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Upload CSV using V2 API with SSE progress tracking
+    private func uploadCSVV2(from url: URL) async {
+        importStatus = .uploading
+        
+        do {
+            // Read CSV content
+            guard url.startAccessingSecurityScopedResource() else {
+                importStatus = .failed("Cannot access file")
+                return
+            }
+            defer { url.stopAccessingSecurityScopedResource() }
+            
+            let csvText = try String(contentsOf: url, encoding: .utf8)
+            
+            // Upload to V2 API
+            let service = GeminiCSVImportService.shared
+            let response = try await service.uploadCSVV2(csvText: csvText)
+            
+            #if DEBUG
+            print("[CSV Upload V2] Job created: \(response.jobId)")
+            print("[CSV Upload V2] SSE URL: \(response.sseUrl)")
+            #endif
+            
+            // Start SSE-based progress tracking
+            jobId = response.jobId
+            await startV2ProgressTracking(jobId: response.jobId)
+            
+        } catch let error as GeminiCSVImportError {
+            importStatus = .failed(error.localizedDescription)
+        } catch {
+            importStatus = .failed("Upload failed: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Start V2 progress tracking with SSE and polling fallback
+    private func startV2ProgressTracking(jobId: String) async {
+        #if DEBUG
+        print("[CSV V2] Starting SSE progress tracking for job \(jobId)")
+        #endif
+        
+        let tracker = V2ImportProgressTracker()
+        progressTracker = tracker
+        
+        await tracker.startTracking(jobId: jobId) { [weak self] progress, processed, total in
+            Task { @MainActor in
+                guard let self = self else { return }
+                let message = "Processing \(processed)/\(total) rows..."
+                self.importStatus = .processing(progress: progress, message: message)
+                
+                #if DEBUG
+                print("[CSV V2] Progress: \(Int(progress * 100))% - \(message)")
+                #endif
+            }
+        } onComplete: { [weak self] result in
+            Task { @MainActor in
+                guard let self = self else { return }
+                
+                #if DEBUG
+                print("[CSV V2] Import complete!")
+                #endif
+                
+                // Convert SSEImportResult to legacy format for UI compatibility
+                let books = result.resultSummary.map { summary in
+                    // Create placeholder books from summary stats
+                    // Note: V2 API doesn't return individual book data in completion event
+                    // Full results would need to be fetched separately if needed
+                    [] as [GeminiCSVImportJob.ParsedBook]
+                } ?? []
+                
+                let errors = result.resultSummary?.errors?.map { error in
+                    GeminiCSVImportJob.ImportError(
+                        title: error.isbn ?? "Row \(error.row ?? 0)",
+                        error: error.error ?? "Unknown error"
+                    )
+                } ?? []
+                
+                // For now, show completion with summary stats
+                let successCount = result.resultSummary?.booksCreated ?? 0
+                let errorCount = result.resultSummary?.errors?.count ?? 0
+                
+                // Create synthetic books for display (actual saving happens on backend)
+                // V2 API auto-saves to user's library, so we just show completion
+                self.importStatus = .processing(
+                    progress: 1.0,
+                    message: "✅ Import complete! \(successCount) books added, \(errorCount) errors"
+                )
+                
+                // Auto-dismiss and switch to library after brief delay
+                Task {
+                    try? await Task.sleep(for: .seconds(2))
+                    await MainActor.run {
+                        self.tabCoordinator.switchToLibrary()
+                        self.dismiss()
+                    }
+                }
+            }
+        } onError: { [weak self] error in
+            Task { @MainActor in
+                guard let self = self else { return }
+                
+                #if DEBUG
+                print("[CSV V2] Error: \(error)")
+                #endif
+                
+                self.importStatus = .failed(error.localizedDescription)
+            }
         }
     }
 
@@ -739,6 +859,14 @@ public struct GeminiCSVImportView: View {
     }
 
     private func cancelImport() {
+        // Cancel V2 progress tracker if using V2 API
+        if let tracker = progressTracker {
+            Task {
+                await tracker.stopTracking()
+            }
+            progressTracker = nil
+        }
+        
         // Cancel backend job if one is running
         if let jobId = jobId {
             Task {
