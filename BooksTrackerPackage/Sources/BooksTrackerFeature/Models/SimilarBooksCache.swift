@@ -3,18 +3,21 @@ import SwiftData
 
 @Model
 final class SimilarBooksCache {
+    /// Configurable cache expiration duration (default: 24 hours)
+    static var cacheExpirationSeconds: TimeInterval = 24 * 60 * 60
+
     @Attribute(.unique)
     var sourceISBN: String
     var similarBookWorkIDs: [String]
     var timestamp: Date
 
-    init(sourceISBN: String, similarBookWorkIDs: [String], timestamp: Date) {
+    init(sourceISBN: String, similarBookWorkIDs: [String], timestamp: Date = Date()) {
         self.sourceISBN = sourceISBN
         self.similarBookWorkIDs = similarBookWorkIDs
         self.timestamp = timestamp
     }
 
     var isExpired: Bool {
-        return Date().timeIntervalSince(timestamp) > 24 * 60 * 60 // 24 hours
+        Date().timeIntervalSince(timestamp) > Self.cacheExpirationSeconds
     }
 }
