@@ -25,13 +25,25 @@ struct WorkDetailView: View {
     }
 
     var body: some View {
-        ZStack {
-            // MARK: - Immersive Background
-            immersiveBackground
+        ScrollView {
+            VStack(spacing: 20) {
+                ImmersiveHeaderView(work: work)
 
-            // MARK: - Main Content
-            mainContent
+                FloatingPillsView(work: work)
+
+                BentoGridView(
+                    readingProgress: { ReadingProgressModule(work: work) },
+                    readingHabits: { ReadingHabitsModule(work: work) },
+                    diversity: { DiversityPreviewModule(work: work) },
+                    annotations: { AnnotationsModule(work: work) }
+                )
+
+                BookActionsModule(work: work)
+                    .padding(.horizontal, 20)
+            }
+            .padding(.bottom, 40)
         }
+        .ignoresSafeArea(edges: .top)
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
@@ -40,14 +52,9 @@ struct WorkDetailView: View {
                         .font(.title3.bold())
                         .foregroundColor(.white)
                         .frame(width: 44, height: 44)
-                        .background {
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .frame(width: 44, height: 44)
-                        }
+                        .background(Circle().fill(.ultraThinMaterial))
                 }
                 .accessibilityLabel("Back")
-                .accessibilityHint("Return to previous screen")
             }
 
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -56,12 +63,9 @@ struct WorkDetailView: View {
                         showingEditionPicker.toggle()
                     }
                     .foregroundColor(.white)
-                    .background {
-                        Capsule()
-                            .fill(.ultraThinMaterial)
-                            .frame(height: 32)
-                    }
                     .padding(.horizontal, 12)
+                    .frame(height: 32)
+                    .background(Capsule().fill(.ultraThinMaterial))
                 }
             }
         }
@@ -82,180 +86,6 @@ struct WorkDetailView: View {
             AuthorSearchResultsView(author: author)
         }
     }
-
-    // MARK: - Immersive Background
-
-    private var immersiveBackground: some View {
-        GeometryReader { geometry in
-            ZStack {
-                // Blurred cover art background
-                CachedAsyncImage(url: CoverImageService.coverURL(for: work)) { image in  // ✅ FIXED
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .clipped()
-                        .blur(radius: 20)
-                        .overlay {
-                            // Color shift overlay
-                            LinearGradient(
-                                colors: [
-                                    themeStore.primaryColor.opacity(0.3),
-                                    themeStore.secondaryColor.opacity(0.2),
-                                    Color.black.opacity(0.4)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        }
-                } placeholder: {
-                    // Fallback gradient background
-                    LinearGradient(
-                        colors: [
-                            themeStore.primaryColor.opacity(0.6),
-                            themeStore.secondaryColor.opacity(0.4),
-                            Color.black.opacity(0.8)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                }
-            }
-            .ignoresSafeArea()
-        }
-    }
-
-    // MARK: - Main Content
-
-    private var mainContent: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                // Top spacer for navigation bar
-                Color.clear.frame(height: 60)
-
-                // MARK: - Book Cover Hero
-                bookCoverHero
-
-                // MARK: - Edition Metadata Card
-                EditionMetadataView(work: work, edition: primaryEdition)
-                    .padding(.horizontal, 20)
-
-                // MARK: - Manual Edition Selection
-                if FeatureFlags.shared.coverSelectionStrategy == .manual,
-                   let userEntry = work.userEntry,
-                   work.availableEditions.count > 1 {
-                    editionSelectionSection(userEntry: userEntry)
-                        .padding(.horizontal, 20)
-                }
-
-                // Bottom padding
-                Color.clear.frame(height: 40)
-            }
-        }
-    }
-
-    private var bookCoverHero: some View {
-        VStack(spacing: 16) {
-            // Large cover image
-            CachedAsyncImage(url: CoverImageService.coverURL(for: work)) { image in  // ✅ FIXED
-                image
-                    .resizable()
-                    .aspectRatio(2/3, contentMode: .fill)
-                    .frame(width: 200, height: 300)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
-            } placeholder: {
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(LinearGradient(
-                        colors: [
-                            themeStore.primaryColor.opacity(0.4),
-                            themeStore.secondaryColor.opacity(0.3)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ))
-                    .frame(width: 200, height: 300)
-                    .overlay {
-                        VStack(spacing: 12) {
-                            Image(systemName: "book.closed")
-                                .font(.system(size: 48))
-                                .foregroundColor(.white.opacity(0.8))
-
-                            Text(work.title)
-                                .font(.headline.bold())
-                                .foregroundColor(.white.opacity(0.9))
-                                .multilineTextAlignment(.center)
-                                .lineLimit(3)
-                                .padding(.horizontal)
-                        }
-                    }
-                    .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
-            }
-
-            // Work title and author (large, readable)
-            VStack(spacing: 8) {
-                Text(work.title)
-                    .font(.title.bold())
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-                    .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
-
-                // Clickable author names
-                if let authors = work.authors {
-                    HStack(spacing: 8) {
-                        ForEach(authors) { author in
-                            Button {
-                                selectedAuthor = author
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Text(author.name)
-                                        .font(.title2)
-                                        .foregroundColor(.white)
-                                    Image(systemName: "magnifyingglass")
-                                        .font(.footnote)
-                                        .foregroundColor(.white.opacity(0.9))
-                                }
-                                .shadow(color: .black.opacity(0.95), radius: 6, x: 0, y: 2)  // Primary shadow for depth
-                                .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)   // Secondary shadow for WCAG AA contrast
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
-        }
-    }
-
-    // MARK: - Manual Edition Selection Section
-    private func editionSelectionSection(userEntry: UserLibraryEntry) -> some View {
-        GroupBox {
-        Picker("Display Edition", selection: $selectedEditionID) {
-                ForEach(work.availableEditions) { edition in
-                    EditionRow(edition: edition, work: work)
-                        .tag(edition.id)
-                }
-            }
-            .pickerStyle(.navigationLink)
-        } label: {
-            Label("Edition Selection", systemImage: "highlighter")
-                .foregroundColor(themeStore.primaryColor)
-        }
-        .background {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.ultraThinMaterial)
-        }
-        .onAppear {
-            selectedEditionID = userEntry.preferredEdition?.id
-        }
-        .onChange(of: selectedEditionID) { oldValue, newValue in
-            if let newID = newValue {
-                userEntry.preferredEdition = work.availableEditions.first { $0.id == newID }
-            } else {
-                userEntry.preferredEdition = nil  // Clear when no edition selected
-            }
-        }
-    }
 }
 
 // MARK: - Edition Picker View
@@ -273,42 +103,7 @@ struct EditionPickerView: View {
                     selectedEdition = edition
                     dismiss()
                 }) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        // Edition title or format
-                        Text(edition.editionTitle ?? edition.format.displayName)
-                            .font(.subheadline.bold())
-                            .foregroundStyle(.primary)
-
-                        // Publisher info
-                        if !edition.publisherInfo.isEmpty {
-                            Text(edition.publisherInfo)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        // Format and pages
-                        HStack {
-                            Label(edition.format.displayName, systemImage: edition.format.icon)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-
-                            if let pageCount = edition.pageCountString {
-                                Spacer()
-                                Text(pageCount)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-
-                        // ISBN
-                        if let isbn = edition.primaryISBN {
-                            Text("ISBN: \(isbn)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    EditionRow(edition: edition, work: work)
                 }
                 .buttonStyle(.plain)
                 .listRowBackground(
@@ -325,6 +120,38 @@ struct EditionPickerView: View {
                     }
                 }
             }
+        }
+    }
+
+    private struct EditionRow: View {
+        let edition: Edition
+        let work: Work
+
+        var body: some View {
+            HStack(spacing: 12) {
+                CachedAsyncImage(url: CoverImageService.coverURL(for: edition, work: work)) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Image(systemName: "book.closed")
+                        .font(.title)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(width: 40, height: 60)
+                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(edition.editionTitle ?? "Edition")
+                        .font(.subheadline.bold())
+                        .lineLimit(1)
+                    Text(edition.publisherInfo)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            .padding(.vertical, 4)
         }
     }
 }
@@ -521,36 +348,4 @@ struct AuthorSearchResultsView: View {
     .environment(\.iOS26ThemeStore, themeStore)
 }
 
-// MARK: - EditionRow View
-private struct EditionRow: View {
-    let edition: Edition
-    let work: Work
-
-    var body: some View {
-        HStack(spacing: 12) {
-            // ✅ FIXED: Uses CoverImageService with Work fallback for edition picker
-            CachedAsyncImage(url: CoverImageService.coverURL(for: edition, work: work)) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Image(systemName: "book.closed")
-                    .font(.title)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(width: 40, height: 60)
-            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(edition.editionTitle ?? "Edition")
-                    .font(.subheadline.bold())
-                    .lineLimit(1)
-                Text(edition.publisherInfo)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-        }
-        .padding(.vertical, 4)
-    }
-}
+// No replacement
