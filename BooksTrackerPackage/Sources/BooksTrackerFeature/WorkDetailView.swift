@@ -136,9 +136,17 @@ struct WorkDetailView: View {
                 // MARK: - Book Cover Hero
                 bookCoverHero
 
-                // MARK: - Edition Metadata Card
-                EditionMetadataView(work: work, edition: primaryEdition)
-                    .padding(.horizontal, 20)
+                // MARK: - Tabbed Metadata and Insights
+                TabView {
+                    EditionMetadataView(work: work, edition: primaryEdition)
+                        .tag(0)
+
+                    DiversityInsightsTab(work: work)
+                        .tag(1)
+                }
+                .tabViewStyle(.page(indexDisplayMode: .always))
+                .padding(.horizontal, 20)
+
 
                 // MARK: - Manual Edition Selection
                 if FeatureFlags.shared.coverSelectionStrategy == .manual,

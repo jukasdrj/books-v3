@@ -56,6 +56,10 @@ public final class Work {
     var title: String = "" // CloudKit: default value required
     var originalLanguage: String?
     var firstPublicationYear: Int?
+    var isOwnVoices: Bool?
+
+    @Attribute(.externalStorage)
+    var accessibilityTags: [String] = []
 
     @Attribute(.externalStorage)
     var subjectTags: [String] = []
@@ -164,6 +168,8 @@ public final class Work {
         title: String,
         originalLanguage: String? = nil,
         firstPublicationYear: Int? = nil,
+        isOwnVoices: Bool? = nil,
+        accessibilityTags: [String] = [],
         subjectTags: [String] = [],
         synthetic: Bool = false,
         primaryProvider: String? = nil
@@ -174,6 +180,8 @@ public final class Work {
         self.authors = nil
         self.originalLanguage = originalLanguage
         self.firstPublicationYear = firstPublicationYear
+        self.isOwnVoices = isOwnVoices
+        self.accessibilityTags = accessibilityTags
         self.subjectTags = subjectTags
         self.synthetic = synthetic
         self.primaryProvider = primaryProvider
@@ -211,7 +219,7 @@ public final class Work {
         return primaryAuthor?.culturalRegion
     }
 
-    var authorGender: AuthorGender? {
+    var authorGender: Gender? {
         return primaryAuthor?.gender
     }
 

@@ -27,7 +27,8 @@ import SwiftUI
 public final class Author {
     var name: String = "" // CloudKit: default value required
     var nationality: String?
-    var gender: AuthorGender = AuthorGender.unknown
+    var gender: Gender?
+    var customGender: String?
     var culturalRegion: CulturalRegion?
     var birthYear: Int?
     var deathYear: Int?
@@ -53,7 +54,8 @@ public final class Author {
     public init(
         name: String,
         nationality: String? = nil,
-        gender: AuthorGender = AuthorGender.unknown,
+        gender: Gender? = nil,
+        customGender: String? = nil,
         culturalRegion: CulturalRegion? = nil,
         birthYear: Int? = nil,
         deathYear: Int? = nil
@@ -61,6 +63,7 @@ public final class Author {
         self.name = name
         self.nationality = nationality
         self.gender = gender
+        self.customGender = customGender
         self.culturalRegion = culturalRegion
         self.birthYear = birthYear
         self.deathYear = deathYear
@@ -88,7 +91,7 @@ public final class Author {
     /// Check if author represents marginalized voices
     func representsMarginalizedVoices() -> Bool {
         // Non-male gender identities
-        if gender != .male && gender != .unknown {
+        if let gender = gender, gender != .male && gender != .preferNotToSay {
             return true
         }
 
@@ -118,13 +121,13 @@ public final class Author {
     }
 }
 
-// MARK: - Author Gender Enum
-public enum AuthorGender: String, Codable, CaseIterable, Identifiable, Sendable {
+// MARK: - Gender Enum
+public enum Gender: String, Codable, CaseIterable, Identifiable, Sendable {
     case female = "Female"
     case male = "Male"
     case nonBinary = "Non-binary"
     case other = "Other"
-    case unknown = "Unknown"
+    case preferNotToSay = "Prefer not to say"
 
     public var id: Self { self }
 
@@ -134,7 +137,7 @@ public enum AuthorGender: String, Codable, CaseIterable, Identifiable, Sendable 
         case .male: return "person.crop.circle"
         case .nonBinary: return "person.crop.circle.badge.questionmark"
         case .other: return "person.crop.circle.badge.plus"
-        case .unknown: return "questionmark.circle"
+        case .preferNotToSay: return "person.crop.circle.badge.xmark"
         }
     }
 
