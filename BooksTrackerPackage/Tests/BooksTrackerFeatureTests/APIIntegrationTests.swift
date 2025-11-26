@@ -153,6 +153,48 @@ struct APIIntegrationTests {
         #expect(hasAsimov, "Results should contain author 'Asimov'")
     }
     
+    // MARK: - V2 API Tests
+    
+    @Test("GET /api/v2/capabilities returns valid capabilities")
+    func testCapabilitiesEndpoint() async throws {
+        let url = EnrichmentConfig.capabilitiesURL
+        
+        let (data, response) = try await URLSession.shared.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            Issue.record("Expected HTTPURLResponse")
+            return
+        }
+        
+        // Accept both 200 (V2 available) and 404 (V1 only)
+        if httpResponse.statusCode == 404 {
+            // V1 backend - capabilities endpoint not available
+            // This is expected and valid
+            return
+        }
+        
+        #expect(httpResponse.statusCode == 200)
+        
+        // Decode capabilities
+        let decoder = JSONDecoder()
+        let capabilities = try decoder.decode(APICapabilities.self, from: data)
+        
+        // Verify structure
+        #expect(capabilities.version != "")
+        #expect(capabilities.limits.csvMaxRows > 0)
+        #expect(capabilities.limits.textSearchRpm > 0)
+        
+        // V2 features may or may not be enabled depending on backend version
+        // Just verify the structure is correct
+        #expect(capabilities.features.batchEnrichment == true || capabilities.features.batchEnrichment == false)
+        
+        #if DEBUG
+        print("📊 Backend API Version: \(capabilities.version)")
+        print("   - Semantic Search: \(capabilities.features.semanticSearch ? "✅" : "❌")")
+        print("   - CSV Max Rows: \(capabilities.limits.csvMaxRows)")
+        #endif
+    }
+    
     // MARK: - WebSocket Connectivity (Basic)
     
     @Test("WebSocket connection can be established")

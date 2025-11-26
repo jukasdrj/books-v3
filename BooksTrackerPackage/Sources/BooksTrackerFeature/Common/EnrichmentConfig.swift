@@ -94,6 +94,14 @@ enum EnrichmentConfig {
         URL(string: "\(baseURL)/health")!
     }
 
+    // MARK: - V2 API Endpoints
+
+    /// Capabilities discovery endpoint (v2.7.0+)
+    /// Feature discovery for runtime capability detection
+    static var capabilitiesURL: URL {
+        URL(string: "\(baseURL)/api/v2/capabilities")!
+    }
+
     // MARK: - Timeout Configuration
 
     /// WebSocket connection timeout for background jobs

@@ -97,9 +97,18 @@ actor GeminiCSVImportService {
         print("[CSV Upload] Starting upload, size: \(csvText.utf8.count) bytes")
         #endif
 
+        // Get row limit from API capabilities (via FeatureFlags)
+        let maxRows = await MainActor.run {
+            FeatureFlags.shared.getResourceLimit(for: .csvMaxRows)
+        }
+        
+        #if DEBUG
+        print("[CSV Upload] CSV row limit from backend: \(maxRows)")
+        #endif
+
         // Validate CSV format (fail fast before network call)
         do {
-            try CSVValidator.validate(csvText: csvText)
+            try CSVValidator.validate(csvText: csvText, maxRows: maxRows)
             #if DEBUG
             print("[CSV Upload] ✅ CSV validation passed")
             #endif

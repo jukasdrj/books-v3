@@ -99,6 +99,99 @@ public final class FeatureFlags: Sendable {
         }
     }
 
+    // MARK: - API Capabilities Integration
+
+    /// Cached API capabilities from backend
+    /// Updated on app launch by CapabilitiesService
+    /// Used to conditionally enable/disable features based on backend support
+    private var _cachedCapabilities: APICapabilities?
+
+    /// Update capabilities cache (called by app initialization)
+    /// - Parameter capabilities: Fresh capabilities from backend
+    public func updateCapabilities(_ capabilities: APICapabilities) {
+        _cachedCapabilities = capabilities
+        #if DEBUG
+        print("✅ FeatureFlags: Capabilities updated (v\(capabilities.version))")
+        #endif
+    }
+
+    /// Check if a feature is available based on backend capabilities
+    /// Falls back to optimistic defaults if capabilities not yet fetched
+    /// - Parameter feature: Feature to check
+    /// - Returns: Whether feature is available
+    public func isFeatureAvailable(_ feature: APICapabilities.Feature) -> Bool {
+        // If capabilities not yet fetched, return optimistic defaults
+        guard let capabilities = _cachedCapabilities else {
+            // Default: Assume V1 capabilities only
+            switch feature {
+            case .semanticSearch, .similarBooks, .weeklyRecommendations, .sseStreaming:
+                return false // V2 features
+            case .batchEnrichment, .csvImport:
+                return true // V1 features
+            }
+        }
+
+        return capabilities.isFeatureAvailable(feature)
+    }
+
+    /// Get rate limit for a specific operation
+    /// - Parameter operation: Operation type
+    /// - Returns: Rate limit in requests per minute
+    public func getRateLimit(for operation: RateLimitOperation) -> Int {
+        guard let capabilities = _cachedCapabilities else {
+            // Default limits
+            switch operation {
+            case .semanticSearch: return 5
+            case .textSearch: return 100
+            }
+        }
+
+        switch operation {
+        case .semanticSearch:
+            return capabilities.limits.semanticSearchRpm
+        case .textSearch:
+            return capabilities.limits.textSearchRpm
+        }
+    }
+
+    /// Get resource limit for a specific constraint
+    /// - Parameter constraint: Resource constraint type
+    /// - Returns: Maximum allowed value
+    public func getResourceLimit(for constraint: ResourceConstraint) -> Int {
+        guard let capabilities = _cachedCapabilities else {
+            // Default limits
+            switch constraint {
+            case .csvMaxRows: return 500
+            case .batchMaxPhotos: return 5
+            }
+        }
+
+        switch constraint {
+        case .csvMaxRows:
+            return capabilities.limits.csvMaxRows
+        case .batchMaxPhotos:
+            return capabilities.limits.batchMaxPhotos
+        }
+    }
+
+    /// Get current API version from backend
+    /// - Returns: Backend API version or "unknown" if not fetched
+    public func getAPIVersion() -> String {
+        return _cachedCapabilities?.version ?? "unknown"
+    }
+
+    /// Rate limit operations
+    public enum RateLimitOperation {
+        case semanticSearch
+        case textSearch
+    }
+
+    /// Resource constraints
+    public enum ResourceConstraint {
+        case csvMaxRows
+        case batchMaxPhotos
+    }
+
     public static let shared = FeatureFlags()
 
     private init() {}

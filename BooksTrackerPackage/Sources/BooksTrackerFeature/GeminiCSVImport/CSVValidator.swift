@@ -9,6 +9,7 @@ import Foundation
 /// 2. A minimum of two lines (header + one data row)
 /// 3. Consistent column count across all rows
 /// 4. Correctly quoted fields (handling commas, newlines, and escaped quotes)
+/// 5. Row count limits (from API capabilities)
 ///
 /// **Design Philosophy:**
 /// - **Strict about structure** (consistent columns, closed quotes)
@@ -23,9 +24,11 @@ public struct CSVValidator {
 
     /// Validates CSV content from a string.
     ///
-    /// - Parameter csvText: Raw CSV content as string
+    /// - Parameters:
+    ///   - csvText: Raw CSV content as string
+    ///   - maxRows: Maximum allowed rows (default: 500, from API capabilities)
     /// - Throws: `CSVValidationError` if the content is invalid
-    public static func validate(csvText: String) throws {
+    public static func validate(csvText: String, maxRows: Int = 500) throws {
         // Split into lines (preserving empty lines for accurate line numbers)
         let lines = csvText.components(separatedBy: .newlines)
 
@@ -33,6 +36,16 @@ public struct CSVValidator {
         // We check for 2 because a trailing newline might create an empty last line.
         guard lines.count >= 2 else {
             throw CSVValidationError.insufficientRows(count: lines.count)
+        }
+
+        // Count non-empty rows for limit validation
+        let nonEmptyLines = lines.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        
+        // Rule: Respect backend row limit (from API capabilities)
+        // Subtract 1 for header row to get actual data row count
+        let dataRowCount = nonEmptyLines.count - 1
+        if dataRowCount > maxRows {
+            throw CSVValidationError.tooManyRows(count: dataRowCount, limit: maxRows)
         }
 
         var expectedColumnCount: Int?
@@ -160,6 +173,7 @@ public enum CSVValidationError: Error, LocalizedError, Equatable {
     case mismatchedColumnCount(expected: Int, actual: Int, lineNumber: Int)
     case unclosedQuote(lineNumber: Int)
     case strayQuote(lineNumber: Int)
+    case tooManyRows(count: Int, limit: Int)
 
     public var errorDescription: String? {
         switch self {
@@ -175,6 +189,8 @@ public enum CSVValidationError: Error, LocalizedError, Equatable {
             return "Formatting error on line \(lineNumber): A quoted field is not properly closed."
         case .strayQuote(let lineNumber):
             return "Formatting error on line \(lineNumber): Found a quote in the middle of an unquoted field."
+        case .tooManyRows(let count, let limit):
+            return "CSV file has too many rows (\(count) data rows). The backend limit is \(limit) rows. Please split your file or reduce the number of books."
         }
     }
 }

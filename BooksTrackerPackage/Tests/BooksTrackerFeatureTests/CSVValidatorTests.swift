@@ -283,4 +283,108 @@ The Great Gatsby,"F. Scott Fitzgerald
         #expect(message?.contains("line 10") == true)
         #expect(message?.contains("not properly closed") == true)
     }
+
+    // MARK: - Row Limit Tests (API Capabilities Integration)
+
+    @Test("CSV within row limit passes validation")
+    func testCSVWithinRowLimit() throws {
+        let csv = """
+        Title,Author
+        Book 1,Author 1
+        Book 2,Author 2
+        Book 3,Author 3
+        """
+
+        // Should pass with limit of 10 rows
+        #expect(throws: Never.self) {
+            try CSVValidator.validate(csvText: csv, maxRows: 10)
+        }
+    }
+
+    @Test("CSV exactly at row limit passes validation")
+    func testCSVExactlyAtRowLimit() throws {
+        let csv = """
+        Title,Author
+        Book 1,Author 1
+        Book 2,Author 2
+        Book 3,Author 3
+        """
+
+        // Should pass with limit of 3 rows (exactly at limit)
+        #expect(throws: Never.self) {
+            try CSVValidator.validate(csvText: csv, maxRows: 3)
+        }
+    }
+
+    @Test("CSV exceeding row limit fails validation")
+    func testCSVExceedingRowLimit() {
+        let csv = """
+        Title,Author
+        Book 1,Author 1
+        Book 2,Author 2
+        Book 3,Author 3
+        Book 4,Author 4
+        Book 5,Author 5
+        """
+
+        // Should fail with limit of 3 rows (5 data rows > 3 limit)
+        #expect(throws: CSVValidationError.tooManyRows(count: 5, limit: 3)) {
+            try CSVValidator.validate(csvText: csv, maxRows: 3)
+        }
+    }
+
+    @Test("Row limit error message is descriptive")
+    func testRowLimitErrorMessage() {
+        let error = CSVValidationError.tooManyRows(count: 600, limit: 500)
+        let message = error.errorDescription
+
+        #expect(message?.contains("600 data rows") == true)
+        #expect(message?.contains("limit is 500") == true)
+        #expect(message?.contains("split your file") == true)
+    }
+
+    @Test("Row limit ignores empty lines")
+    func testRowLimitIgnoresEmptyLines() throws {
+        let csv = """
+        Title,Author
+        Book 1,Author 1
+
+        Book 2,Author 2
+
+        Book 3,Author 3
+        """
+
+        // Should count only 3 data rows (empty lines ignored)
+        #expect(throws: Never.self) {
+            try CSVValidator.validate(csvText: csv, maxRows: 3)
+        }
+    }
+
+    @Test("Row limit with default value")
+    func testRowLimitDefaultValue() throws {
+        // Build a CSV with 500 rows (default limit)
+        var csv = "Title,Author\n"
+        for i in 1...500 {
+            csv += "Book \(i),Author \(i)\n"
+        }
+
+        // Should pass with default limit (500)
+        #expect(throws: Never.self) {
+            try CSVValidator.validate(csvText: csv)
+        }
+    }
+
+    @Test("Row limit with default value exceeded")
+    func testRowLimitDefaultValueExceeded() {
+        // Build a CSV with 501 rows (exceeds default limit)
+        var csv = "Title,Author\n"
+        for i in 1...501 {
+            csv += "Book \(i),Author \(i)\n"
+        }
+
+        // Should fail with default limit (500)
+        #expect(throws: CSVValidationError.tooManyRows(count: 501, limit: 500)) {
+            try CSVValidator.validate(csvText: csv)
+        }
+    }
 }

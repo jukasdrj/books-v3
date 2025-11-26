@@ -151,6 +151,28 @@ public struct ContentView: View {
                     LaunchMetrics.shared.recordMilestone("EnrichmentQueue validation end")
                 }
 
+                // Fetch API capabilities on app launch (P1 - Feature flags)
+                BackgroundTaskScheduler.shared.schedule(priority: .high) {
+                    LaunchMetrics.shared.recordMilestone("API Capabilities fetch start")
+                    let capabilitiesService = CapabilitiesService()
+                    let capabilities = await capabilitiesService.fetchCapabilities()
+                    
+                    // Update FeatureFlags with capabilities
+                    await MainActor.run {
+                        featureFlags.updateCapabilities(capabilities)
+                    }
+                    
+                    LaunchMetrics.shared.recordMilestone("API Capabilities fetch end")
+                    
+                    #if DEBUG
+                    print("📊 API Capabilities loaded: v\(capabilities.version)")
+                    print("   - Semantic Search: \(capabilities.features.semanticSearch ? "✅" : "❌")")
+                    print("   - Similar Books: \(capabilities.features.similarBooks ? "✅" : "❌")")
+                    print("   - CSV Import: \(capabilities.features.csvImport ? "✅" : "❌")")
+                    print("   - CSV Max Rows: \(capabilities.limits.csvMaxRows)")
+                    #endif
+                }
+
                 BackgroundTaskScheduler.shared.schedule(priority: .low) {
                     LaunchMetrics.shared.recordMilestone("ImageCleanup start")
                     await ImageCleanupService.shared.cleanupReviewedImages(in: modelContext)
