@@ -98,6 +98,30 @@ public final class FeatureFlags: Sendable {
             UserDefaults.standard.set(newValue, forKey: "feature.disableCanonicalEnrichment")
         }
     }
+    
+    /// Enable V2 API with SSE for CSV imports (opt-in flag)
+    ///
+    /// When enabled, uses V2 API endpoints with SSE streaming for real-time progress.
+    /// Falls back to polling if SSE connection fails after 3 attempts.
+    ///
+    /// Benefits:
+    /// - Automatic reconnection on network transitions
+    /// - Better battery life (no persistent WebSocket)
+    /// - Works through firewalls/proxies
+    /// - Simplified code (no manual reconnection logic)
+    ///
+    /// Default: `false` (V1 WebSocket for now, will be `true` after V2 backend deployment)
+    ///
+    /// Note: Requires backend V2 API to be deployed.
+    /// See: docs/API_CONTRACT_V2_PROPOSAL.md
+    public var useV2APIForImports: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: "feature.useV2APIForImports")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "feature.useV2APIForImports")
+        }
+    }
 
     public static let shared = FeatureFlags()
 
@@ -109,8 +133,9 @@ public final class FeatureFlags: Sendable {
         enableTabBarMinimize = true  // Default enabled
         coverSelectionStrategy = .auto  // Default auto
         disableCanonicalEnrichment = false  // Default canonical endpoint
+        useV2APIForImports = false  // Default V1 until V2 backend is stable
         #if DEBUG
-        print("✅ FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true)")
+        print("✅ FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true, v2Imports: false)")
         #endif
     }
 }

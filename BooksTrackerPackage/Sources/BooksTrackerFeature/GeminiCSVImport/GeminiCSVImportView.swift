@@ -65,11 +65,15 @@ public struct GeminiCSVImportView: View {
     
     // V2 API SSE support
     @State private var progressTracker: V2ImportProgressTracker?
-    @State private var useV2API = false  // Feature flag for V2 API with SSE
 
     // Rate limit banner (Issue #426)
     @State private var showRateLimitBanner = false
     @State private var rateLimitRetryAfter = 0
+    
+    // Computed property for V2 API feature flag
+    private var useV2API: Bool {
+        FeatureFlags.shared.useV2APIForImports
+    }
 
     public init() {}
 
