@@ -51,6 +51,12 @@ struct EditionMetadataView: View {
                 Divider()
                     .overlay(Color.secondary.opacity(0.3))
 
+                // MARK: - Diversity Metadata Section
+                diversityMetadataSection
+
+                Divider()
+                    .overlay(Color.secondary.opacity(0.3))
+
                 // MARK: - User Tracking Section
                 userTrackingSection
 
@@ -139,6 +145,92 @@ struct EditionMetadataView: View {
                 }
                 .padding(.top, 4)
             }
+        }
+    }
+
+    // MARK: - Diversity Metadata Section
+
+    private var diversityMetadataSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Diversity Insights")
+                .font(.caption.bold())
+                .foregroundStyle(.primary)
+
+            // Own Voices Toggle
+            Toggle(isOn: Binding(
+                get: { work.isOwnVoices ?? false },
+                set: { newValue in
+                    work.isOwnVoices = newValue
+                    do {
+                        try modelContext.save()
+                        // Invalidate diversity stats cache
+                        DiversityStats.invalidateCache()
+                    } catch {
+                        #if DEBUG
+                        print("❌ Failed to save Own Voices flag: \(error)")
+                        #endif
+                    }
+                }
+            )) {
+                HStack(spacing: 8) {
+                    Image(systemName: "person.badge.shield.checkmark.fill")
+                        .foregroundColor(themeStore.primaryColor)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Own Voices")
+                            .font(.subheadline)
+                            .foregroundStyle(.primary)
+                        
+                        Text("Author's identity matches subject matter")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .tint(themeStore.primaryColor)
+
+            // Accessibility Tags
+            if !work.accessibilityTags.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "accessibility")
+                            .foregroundColor(themeStore.primaryColor)
+                        
+                        Text("Accessibility Features")
+                            .font(.subheadline)
+                            .foregroundStyle(.primary)
+                    }
+                    
+                    FlowLayout(spacing: 6) {
+                        ForEach(work.accessibilityTags, id: \.self) { tag in
+                            Text(tag)
+                                .font(.caption)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background {
+                                    Capsule()
+                                        .fill(themeStore.primaryColor.opacity(0.15))
+                                }
+                                .foregroundStyle(themeStore.primaryColor)
+                        }
+                    }
+                }
+            }
+
+            // Add Diversity Data Button
+            Button(action: {
+                showProfilingPrompt = true
+            }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.caption)
+                    
+                    Text("Add Diversity Data")
+                        .font(.caption)
+                }
+                .foregroundStyle(themeStore.primaryColor)
+            }
+            .buttonStyle(.plain)
         }
     }
 
