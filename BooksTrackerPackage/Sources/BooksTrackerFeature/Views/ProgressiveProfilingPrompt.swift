@@ -172,9 +172,10 @@ public struct ProgressiveProfilingPrompt: View {
                             .font(.caption)
                             .foregroundColor(.yellow)
                         // Calculate actual points based on dimension and cascade
-                        let basePoints = pendingCascadeAnswer.map { mapDimensionToActionType($0.question.dimension).pointValue } ?? 10
-                        let cascadeBonus = affectedWorksCount > 1 ? (affectedWorksCount - 1) * 5 : 0
-                        let totalPoints = basePoints + cascadeBonus
+                        let totalPoints = calculateCascadePoints(
+                            dimension: pendingCascadeAnswer?.question.dimension,
+                            cascadeCount: affectedWorksCount
+                        )
                         Text("+\(totalPoints) Curator Points")
                             .font(.caption.bold())
                             .foregroundColor(themeStore.primaryColor)
@@ -488,8 +489,8 @@ public struct ProgressiveProfilingPrompt: View {
                     
                     // Award points based on dimension type
                     let actionType = mapDimensionToActionType(dimension)
-                    let cascadeMultiplier = affectedWorksCount > 1 ? affectedWorksCount : 1
-                    let awarded = try await curatorService.awardPoints(for: actionType, cascadeCount: cascadeMultiplier)
+                    let cascadeCount = affectedWorksCount > 1 ? affectedWorksCount : 1
+                    let awarded = try await curatorService.awardPoints(for: actionType, cascadeCount: cascadeCount)
                     pointsEarned += awarded
                 } catch {
                     #if DEBUG
