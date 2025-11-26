@@ -57,6 +57,14 @@ public final class Work {
     var originalLanguage: String?
     var firstPublicationYear: Int?
 
+    // Diversity metadata (PR #66 extraction)
+    /// Whether the book qualifies as "Own Voices" (author shares identity with protagonist)
+    var isOwnVoices: Bool?
+
+    /// Accessibility features (e.g., "Dyslexia Friendly", "Large Print", "Audiobook Available")
+    @Attribute(.externalStorage)
+    var accessibilityTags: [String] = []
+
     @Attribute(.externalStorage)
     var subjectTags: [String] = []
 
@@ -164,6 +172,8 @@ public final class Work {
         title: String,
         originalLanguage: String? = nil,
         firstPublicationYear: Int? = nil,
+        isOwnVoices: Bool? = nil,
+        accessibilityTags: [String] = [],
         subjectTags: [String] = [],
         synthetic: Bool = false,
         primaryProvider: String? = nil
@@ -174,6 +184,8 @@ public final class Work {
         self.authors = nil
         self.originalLanguage = originalLanguage
         self.firstPublicationYear = firstPublicationYear
+        self.isOwnVoices = isOwnVoices
+        self.accessibilityTags = accessibilityTags
         self.subjectTags = subjectTags
         self.synthetic = synthetic
         self.primaryProvider = primaryProvider

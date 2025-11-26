@@ -1,14 +1,14 @@
 import Foundation
 
 /// Represents a single axis on the diversity radar chart.
-public struct DiversityMetric: Identifiable, Hashable {
+public struct DiversityMetric: Identifiable, Hashable, Sendable {
     public let id = UUID()
     public let axis: Axis
     public let score: Double // A value between 0.0 and 1.0
     public let isMissing: Bool
 
     /// Defines the five axes of the diversity radar chart.
-    public enum Axis: String, CaseIterable, Hashable {
+    public enum Axis: String, CaseIterable, Hashable, Sendable {
         case cultural = "Cultural"
         case gender = "Gender"
         case translation = "Translation"
