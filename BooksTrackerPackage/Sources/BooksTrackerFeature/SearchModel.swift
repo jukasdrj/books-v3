@@ -708,8 +708,17 @@ public struct SearchResult: Identifiable, Hashable, @unchecked Sendable {
         hasher.combine(id)
     }
 
+    /// Primary initializer for API search results
+    public init(work: Work, editions: [Edition], authors: [Author], relevanceScore: Double, provider: String) {
+        self.work = work
+        self.editions = editions
+        self.authors = authors
+        self.relevanceScore = relevanceScore
+        self.provider = provider
+    }
+
+    /// Convenience initializer for local/scanned books
     init(from work: Work) {
-        self.id = work.id
         self.work = work
         self.editions = work.editions ?? []
         self.authors = work.authors ?? []

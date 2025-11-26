@@ -265,7 +265,7 @@ public struct ISBNScannerView: View {
     @State private var scannedISBN: String?
     @State private var rateLimitMessage: String?
     @State private var countdown: Int = 0
-    @State private var timer: Timer?
+    @State private var countdownTask: Task<Void, Never>?
     let onWorkReceived: (Work) -> Void
     @Environment(\.modelContext) private var modelContext
 
@@ -274,57 +274,64 @@ public struct ISBNScannerView: View {
     }
 
     public var body: some View {
-        Group {
-            if !DataScannerViewController.isSupported {
-                UnsupportedDeviceView()
-            } else if !DataScannerViewController.isAvailable {
-                PermissionDeniedView()
-            } else {
-                ZStack {
-                    if isLoading {
-                        ProgressView("Looking up ISBN...")
-                    } else {
-                        DataScannerRepresentable(
-                            onISBNScanned: { isbn in
-                                handleScannedISBN(isbn.isbn)
-                            },
-                            onInvalidBarcode: triggerInvalidBarcodeFeedback,
-                            errorMessage: $errorMessage,
-                            shouldResetScanner: $shouldResetScanner
-                        )
-                    }
-                    .ignoresSafeArea()
+        scannerContent
+            .alert("Scanner Error", isPresented: errorBinding) {
+                Button("Retry") {
+                    errorMessage = nil
+                    shouldResetScanner = true
+                }
 
-                    ScannerOverlayView()
-
-                    if invalidFeedbackVisible {
-                        InvalidBarcodeFeedbackView()
-                            .transition(.opacity.combined(with: .move(edge: .bottom)))
-                            .padding(.bottom, 120)
-                    }
+                Button("Close", role: .cancel) {
+                    errorMessage = nil
+                    dismiss()
+                }
+            } message: {
+                if let rateLimitMessage {
+                    Text(rateLimitMessage)
+                } else if let errorMessage {
+                    Text(errorMessage)
                 }
             }
-        }
-        .alert("Scanner Error", isPresented: errorBinding) {
-            Button("Retry") {
-                errorMessage = nil
-                shouldResetScanner = true
+            .onDisappear {
+                invalidFeedbackTask?.cancel()
+                invalidFeedbackTask = nil
+                countdownTask?.cancel()
+                countdownTask = nil
             }
+    }
 
-            Button("Close", role: .cancel) {
-                errorMessage = nil
-                dismiss()
+    @ViewBuilder
+    private var scannerContent: some View {
+        if !DataScannerViewController.isSupported {
+            UnsupportedDeviceView()
+        } else if !DataScannerViewController.isAvailable {
+            PermissionDeniedView()
+        } else {
+            ZStack {
+                if isLoading {
+                    ProgressView("Looking up ISBN...")
+                } else {
+                    DataScannerRepresentable(
+                        onISBNScanned: { isbn in
+                            handleScannedISBN(isbn.normalizedValue)
+                        },
+                        onInvalidBarcode: triggerInvalidBarcodeFeedback,
+                        errorMessage: $errorMessage,
+                        shouldResetScanner: $shouldResetScanner
+                    )
+                }
             }
-        } message: {
-            if let rateLimitMessage {
-                Text(rateLimitMessage)
-            } else if let errorMessage {
-                Text(errorMessage)
+            .ignoresSafeArea()
+            .overlay {
+                ScannerOverlayView()
             }
-        }
-        .onDisappear {
-            invalidFeedbackTask?.cancel()
-            invalidFeedbackTask = nil
+            .overlay(alignment: .bottom) {
+                if invalidFeedbackVisible {
+                    InvalidBarcodeFeedbackView()
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                        .padding(.bottom, 120)
+                }
+            }
         }
     }
 
@@ -340,9 +347,7 @@ public struct ISBNScannerView: View {
                 dismiss()
             case .failure(let error):
                 if case .rateLimitExceeded(let retryAfter) = error {
-                    countdown = retryAfter
-                    rateLimitMessage = "Rate limit exceeded. Please try again in \(countdown) seconds."
-                    startTimer()
+                    startCountdown(duration: retryAfter)
                 } else {
                     errorMessage = userFriendlyError(error, isbn: isbn)
                 }
@@ -364,16 +369,17 @@ public struct ISBNScannerView: View {
         return "An unexpected error occurred. Please try again."
     }
 
-    private func startTimer() {
-        timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            if countdown > 0 {
-                countdown -= 1
+    private func startCountdown(duration: Int) {
+        countdownTask?.cancel()
+        countdown = duration
+        countdownTask = Task { @MainActor in
+            while countdown > 0 {
                 rateLimitMessage = "Rate limit exceeded. Please try again in \(countdown) seconds."
-            } else {
-                timer?.invalidate()
-                rateLimitMessage = nil
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled else { return }
+                countdown -= 1
             }
+            rateLimitMessage = nil
         }
     }
 
@@ -382,7 +388,7 @@ public struct ISBNScannerView: View {
             if !isPresented {
                 errorMessage = nil
                 rateLimitMessage = nil
-                timer?.invalidate()
+                countdownTask?.cancel()
             }
         })
     }
