@@ -153,6 +153,57 @@ struct APIIntegrationTests {
         #expect(hasAsimov, "Results should contain author 'Asimov'")
     }
     
+    @Test("GET /v1/search/similar returns similar books for known ISBN")
+    func testSearchSimilar_Valid() async throws {
+        // Harry Potter and the Philosopher's Stone (UK edition)
+        let isbn = "9780747532743"
+        let url = URL(string: "\(baseURL)/v1/search/similar?isbn=\(isbn)&limit=5")!
+        
+        let (data, response) = try await URLSession.shared.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            Issue.record("Expected HTTPURLResponse")
+            return
+        }
+        
+        // Handle 404 gracefully - book may not be in vector index yet
+        if httpResponse.statusCode == 404 {
+            // This is acceptable - not all books have embeddings yet
+            return
+        }
+        
+        #expect(httpResponse.statusCode == 200, "Expected 200 OK")
+        
+        let decoder = JSONDecoder()
+        let similarBooks = try decoder.decode(SimilarBooksResponse.self, from: data)
+        
+        #expect(similarBooks.sourceIsbn == isbn, "Source ISBN should match request")
+        #expect(similarBooks.results.count <= 5, "Should respect limit parameter")
+        
+        if !similarBooks.results.isEmpty {
+            let firstResult = similarBooks.results[0]
+            #expect(firstResult.similarityScore >= 0.0 && firstResult.similarityScore <= 1.0, "Similarity score should be between 0 and 1")
+            #expect(!firstResult.title.isEmpty, "Similar book should have a title")
+            #expect(!firstResult.authors.isEmpty, "Similar book should have authors")
+        }
+    }
+    
+    @Test("GET /v1/search/similar handles invalid ISBN gracefully")
+    func testSearchSimilar_InvalidISBN() async throws {
+        let isbn = "invalid-isbn"
+        let url = URL(string: "\(baseURL)/v1/search/similar?isbn=\(isbn)&limit=5")!
+        
+        let (data, response) = try await URLSession.shared.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            Issue.record("Expected HTTPURLResponse")
+            return
+        }
+        
+        // Should return 400 (bad request) or 404 (not found)
+        #expect(httpResponse.statusCode == 400 || httpResponse.statusCode == 404, "Invalid ISBN should return 400 or 404")
+    }
+    
     // MARK: - WebSocket Connectivity (Basic)
     
     @Test("WebSocket connection can be established")

@@ -136,3 +136,39 @@ extension EnrichmentJobResponse {
         )
     }
 }
+
+// MARK: - SimilarBooksResponse Mock Helpers
+
+extension SimilarBooksResponse {
+    /// Create a mock similar books response for testing
+    static func mock(
+        sourceIsbn: String = "9780747532743",
+        results: [SimilarBookItem] = [],
+        total: Int = 0,
+        latencyMs: Int? = 85
+    ) -> SimilarBooksResponse {
+        SimilarBooksResponse(
+            results: results,
+            sourceIsbn: sourceIsbn,
+            total: total,
+            latencyMs: latencyMs
+        )
+    }
+    
+    /// Create a mock similar book item
+    static func mockItem(
+        isbn: String = "9780439064866",
+        title: String = "Harry Potter and the Chamber of Secrets",
+        authors: [String] = ["J.K. Rowling"],
+        similarityScore: Double = 0.94,
+        coverUrl: String? = "https://example.com/cover.jpg"
+    ) -> SimilarBookItem {
+        SimilarBookItem(
+            isbn: isbn,
+            title: title,
+            authors: authors,
+            similarityScore: similarityScore,
+            coverUrl: coverUrl
+        )
+    }
+}

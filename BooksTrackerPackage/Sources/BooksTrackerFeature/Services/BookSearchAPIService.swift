@@ -447,7 +447,7 @@ public class BookSearchAPIService {
     ///
     /// Backend endpoint: GET /v1/search/similar?isbn={isbn}&limit={limit}
     /// Rate limit: Part of semantic search budget (5 req/min)
-    /// Cache: 24h TTL on backend
+    /// Cache: 24h TTL (SwiftData cache)
     ///
     /// - Parameters:
     ///   - isbn: ISBN of the source book to find similar books for
@@ -455,6 +455,17 @@ public class BookSearchAPIService {
     /// - Returns: Array of similar books with similarity scores
     /// - Throws: SearchError on network or API errors
     func findSimilarBooks(isbn: String, limit: Int = 10) async throws -> SimilarBooksResponse {
+        // Check cache first
+        let cacheDescriptor = FetchDescriptor<SimilarBooksCache>(
+            predicate: #Predicate { $0.sourceIsbn == isbn }
+        )
+        
+        if let cached = try? modelContext.fetch(cacheDescriptor).first, cached.isValid {
+            logger.info("✅ Similar books cache hit for ISBN \(isbn)")
+            return cached.toResponse()
+        }
+        
+        // Cache miss - fetch from API
         let urlString = "\(EnrichmentConfig.baseURL)/v1/search/similar?isbn=\(isbn)&limit=\(limit)"
         guard let url = URL(string: urlString) else {
             throw SearchError.invalidURL
@@ -499,6 +510,21 @@ public class BookSearchAPIService {
         } catch {
             logger.error("❌ Failed to decode similar books response: \(error)")
             throw SearchError.decodingError(error)
+        }
+
+        // Cache the response
+        do {
+            // Remove old cache entry if exists
+            if let oldCache = try? modelContext.fetch(cacheDescriptor).first {
+                modelContext.delete(oldCache)
+            }
+            
+            let newCache = SimilarBooksCache(sourceIsbn: isbn, response: similarBooksResponse)
+            modelContext.insert(newCache)
+            try modelContext.save()
+        } catch {
+            logger.warning("⚠️ Failed to cache similar books response: \(error)")
+            // Non-fatal - continue with response
         }
 
         logger.info("✅ Found \(similarBooksResponse.results.count) similar books for ISBN \(isbn) in \(Int(responseTime))ms")

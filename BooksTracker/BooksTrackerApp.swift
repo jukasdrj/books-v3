@@ -24,6 +24,7 @@ class ModelContainerFactory {
             Author.self,
             UserLibraryEntry.self,
             TrendingActivity.self,
+            SimilarBooksCache.self,
             // v2 Sprint 1: Diversity & Reading Sessions
             EnhancedDiversityStats.self,
             ReadingSession.self,
