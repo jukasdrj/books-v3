@@ -38,12 +38,12 @@ public struct CSVValidator {
             throw CSVValidationError.insufficientRows(count: lines.count)
         }
 
-        // Count non-empty rows for limit validation
-        let nonEmptyLines = lines.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        // Count non-empty rows for limit validation (lazy evaluation to avoid allocating new array)
+        let nonEmptyRowCount = lines.lazy.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }.count
         
         // Rule: Respect backend row limit (from API capabilities)
         // Subtract 1 for header row to get actual data row count
-        let dataRowCount = nonEmptyLines.count - 1
+        let dataRowCount = nonEmptyRowCount - 1
         if dataRowCount > maxRows {
             throw CSVValidationError.tooManyRows(count: dataRowCount, limit: maxRows)
         }

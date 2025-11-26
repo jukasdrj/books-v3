@@ -52,7 +52,12 @@ actor CapabilitiesService {
     func fetchCapabilities(forceRefresh: Bool = false) async -> APICapabilities {
         // Return cached if still fresh and not forcing refresh
         if !forceRefresh, let cached = cachedCapabilities, isCacheFresh(cached) {
-            logger.debug("📦 Returning cached capabilities (age: \(self.cacheAge(cached))s)")
+            #if DEBUG
+            let age = cacheAge(cached)
+            logger.debug("📦 Returning cached capabilities (age: \(age)s)")
+            #else
+            logger.debug("📦 Returning cached capabilities")
+            #endif
             return cached
         }
         
