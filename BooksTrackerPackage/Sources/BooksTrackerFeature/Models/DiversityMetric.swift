@@ -3,9 +3,9 @@ import Foundation
 /// Represents a single axis on the diversity radar chart.
 public struct DiversityMetric: Identifiable, Hashable {
     public let id = UUID()
-    let axis: Axis
-    let score: Double // A value between 0.0 and 1.0
-    let isMissing: Bool
+    public let axis: Axis
+    public let score: Double // A value between 0.0 and 1.0
+    public let isMissing: Bool
 
     /// Defines the five axes of the diversity radar chart.
     public enum Axis: String, CaseIterable, Hashable {

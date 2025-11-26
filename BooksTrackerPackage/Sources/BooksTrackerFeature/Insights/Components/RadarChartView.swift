@@ -5,12 +5,24 @@ public struct RadarChartView: View {
     let metrics: [DiversityMetric]
     private let axisCount = DiversityMetric.Axis.allCases.count
 
+    // MARK: - Layout Constants
+    private let radiusScale: CGFloat = 0.8
+    private let labelOffset: CGFloat = 25
+
+    /// Pre-computed dictionary for O(1) metric lookups by axis
+    private let metricsByAxis: [DiversityMetric.Axis: DiversityMetric]
+
+    public init(metrics: [DiversityMetric]) {
+        self.metrics = metrics
+        self.metricsByAxis = Dictionary(uniqueKeysWithValues: metrics.map { ($0.axis, $0) })
+    }
+
     public var body: some View {
         GeometryReader { geometry in
             ZStack {
                 let chartSize = min(geometry.size.width, geometry.size.height)
                 let center = CGPoint(x: chartSize / 2, y: chartSize / 2)
-                let radius = chartSize / 2 * 0.8
+                let radius = chartSize / 2 * radiusScale
 
                 Canvas { context, _ in
                     // 1. Draw Axis Lines
@@ -55,15 +67,16 @@ public struct RadarChartView: View {
     }
 
     private func axisLabels(size: CGFloat) -> some View {
-        let radius = size / 2 * 0.8
+        let radius = size / 2 * radiusScale
         return ZStack {
             ForEach(0..<axisCount, id: \.self) { i in
+                let axis = DiversityMetric.Axis.allCases[i]
                 let angle = (2 * .pi / Double(axisCount)) * Double(i) - .pi / 2
                 let point = CGPoint(
-                    x: cos(angle) * (radius + 25),
-                    y: sin(angle) * (radius + 25)
+                    x: cos(angle) * (radius + labelOffset),
+                    y: sin(angle) * (radius + labelOffset)
                 )
-                let metric = metrics.first(where: { $0.axis == DiversityMetric.Axis.allCases[i] })
+                let metric = metricsByAxis[axis]
 
                 VStack {
                     if metric?.isMissing == true {
@@ -71,11 +84,11 @@ public struct RadarChartView: View {
                             .font(.title2)
                             .foregroundColor(.secondary)
                     } else {
-                        Image(systemName: DiversityMetric.Axis.allCases[i].systemImage)
+                        Image(systemName: axis.systemImage)
                             .font(.title2)
                             .foregroundColor(.accentColor)
                     }
-                    Text(DiversityMetric.Axis.allCases[i].rawValue)
+                    Text(axis.rawValue)
                         .font(.caption)
                 }
                 .position(x: size / 2 + point.x, y: size / 2 + point.y)
@@ -85,13 +98,14 @@ public struct RadarChartView: View {
 
     private func drawAxes(context: inout GraphicsContext, center: CGPoint, radius: CGFloat) {
         for i in 0..<axisCount {
+            let axis = DiversityMetric.Axis.allCases[i]
             let angle = (2 * .pi / Double(axisCount)) * Double(i) - .pi / 2
             let endPoint = CGPoint(
                 x: center.x + cos(angle) * radius,
                 y: center.y + sin(angle) * radius
             )
 
-            let metric = metrics.first(where: { $0.axis == DiversityMetric.Axis.allCases[i] })
+            let metric = metricsByAxis[axis]
 
             var path = Path()
             path.move(to: center)
@@ -126,13 +140,14 @@ public struct RadarChartView: View {
     private func drawFilledPolygon(context: inout GraphicsContext, center: CGPoint, radius: CGFloat) {
         var path = Path()
         for i in 0..<axisCount {
-            let metric = metrics.first(where: { $0.axis == DiversityMetric.Axis.allCases[i] })
+            let axis = DiversityMetric.Axis.allCases[i]
+            let metric = metricsByAxis[axis]
             let score = metric?.isMissing == false ? metric?.score ?? 0 : 0
 
             let angle = (2 * .pi / Double(axisCount)) * Double(i) - .pi / 2
             let point = CGPoint(
-                x: center.x + cos(angle) * radius * CGFloat(score),
-                y: center.y + sin(angle) * radius * CGFloat(score)
+                x: center.x + cos(angle) * radius * score,
+                y: center.y + sin(angle) * radius * score
             )
 
             if i == 0 {
