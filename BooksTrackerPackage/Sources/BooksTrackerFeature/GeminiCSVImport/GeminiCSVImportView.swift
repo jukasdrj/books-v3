@@ -394,20 +394,17 @@ public struct GeminiCSVImportView: View {
         let tracker = V2ImportProgressTracker()
         progressTracker = tracker
         
-        await tracker.startTracking(jobId: jobId) { [weak self] progress, processed, total in
+        await tracker.startTracking(jobId: jobId) { progress, processed, total in
             Task { @MainActor in
-                guard let self = self else { return }
                 let message = "Processing \(processed)/\(total) rows..."
-                self.importStatus = .processing(progress: progress, message: message)
+                importStatus = .processing(progress: progress, message: message)
                 
                 #if DEBUG
                 print("[CSV V2] Progress: \(Int(progress * 100))% - \(message)")
                 #endif
             }
-        } onComplete: { [weak self] result in
+        } onComplete: { result in
             Task { @MainActor in
-                guard let self = self else { return }
-                
                 #if DEBUG
                 print("[CSV V2] Import complete!")
                 #endif
@@ -433,7 +430,7 @@ public struct GeminiCSVImportView: View {
                 
                 // Create synthetic books for display (actual saving happens on backend)
                 // V2 API auto-saves to user's library, so we just show completion
-                self.importStatus = .processing(
+                importStatus = .processing(
                     progress: 1.0,
                     message: "✅ Import complete! \(successCount) books added, \(errorCount) errors"
                 )
@@ -442,20 +439,18 @@ public struct GeminiCSVImportView: View {
                 Task {
                     try? await Task.sleep(for: .seconds(2))
                     await MainActor.run {
-                        self.tabCoordinator.switchToLibrary()
-                        self.dismiss()
+                        tabCoordinator.switchToLibrary()
+                        dismiss()
                     }
                 }
             }
-        } onError: { [weak self] error in
+        } onError: { error in
             Task { @MainActor in
-                guard let self = self else { return }
-                
                 #if DEBUG
                 print("[CSV V2] Error: \(error)")
                 #endif
                 
-                self.importStatus = .failed(error.localizedDescription)
+                importStatus = .failed(error.localizedDescription)
             }
         }
     }

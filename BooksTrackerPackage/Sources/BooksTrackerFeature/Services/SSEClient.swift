@@ -157,20 +157,20 @@ actor SSEClient: NSObject, URLSessionDataDelegate {
     
     // MARK: - Callbacks (Sendable closures for Swift 6 concurrency)
     
-    /// Progress update callback - called on background thread
-    /// Use @MainActor.run inside if updating UI
-    var onProgress: (@Sendable (Double, Int, Int) -> Void)?
+    /// Progress update callback - called from actor context
+    /// Callback must be Sendable and handle its own MainActor dispatch if needed
+    private var onProgress: (@Sendable (Double, Int, Int) -> Void)?
     
-    /// Completion callback - called on background thread
-    /// Use @MainActor.run inside if updating UI
-    var onComplete: (@Sendable (SSEImportResult) -> Void)?
+    /// Completion callback - called from actor context
+    /// Callback must be Sendable and handle its own MainActor dispatch if needed
+    private var onComplete: (@Sendable (SSEImportResult) -> Void)?
     
-    /// Error callback - called on background thread
-    /// Use @MainActor.run inside if updating UI
-    var onError: (@Sendable (Error) -> Void)?
+    /// Error callback - called from actor context
+    /// Callback must be Sendable and handle its own MainActor dispatch if needed
+    private var onError: (@Sendable (Error) -> Void)?
     
     /// Connection state change callback
-    var onConnectionStateChange: (@Sendable (Bool) -> Void)?
+    private var onConnectionStateChange: (@Sendable (Bool) -> Void)?
     
     // MARK: - Initialization
     
@@ -194,6 +194,26 @@ actor SSEClient: NSObject, URLSessionDataDelegate {
     }
     
     // MARK: - Public API
+    
+    /// Set progress callback
+    func setOnProgress(_ callback: @escaping @Sendable (Double, Int, Int) -> Void) {
+        onProgress = callback
+    }
+    
+    /// Set completion callback
+    func setOnComplete(_ callback: @escaping @Sendable (SSEImportResult) -> Void) {
+        onComplete = callback
+    }
+    
+    /// Set error callback
+    func setOnError(_ callback: @escaping @Sendable (Error) -> Void) {
+        onError = callback
+    }
+    
+    /// Set connection state change callback
+    func setOnConnectionStateChange(_ callback: @escaping @Sendable (Bool) -> Void) {
+        onConnectionStateChange = callback
+    }
     
     /// Connect to SSE stream for a specific job
     /// - Parameters:

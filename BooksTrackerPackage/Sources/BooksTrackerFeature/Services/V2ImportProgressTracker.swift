@@ -51,15 +51,15 @@ actor V2ImportProgressTracker {
         sseClient = client
         
         // Set up SSE callbacks
-        await client.onProgress = { progress, processed, total in
+        await client.setOnProgress { progress, processed, total in
             onProgress(progress, processed, total)
         }
         
-        await client.onComplete = { result in
+        await client.setOnComplete { result in
             onComplete(result)
         }
         
-        await client.onError = { error in
+        await client.setOnError { error in
             // If SSE fails, switch to polling
             #if DEBUG
             print("[V2Tracker] SSE error: \(error), switching to polling")
