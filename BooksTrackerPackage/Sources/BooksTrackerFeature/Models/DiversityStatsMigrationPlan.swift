@@ -1,5 +1,12 @@
 import SwiftData
 
+/// Time period for statistics aggregation (duplicated from EnhancedDiversityStats.swift for migration isolation)
+enum StatsPeriod: String, Codable {
+    case allTime
+    case year
+    case month
+}
+
 enum DiversityStatsMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
         [DiversityStatsSchemaV1.self, DiversityStatsSchemaV2.self]
@@ -64,6 +71,23 @@ enum DiversityStatsSchemaV1: VersionedSchema {
         var booksWithOwnVoicesData: Int
         var booksWithAccessibilityData: Int
         var lastCalculated: Date
+
+        init(userId: String, period: StatsPeriod, culturalOrigins: [String: Int], genderDistribution: [String: Int], translationStatus: [String: Int], ownVoicesTheme: [String: Int], nicheAccessibility: [String: Int], totalBooks: Int, booksWithCulturalData: Int, booksWithGenderData: Int, booksWithTranslationData: Int, booksWithOwnVoicesData: Int, booksWithAccessibilityData: Int, lastCalculated: Date) {
+            self.userId = userId
+            self.period = period
+            self.culturalOrigins = culturalOrigins
+            self.genderDistribution = genderDistribution
+            self.translationStatus = translationStatus
+            self.ownVoicesTheme = ownVoicesTheme
+            self.nicheAccessibility = nicheAccessibility
+            self.totalBooks = totalBooks
+            self.booksWithCulturalData = booksWithCulturalData
+            self.booksWithGenderData = booksWithGenderData
+            self.booksWithTranslationData = booksWithTranslationData
+            self.booksWithOwnVoicesData = booksWithOwnVoicesData
+            self.booksWithAccessibilityData = booksWithAccessibilityData
+            self.lastCalculated = lastCalculated
+        }
     }
 }
 
@@ -90,5 +114,22 @@ enum DiversityStatsSchemaV2: VersionedSchema {
         var booksWithOwnVoicesData: Int
         var booksWithAccessibilityData: Int
         var lastCalculated: Date
+
+        init(userId: String, period: StatsPeriod, culturalOrigins: [String: Int], genderDistribution: [String: Int], translationStatus: [String: Int], ownVoicesCount: Int, accessibilityTags: [String: Int], totalBooks: Int, booksWithCulturalData: Int, booksWithGenderData: Int, booksWithTranslationData: Int, booksWithOwnVoicesData: Int, booksWithAccessibilityData: Int, lastCalculated: Date) {
+            self.userId = userId
+            self.period = period
+            self.culturalOrigins = culturalOrigins
+            self.genderDistribution = genderDistribution
+            self.translationStatus = translationStatus
+            self.ownVoicesCount = ownVoicesCount
+            self.accessibilityTags = accessibilityTags
+            self.totalBooks = totalBooks
+            self.booksWithCulturalData = booksWithCulturalData
+            self.booksWithGenderData = booksWithGenderData
+            self.booksWithTranslationData = booksWithTranslationData
+            self.booksWithOwnVoicesData = booksWithOwnVoicesData
+            self.booksWithAccessibilityData = booksWithAccessibilityData
+            self.lastCalculated = lastCalculated
+        }
     }
 }
