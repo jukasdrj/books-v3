@@ -51,7 +51,7 @@ actor SSEClient {
     
     // MARK: - Properties
     
-    private var task: URLSessionDataTask?
+    private var streamTask: Task<Void, Never>?
     private var lastEventID: String?
     private var retryInterval: TimeInterval = 5.0
     private var isConnected = false
@@ -92,7 +92,7 @@ actor SSEClient {
         
         // Return AsyncStream that will emit parsed SSE events
         return AsyncStream { continuation in
-            Task {
+            let streamingTask = Task {
                 do {
                     // Use AsyncBytes for streaming response
                     let (asyncBytes, response) = try await URLSession.shared.bytes(for: request)
@@ -157,6 +157,11 @@ actor SSEClient {
                 }
             }
             
+            // Store task for cancellation
+            Task {
+                await self.setStreamTask(streamingTask)
+            }
+            
             continuation.onTermination = { [weak self] _ in
                 Task { [weak self] in
                     await self?.disconnect()
@@ -167,8 +172,8 @@ actor SSEClient {
     
     /// Disconnect from SSE endpoint
     func disconnect() {
-        task?.cancel()
-        task = nil
+        streamTask?.cancel()
+        streamTask = nil
         isConnected = false
         
         #if DEBUG
@@ -195,6 +200,10 @@ actor SSEClient {
     
     private func setConnected(_ connected: Bool) {
         isConnected = connected
+    }
+    
+    private func setStreamTask(_ task: Task<Void, Never>) {
+        streamTask = task
     }
     
     private func updateLastEventID(_ id: String) {
