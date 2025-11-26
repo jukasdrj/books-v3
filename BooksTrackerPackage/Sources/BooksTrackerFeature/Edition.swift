@@ -62,6 +62,12 @@ public final class Edition {
     // Edition-specific description (may differ from Work description)
     // Note: Can't use 'description' name (reserved by @Model macro)
     var editionDescription: String?
+    
+    // MARK: - Diversity Dimensions (for Translation Statistics)
+    
+    /// Original language of this edition (e.g., "English", "Spanish", "Japanese")
+    /// Edition-level language tracking for translation statistics
+    var originalLanguage: String?
 
     // Provenance tracking for debugging and observability
     var primaryProvider: String?    // Which provider contributed this Edition
