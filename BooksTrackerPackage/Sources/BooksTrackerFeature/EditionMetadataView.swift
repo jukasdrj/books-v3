@@ -11,10 +11,12 @@ import UIKit
 struct EditionMetadataView: View {
     @Bindable var work: Work
     let edition: Edition
+    @Binding var showingProfilingSheet: Bool
 
-    public init(work: Work, edition: Edition) {
+    public init(work: Work, edition: Edition, showingProfilingSheet: Binding<Bool>) {
         self.work = work
         self.edition = edition
+        self._showingProfilingSheet = showingProfilingSheet
     }
 
     @Environment(\.modelContext) private var modelContext
@@ -30,7 +32,6 @@ struct EditionMetadataView: View {
     @State private var currentSessionMinutes: Int = 0
     @State private var showEndSessionSheet = false
     @State private var endingPage: Int = 0
-    @State private var showProfilingPrompt = false
 
     // User's library entry for this work (reactive to SwiftData changes)
     private var libraryEntry: UserLibraryEntry? {
@@ -60,15 +61,6 @@ struct EditionMetadataView: View {
             .padding(20)
         }
         .glassEffect(.regular, tint: themeStore.primaryColor.opacity(0.1))
-        .sheet(isPresented: $showProfilingPrompt) {
-            ProgressiveProfilingPrompt(work: work, onComplete: {
-                #if DEBUG
-                print("✅ Progressive profiling completed")
-                #endif
-            })
-            .presentationDetents([.large])
-            .iOS26SheetGlass()
-        }
         .onAppear {
             ensureLibraryEntry()
         }
@@ -592,7 +584,7 @@ struct EditionMetadataView: View {
                 // Delay slightly for better UX (sheet after sheet)
                 Task { @MainActor in
                     try? await Task.sleep(for: .milliseconds(500))
-                    showProfilingPrompt = true
+                    showingProfilingSheet = true
                 }
             }
         } catch {

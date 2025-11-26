@@ -13,6 +13,7 @@ struct WorkDetailView: View {
     @State private var showingEditionPicker = false
     @State private var selectedAuthor: Author?
     @State private var selectedEditionID: PersistentIdentifier?
+    @State private var showingProfilingSheet = false
 
     // Primary edition for display
     private var primaryEdition: Edition {
@@ -81,6 +82,11 @@ struct WorkDetailView: View {
         .sheet(item: $selectedAuthor) { author in
             AuthorSearchResultsView(author: author)
         }
+        .sheet(isPresented: $showingProfilingSheet) {
+            ProgressiveProfilingSheet(work: work, onComplete: {
+                // Handle completion if needed
+            })
+        }
     }
 
     // MARK: - Immersive Background
@@ -137,7 +143,7 @@ struct WorkDetailView: View {
                 bookCoverHero
 
                 // MARK: - Edition Metadata Card
-                EditionMetadataView(work: work, edition: primaryEdition)
+                EditionMetadataView(work: work, edition: primaryEdition, showingProfilingSheet: $showingProfilingSheet)
                     .padding(.horizontal, 20)
 
                 // MARK: - Manual Edition Selection

@@ -1,23 +1,25 @@
 import SwiftUI
 import SwiftData
 
-/// Progressive profiling prompt shown after reading sessions (>= 5 minutes)
+/// Progressive profiling sheet shown after reading sessions (>= 5 minutes)
 /// Asks 3-5 questions about the work to enrich diversity metadata
 @available(iOS 26.0, *)
-public struct ProgressiveProfilingPrompt: View {
+public struct ProgressiveProfilingSheet: View {
     let work: Work
     let onComplete: () -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.iOS26ThemeStore) private var themeStore
+    @Environment(\.curatorPointsService) private var curatorPointsService
 
     @State private var currentQuestionIndex = 0
     @State private var answers: [String: String] = [:]
-    @State private var showSuccessState = false
+    @State private var showCelebration = false
     @State private var showCascadeConfirmation = false
     @State private var pendingCascadeAnswer: (answer: String, question: ProfileQuestion)?
     @State private var affectedWorksCount = 0
+    @State private var pointsAwarded = 0
 
     // Questions to ask (filtered based on missing data)
     @State private var questions: [ProfileQuestion] = []
@@ -30,8 +32,14 @@ public struct ProgressiveProfilingPrompt: View {
     public var body: some View {
         NavigationStack {
             ZStack {
-                if showSuccessState {
-                    successView
+                if showCelebration {
+                    CelebrationView(pointsAwarded: pointsAwarded)
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                dismiss()
+                                onComplete()
+                            }
+                        }
                 } else if showCascadeConfirmation {
                     cascadeConfirmationView
                 } else {
@@ -217,74 +225,6 @@ public struct ProgressiveProfilingPrompt: View {
         .padding()
     }
 
-    // MARK: - Success View
-
-    private var successView: some View {
-        VStack(spacing: 24) {
-            Spacer()
-
-            // Success icon
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 72))
-                .foregroundColor(.green)
-
-            // Success message
-            VStack(spacing: 12) {
-                Text("Thank You!")
-                    .font(.title.bold())
-                    .foregroundStyle(.primary)
-
-                Text("Your input helps us understand your reading diversity better.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-
-                // Show gamification feedback if cascade was applied
-                if affectedWorksCount > 1 {
-                    HStack(spacing: 6) {
-                        Image(systemName: "sparkles")
-                            .font(.title3)
-                            .foregroundColor(.yellow)
-                        Text("+\(affectedWorksCount * 5) Curator Points")
-                            .font(.headline.bold())
-                            .foregroundColor(themeStore.primaryColor)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background {
-                        Capsule()
-                            .fill(themeStore.primaryColor.opacity(0.15))
-                    }
-                    .padding(.top, 8)
-                }
-            }
-
-            Spacer()
-
-            // Done button
-            Button(action: {
-                dismiss()
-                onComplete()
-            }) {
-                HStack {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 16, weight: .semibold))
-                    Text("Done")
-                        .fontWeight(.medium)
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(themeStore.primaryColor)
-                }
-            }
-            .buttonStyle(.plain)
-        }
-        .padding()
-    }
-
     // MARK: - Question Loading
 
     private func loadQuestions() async {
@@ -385,11 +325,34 @@ public struct ProgressiveProfilingPrompt: View {
         } else {
             // All questions answered - save and show success
             saveAnswers()
+            awardPoints()
             withAnimation {
-                showSuccessState = true
+                showCelebration = true
             }
         }
     }
+
+    private func awardPoints() {
+        var totalPoints = 0
+        for (dimension, _) in answers {
+            switch dimension {
+            case "culturalOrigins":
+                totalPoints += 15
+            case "genderDistribution":
+                totalPoints += 10
+            default:
+                break
+            }
+        }
+
+        if affectedWorksCount > 1 {
+            totalPoints += affectedWorksCount * 5
+        }
+
+        self.pointsAwarded = totalPoints
+        curatorPointsService.awardPoints(totalPoints, for: "Progressive Profiling Contribution")
+    }
+
 
     private func confirmCascade() {
         guard let pending = pendingCascadeAnswer else { return }
@@ -527,7 +490,7 @@ private struct ProfileQuestion {
 
     let themeStore = BooksTrackerFeature.iOS26ThemeStore()
 
-    ProgressiveProfilingPrompt(work: Work(title: "Sample Book"), onComplete: {
+    ProgressiveProfilingSheet(work: Work(title: "Sample Book"), onComplete: {
         print("Profiling complete")
     })
     .modelContainer(container)

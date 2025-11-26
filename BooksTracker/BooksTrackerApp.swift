@@ -165,6 +165,7 @@ class DTOMapperFactory {
 struct BooksTrackerApp: App {
     @State private var themeStore = iOS26ThemeStore()
     @State private var featureFlags = FeatureFlags.shared
+    @State private var curatorPointsService = CuratorPointsService()
 
     var body: some Scene {
         WindowGroup {
@@ -179,6 +180,7 @@ struct BooksTrackerApp: App {
                 .environment(\.dtoMapper, DTOMapperFactory.shared.mapper(for: container.mainContext))
                 .environment(ModelContainerFactory.shared.libraryRepository)
                 .environment(EnrichmentQueue.shared)
+                .environment(\.curatorPointsService, curatorPointsService)
         }
     }
 }
