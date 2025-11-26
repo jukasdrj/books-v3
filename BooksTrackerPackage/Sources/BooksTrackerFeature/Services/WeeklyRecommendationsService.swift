@@ -77,13 +77,10 @@ public actor WeeklyRecommendationsService {
             }
         }
         
-        // Fetch from API
-        let endpoint = "\(EnrichmentConfig.baseURL)/api/v2/recommendations/weekly"
-        guard let url = URL(string: endpoint) else {
-            throw RecommendationsError.invalidURL
-        }
+        // Fetch from API using configured endpoint
+        let url = EnrichmentConfig.weeklyRecommendationsURL
         
-        logger.info("📚 Fetching weekly recommendations from \(endpoint)")
+        logger.info("📚 Fetching weekly recommendations from \(url)")
         
         let (data, response): (Data, URLResponse)
         do {
