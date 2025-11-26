@@ -119,6 +119,29 @@ public final class FeatureFlags {
         }
     }
 
+    /// Enable Cloudflare Workflows for ISBN import
+    ///
+    /// When enabled, ISBN scans will use the Cloudflare Workflows API
+    /// for durable, step-by-step import with automatic retries and
+    /// state persistence.
+    ///
+    /// Benefits:
+    /// - Automatic retries (3x with backoff)
+    /// - State persistence across failures
+    /// - Step-by-step observability
+    ///
+    /// Default: `false` (disabled, uses standard search flow)
+    ///
+    /// Note: This is a P2 enhancement. Standard ISBN search still works.
+    public var enableWorkflowImport: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: "feature.enableWorkflowImport")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "feature.enableWorkflowImport")
+        }
+    }
+
     /// Stores the API capabilities fetched from the backend.
     /// This property is populated on app launch and is used to conditionally
     /// enable or disable features based on backend support.
@@ -135,8 +158,9 @@ public final class FeatureFlags {
         coverSelectionStrategy = .auto  // Default auto
         disableCanonicalEnrichment = false  // Default canonical endpoint
         enableV2Search = false // Default v2 search disabled
+        enableWorkflowImport = false // Default workflow import disabled
         #if DEBUG
-        print("✅ FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true, v2Search: false)")
+        print("✅ FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true, v2Search: false, workflowImport: false)")
         #endif
     }
 }

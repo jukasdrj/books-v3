@@ -92,6 +92,13 @@ public struct SearchView: View {
     // Scanner state
     @State private var showingScanner = false
 
+    // Workflow import state (feature flagged)
+    @State private var showingWorkflowProgress = false
+    @State private var activeWorkflowId: String?
+    @State private var workflowError: String?
+    @State private var showingWorkflowError = false
+    private let workflowService = WorkflowImportService()
+
     // Advanced search state
     @State private var showingAdvancedSearch = false
 
@@ -223,10 +230,46 @@ public struct SearchView: View {
                 #if DEBUG
                 print("📷 ISBN scanned: \(isbn.normalizedValue)")
                 #endif
-                // Handle scanned ISBN - set scope to ISBN
-                searchScope = .isbn
-                searchModel?.searchByISBN(isbn.normalizedValue)
+
+                // Use workflow import if enabled, otherwise standard search
+                if featureFlags.enableWorkflowImport {
+                    Task {
+                        await handleWorkflowImport(isbn: isbn.normalizedValue)
+                    }
+                } else {
+                    // Standard search flow
+                    searchScope = .isbn
+                    searchModel?.searchByISBN(isbn.normalizedValue)
+                }
             }
+        }
+        .sheet(isPresented: $showingWorkflowProgress) {
+            if let workflowId = activeWorkflowId {
+                WorkflowProgressView(
+                    workflowId: workflowId,
+                    onComplete: { result in
+                        // Navigate to the imported book
+                        showingWorkflowProgress = false
+                        searchScope = .isbn
+                        searchModel?.searchByISBN(result.isbn)
+                    },
+                    onRetry: {
+                        showingWorkflowProgress = false
+                        showingScanner = true
+                    },
+                    onDismiss: {
+                        showingWorkflowProgress = false
+                    }
+                )
+            }
+        }
+        .alert("Import Failed", isPresented: $showingWorkflowError) {
+            Button("Try Again") {
+                showingScanner = true
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(workflowError ?? "An unknown error occurred.")
         }
         .sheet(isPresented: $showingAdvancedSearch) {
             if let searchModel = searchModel {
@@ -520,6 +563,25 @@ public struct SearchView: View {
             searchModel.searchText = authorName
             searchScope = .author
             performScopedSearch(query: authorName, scope: .author, searchModel: searchModel)
+        }
+    }
+
+    /// Handle workflow-based ISBN import (feature flagged)
+    /// Creates a durable workflow for importing a book with automatic retries
+    private func handleWorkflowImport(isbn: String) async {
+        do {
+            let response = try await workflowService.createWorkflow(isbn: isbn)
+            await MainActor.run {
+                activeWorkflowId = response.workflowId
+                showingScanner = false
+                showingWorkflowProgress = true
+            }
+        } catch {
+            await MainActor.run {
+                workflowError = error.localizedDescription
+                showingScanner = false
+                showingWorkflowError = true
+            }
         }
     }
 
