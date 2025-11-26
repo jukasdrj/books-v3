@@ -191,8 +191,13 @@ public final class DiversityStatsService {
     /// Update diversity data for a work
     /// - Parameters:
     ///   - workId: PersistentIdentifier of the work to update
-    ///   - dimension: Dimension name ("culturalOrigins", "genderDistribution", "translationStatus", "ownVoicesTheme", "nicheAccessibility")
-    ///   - value: String value for the dimension
+    ///   - dimension: Dimension name:
+    ///     - "culturalOrigins": Updates primary author's cultural region (value should be CulturalRegion.displayName, e.g., "Africa", "Asia")
+    ///     - "genderDistribution": Updates primary author's gender (value should be AuthorGender.displayName, e.g., "Female", "Male", "Non-binary")
+    ///     - "translationStatus": Updates work's original language (value is language name, e.g., "English", "Spanish")
+    ///     - "ownVoicesTheme": Updates work's Own Voices status (value should be "true", "false", "Own Voices", or "Not Own Voices")
+    ///     - "nicheAccessibility": Adds accessibility tag to work (value is tag name, e.g., "Large Print", "Audio Available")
+    ///   - value: String value for the dimension (see dimension parameter for expected formats)
     public func updateDiversityData(workId: PersistentIdentifier, dimension: String, value: String) async throws {
         guard let work = modelContext.model(for: workId) as? Work else {
             throw DiversityStatsError.workNotFound
@@ -222,7 +227,9 @@ public final class DiversityStatsService {
         
         case "ownVoicesTheme":
             // Update work's own voices status
-            work.isOwnVoices = (value.lowercased() == "true" || value == "Own Voices")
+            // Accept variations: "true", "false", "Own Voices", "Not Own Voices"
+            let normalizedValue = value.lowercased()
+            work.isOwnVoices = (normalizedValue == "true" || normalizedValue == "own voices")
         
         case "nicheAccessibility":
             // Add accessibility tag if not already present
