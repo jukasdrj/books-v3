@@ -1,6 +1,6 @@
 import Foundation
 
-struct WeeklyRecommendationsResponse: Decodable {
+struct WeeklyRecommendationsResponse: Codable {
     let weekOf: String
     let books: [WeeklyRecommendation]
     let generatedAt: Date
@@ -14,7 +14,7 @@ struct WeeklyRecommendationsResponse: Decodable {
     }
 }
 
-struct WeeklyRecommendation: Decodable, Identifiable {
+struct WeeklyRecommendation: Codable, Identifiable {
     let isbn: String
     let title: String
     let authors: [String]

@@ -642,6 +642,109 @@ public class BookSearchAPIService {
             )
         }
     }
+
+    // MARK: - Similar Books API
+
+    /// Response structure for the similar books endpoint
+    struct SimilarBooksResponse: Codable {
+        let results: [SimilarBook]
+        let source_isbn: String
+        let total: Int
+    }
+
+    struct SimilarBook: Codable {
+        let isbn: String
+        let title: String
+        let authors: [String]
+        let cover_url: String?
+        let similarity_score: Double
+    }
+
+    func findSimilarBooks(isbn: String, limit: Int = 10) async throws -> SearchResponse {
+        logger.info("📚 Finding similar books for ISBN \(isbn)...")
+
+        guard let encodedIsbn = isbn.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            throw SearchError.invalidQuery
+        }
+
+        let urlString = "\(EnrichmentConfig.baseURL)/v1/search/similar?isbn=\(encodedIsbn)&limit=\(limit)"
+        guard let url = URL(string: urlString) else {
+            throw SearchError.invalidURL
+        }
+
+        let startTime = Date()
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await urlSession.data(from: url)
+        } catch {
+            throw SearchError.networkError(error)
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw SearchError.invalidResponse
+        }
+
+        if httpResponse.statusCode == 429 {
+            let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After").flatMap(Int.init)
+            throw SearchError.rateLimitExceeded(retryAfter: retryAfter)
+        }
+
+        if httpResponse.statusCode == 404 {
+            logger.info("✅ No similar books found for ISBN \(isbn) (404)")
+            return SearchResponse(results: [], cacheHitRate: 0.0, provider: "similar-books", responseTime: 0, totalItems: 0)
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            throw SearchError.httpError(httpResponse.statusCode)
+        }
+
+        let responseTime = Date().timeIntervalSince(startTime) * 1000
+
+        let similarBooksResponse: SimilarBooksResponse
+        do {
+            similarBooksResponse = try JSONDecoder().decode(SimilarBooksResponse.self, from: data)
+        } catch {
+            throw SearchError.decodingError(error)
+        }
+
+        if similarBooksResponse.results.isEmpty {
+            logger.info("✅ No similar books found for ISBN \(isbn)")
+            return SearchResponse(results: [], cacheHitRate: 0.0, provider: "similar-books", responseTime: responseTime, totalItems: 0)
+        }
+
+        // Convert similar books directly to SearchResults (similar to V2 search pattern)
+        let results = similarBooksResponse.results.map { similarBook in
+            // Create non-persisted SwiftData models for the UI
+            let work = Work(title: similarBook.title)
+
+            let authors = similarBook.authors.map { authorName in
+                Author(name: authorName)
+            }
+            work.authors = authors
+
+            let edition = Edition(isbn: similarBook.isbn)
+            edition.coverImageURL = similarBook.cover_url
+            edition.work = work
+
+            return SearchResult(
+                work: work,
+                editions: [edition],
+                authors: authors,
+                relevanceScore: similarBook.similarity_score,
+                provider: "similar-books"
+            )
+        }
+
+        logger.info("✅ Found \(results.count) similar books in \(Int(responseTime))ms")
+
+        return SearchResponse(
+            results: results,
+            cacheHitRate: 0.0,
+            provider: "similar-books",
+            responseTime: responseTime,
+            totalItems: results.count
+        )
+    }
 }
 
 // MARK: - Response Models
