@@ -20,6 +20,9 @@ extension SearchView {
                     // Welcome section - HIG: Clear, inviting empty state
                     welcomeSection
 
+                    // Weekly Picks - AI-curated recommendations
+                    WeeklyPicksView()
+
                     // Trending searches chips - HIG: Inspiration and quick discovery (Issue #16)
                     if !searchModel.popularSearches.isEmpty {
                         trendingSearchesSection

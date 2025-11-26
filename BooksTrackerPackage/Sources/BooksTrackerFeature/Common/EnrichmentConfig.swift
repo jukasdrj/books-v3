@@ -66,6 +66,13 @@ enum EnrichmentConfig {
         URL(string: "\(baseURL)/api/import/csv-gemini")!
     }
 
+    // MARK: - Recommendations Endpoints
+
+    /// Weekly AI-curated book recommendations
+    static var weeklyRecommendationsURL: URL {
+        URL(string: "\(baseURL)/api/v2/recommendations/weekly")!
+    }
+
     // MARK: - WebSocket Endpoints
 
     /// WebSocket progress tracking for background jobs (v2.4 - Secure Auth)
