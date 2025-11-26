@@ -52,17 +52,13 @@ public final class SimilarBooksCache {
     
     /// Convert cached data back to SimilarBooksResponse format
     func toResponse() -> SimilarBooksResponse {
-        let items = zip(similarIsbns, zip(titles, zip(authorLists, zip(similarityScores, coverUrls)))).map { isbn, rest in
-            let (title, rest2) = rest
-            let (authors, rest3) = rest2
-            let (score, coverUrl) = rest3
-            
-            return SimilarBooksResponse.SimilarBookItem(
-                isbn: isbn,
-                title: title,
-                authors: authors,
-                similarityScore: score,
-                coverUrl: coverUrl
+        let items = (0..<similarIsbns.count).map { index in
+            SimilarBooksResponse.SimilarBookItem(
+                isbn: similarIsbns[index],
+                title: titles[index],
+                authors: authorLists[index],
+                similarityScore: similarityScores[index],
+                coverUrl: coverUrls[index]
             )
         }
         

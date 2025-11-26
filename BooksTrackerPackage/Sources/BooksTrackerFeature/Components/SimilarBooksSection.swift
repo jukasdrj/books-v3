@@ -213,25 +213,19 @@ struct SimilarBooksSection: View {
         
         do {
             let response = try await apiService.findSimilarBooks(isbn: isbn, limit: 10)
-            await MainActor.run {
-                similarBooks = response.results
-                isLoading = false
-            }
+            similarBooks = response.results
+            isLoading = false
         } catch let error as SearchError {
-            await MainActor.run {
-                isLoading = false
-                // Don't show error for 404 (book not in index) - just show empty state
-                if case .httpError(404) = error {
-                    errorMessage = nil
-                } else {
-                    errorMessage = error.errorDescription ?? "Failed to load similar books"
-                }
+            isLoading = false
+            // Don't show error for 404 (book not in index) - just show empty state
+            if case .httpError(404) = error {
+                errorMessage = nil
+            } else {
+                errorMessage = error.errorDescription ?? "Failed to load similar books"
             }
         } catch {
-            await MainActor.run {
-                isLoading = false
-                errorMessage = "Failed to load similar books"
-            }
+            isLoading = false
+            errorMessage = "Failed to load similar books"
         }
     }
 }
@@ -303,10 +297,8 @@ private struct SimilarBookDetailSheet: View {
     
     private func loadBookDetails() async {
         guard let dtoMapper = dtoMapper else {
-            await MainActor.run {
-                errorMessage = "Configuration error"
-                isLoading = false
-            }
+            errorMessage = "Configuration error"
+            isLoading = false
             return
         }
         
@@ -314,19 +306,15 @@ private struct SimilarBookDetailSheet: View {
         
         do {
             let response = try await apiService.search(query: isbn, maxResults: 1, scope: .isbn, persist: false)
-            await MainActor.run {
-                if let first = response.results.first {
-                    searchResult = first
-                } else {
-                    errorMessage = "Book not found"
-                }
-                isLoading = false
+            if let first = response.results.first {
+                searchResult = first
+            } else {
+                errorMessage = "Book not found"
             }
+            isLoading = false
         } catch {
-            await MainActor.run {
-                errorMessage = "Failed to load book details"
-                isLoading = false
-            }
+            errorMessage = "Failed to load book details"
+            isLoading = false
         }
     }
 }
