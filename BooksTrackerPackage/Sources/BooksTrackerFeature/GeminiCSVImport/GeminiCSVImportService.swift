@@ -224,6 +224,78 @@ actor GeminiCSVImportService {
         }
     }
 
+    // MARK: - Check Job Status
+
+    /// Check the status of a CSV import job (fallback polling)
+    /// - Parameter jobId: The job ID to check
+    /// - Returns: Job status including progress and results
+    /// - Throws: GeminiCSVImportError on failure
+    func checkJobStatus(jobId: String) async throws -> GeminiCSVImportJobStatus {
+        #if DEBUG
+        print("[CSV Status] Checking status for job: \(jobId)")
+        #endif
+
+        let statusURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/v1/csv/status/\(jobId)")!
+        var request = URLRequest(url: statusURL)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 30
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw GeminiCSVImportError.invalidResponse
+            }
+
+            #if DEBUG
+            print("[CSV Status] Status code: \(httpResponse.statusCode)")
+            #endif
+
+            if httpResponse.statusCode != 200 {
+                // Try to decode error response
+                if let errorResponse = try? JSONDecoder().decode(ResponseEnvelope<GeminiCSVImportJobStatus>.self, from: data),
+                   let error = errorResponse.error {
+                    let errorMessageWithCode = error.code != nil
+                        ? "\(error.message) (Code: \(error.code!))"
+                        : error.message
+                    throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessageWithCode)
+                }
+                let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+                throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessage)
+            }
+
+            // Decode response
+            let decoder = JSONDecoder()
+            let envelope = try decoder.decode(ResponseEnvelope<GeminiCSVImportJobStatus>.self, from: data)
+
+            // Check for errors in response
+            if let error = envelope.error {
+                let errorMessageWithCode = error.code != nil
+                    ? "\(error.message) (Code: \(error.code!))"
+                    : error.message
+                throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessageWithCode)
+            }
+
+            // Extract data
+            guard let jobStatus = envelope.data else {
+                throw GeminiCSVImportError.serverError(httpResponse.statusCode, "No data in response")
+            }
+
+            #if DEBUG
+            print("[CSV Status] ✅ Status: \(jobStatus.status)")
+            #endif
+            return jobStatus
+
+        } catch let error as GeminiCSVImportError {
+            throw error
+        } catch {
+            #if DEBUG
+            print("[CSV Status] ❌ Network Error: \(error.localizedDescription)")
+            #endif
+            throw GeminiCSVImportError.networkError(error)
+        }
+    }
+
     // MARK: - Cancel Job
 
     /// Cancel a running CSV import job
