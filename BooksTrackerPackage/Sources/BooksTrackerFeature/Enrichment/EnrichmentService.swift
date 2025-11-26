@@ -366,90 +366,6 @@ public final class EnrichmentService {
         // Fatal error occurs when: Edition created → temporary ID → UI accesses → context invalidated → crash
         try? modelContext.save()
     }
-
-    public func enrichBookV2(barcode: String, in modelContext: ModelContext) async -> Result<Work, EnrichmentError> {
-        do {
-            let dto = try await apiClient.enrichBookV2(barcode: barcode)
-            let work = createOrUpdateWork(from: dto, in: modelContext)
-            totalEnriched += 1
-            return .success(work)
-        } catch {
-            totalFailed += 1
-            if let enrichmentError = error as? EnrichmentError {
-                return .failure(enrichmentError)
-            }
-            return .failure(.apiError(String(describing: error)))
-        }
-    }
-
-    private func createOrUpdateWork(from dto: EnrichedBookDTO, in modelContext: ModelContext) -> Work {
-        let isbn = dto.isbn
-        let predicate = #Predicate<Edition> { edition in
-            edition.isbn13 == isbn || edition.isbn10 == isbn
-        }
-        var descriptor = FetchDescriptor<Edition>(predicate: predicate)
-        descriptor.fetchLimit = 1
-
-        let work: Work
-        if let existingEdition = (try? modelContext.fetch(descriptor))?.first,
-           let existingWork = existingEdition.work {
-            // Update existing edition and work
-            work = existingWork
-
-            existingEdition.publisher = dto.publisher ?? existingEdition.publisher
-            existingEdition.publicationDate = dto.publishedDate ?? existingEdition.publicationDate
-            existingEdition.pageCount = dto.pageCount ?? existingEdition.pageCount
-            existingEdition.coverImageURL = dto.coverUrl ?? existingEdition.coverImageURL
-            existingEdition.touch()
-
-            // Only update title if it's empty or has the placeholder value
-            if (work.title.isEmpty || work.title == "Unknown Title"), !dto.title.isEmpty {
-                work.title = dto.title
-            }
-
-            work.authors = findOrCreateAuthors(named: dto.authors, in: modelContext)
-            work.touch()
-
-        } else {
-            work = Work(title: dto.title)
-            modelContext.insert(work)
-
-            work.authors = findOrCreateAuthors(named: dto.authors, in: modelContext)
-
-            let newEdition = Edition(
-                isbn: dto.isbn,
-                publisher: dto.publisher,
-                publicationDate: dto.publishedDate,
-                pageCount: dto.pageCount,
-                format: .paperback,
-                coverImageURL: dto.coverUrl
-            )
-            modelContext.insert(newEdition)
-
-            newEdition.work = work
-        }
-
-        try? modelContext.save()
-        return work
-    }
-
-    private func findOrCreateAuthors(named authorNames: [String], in modelContext: ModelContext) -> [Author] {
-        let predicate = #Predicate<Author> { author in
-            authorNames.contains(author.name)
-        }
-        let existingAuthors = (try? modelContext.fetch(FetchDescriptor<Author>(predicate: predicate))) ?? []
-        let existingAuthorNames = Set(existingAuthors.map { $0.name })
-
-        var finalAuthors = existingAuthors
-
-        for name in authorNames where !existingAuthorNames.contains(name) {
-            let newAuthor = Author(name: name)
-            modelContext.insert(newAuthor)
-            finalAuthors.append(newAuthor)
-        }
-
-        return finalAuthors
-    }
 }
 
 // MARK: - Supporting Types
@@ -467,7 +383,6 @@ public enum EnrichmentError: Error, Sendable {
     case invalidURL
     case invalidResponse
     case httpError(Int)
-    case rateLimitExceeded(retryAfter: Int)
 }
 
 public struct BatchEnrichmentResult: Sendable {

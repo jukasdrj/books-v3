@@ -707,13 +707,4 @@ public struct SearchResult: Identifiable, Hashable, @unchecked Sendable {
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
-
-    init(from work: Work) {
-        self.id = work.id
-        self.work = work
-        self.editions = work.editions ?? []
-        self.authors = work.authors ?? []
-        self.relevanceScore = 1.0 // Scanned books are always relevant
-        self.provider = "local"
-    }
 }

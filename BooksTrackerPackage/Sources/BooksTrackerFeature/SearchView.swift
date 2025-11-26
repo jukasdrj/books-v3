@@ -181,9 +181,16 @@ public struct SearchView: View {
             setupSearchModel()
         }
         .sheet(isPresented: $showingScanner) {
-            ISBNScannerView { work in
-                let searchResult = SearchResult(from: work)
-                selectedBook = searchResult
+            #if DEBUG
+            print("📷 Sheet is presenting ISBNScannerView")
+            #endif
+            return ISBNScannerView { isbn in
+                #if DEBUG
+                print("📷 ISBN scanned: \(isbn.normalizedValue)")
+                #endif
+                // Handle scanned ISBN - set scope to ISBN
+                searchScope = .isbn
+                searchModel?.searchByISBN(isbn.normalizedValue)
             }
         }
         .sheet(isPresented: $showingAdvancedSearch) {
