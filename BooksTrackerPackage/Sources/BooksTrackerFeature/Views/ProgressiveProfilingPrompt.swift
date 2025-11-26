@@ -21,6 +21,10 @@ public struct ProgressiveProfilingPrompt: View {
 
     // Questions to ask (filtered based on missing data)
     @State private var questions: [ProfileQuestion] = []
+    
+    // Gamification state
+    @State private var totalPointsAwarded = 0
+    @State private var completionPercentage: Double = 0.0
 
     public init(work: Work, onComplete: @escaping () -> Void) {
         self.work = work
@@ -165,7 +169,11 @@ public struct ProgressiveProfilingPrompt: View {
                         Image(systemName: "star.fill")
                             .font(.caption)
                             .foregroundColor(.yellow)
-                        Text("+\(affectedWorksCount * 5) Curator Points")
+                        // Calculate actual points based on dimension and cascade
+                        let basePoints = pendingCascadeAnswer.map { mapDimensionToActionType($0.question.dimension).pointValue } ?? 10
+                        let cascadeBonus = affectedWorksCount > 1 ? (affectedWorksCount - 1) * 5 : 0
+                        let totalPoints = basePoints + cascadeBonus
+                        Text("+\(totalPoints) Curator Points")
                             .font(.caption.bold())
                             .foregroundColor(themeStore.primaryColor)
                     }
@@ -223,11 +231,12 @@ public struct ProgressiveProfilingPrompt: View {
         VStack(spacing: 24) {
             Spacer()
 
-            // Success icon
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 72))
-                .foregroundColor(.green)
-
+            // Animated celebration with confetti
+            CelebrationView(
+                pointsAwarded: totalPointsAwarded,
+                completionPercentage: completionPercentage
+            )
+            
             // Success message
             VStack(spacing: 12) {
                 Text("Thank You!")
@@ -238,25 +247,6 @@ public struct ProgressiveProfilingPrompt: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-
-                // Show gamification feedback if cascade was applied
-                if affectedWorksCount > 1 {
-                    HStack(spacing: 6) {
-                        Image(systemName: "sparkles")
-                            .font(.title3)
-                            .foregroundColor(.yellow)
-                        Text("+\(affectedWorksCount * 5) Curator Points")
-                            .font(.headline.bold())
-                            .foregroundColor(themeStore.primaryColor)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background {
-                        Capsule()
-                            .fill(themeStore.primaryColor.opacity(0.15))
-                    }
-                    .padding(.top, 8)
-                }
             }
 
             Spacer()
@@ -473,9 +463,12 @@ public struct ProgressiveProfilingPrompt: View {
 
     private func saveAnswers() {
         let statsService = DiversityStatsService(modelContext: modelContext)
+        let curatorService = CuratorPointsService(modelContext: modelContext)
         let workId = work.persistentModelID
 
         Task {
+            var pointsEarned = 0
+            
             for (dimension, value) in answers {
                 do {
                     try await statsService.updateDiversityData(
@@ -483,12 +476,38 @@ public struct ProgressiveProfilingPrompt: View {
                         dimension: dimension,
                         value: value
                     )
+                    
+                    // Award points based on dimension type
+                    let actionType = mapDimensionToActionType(dimension)
+                    let cascadeMultiplier = affectedWorksCount > 1 ? affectedWorksCount : 1
+                    let awarded = try await curatorService.awardPoints(for: actionType, cascadeCount: cascadeMultiplier)
+                    pointsEarned += awarded
                 } catch {
                     #if DEBUG
                     print("❌ Failed to save \(dimension): \(error)")
                     #endif
                 }
             }
+            
+            // Fetch updated completion percentage
+            let percentage = try await statsService.fetchCompletionPercentage()
+            
+            await MainActor.run {
+                totalPointsAwarded = pointsEarned
+                completionPercentage = percentage
+            }
+        }
+    }
+    
+    /// Map diversity dimension to curator action type
+    private func mapDimensionToActionType(_ dimension: String) -> CuratorActionType {
+        switch dimension {
+        case "culturalOrigins": return .culturalRegion
+        case "genderDistribution": return .authorGender
+        case "translationStatus": return .originalLanguage
+        case "ownVoices": return .ownVoices
+        case "accessibility": return .accessibility
+        default: return .authorGender // Default fallback
         }
     }
 }

@@ -31,7 +31,8 @@ class ModelContainerFactory {
             BookEnrichment.self,
             AuthorMetadata.self,
             WorkOverride.self,
-            StreakData.self
+            StreakData.self,
+            CuratorPoints.self
         ])
 
         #if targetEnvironment(simulator)
