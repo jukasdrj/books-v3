@@ -45,13 +45,15 @@ public struct CelebrationView: View {
             animateCheckmark = true
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        Task {
+            try? await Task.sleep(for: .milliseconds(300))
             withAnimation(.easeInOut(duration: 0.5)) {
                 animatePoints = true
             }
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+        Task {
+            try? await Task.sleep(for: .milliseconds(100))
             showConfetti = true
         }
     }
@@ -76,7 +78,7 @@ struct ConfettiView: View {
                         )
                         .repeatForever(autoreverses: false)
                         .delay(.random(in: 0...0.5)),
-                        value: UUID()
+                        value: showConfetti
                     )
             }
         }
@@ -84,7 +86,7 @@ struct ConfettiView: View {
 
     private func randomColor() -> Color {
         let colors: [Color] = [.red, .orange, .yellow, .green, .blue, .purple, .pink]
-        return colors.randomElement()!
+        return colors.randomElement() ?? .red
     }
 }
 

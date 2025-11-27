@@ -5,6 +5,15 @@ import SwiftData
 /// Asks 3-5 questions about the work to enrich diversity metadata
 @available(iOS 26.0, *)
 public struct ProgressiveProfilingSheet: View {
+
+    // MARK: - Points Configuration
+
+    private enum ProfilingPoints {
+        static let culturalOrigins = 15
+        static let genderDistribution = 10
+        static let translationStatus = 5
+        static let cascadeMultiplier = 5
+    }
     let work: Work
     let onComplete: () -> Void
 
@@ -35,7 +44,8 @@ public struct ProgressiveProfilingSheet: View {
                 if showCelebration {
                     CelebrationView(pointsAwarded: pointsAwarded)
                         .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            Task {
+                                try? await Task.sleep(for: .seconds(2))
                                 dismiss()
                                 onComplete()
                             }
@@ -337,16 +347,18 @@ public struct ProgressiveProfilingSheet: View {
         for (dimension, _) in answers {
             switch dimension {
             case "culturalOrigins":
-                totalPoints += 15
+                totalPoints += ProfilingPoints.culturalOrigins
             case "genderDistribution":
-                totalPoints += 10
+                totalPoints += ProfilingPoints.genderDistribution
+            case "translationStatus":
+                totalPoints += ProfilingPoints.translationStatus
             default:
                 break
             }
         }
 
         if affectedWorksCount > 1 {
-            totalPoints += affectedWorksCount * 5
+            totalPoints += affectedWorksCount * ProfilingPoints.cascadeMultiplier
         }
 
         self.pointsAwarded = totalPoints

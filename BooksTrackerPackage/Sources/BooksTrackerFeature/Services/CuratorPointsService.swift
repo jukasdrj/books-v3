@@ -3,7 +3,7 @@ import Foundation
 /// Service for managing Curator Points, the gamification system for data contributions.
 /// Points are stored in UserDefaults for persistence across app launches.
 @MainActor
-public class CuratorPointsService {
+public class CuratorPointsService: ObservableObject {
 
     /// UserDefaults key for storing points.
     private let pointsKey = "com.bookstracker.curatorPoints"
