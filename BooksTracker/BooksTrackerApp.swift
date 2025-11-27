@@ -167,6 +167,7 @@ struct BooksTrackerApp: App {
     private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "BooksTrackerApp")
     @State private var themeStore = iOS26ThemeStore()
     @State private var featureFlags = FeatureFlags.shared
+    @State private var curatorPointsService = CuratorPointsService()
     @State private var capabilitiesService = CapabilitiesService()
 
     var body: some Scene {
@@ -190,6 +191,7 @@ struct BooksTrackerApp: App {
                 .environment(\.dtoMapper, DTOMapperFactory.shared.mapper(for: container.mainContext))
                 .environment(ModelContainerFactory.shared.libraryRepository)
                 .environment(EnrichmentQueue.shared)
+                .environment(\.curatorPointsService, curatorPointsService)
         }
     }
 }

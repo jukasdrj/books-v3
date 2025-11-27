@@ -18,12 +18,12 @@ struct WorkDetailView: View {
     @State private var showingEditionPicker = false
     @State private var selectedAuthor: Author?
     @State private var selectedEditionID: PersistentIdentifier?
+    @State private var showingProfilingSheet = false
     @State private var similarBooks: [SearchResult] = []
     @State private var similarBooksState: LoadingState = .idle
     @State private var selectedSimilarBook: SearchResult?
 
     private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "WorkDetailView")
-
 
     // Primary edition for display
     private var primaryEdition: Edition {
@@ -91,6 +91,11 @@ struct WorkDetailView: View {
         .sheet(item: $selectedAuthor) { author in
             AuthorSearchResultsView(author: author)
         }
+        .sheet(isPresented: $showingProfilingSheet) {
+            ProgressiveProfilingSheet(work: work, onComplete: {
+                // Handle completion if needed
+            })
+        }
         .navigationDestination(item: $selectedSimilarBook) { result in
             WorkDiscoveryView(searchResult: result)
         }
@@ -152,8 +157,13 @@ struct WorkDetailView: View {
                 // MARK: - Book Cover Hero
                 bookCoverHero
 
+<<<<<<< HEAD
+                // MARK: - Edition Metadata Card
+                EditionMetadataView(work: work, edition: primaryEdition, showingProfilingSheet: $showingProfilingSheet)
+=======
                 // MARK: - Metadata & Diversity Tabs
                 metadataTabsSection
+>>>>>>> origin/main
                     .padding(.horizontal, 20)
 
                 // MARK: - Similar Books Section
