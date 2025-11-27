@@ -7,11 +7,13 @@ import SwiftUI
 @MainActor
 struct DiversityInsightsTab: View {
     let work: Work
+    let diversityScore: DiversityScore
 
     @Environment(\.iOS26ThemeStore) private var themeStore
 
-    private var diversityScore: DiversityScore {
-        DiversityScore(work: work)
+    init(work: Work, diversityScore: DiversityScore? = nil) {
+        self.work = work
+        self.diversityScore = diversityScore ?? DiversityScore(work: work)
     }
 
     var body: some View {
@@ -129,8 +131,9 @@ struct DiversityInsightsTab: View {
                 .foregroundStyle(.primary)
 
             VStack(alignment: .leading, spacing: 8) {
+                let metricsByAxis = Dictionary(uniqueKeysWithValues: diversityScore.metrics.map { ($0.axis, $0) })
                 ForEach(Array(DiversityScore.metricDescriptions.sorted(by: { $0.key.rawValue < $1.key.rawValue })), id: \.key) { axis, description in
-                    if let metric = diversityScore.metrics.first(where: { $0.axis == axis }), !metric.isMissing {
+                    if let metric = metricsByAxis[axis], !metric.isMissing {
                         HStack(alignment: .top, spacing: 8) {
                             Image(systemName: "circle.fill")
                                 .font(.system(size: 6))
@@ -178,14 +181,21 @@ struct DiversityInsightsTab: View {
     }
 }
 
+// MARK: - Preview Helpers
+
+@available(iOS 26.0, *)
+private func makePreviewContainer(configure: (ModelContext) -> Void) -> ModelContainer {
+    let container = try! ModelContainer(for: Work.self, Edition.self, Author.self)
+    let context = container.mainContext
+    configure(context)
+    return container
+}
+
 // MARK: - Preview
 
 @available(iOS 26.0, *)
 #Preview("With Complete Data") {
-    @Previewable @State var container: ModelContainer = {
-        let container = try! ModelContainer(for: Work.self, Edition.self, Author.self)
-        let context = container.mainContext
-
+    @Previewable @State var container = makePreviewContainer { context in
         let author = Author(
             name: "Chimamanda Ngozi Adichie",
             nationality: "Nigerian",
@@ -204,9 +214,7 @@ struct DiversityInsightsTab: View {
         context.insert(author)
         context.insert(edition)
         context.insert(work)
-
-        return container
-    }()
+    }
 
     let work = try! container.mainContext.fetch(FetchDescriptor<Work>()).first!
     let themeStore = BooksTrackerFeature.iOS26ThemeStore()
@@ -219,19 +227,14 @@ struct DiversityInsightsTab: View {
 
 @available(iOS 26.0, *)
 #Preview("With Partial Data") {
-    @Previewable @State var container: ModelContainer = {
-        let container = try! ModelContainer(for: Work.self, Edition.self, Author.self)
-        let context = container.mainContext
-
+    @Previewable @State var container = makePreviewContainer { context in
         let author = Author(name: "Virginia Woolf", gender: .female)
         let work = Work(title: "Mrs Dalloway")
         work.authors = [author]
 
         context.insert(author)
         context.insert(work)
-
-        return container
-    }()
+    }
 
     let work = try! container.mainContext.fetch(FetchDescriptor<Work>()).first!
     let themeStore = BooksTrackerFeature.iOS26ThemeStore()
@@ -244,15 +247,10 @@ struct DiversityInsightsTab: View {
 
 @available(iOS 26.0, *)
 #Preview("Empty State") {
-    @Previewable @State var container: ModelContainer = {
-        let container = try! ModelContainer(for: Work.self, Edition.self, Author.self)
-        let context = container.mainContext
-
+    @Previewable @State var container = makePreviewContainer { context in
         let work = Work(title: "Anonymous Book")
         context.insert(work)
-
-        return container
-    }()
+    }
 
     let work = try! container.mainContext.fetch(FetchDescriptor<Work>()).first!
     let themeStore = BooksTrackerFeature.iOS26ThemeStore()

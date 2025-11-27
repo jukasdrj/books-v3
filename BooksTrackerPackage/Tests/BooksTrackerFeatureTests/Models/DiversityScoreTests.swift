@@ -14,14 +14,20 @@ import Foundation
 @MainActor
 struct DiversityScoreTests {
 
-    // MARK: - Complete Data Scoring
+    // MARK: - Helper
 
-    @Test func completeDataScoring() throws {
+    private func makeTestContext() throws -> ModelContext {
         let container = try ModelContainer(
             for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
-        let context = ModelContext(container)
+        return ModelContext(container)
+    }
+
+    // MARK: - Complete Data Scoring
+
+    @Test func completeDataScoring() throws {
+        let context = try makeTestContext()
 
         // Create author with complete diversity data
         let author = Author(
@@ -82,11 +88,7 @@ struct DiversityScoreTests {
     // MARK: - Missing Data Handling
 
     @Test func missingDataHandling() throws {
-        let container = try ModelContainer(
-            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let context = try makeTestContext()
 
         // Create work with no diversity data
         let work = Work(title: "Anonymous Book")
@@ -111,11 +113,7 @@ struct DiversityScoreTests {
     // MARK: - Partial Data Scoring
 
     @Test func partialDataScoring() throws {
-        let container = try ModelContainer(
-            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let context = try makeTestContext()
 
         // Create author with only gender data
         let author = Author(
@@ -157,11 +155,7 @@ struct DiversityScoreTests {
     // MARK: - Translation Scoring
 
     @Test func translationScoringNonEnglish() throws {
-        let container = try ModelContainer(
-            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let context = try makeTestContext()
 
         let edition = Edition()
         edition.originalLanguage = "French"
@@ -180,11 +174,7 @@ struct DiversityScoreTests {
     }
 
     @Test func translationScoringEnglish() throws {
-        let container = try ModelContainer(
-            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let context = try makeTestContext()
 
         let edition = Edition()
         edition.originalLanguage = "English"
@@ -203,11 +193,7 @@ struct DiversityScoreTests {
     }
 
     @Test func translationScoringCaseInsensitive() throws {
-        let container = try ModelContainer(
-            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let context = try makeTestContext()
 
         let edition = Edition()
         edition.originalLanguage = "ENGLISH" // Uppercase
@@ -227,11 +213,7 @@ struct DiversityScoreTests {
     // MARK: - Cultural Region Scoring
 
     @Test func culturalRegionMarginalizedScore() throws {
-        let container = try ModelContainer(
-            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let context = try makeTestContext()
 
         let marginalizedRegions: [CulturalRegion] = [
             .africa, .asia, .southAmerica, .middleEast,
@@ -255,11 +237,7 @@ struct DiversityScoreTests {
     }
 
     @Test func culturalRegionWesternScore() throws {
-        let container = try ModelContainer(
-            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let context = try makeTestContext()
 
         let westernRegions: [CulturalRegion] = [
             .europe, .northAmerica, .oceania, .international
@@ -284,11 +262,7 @@ struct DiversityScoreTests {
     // MARK: - Gender Scoring
 
     @Test func genderScoringNonMale() throws {
-        let container = try ModelContainer(
-            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let context = try makeTestContext()
 
         let nonMaleGenders: [AuthorGender] = [.female, .nonBinary, .other]
 
@@ -309,11 +283,7 @@ struct DiversityScoreTests {
     }
 
     @Test func genderScoringMale() throws {
-        let container = try ModelContainer(
-            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let context = try makeTestContext()
 
         let author = Author(name: "Test Author", gender: .male)
         context.insert(author)
@@ -331,11 +301,7 @@ struct DiversityScoreTests {
     }
 
     @Test func genderScoringUnknown() throws {
-        let container = try ModelContainer(
-            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let context = try makeTestContext()
 
         let author = Author(name: "Test Author", gender: .unknown)
         context.insert(author)
@@ -355,11 +321,7 @@ struct DiversityScoreTests {
     // MARK: - Accessibility Scoring
 
     @Test func accessibilityScoringDyslexiaFriendly() throws {
-        let container = try ModelContainer(
-            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let context = try makeTestContext()
 
         let work = Work(title: "Test Book")
         work.accessibilityTags = ["dyslexia-friendly font", "audiobook"]
@@ -374,11 +336,7 @@ struct DiversityScoreTests {
     }
 
     @Test func accessibilityScoringOtherFeatures() throws {
-        let container = try ModelContainer(
-            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let context = try makeTestContext()
 
         let work = Work(title: "Test Book")
         work.accessibilityTags = ["large-print", "audiobook"]
@@ -393,11 +351,7 @@ struct DiversityScoreTests {
     }
 
     @Test func accessibilityScoringEmptyTags() throws {
-        let container = try ModelContainer(
-            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let context = try makeTestContext()
 
         let work = Work(title: "Test Book")
         work.accessibilityTags = [] // Empty tags
@@ -414,11 +368,7 @@ struct DiversityScoreTests {
     // MARK: - Own Voices Scoring
 
     @Test func ownVoicesScoringTrue() throws {
-        let container = try ModelContainer(
-            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let context = try makeTestContext()
 
         let work = Work(title: "Test Book")
         work.isOwnVoices = true
@@ -433,11 +383,7 @@ struct DiversityScoreTests {
     }
 
     @Test func ownVoicesScoringFalse() throws {
-        let container = try ModelContainer(
-            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let context = try makeTestContext()
 
         let work = Work(title: "Test Book")
         work.isOwnVoices = false
@@ -452,11 +398,7 @@ struct DiversityScoreTests {
     }
 
     @Test func ownVoicesScoringNil() throws {
-        let container = try ModelContainer(
-            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let context = try makeTestContext()
 
         let work = Work(title: "Test Book")
         work.isOwnVoices = nil
@@ -473,11 +415,7 @@ struct DiversityScoreTests {
     // MARK: - Overall Score Calculation
 
     @Test func overallScoreAveragesNonMissingMetrics() throws {
-        let container = try ModelContainer(
-            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let context = try makeTestContext()
 
         let author = Author(name: "Test Author", gender: .female)
         context.insert(author)
@@ -500,11 +438,7 @@ struct DiversityScoreTests {
     }
 
     @Test func overallScoreWithMixedValues() throws {
-        let container = try ModelContainer(
-            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let context = try makeTestContext()
 
         let author = Author(name: "Test Author", gender: .male, culturalRegion: .europe)
         context.insert(author)

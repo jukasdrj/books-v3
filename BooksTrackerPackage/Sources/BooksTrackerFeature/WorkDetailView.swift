@@ -265,7 +265,7 @@ struct WorkDetailView: View {
                 EditionMetadataView(work: work, edition: primaryEdition)
                     .tag(0)
 
-                DiversityInsightsTab(work: work)
+                DiversityInsightsTab(work: work, diversityScore: diversityScore)
                     .tag(1)
             }
             .tabViewStyle(.page(indexDisplayMode: .always))
