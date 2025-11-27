@@ -25,15 +25,11 @@ struct FloatingPillsView: View {
                     InfoPillView(text: String(year), icon: "calendar")
                 }
 
-                // Average Rating Pill
-                if let rating = work.averageRating, rating > 0 {
-                    let formattedRating = String(format: "%.1f ★", rating)
+                // Personal Rating Pill (from user library entry)
+                if let entry = work.userLibraryEntries?.first,
+                   let rating = entry.personalRating, rating > 0 {
+                    let formattedRating = String(format: "%.1f ★", Double(rating))
                     InfoPillView(text: formattedRating, icon: "star.fill")
-                }
-
-                // Series Pill
-                if let seriesPosition = work.seriesPosition, let seriesTotal = work.seriesTotal, seriesPosition > 0, seriesTotal > 0 {
-                     InfoPillView(text: "Book \(seriesPosition) of \(seriesTotal)", icon: "books.vertical.fill")
                 }
             }
             .padding(.horizontal, 20)

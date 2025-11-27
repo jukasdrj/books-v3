@@ -347,18 +347,16 @@ public struct GeminiCSVImportView: View {
         // Create SSE client with V2 API callbacks
         let client = SSEClient(
             baseURL: EnrichmentConfig.apiBaseURL,
-            onInitialized: { [weak self] event in
+            onInitialized: { event in
                 Task { @MainActor in
-                    guard let self = self else { return }
                     #if DEBUG
                     print("[CSV SSE] Initialized: \(event.jobId), total: \(event.totalCount)")
                     #endif
                     self.importStatus = .processing(progress: event.progress, message: "Job initialized...")
                 }
             },
-            onProcessing: { [weak self] event in
+            onProcessing: { event in
                 Task { @MainActor in
-                    guard let self = self else { return }
                     #if DEBUG
                     print("[CSV SSE] Processing: \(Int(event.progress * 100))% (\(event.processedCount)/\(event.totalCount))")
                     #endif
@@ -368,9 +366,8 @@ public struct GeminiCSVImportView: View {
                     )
                 }
             },
-            onCompleted: { [weak self] event in
+            onCompleted: { event in
                 Task { @MainActor in
-                    guard let self = self else { return }
                     #if DEBUG
                     print("[CSV SSE] Completed: \(event.jobId)")
                     #endif
@@ -398,27 +395,24 @@ public struct GeminiCSVImportView: View {
                     }
                 }
             },
-            onFailed: { [weak self] event in
+            onFailed: { event in
                 Task { @MainActor in
-                    guard let self = self else { return }
                     #if DEBUG
                     print("[CSV SSE] Failed: \(event.message)")
                     #endif
                     self.importStatus = .failed(event.message)
                 }
             },
-            onError: { [weak self] error in
+            onError: { error in
                 Task { @MainActor in
-                    guard let self = self else { return }
                     #if DEBUG
                     print("[CSV SSE] Error: \(error.localizedDescription)")
                     #endif
                     self.importStatus = .failed(error.localizedDescription)
                 }
             },
-            onTimeout: { [weak self] event in
+            onTimeout: { event in
                 Task { @MainActor in
-                    guard let self = self else { return }
                     #if DEBUG
                     print("[CSV SSE] Timeout: \(event.message)")
                     #endif

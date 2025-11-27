@@ -7,7 +7,7 @@ private struct CuratorPointsServiceKey: EnvironmentKey {
 
 @available(iOS 26.0, *)
 extension EnvironmentValues {
-    var curatorPointsService: CuratorPointsService? {
+    public var curatorPointsService: CuratorPointsService? {
         get { self[CuratorPointsServiceKey.self] }
         set { self[CuratorPointsServiceKey.self] = newValue }
     }
