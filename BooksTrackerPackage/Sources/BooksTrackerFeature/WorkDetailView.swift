@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import OSLog
 
 /// Single Book Detail View - iOS 26 Immersive Design
 /// Features blurred cover art background with floating metadata card
@@ -8,12 +9,21 @@ struct WorkDetailView: View {
     @Bindable var work: Work
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dtoMapper) private var dtoMapper
+    @Environment(\.bookSearchAPIService) private var bookSearchAPIService
     @Environment(\.iOS26ThemeStore) private var themeStore
+    @Environment(FeatureFlags.self) private var featureFlags
     @State private var selectedEdition: Edition?
     @State private var showingEditionPicker = false
     @State private var selectedAuthor: Author?
     @State private var selectedEditionID: PersistentIdentifier?
     @State private var showingProfilingSheet = false
+    @State private var similarBooks: [SearchResult] = []
+    @State private var similarBooksState: LoadingState = .idle
+    @State private var selectedSimilarBook: SearchResult?
+
+    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "WorkDetailView")
 
     // Primary edition for display
     private var primaryEdition: Edition {
@@ -48,7 +58,6 @@ struct WorkDetailView: View {
                         }
                 }
                 .accessibilityLabel("Back")
-                .accessibilityHint("Return to previous screen")
             }
 
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -86,6 +95,12 @@ struct WorkDetailView: View {
             ProgressiveProfilingSheet(work: work, onComplete: {
                 // Handle completion if needed
             })
+        }
+        .navigationDestination(item: $selectedSimilarBook) { result in
+            WorkDiscoveryView(searchResult: result)
+        }
+        .task(id: work.id) {
+            await loadSimilarBooks()
         }
     }
 
@@ -142,15 +157,30 @@ struct WorkDetailView: View {
                 // MARK: - Book Cover Hero
                 bookCoverHero
 
+<<<<<<< HEAD
                 // MARK: - Edition Metadata Card
                 EditionMetadataView(work: work, edition: primaryEdition, showingProfilingSheet: $showingProfilingSheet)
+=======
+                // MARK: - Metadata & Diversity Tabs
+                metadataTabsSection
+>>>>>>> origin/main
                     .padding(.horizontal, 20)
+
+                // MARK: - Similar Books Section
+                similarBooksSection
+                    .padding(.vertical)
 
                 // MARK: - Manual Edition Selection
                 if FeatureFlags.shared.coverSelectionStrategy == .manual,
                    let userEntry = work.userEntry,
                    work.availableEditions.count > 1 {
                     editionSelectionSection(userEntry: userEntry)
+                        .padding(.horizontal, 20)
+                }
+
+                // MARK: - Similar Books Section
+                if featureFlags.apiCapabilities?.features.similarBooks == true {
+                    similarBooksSection
                         .padding(.horizontal, 20)
                 }
 
@@ -233,6 +263,29 @@ struct WorkDetailView: View {
         }
     }
 
+    // MARK: - Metadata & Diversity Tabs Section
+
+    @ViewBuilder
+    private var metadataTabsSection: some View {
+        let diversityScore = DiversityScore(work: work)
+
+        if diversityScore.hasAnyData {
+            // Show tabbed interface when diversity data is available
+            TabView {
+                EditionMetadataView(work: work, edition: primaryEdition)
+                    .tag(0)
+
+                DiversityInsightsTab(work: work, diversityScore: diversityScore)
+                    .tag(1)
+            }
+            .tabViewStyle(.page(indexDisplayMode: .always))
+            .frame(minHeight: 400) // Adjust based on content
+        } else {
+            // Show only metadata when no diversity data
+            EditionMetadataView(work: work, edition: primaryEdition)
+        }
+    }
+
     // MARK: - Manual Edition Selection Section
     private func editionSelectionSection(userEntry: UserLibraryEntry) -> some View {
         GroupBox {
@@ -260,6 +313,91 @@ struct WorkDetailView: View {
             } else {
                 userEntry.preferredEdition = nil  // Clear when no edition selected
             }
+        }
+    }
+
+    // MARK: - Similar Books Logic
+
+    @ViewBuilder
+    private var similarBooksSection: some View {
+        switch similarBooksState {
+        case .loading:
+            HorizontalBookCarouselSkeleton()
+        case .loaded where !similarBooks.isEmpty:
+            HorizontalBookCarousel(
+                title: "You Might Also Like",
+                books: similarBooks,
+                selectedBook: $selectedSimilarBook
+            )
+        case .idle, .loaded, .error:
+            EmptyView()
+        }
+    }
+
+    private func loadSimilarBooks() async {
+        guard let isbn = primaryEdition.primaryISBN else {
+            similarBooksState = .idle
+            return
+        }
+
+        similarBooksState = .loading
+
+        // Check cache first
+        if let cachedBooks = await fetchSimilarBooksFromCache(for: isbn), !cachedBooks.isEmpty {
+            self.similarBooks = cachedBooks
+            similarBooksState = .loaded
+            return
+        }
+
+        // Fetch from network if cache is empty or expired
+        await fetchSimilarBooksFromNetwork(for: isbn)
+    }
+
+    private func fetchSimilarBooksFromCache(for isbn: String) async -> [SearchResult]? {
+        let descriptor = FetchDescriptor<SimilarBooksCache>(
+            predicate: #Predicate { $0.sourceISBN == isbn }
+        )
+
+        if let cacheEntry = try? modelContext.fetch(descriptor).first, !cacheEntry.isExpired {
+            // Parse cached UUIDs (stored as UUID strings, not PersistentIdentifier)
+            let workUUIDs = cacheEntry.similarBookWorkIDs.compactMap { UUID(uuidString: $0) }
+
+            // Fetch works matching the cached UUIDs
+            var results: [SearchResult] = []
+            for uuid in workUUIDs {
+                let workDescriptor = FetchDescriptor<Work>(predicate: #Predicate { $0.uuid == uuid })
+                if let work = try? modelContext.fetch(workDescriptor).first {
+                    results.append(SearchResult(work: work, editions: [], authors: [], relevanceScore: 1.0, provider: "cache"))
+                }
+            }
+
+            return results.isEmpty ? nil : results
+        }
+
+        return nil
+    }
+
+    private func fetchSimilarBooksFromNetwork(for isbn: String) async {
+        guard let service = bookSearchAPIService else {
+            similarBooksState = .error("API service not available.")
+            return
+        }
+
+        do {
+            let response = try await service.findSimilarBooks(isbn: isbn, limit: 10)
+            let results = response.results.filter { $0.work.id != work.id }
+            self.similarBooks = results
+
+            // Save to cache using stable Work UUIDs (not PersistentIdentifier)
+            let workUUIDs = results.map { $0.work.uuid.uuidString }
+            let cacheEntry = SimilarBooksCache(sourceISBN: isbn, similarBookWorkIDs: workUUIDs, timestamp: Date())
+            modelContext.insert(cacheEntry)
+            try? modelContext.save()
+
+            similarBooksState = .loaded
+        } catch {
+            logger.error("Failed to load similar books: \(error.localizedDescription)")
+            similarBooksState = .error("Failed to load similar books.")
         }
     }
 }
@@ -492,13 +630,21 @@ struct AuthorSearchResultsView: View {
         let container = try! ModelContainer(for: Work.self, Edition.self, UserLibraryEntry.self, Author.self)
         let context = container.mainContext
 
-        // Sample data
-        let author = Author(name: "Kazuo Ishiguro", culturalRegion: .asia)
+        // Sample data with diversity information
+        let author = Author(
+            name: "Kazuo Ishiguro",
+            nationality: "British-Japanese",
+            gender: .male,
+            culturalRegion: .asia
+        )
         let work = Work(
             title: "Klara and the Sun",
             originalLanguage: "English",
             firstPublicationYear: 2021
         )
+        work.isOwnVoices = false
+        work.accessibilityTags = ["audiobook", "large-print"]
+
         let edition = Edition(
             isbn: "9780571364893",
             publisher: "Faber & Faber",
@@ -506,6 +652,7 @@ struct AuthorSearchResultsView: View {
             pageCount: 303,
             format: .hardcover
         )
+        edition.originalLanguage = "English"
 
         context.insert(author)
         context.insert(work)

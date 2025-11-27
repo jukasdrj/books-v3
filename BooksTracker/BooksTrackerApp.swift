@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import BooksTrackerFeature
+import OSLog
 
 // MARK: - Model Container Factory
 
@@ -25,7 +26,6 @@ class ModelContainerFactory {
             UserLibraryEntry.self,
             TrendingActivity.self,
             // v2 Sprint 1: Diversity & Reading Sessions
-            EnhancedDiversityStats.self,
             ReadingSession.self,
             // v2 Sprint 2: Progressive Profiling & Metadata Cascade
             BookEnrichment.self,
@@ -59,6 +59,7 @@ class ModelContainerFactory {
         do {
             let container = try ModelContainer(
                 for: schema,
+                migrationPlan: DiversityStatsMigrationPlan.self,
                 configurations: [modelConfiguration]
             )
             LaunchMetrics.shared.recordMilestone("ModelContainer created successfully")
@@ -163,9 +164,11 @@ class DTOMapperFactory {
 
 @main
 struct BooksTrackerApp: App {
+    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "BooksTrackerApp")
     @State private var themeStore = iOS26ThemeStore()
     @State private var featureFlags = FeatureFlags.shared
     @State private var curatorPointsService = CuratorPointsService()
+    @State private var capabilitiesService = CapabilitiesService()
 
     var body: some Scene {
         WindowGroup {
@@ -173,6 +176,14 @@ struct BooksTrackerApp: App {
             ContentView()
                 .onAppear {
                     LaunchMetrics.shared.recordMilestone("ContentView appeared")
+                }
+                .task {
+                    do {
+                        let capabilities = try await capabilitiesService.fetchCapabilities()
+                        featureFlags.apiCapabilities = capabilities
+                    } catch {
+                        logger.error("Failed to fetch capabilities: \(error.localizedDescription)")
+                    }
                 }
                 .iOS26ThemeStore(themeStore)
                 .modelContainer(container)

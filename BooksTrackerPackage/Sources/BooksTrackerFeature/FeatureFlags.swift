@@ -38,8 +38,9 @@ public enum CoverSelectionStrategy: String, CaseIterable, Sendable {
 ///
 /// This observable class manages feature toggles that can be enabled/disabled
 /// via Settings. Flags are persisted using UserDefaults for user preference retention.
+@MainActor
 @Observable
-public final class FeatureFlags: Sendable {
+public final class FeatureFlags {
     /// Enable tab bar minimize behavior on scroll
     ///
     /// When enabled, the tab bar automatically hides when scrolling down
@@ -99,6 +100,53 @@ public final class FeatureFlags: Sendable {
         }
     }
 
+    /// Enable V2 Unified Search API (/api/v2/search)
+    ///
+    /// When enabled, all search queries (title, advanced) will use the
+    /// new V2 unified search endpoint. This supports both text and
+    /// semantic search modes.
+    ///
+    /// Default: `false` (disabled, uses legacy v1 search)
+    ///
+    /// Note: This is a P0 feature for Sprint 4 and will be enabled by
+    /// default once stable.
+    public var enableV2Search: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: "feature.enableV2Search")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "feature.enableV2Search")
+        }
+    }
+
+    /// Enable Cloudflare Workflows for ISBN import
+    ///
+    /// When enabled, ISBN scans will use the Cloudflare Workflows API
+    /// for durable, step-by-step import with automatic retries and
+    /// state persistence.
+    ///
+    /// Benefits:
+    /// - Automatic retries (3x with backoff)
+    /// - State persistence across failures
+    /// - Step-by-step observability
+    ///
+    /// Default: `false` (disabled, uses standard search flow)
+    ///
+    /// Note: This is a P2 enhancement. Standard ISBN search still works.
+    public var enableWorkflowImport: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: "feature.enableWorkflowImport")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "feature.enableWorkflowImport")
+        }
+    }
+
+    /// Stores the API capabilities fetched from the backend.
+    /// This property is populated on app launch and is used to conditionally
+    /// enable or disable features based on backend support.
+    public var apiCapabilities: APICapabilities?
+
     public static let shared = FeatureFlags()
 
     private init() {}
@@ -109,8 +157,10 @@ public final class FeatureFlags: Sendable {
         enableTabBarMinimize = true  // Default enabled
         coverSelectionStrategy = .auto  // Default auto
         disableCanonicalEnrichment = false  // Default canonical endpoint
+        enableV2Search = false // Default v2 search disabled
+        enableWorkflowImport = false // Default workflow import disabled
         #if DEBUG
-        print("✅ FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true)")
+        print("✅ FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true, v2Search: false, workflowImport: false)")
         #endif
     }
 }

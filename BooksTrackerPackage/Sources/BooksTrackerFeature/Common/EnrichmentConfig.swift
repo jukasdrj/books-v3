@@ -42,6 +42,11 @@ enum EnrichmentConfig {
         URL(string: "\(baseURL)/api/enrichment/cancel")!
     }
 
+    /// Synchronous V2 book enrichment
+    static var enrichBookV2URL: URL {
+        URL(string: "\(baseURL)/api/v2/books/enrich")!
+    }
+
     // MARK: - Bookshelf Scanning Endpoints
 
     /// AI-powered bookshelf scanning
@@ -64,6 +69,20 @@ enum EnrichmentConfig {
     /// AI-powered CSV import with Gemini
     static var csvImportURL: URL {
         URL(string: "\(baseURL)/api/import/csv-gemini")!
+    }
+
+    // MARK: - Workflow Import Endpoints
+
+    /// Create a new import workflow
+    static var workflowCreateURL: URL {
+        URL(string: "\(baseURL)/v2/import/workflow")!
+    }
+
+    /// Get workflow status by ID
+    /// - Parameter workflowId: The workflow ID to check
+    /// - Returns: URL for the workflow status endpoint
+    static func workflowStatusURL(workflowId: String) -> URL {
+        URL(string: "\(baseURL)/v2/import/workflow/\(workflowId)")!
     }
 
     // MARK: - WebSocket Endpoints

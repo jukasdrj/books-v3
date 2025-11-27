@@ -9,6 +9,7 @@ public enum SearchScope: String, CaseIterable, Identifiable, Sendable {
     case title = "Title"
     case author = "Author"
     case isbn = "ISBN"
+    case semantic = "Semantic"
 
     public var id: String { rawValue }
 
@@ -22,9 +23,9 @@ public enum SearchScope: String, CaseIterable, Identifiable, Sendable {
         case .title: return "Search by book title"
         case .author: return "Search by author name"
         case .isbn: return "Search by ISBN number"
+        case .semantic: return "AI-powered semantic search"
         }
     }
-
 }
 
 // MARK: - Search State Management
@@ -34,6 +35,7 @@ public enum SearchScope: String, CaseIterable, Identifiable, Sendable {
 public final class SearchModel {
     // Unified search state
     var searchText: String = ""
+    var searchMode: SearchMode = .text
     var viewState: SearchViewState = .loadingTrending(recentSearches: [])
 
     // Search suggestions (still separate - UI-specific feature)
@@ -173,6 +175,17 @@ public final class SearchModel {
             } catch {
                 handleSearchError(error, query: trimmedQuery, scope: scope)
             }
+        }
+    }
+
+    /// Search for a specific ISBN and return the result for navigation
+    func searchByISBNForNavigation(_ isbn: String) async -> SearchResult? {
+        do {
+            let response = try await apiService.search(query: isbn, maxResults: 1, scope: .isbn)
+            return await enrichResultsWithLibraryStatus(response.results).first
+        } catch {
+            // Handle or log the error as needed
+            return nil
         }
     }
 
@@ -379,23 +392,19 @@ public final class SearchModel {
         let startTime = CFAbsoluteTimeGetCurrent()
 
         do {
-            // Call appropriate API based on search type
             let response: SearchResponse
-            if options.isAdvanced, let authorName = options.authorFilter, options.titleFilter == nil, options.isbnFilter == nil {
-                // This is an author-only advanced search, use the dedicated endpoint
-                response = try await apiService.advancedSearch(
-                    author: authorName,
-                    title: nil,
-                    isbn: nil
-                )
-            } else if options.isAdvanced {
-                response = try await apiService.advancedSearch(
-                    author: options.authorFilter,
-                    title: options.titleFilter,
-                    isbn: options.isbnFilter
-                )
+            if FeatureFlags.shared.enableV2Search {
+                // Use the new V2 Unified Search API
+                response = try await apiService.searchV2(query: query, mode: self.searchMode)
             } else {
-                response = try await apiService.search(query: query, maxResults: 20, scope: scope)
+                // Fallback to the legacy V1 search API
+                if options.isAdvanced, let authorName = options.authorFilter, options.titleFilter == nil, options.isbnFilter == nil {
+                    response = try await apiService.advancedSearch(author: authorName, title: nil, isbn: nil)
+                } else if options.isAdvanced {
+                    response = try await apiService.advancedSearch(author: options.authorFilter, title: options.titleFilter, isbn: options.isbnFilter)
+                } else {
+                    response = try await apiService.search(query: query, maxResults: 20, scope: scope)
+                }
             }
 
             // Check if task was cancelled
@@ -706,5 +715,23 @@ public struct SearchResult: Identifiable, Hashable, @unchecked Sendable {
 
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+    }
+
+    /// Primary initializer for API search results
+    public init(work: Work, editions: [Edition], authors: [Author], relevanceScore: Double, provider: String) {
+        self.work = work
+        self.editions = editions
+        self.authors = authors
+        self.relevanceScore = relevanceScore
+        self.provider = provider
+    }
+
+    /// Convenience initializer for local/scanned books
+    init(from work: Work) {
+        self.work = work
+        self.editions = work.editions ?? []
+        self.authors = work.authors ?? []
+        self.relevanceScore = 1.0 // Scanned books are always relevant
+        self.provider = "local"
     }
 }

@@ -57,6 +57,14 @@ public final class Work {
     var originalLanguage: String?
     var firstPublicationYear: Int?
 
+    // Diversity metadata (PR #66 extraction)
+    /// Whether the book qualifies as "Own Voices" (author shares identity with protagonist)
+    var isOwnVoices: Bool?
+
+    /// Accessibility features (e.g., "Dyslexia Friendly", "Large Print", "Audiobook Available")
+    @Attribute(.externalStorage)
+    var accessibilityTags: [String] = []
+
     @Attribute(.externalStorage)
     var subjectTags: [String] = []
 
@@ -113,6 +121,14 @@ public final class Work {
     /// Will be deleted after all books from scan are reviewed
     public var originalImagePath: String?
 
+    // Diversity & Accessibility
+    /// User-contributed flag indicating if the work is "own voices"
+    var isOwnVoices: Bool?
+
+    /// Accessibility tags (e.g., "Large Print", "Audiobook")
+    @Attribute(.externalStorage)
+    var accessibilityTags: [String]?
+
     /// Bounding box coordinates for cropping spine from original image
     /// Stored as separate components to avoid CGRect encoding issues in SwiftData
     public var boundingBoxX: Double?
@@ -164,6 +180,8 @@ public final class Work {
         title: String,
         originalLanguage: String? = nil,
         firstPublicationYear: Int? = nil,
+        isOwnVoices: Bool? = nil,
+        accessibilityTags: [String] = [],
         subjectTags: [String] = [],
         synthetic: Bool = false,
         primaryProvider: String? = nil
@@ -174,6 +192,8 @@ public final class Work {
         self.authors = nil
         self.originalLanguage = originalLanguage
         self.firstPublicationYear = firstPublicationYear
+        self.isOwnVoices = isOwnVoices
+        self.accessibilityTags = accessibilityTags
         self.subjectTags = subjectTags
         self.synthetic = synthetic
         self.primaryProvider = primaryProvider
@@ -244,6 +264,7 @@ public final class Work {
     /// Get the primary edition (best quality for display)
     /// Respects user's cover selection strategy from Settings
     /// Prioritizes: 1) User's owned edition, 2) Strategy-based selection (auto/recent/hardcover/manual)
+    @MainActor
     var primaryEdition: Edition? {
         return primaryEdition(using: FeatureFlags.shared.coverSelectionStrategy)
     }

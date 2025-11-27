@@ -376,6 +376,25 @@ public struct SettingsView: View {
                         }
                     }
                 }
+
+                @Bindable var flags = featureFlags
+                Toggle(isOn: $flags.enableWorkflowImport) {
+                    HStack {
+                        Image(systemName: "arrow.triangle.branch")
+                            .foregroundStyle(themeStore.primaryColor)
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Workflow Import")
+                                .font(.body)
+
+                            Text("Use durable workflows for ISBN scans")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .tint(themeStore.primaryColor)
             } header: {
                 Text("Debug")
             } footer: {

@@ -44,6 +44,8 @@ extension SearchView {
                 return "No authors found with that name. Check spelling or try searching all fields."
             case .isbn:
                 return "No book found with that ISBN. Verify the number or try scanning a barcode."
+            case .semantic:
+                return "No books matched your description. Try different keywords or be more specific."
             }
         }
     }

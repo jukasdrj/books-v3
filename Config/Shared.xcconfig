@@ -38,6 +38,11 @@ INFOPLIST_KEY_NSSupportsLiveActivities = YES
 INFOPLIST_KEY_UIBackgroundModes = remote-notification
 
 // ==========================================
+// API Configuration
+// ==========================================
+API_BASE_URL = https:/$()/api.oooefam.net/api/v2
+
+// ==========================================
 // Code Quality & Swift 6 Compliance
 // ==========================================
 // Enforce "Zero Warnings" policy

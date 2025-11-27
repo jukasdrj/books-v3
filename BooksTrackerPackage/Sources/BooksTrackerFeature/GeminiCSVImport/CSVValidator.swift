@@ -25,7 +25,8 @@ public struct CSVValidator {
     ///
     /// - Parameter csvText: Raw CSV content as string
     /// - Throws: `CSVValidationError` if the content is invalid
-    public static func validate(csvText: String) throws {
+    @MainActor
+    public static func validate(csvText: String, featureFlags: FeatureFlags?) throws {
         // Split into lines (preserving empty lines for accurate line numbers)
         let lines = csvText.components(separatedBy: .newlines)
 
@@ -33,6 +34,13 @@ public struct CSVValidator {
         // We check for 2 because a trailing newline might create an empty last line.
         guard lines.count >= 2 else {
             throw CSVValidationError.insufficientRows(count: lines.count)
+        }
+
+        // Rule: Must not exceed the maximum row count from capabilities.
+        if let maxRows = featureFlags?.apiCapabilities?.limits.csvMaxRows {
+            if lines.count > maxRows {
+                throw CSVValidationError.tooManyRows(max: maxRows, actual: lines.count)
+            }
         }
 
         var expectedColumnCount: Int?
@@ -160,9 +168,12 @@ public enum CSVValidationError: Error, LocalizedError, Equatable {
     case mismatchedColumnCount(expected: Int, actual: Int, lineNumber: Int)
     case unclosedQuote(lineNumber: Int)
     case strayQuote(lineNumber: Int)
+    case tooManyRows(max: Int, actual: Int)
 
     public var errorDescription: String? {
         switch self {
+        case .tooManyRows(let max, let actual):
+            return "The CSV file has \(actual) rows, which exceeds the maximum of \(max)."
         case .fileReadError(let message):
             return "Could not read the file. Please ensure it is a valid UTF-8 encoded CSV. Details: \(message)"
         case .insufficientRows(let count):
