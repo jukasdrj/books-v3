@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-enum DiversityStatsMigrationPlan: SchemaMigrationPlan {
+public enum DiversityStatsMigrationPlan: SchemaMigrationPlan {
     /// Time period for statistics aggregation (used in migration schemas)
     public enum MigrationStatsPeriod: String, Codable {
         case allTime
@@ -9,11 +9,11 @@ enum DiversityStatsMigrationPlan: SchemaMigrationPlan {
         case month
     }
 
-    static var schemas: [any VersionedSchema.Type] {
+    public static var schemas: [any VersionedSchema.Type] {
         [DiversityStatsSchemaV1.self, DiversityStatsSchemaV2.self]
     }
 
-    static var stages: [MigrationStage] {
+    public static var stages: [MigrationStage] {
         [migrateV1toV2]
     }
 

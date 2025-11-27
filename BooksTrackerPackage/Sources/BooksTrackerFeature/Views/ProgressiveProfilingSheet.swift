@@ -362,7 +362,7 @@ public struct ProgressiveProfilingSheet: View {
         }
 
         self.pointsAwarded = totalPoints
-        curatorPointsService.awardPoints(totalPoints, for: "Progressive Profiling Contribution")
+        curatorPointsService?.awardPoints(totalPoints, for: "Progressive Profiling Contribution")
     }
 
 
@@ -448,13 +448,14 @@ public struct ProgressiveProfilingSheet: View {
 
     private func saveAnswers() {
         let statsService = DiversityStatsService(modelContext: modelContext)
-        let workId = work.persistentModelID
+        guard let entry = work.userLibraryEntries?.first else { return }
+        let entryId = entry.persistentModelID
 
         Task {
             for (dimension, value) in answers {
                 do {
                     try await statsService.updateDiversityData(
-                        workId: workId,
+                        entryId: entryId,
                         dimension: dimension,
                         value: value
                     )
