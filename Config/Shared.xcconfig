@@ -39,7 +39,7 @@ INFOPLIST_KEY_UIBackgroundModes = remote-notification
 // ==========================================
 // API Configuration
 // ==========================================
-API_BASE_URL = https:/$()/api.oooefam.net/api/v2
+INFOPLIST_KEY_API_BASE_URL = https://api.oooefam.net/api/v2
 
 // ==========================================
 // Code Quality & Swift 6 Compliance
