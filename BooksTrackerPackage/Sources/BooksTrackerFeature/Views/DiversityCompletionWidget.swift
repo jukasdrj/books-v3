@@ -323,26 +323,29 @@ extension EnhancedDiversityStats {
 
 @available(iOS 26.0, *)
 #Preview {
-    // Mock data for preview
-    let previewStats = EnhancedDiversityStats(userId: "preview")
-    previewStats.totalBooks = 20
-    previewStats.booksWithCulturalData = 20 // 100%
-    previewStats.booksWithGenderData = 10   // 50%
-    previewStats.booksWithTranslationData = 15 // 75%
-    previewStats.booksWithOwnVoicesData = 8    // 40%
-    previewStats.booksWithAccessibilityData = 6 // 30%
-    previewStats.culturalOrigins = ["African": 10, "European": 10]
-    previewStats.genderDistribution = ["Female": 8, "Male": 2]
-    previewStats.translationStatus = ["Translated": 5, "Original Language": 10]
-    previewStats.ownVoicesTheme = ["Own Voices": 8]
-    previewStats.nicheAccessibility = ["Accessible": 6]
+    @Previewable @State var container: ModelContainer = {
+        // Mock data for preview
+        let previewStats = EnhancedDiversityStats(userId: "preview")
+        previewStats.totalBooks = 20
+        previewStats.booksWithCulturalData = 20 // 100%
+        previewStats.booksWithGenderData = 10   // 50%
+        previewStats.booksWithTranslationData = 15 // 75%
+        previewStats.booksWithOwnVoicesData = 8    // 40%
+        previewStats.booksWithAccessibilityData = 6 // 30%
+        previewStats.culturalOrigins = ["African": 10, "European": 10]
+        previewStats.genderDistribution = ["Female": 8, "Male": 2]
+        previewStats.translationStatus = ["Translated": 5, "Original Language": 10]
+        previewStats.ownVoicesCount = 8
+        previewStats.accessibilityTags = ["Accessible": 6]
 
-    // Create an in-memory ModelContainer for the preview
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: EnhancedDiversityStats.self, configurations: config)
-    container.mainContext.insert(previewStats)
+        // Create an in-memory ModelContainer for the preview
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try! ModelContainer(for: EnhancedDiversityStats.self, configurations: config)
+        container.mainContext.insert(previewStats)
+        return container
+    }()
 
-    return DiversityCompletionWidget(
+    DiversityCompletionWidget(
         onDimensionTapped: { dimension in
             print("Tapped dimension: \(dimension)")
             // In a real app, this would navigate to a view to fill data for this dimension

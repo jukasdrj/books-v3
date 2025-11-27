@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// Diversity Insights Tab - Representation Radar Chart
 /// Displays diversity metrics for a book including cultural background,
@@ -184,6 +185,7 @@ struct DiversityInsightsTab: View {
 // MARK: - Preview Helpers
 
 @available(iOS 26.0, *)
+@MainActor
 private func makePreviewContainer(configure: (ModelContext) -> Void) -> ModelContainer {
     let container = try! ModelContainer(for: Work.self, Edition.self, Author.self)
     let context = container.mainContext
