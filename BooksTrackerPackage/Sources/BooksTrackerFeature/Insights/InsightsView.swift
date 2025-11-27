@@ -112,6 +112,16 @@ public struct InsightsView: View {
         .scrollPosition($scrollPosition)
     }
 
+    private func transformStatsToMetrics(stats: EnhancedDiversityStats) -> [DiversityMetric] {
+        return [
+            .init(axis: .cultural, score: stats.culturalCompletionPercentage / 100.0, isMissing: stats.booksWithCulturalData == 0),
+            .init(axis: .gender, score: stats.genderCompletionPercentage / 100.0, isMissing: stats.booksWithGenderData == 0),
+            .init(axis: .translation, score: stats.translationCompletionPercentage / 100.0, isMissing: stats.booksWithTranslationData == 0),
+            .init(axis: .ownVoices, score: stats.ownVoicesCompletionPercentage / 100.0, isMissing: stats.booksWithOwnVoicesData == 0),
+            .init(axis: .accessibility, score: stats.accessibilityCompletionPercentage / 100.0, isMissing: stats.booksWithAccessibilityData == 0)
+        ]
+    }
+
     private func sessionAnalyticsSection(streak: StreakData) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             // Section header
@@ -147,41 +157,9 @@ public struct InsightsView: View {
 
             // Radar chart with diversity dimensions (using EnhancedDiversityStats)
             if let enhanced = enhancedDiversityStats {
-                let radarData = RadarChartData(dimensions: [
-                    RadarDimension(
-                        name: "Cultural",
-                        completionPercentage: enhanced.culturalCompletionPercentage,
-                        isComplete: enhanced.culturalCompletionPercentage >= 80
-                    ),
-                    RadarDimension(
-                        name: "Gender",
-                        completionPercentage: enhanced.genderCompletionPercentage,
-                        isComplete: enhanced.genderCompletionPercentage >= 80
-                    ),
-                    RadarDimension(
-                        name: "Translation",
-                        completionPercentage: enhanced.translationCompletionPercentage,
-                        isComplete: enhanced.translationCompletionPercentage >= 80
-                    ),
-                    RadarDimension(
-                        name: "Own Voices",
-                        completionPercentage: enhanced.ownVoicesCompletionPercentage,
-                        isComplete: enhanced.ownVoicesCompletionPercentage >= 80
-                    ),
-                    RadarDimension(
-                        name: "Accessibility",
-                        completionPercentage: enhanced.accessibilityCompletionPercentage,
-                        isComplete: enhanced.accessibilityCompletionPercentage >= 80
-                    )
-                ])
-
-                RepresentationRadarChart(data: radarData) { dimensionName in
-                    #if DEBUG
-                    print("📊 Radar tapped: \(dimensionName)")
-                    #endif
-                    // TODO: Navigate to add data for this dimension (Phase 4)
-                }
-                .frame(maxWidth: .infinity)
+                RadarChartView(metrics: transformStatsToMetrics(stats: enhanced))
+                    .frame(height: 300)
+                    .padding(.horizontal)
             }
         }
     }

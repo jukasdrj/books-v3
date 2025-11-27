@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import OSLog
 
 /// Single Book Detail View - iOS 26 Immersive Design
 /// Features blurred cover art background with floating metadata card
@@ -8,11 +9,21 @@ struct WorkDetailView: View {
     @Bindable var work: Work
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dtoMapper) private var dtoMapper
+    @Environment(\.bookSearchAPIService) private var bookSearchAPIService
     @Environment(\.iOS26ThemeStore) private var themeStore
+    @Environment(FeatureFlags.self) private var featureFlags
     @State private var selectedEdition: Edition?
     @State private var showingEditionPicker = false
     @State private var selectedAuthor: Author?
     @State private var selectedEditionID: PersistentIdentifier?
+    @State private var similarBooks: [SearchResult] = []
+    @State private var similarBooksState: LoadingState = .idle
+    @State private var selectedSimilarBook: SearchResult?
+
+    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "WorkDetailView")
+
 
     // Primary edition for display
     private var primaryEdition: Edition {
@@ -25,25 +36,13 @@ struct WorkDetailView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                ImmersiveHeaderView(work: work)
+        ZStack {
+            // MARK: - Immersive Background
+            immersiveBackground
 
-                FloatingPillsView(work: work)
-
-                BentoGridView(
-                    readingProgress: { ReadingProgressModule(work: work) },
-                    readingHabits: { ReadingHabitsModule(work: work) },
-                    diversity: { DiversityPreviewModule(work: work) },
-                    annotations: { AnnotationsModule(work: work) }
-                )
-
-                BookActionsModule(work: work)
-                    .padding(.horizontal, 20)
-            }
-            .padding(.bottom, 40)
+            // MARK: - Main Content
+            mainContent
         }
-        .ignoresSafeArea(edges: .top)
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
@@ -52,7 +51,11 @@ struct WorkDetailView: View {
                         .font(.title3.bold())
                         .foregroundColor(.white)
                         .frame(width: 44, height: 44)
-                        .background(Circle().fill(.ultraThinMaterial))
+                        .background {
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                                .frame(width: 44, height: 44)
+                        }
                 }
                 .accessibilityLabel("Back")
             }
@@ -63,9 +66,12 @@ struct WorkDetailView: View {
                         showingEditionPicker.toggle()
                     }
                     .foregroundColor(.white)
+                    .background {
+                        Capsule()
+                            .fill(.ultraThinMaterial)
+                            .frame(height: 32)
+                    }
                     .padding(.horizontal, 12)
-                    .frame(height: 32)
-                    .background(Capsule().fill(.ultraThinMaterial))
                 }
             }
         }
@@ -85,6 +91,304 @@ struct WorkDetailView: View {
         .sheet(item: $selectedAuthor) { author in
             AuthorSearchResultsView(author: author)
         }
+        .navigationDestination(item: $selectedSimilarBook) { result in
+            WorkDiscoveryView(searchResult: result)
+        }
+        .task(id: work.id) {
+            await loadSimilarBooks()
+        }
+    }
+
+    // MARK: - Immersive Background
+
+    private var immersiveBackground: some View {
+        GeometryReader { geometry in
+            ZStack {
+                // Blurred cover art background
+                CachedAsyncImage(url: CoverImageService.coverURL(for: work)) { image in  // ✅ FIXED
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                        .blur(radius: 20)
+                        .overlay {
+                            // Color shift overlay
+                            LinearGradient(
+                                colors: [
+                                    themeStore.primaryColor.opacity(0.3),
+                                    themeStore.secondaryColor.opacity(0.2),
+                                    Color.black.opacity(0.4)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        }
+                } placeholder: {
+                    // Fallback gradient background
+                    LinearGradient(
+                        colors: [
+                            themeStore.primaryColor.opacity(0.6),
+                            themeStore.secondaryColor.opacity(0.4),
+                            Color.black.opacity(0.8)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
+            }
+            .ignoresSafeArea()
+        }
+    }
+
+    // MARK: - Main Content
+
+    private var mainContent: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                // Top spacer for navigation bar
+                Color.clear.frame(height: 60)
+
+                // MARK: - Book Cover Hero
+                bookCoverHero
+
+                // MARK: - Metadata & Diversity Tabs
+                metadataTabsSection
+                    .padding(.horizontal, 20)
+
+                // MARK: - Similar Books Section
+                similarBooksSection
+                    .padding(.vertical)
+
+                // MARK: - Manual Edition Selection
+                if FeatureFlags.shared.coverSelectionStrategy == .manual,
+                   let userEntry = work.userEntry,
+                   work.availableEditions.count > 1 {
+                    editionSelectionSection(userEntry: userEntry)
+                        .padding(.horizontal, 20)
+                }
+
+                // MARK: - Similar Books Section
+                if featureFlags.apiCapabilities?.features.similarBooks == true {
+                    similarBooksSection
+                        .padding(.horizontal, 20)
+                }
+
+                // Bottom padding
+                Color.clear.frame(height: 40)
+            }
+        }
+    }
+
+    private var bookCoverHero: some View {
+        VStack(spacing: 16) {
+            // Large cover image
+            CachedAsyncImage(url: CoverImageService.coverURL(for: work)) { image in  // ✅ FIXED
+                image
+                    .resizable()
+                    .aspectRatio(2/3, contentMode: .fill)
+                    .frame(width: 200, height: 300)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
+            } placeholder: {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(LinearGradient(
+                        colors: [
+                            themeStore.primaryColor.opacity(0.4),
+                            themeStore.secondaryColor.opacity(0.3)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+                    .frame(width: 200, height: 300)
+                    .overlay {
+                        VStack(spacing: 12) {
+                            Image(systemName: "book.closed")
+                                .font(.system(size: 48))
+                                .foregroundColor(.white.opacity(0.8))
+
+                            Text(work.title)
+                                .font(.headline.bold())
+                                .foregroundColor(.white.opacity(0.9))
+                                .multilineTextAlignment(.center)
+                                .lineLimit(3)
+                                .padding(.horizontal)
+                        }
+                    }
+                    .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
+            }
+
+            // Work title and author (large, readable)
+            VStack(spacing: 8) {
+                Text(work.title)
+                    .font(.title.bold())
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
+
+                // Clickable author names
+                if let authors = work.authors {
+                    HStack(spacing: 8) {
+                        ForEach(authors) { author in
+                            Button {
+                                selectedAuthor = author
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text(author.name)
+                                        .font(.title2)
+                                        .foregroundColor(.white)
+                                    Image(systemName: "magnifyingglass")
+                                        .font(.footnote)
+                                        .foregroundColor(.white.opacity(0.9))
+                                }
+                                .shadow(color: .black.opacity(0.95), radius: 6, x: 0, y: 2)  // Primary shadow for depth
+                                .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)   // Secondary shadow for WCAG AA contrast
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+
+    // MARK: - Metadata & Diversity Tabs Section
+
+    @ViewBuilder
+    private var metadataTabsSection: some View {
+        let diversityScore = DiversityScore(work: work)
+
+        if diversityScore.hasAnyData {
+            // Show tabbed interface when diversity data is available
+            TabView {
+                EditionMetadataView(work: work, edition: primaryEdition)
+                    .tag(0)
+
+                DiversityInsightsTab(work: work, diversityScore: diversityScore)
+                    .tag(1)
+            }
+            .tabViewStyle(.page(indexDisplayMode: .always))
+            .frame(minHeight: 400) // Adjust based on content
+        } else {
+            // Show only metadata when no diversity data
+            EditionMetadataView(work: work, edition: primaryEdition)
+        }
+    }
+
+    // MARK: - Manual Edition Selection Section
+    private func editionSelectionSection(userEntry: UserLibraryEntry) -> some View {
+        GroupBox {
+        Picker("Display Edition", selection: $selectedEditionID) {
+                ForEach(work.availableEditions) { edition in
+                    EditionRow(edition: edition, work: work)
+                        .tag(edition.id)
+                }
+            }
+            .pickerStyle(.navigationLink)
+        } label: {
+            Label("Edition Selection", systemImage: "highlighter")
+                .foregroundColor(themeStore.primaryColor)
+        }
+        .background {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial)
+        }
+        .onAppear {
+            selectedEditionID = userEntry.preferredEdition?.id
+        }
+        .onChange(of: selectedEditionID) { oldValue, newValue in
+            if let newID = newValue {
+                userEntry.preferredEdition = work.availableEditions.first { $0.id == newID }
+            } else {
+                userEntry.preferredEdition = nil  // Clear when no edition selected
+            }
+        }
+    }
+
+    // MARK: - Similar Books Logic
+
+    @ViewBuilder
+    private var similarBooksSection: some View {
+        switch similarBooksState {
+        case .loading:
+            HorizontalBookCarouselSkeleton()
+        case .loaded where !similarBooks.isEmpty:
+            HorizontalBookCarousel(
+                title: "You Might Also Like",
+                books: similarBooks,
+                selectedBook: $selectedSimilarBook
+            )
+        case .idle, .loaded, .error:
+            EmptyView()
+        }
+    }
+
+    private func loadSimilarBooks() async {
+        guard let isbn = primaryEdition.primaryISBN else {
+            similarBooksState = .idle
+            return
+        }
+
+        similarBooksState = .loading
+
+        // Check cache first
+        if let cachedBooks = await fetchSimilarBooksFromCache(for: isbn), !cachedBooks.isEmpty {
+            self.similarBooks = cachedBooks
+            similarBooksState = .loaded
+            return
+        }
+
+        // Fetch from network if cache is empty or expired
+        await fetchSimilarBooksFromNetwork(for: isbn)
+    }
+
+    private func fetchSimilarBooksFromCache(for isbn: String) async -> [SearchResult]? {
+        let descriptor = FetchDescriptor<SimilarBooksCache>(
+            predicate: #Predicate { $0.sourceISBN == isbn }
+        )
+
+        if let cacheEntry = try? modelContext.fetch(descriptor).first, !cacheEntry.isExpired {
+            // Parse cached UUIDs (stored as UUID strings, not PersistentIdentifier)
+            let workUUIDs = cacheEntry.similarBookWorkIDs.compactMap { UUID(uuidString: $0) }
+
+            // Fetch works matching the cached UUIDs
+            var results: [SearchResult] = []
+            for uuid in workUUIDs {
+                let workDescriptor = FetchDescriptor<Work>(predicate: #Predicate { $0.uuid == uuid })
+                if let work = try? modelContext.fetch(workDescriptor).first {
+                    results.append(SearchResult(work: work, editions: [], authors: [], relevanceScore: 1.0, provider: "cache"))
+                }
+            }
+
+            return results.isEmpty ? nil : results
+        }
+
+        return nil
+    }
+
+    private func fetchSimilarBooksFromNetwork(for isbn: String) async {
+        guard let service = bookSearchAPIService else {
+            similarBooksState = .error("API service not available.")
+            return
+        }
+
+        do {
+            let response = try await service.findSimilarBooks(isbn: isbn, limit: 10)
+            let results = response.results.filter { $0.work.id != work.id }
+            self.similarBooks = results
+
+            // Save to cache using stable Work UUIDs (not PersistentIdentifier)
+            let workUUIDs = results.map { $0.work.uuid.uuidString }
+            let cacheEntry = SimilarBooksCache(sourceISBN: isbn, similarBookWorkIDs: workUUIDs, timestamp: Date())
+            modelContext.insert(cacheEntry)
+            try? modelContext.save()
+
+            similarBooksState = .loaded
+        } catch {
+            logger.error("Failed to load similar books: \(error.localizedDescription)")
+            similarBooksState = .error("Failed to load similar books.")
+        }
     }
 }
 
@@ -103,7 +407,42 @@ struct EditionPickerView: View {
                     selectedEdition = edition
                     dismiss()
                 }) {
-                    EditionRow(edition: edition, work: work)
+                    VStack(alignment: .leading, spacing: 8) {
+                        // Edition title or format
+                        Text(edition.editionTitle ?? edition.format.displayName)
+                            .font(.subheadline.bold())
+                            .foregroundStyle(.primary)
+
+                        // Publisher info
+                        if !edition.publisherInfo.isEmpty {
+                            Text(edition.publisherInfo)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        // Format and pages
+                        HStack {
+                            Label(edition.format.displayName, systemImage: edition.format.icon)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            if let pageCount = edition.pageCountString {
+                                Spacer()
+                                Text(pageCount)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        // ISBN
+                        if let isbn = edition.primaryISBN {
+                            Text("ISBN: \(isbn)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
                 .listRowBackground(
@@ -120,38 +459,6 @@ struct EditionPickerView: View {
                     }
                 }
             }
-        }
-    }
-
-    private struct EditionRow: View {
-        let edition: Edition
-        let work: Work
-
-        var body: some View {
-            HStack(spacing: 12) {
-                CachedAsyncImage(url: CoverImageService.coverURL(for: edition, work: work)) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Image(systemName: "book.closed")
-                        .font(.title)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(width: 40, height: 60)
-                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(edition.editionTitle ?? "Edition")
-                        .font(.subheadline.bold())
-                        .lineLimit(1)
-                    Text(edition.publisherInfo)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
-            .padding(.vertical, 4)
         }
     }
 }
@@ -313,13 +620,21 @@ struct AuthorSearchResultsView: View {
         let container = try! ModelContainer(for: Work.self, Edition.self, UserLibraryEntry.self, Author.self)
         let context = container.mainContext
 
-        // Sample data
-        let author = Author(name: "Kazuo Ishiguro", culturalRegion: .asia)
+        // Sample data with diversity information
+        let author = Author(
+            name: "Kazuo Ishiguro",
+            nationality: "British-Japanese",
+            gender: .male,
+            culturalRegion: .asia
+        )
         let work = Work(
             title: "Klara and the Sun",
             originalLanguage: "English",
             firstPublicationYear: 2021
         )
+        work.isOwnVoices = false
+        work.accessibilityTags = ["audiobook", "large-print"]
+
         let edition = Edition(
             isbn: "9780571364893",
             publisher: "Faber & Faber",
@@ -327,6 +642,7 @@ struct AuthorSearchResultsView: View {
             pageCount: 303,
             format: .hardcover
         )
+        edition.originalLanguage = "English"
 
         context.insert(author)
         context.insert(work)
@@ -348,4 +664,36 @@ struct AuthorSearchResultsView: View {
     .environment(\.iOS26ThemeStore, themeStore)
 }
 
-// No replacement
+// MARK: - EditionRow View
+private struct EditionRow: View {
+    let edition: Edition
+    let work: Work
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // ✅ FIXED: Uses CoverImageService with Work fallback for edition picker
+            CachedAsyncImage(url: CoverImageService.coverURL(for: edition, work: work)) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Image(systemName: "book.closed")
+                    .font(.title)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(width: 40, height: 60)
+            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(edition.editionTitle ?? "Edition")
+                    .font(.subheadline.bold())
+                    .lineLimit(1)
+                Text(edition.publisherInfo)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}

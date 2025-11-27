@@ -65,6 +65,7 @@ public struct SearchView: View {
     @Environment(\.dtoMapper) private var dtoMapper
     @Environment(SearchCoordinator.self) private var searchCoordinator
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(FeatureFlags.self) private var featureFlags
 
     // MARK: - State Management
     // HIG: Use SwiftUI's standard state management patterns
@@ -91,6 +92,13 @@ public struct SearchView: View {
     // Scanner state
     @State private var showingScanner = false
 
+    // Workflow import state (feature flagged)
+    @State private var showingWorkflowProgress = false
+    @State private var activeWorkflowId: String?
+    @State private var workflowError: String?
+    @State private var showingWorkflowError = false
+    private let workflowService = WorkflowImportService()
+
     // Advanced search state
     @State private var showingAdvancedSearch = false
 
@@ -100,6 +108,18 @@ public struct SearchView: View {
     // Image prefetching
     @StateObject private var imagePrefetcher = ImagePrefetcher()
     
+    // MARK: - Computed Properties
+
+    private var availableSearchScopes: [SearchScope] {
+        var scopes = SearchScope.allCases
+        // Only show semantic search if the capability is explicitly true.
+        // Defaults to hidden if the API call fails or the flag is false.
+        if featureFlags.apiCapabilities?.features.semanticSearch != true {
+            scopes.removeAll { $0 == .semantic }
+        }
+        return scopes
+    }
+
     // MARK: - Body
 
     public var body: some View {
@@ -120,7 +140,7 @@ public struct SearchView: View {
                         )
                         // HIG: Search scopes for filtering
                         .searchScopes($searchScope) {
-                            ForEach(SearchScope.allCases) { scope in
+                            ForEach(availableSearchScopes) { scope in
                                 Text(scope.displayName)
                                     .tag(scope)
                                     .accessibilityLabel(scope.accessibilityLabel)
@@ -143,9 +163,25 @@ public struct SearchView: View {
                             ToolbarItem(placement: .navigationBarLeading) {
                                 advancedSearchButton
                             }
-
                             ToolbarItem(placement: .navigationBarTrailing) {
                                 barcodeButton
+                            }
+
+                            if FeatureFlags.shared.enableV2Search {
+                                ToolbarItemGroup(placement: .bottomBar) {
+                                    Picker("Search Mode", selection: Binding(
+                                        get: { searchModel.searchMode },
+                                        set: { searchModel.searchMode = $0 }
+                                    )) {
+                                        ForEach(SearchMode.allCases, id: \.self) { mode in
+                                            Text(mode.rawValue.capitalized).tag(mode)
+                                        }
+                                    }
+                                    .pickerStyle(.segmented)
+                                    .padding(.horizontal)
+
+                                    Spacer()
+                                }
                             }
                         }
                         .background(backgroundView.ignoresSafeArea())
@@ -173,6 +209,12 @@ public struct SearchView: View {
                                 performScopedSearch(query: searchModel.searchText, scope: newValue, searchModel: searchModel)
                             }
                         }
+                        .onChange(of: searchModel.searchMode) {
+                            // Re-search with new mode if there's active text
+                            if !searchModel.searchText.isEmpty {
+                                performScopedSearch(query: searchModel.searchText, scope: searchScope, searchModel: searchModel)
+                            }
+                        }
             } else {
                 ProgressView()
             }
@@ -188,10 +230,46 @@ public struct SearchView: View {
                 #if DEBUG
                 print("📷 ISBN scanned: \(isbn.normalizedValue)")
                 #endif
-                // Handle scanned ISBN - set scope to ISBN
-                searchScope = .isbn
-                searchModel?.searchByISBN(isbn.normalizedValue)
+
+                // Use workflow import if enabled, otherwise standard search
+                if featureFlags.enableWorkflowImport {
+                    Task {
+                        await handleWorkflowImport(isbn: isbn.normalizedValue)
+                    }
+                } else {
+                    // Standard search flow
+                    searchScope = .isbn
+                    searchModel?.searchByISBN(isbn.normalizedValue)
+                }
             }
+        }
+        .sheet(isPresented: $showingWorkflowProgress) {
+            if let workflowId = activeWorkflowId {
+                WorkflowProgressView(
+                    workflowId: workflowId,
+                    onComplete: { result in
+                        // Navigate to the imported book
+                        showingWorkflowProgress = false
+                        searchScope = .isbn
+                        searchModel?.searchByISBN(result.isbn)
+                    },
+                    onRetry: {
+                        showingWorkflowProgress = false
+                        showingScanner = true
+                    },
+                    onDismiss: {
+                        showingWorkflowProgress = false
+                    }
+                )
+            }
+        }
+        .alert("Import Failed", isPresented: $showingWorkflowError) {
+            Button("Try Again") {
+                showingScanner = true
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(workflowError ?? "An unknown error occurred.")
         }
         .sheet(isPresented: $showingAdvancedSearch) {
             if let searchModel = searchModel {
@@ -324,6 +402,8 @@ public struct SearchView: View {
             return "Enter author name"
         case .isbn:
             return "Enter ISBN (10 or 13 digits)"
+        case .semantic:
+            return "Describe the book you're looking for"
         }
     }
 
@@ -347,6 +427,7 @@ public struct SearchView: View {
                     selectedBook = book
                 }
             )
+            .environment(searchModel)
             // HIG: Safe-area-aware bottom spacing for trending books visibility (#405)
             .safeAreaInset(edge: .bottom) {
                 Color.clear.frame(height: 16)
@@ -482,6 +563,25 @@ public struct SearchView: View {
             searchModel.searchText = authorName
             searchScope = .author
             performScopedSearch(query: authorName, scope: .author, searchModel: searchModel)
+        }
+    }
+
+    /// Handle workflow-based ISBN import (feature flagged)
+    /// Creates a durable workflow for importing a book with automatic retries
+    private func handleWorkflowImport(isbn: String) async {
+        do {
+            let response = try await workflowService.createWorkflow(isbn: isbn)
+            await MainActor.run {
+                activeWorkflowId = response.workflowId
+                showingScanner = false
+                showingWorkflowProgress = true
+            }
+        } catch {
+            await MainActor.run {
+                workflowError = error.localizedDescription
+                showingScanner = false
+                showingWorkflowError = true
+            }
         }
     }
 

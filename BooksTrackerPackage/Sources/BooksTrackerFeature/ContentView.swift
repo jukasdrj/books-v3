@@ -30,6 +30,7 @@ public struct ContentView: View {
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Environment(\.dtoMapper) private var dtoMapper
     @Environment(EnrichmentQueue.self) private var enrichmentQueue
+    @State private var bookSearchAPIService: BookSearchAPIService?
     @State private var selectedTab: MainTab = .library
     @State private var searchCoordinator = SearchCoordinator()
     @State private var tabCoordinator = TabCoordinator()
@@ -109,6 +110,7 @@ public struct ContentView: View {
                         .tag(MainTab.insights)
                 }
                 .environment(\.dtoMapper, dtoMapper)  // Safely unwrapped above
+                .environment(\.bookSearchAPIService, bookSearchAPIService)
                 .environment(libraryRepository)
                 .tint(themeStore.primaryColor)
                 #if os(iOS)
@@ -125,6 +127,9 @@ public struct ContentView: View {
             .onAppear {
                 if libraryRepository == nil {
                     libraryRepository = LibraryRepository(modelContext: modelContext, dtoMapper: dtoMapper, featureFlags: featureFlags)
+                }
+                if bookSearchAPIService == nil {
+                    bookSearchAPIService = BookSearchAPIService(modelContext: modelContext, dtoMapper: dtoMapper)
                 }
                 // @Query provides reactive updates - no manual monitoring needed
                 LaunchMetrics.shared.recordMilestone("UI fully interactive")

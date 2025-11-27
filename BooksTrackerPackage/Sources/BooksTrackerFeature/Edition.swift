@@ -37,6 +37,11 @@ public final class Edition {
     var format: EditionFormat = EditionFormat.hardcover
     var coverImageURL: String?
     var editionTitle: String? // "Deluxe Edition", "Abridged", etc.
+    var originalLanguage: String?
+
+    /// Original language of this edition (e.g., "English", "Japanese", "Spanish")
+    /// Used for diversity metrics - translations from non-English score higher
+    var originalLanguage: String?
 
     // External API identifiers for syncing and deduplication
     var openLibraryID: String?      // e.g., "OL123456M" (legacy, prefer openLibraryEditionID)
@@ -95,6 +100,7 @@ public final class Edition {
         coverImageURL: String? = nil,
         editionTitle: String? = nil,
         editionDescription: String? = nil,
+        originalLanguage: String? = nil,
         primaryProvider: String? = nil
     ) {
         self.isbn = isbn
@@ -105,6 +111,7 @@ public final class Edition {
         self.coverImageURL = coverImageURL
         self.editionTitle = editionTitle
         self.editionDescription = editionDescription
+        self.originalLanguage = originalLanguage
         // CRITICAL: work MUST be set AFTER insert
         // Usage: let edition = Edition(); context.insert(edition); edition.work = work
         self.primaryProvider = primaryProvider

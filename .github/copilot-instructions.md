@@ -6,21 +6,74 @@
 **iOS:** SwiftUI + @Observable (NO ViewModels!) + SwiftData + CloudKit | Swift Testing (@Test, 161 tests)  
 **Backend:** Separate repository at [bookstrack-backend](https://github.com/jukasdrj/bookstrack-backend)
 
-## Build & Test (VALIDATED)
+## Commands (Execute from repository root)
 
-### iOS (Xcode REQUIRED - NOT available in CI)
+### Build
 ```bash
-# Workspace: BooksTracker.xcworkspace (NOT .xcodeproj!)
-# Scheme: BooksTracker | Version: Config/Shared.xcconfig
-# Zero warnings enforced: GCC_TREAT_WARNINGS_AS_ERRORS = YES
+# Open workspace (REQUIRED - NOT .xcodeproj!)
+open BooksTracker.xcworkspace
 
-# MCP commands (requires XcodeBuildMCP server):
-/build /test /gogo /device-deploy /sim
+# Build from command line
+xcodebuild -workspace BooksTracker.xcworkspace \
+           -scheme BooksTracker \
+           -configuration Debug \
+           build
+
+# MCP command (requires XcodeBuildMCP server):
+/build
 ```
 
-## CRITICAL Rules (Common Crashes!)
+### Test
+```bash
+# Run all tests
+xcodebuild test -workspace BooksTracker.xcworkspace \
+                -scheme BooksTracker \
+                -destination 'platform=iOS Simulator,name=iPhone 15 Pro'
 
-### SwiftData Lifecycle
+# MCP command:
+/test
+```
+
+### Run
+```bash
+# Launch in simulator with log streaming
+# MCP command:
+/sim
+
+# Deploy to connected iPhone/iPad
+# MCP command:
+/device-deploy
+```
+
+**Key Build Facts:**
+- Workspace: `BooksTracker.xcworkspace` (NOT .xcodeproj!)
+- Scheme: `BooksTracker`
+- Version config: `Config/Shared.xcconfig`
+- Zero warnings enforced: `GCC_TREAT_WARNINGS_AS_ERRORS = YES`
+
+## Boundaries (NEVER Touch These!)
+
+### Files & Directories
+- ❌ **NEVER** edit files in `.github/agents/` - These contain instructions for other agents
+- ❌ **NEVER** commit secrets, API keys, or tokens to any file
+- ❌ **NEVER** modify `Config/Shared.xcconfig` without updating version numbers correctly
+- ❌ **NEVER** edit Xcode project files (`.xcodeproj/`) directly - use Xcode
+- ❌ **NEVER** commit files in `DerivedData/` or build artifacts
+- ❌ **NEVER** force push or modify git history (`git push --force`, `git rebase`)
+
+### Code Practices
+- ❌ **NEVER** use `Timer.publish` in actors (Swift 6 violation - use `Task.sleep`)
+- ❌ **NEVER** use `persistentModelID` before calling `modelContext.save()` (crashes!)
+- ❌ **NEVER** set SwiftData relationships during model initialization (crashes!)
+- ❌ **NEVER** mix `@FocusState` with `.searchable()` on iOS 26 (keyboard conflicts)
+- ❌ **NEVER** use force unwrapping (`!`) except for truly guaranteed cases
+- ❌ **NEVER** commit code with warnings (build will fail)
+- ❌ **NEVER** bypass actor isolation with `@unchecked Sendable` without justification
+
+## Code Examples (Follow These Patterns!)
+
+### SwiftData Model Creation (CRITICAL - Common Crash!)
+**Problem:** Using `persistentModelID` before `save()` causes "temporary identifier" crash
 ```swift
 // ❌ WRONG: Crash "temporary identifier"
 let work = Work(title: "...", authors: [author])
@@ -34,17 +87,134 @@ modelContext.insert(author)  // Gets ID
 work.authors = [author]      // NOW safe
 try modelContext.save()      // REQUIRED before persistentModelID
 ```
-**Rules:** (1) `insert()` immediately (2) relationships AFTER both inserted (3) `save()` before using IDs
 
-### Swift 6.1 Concurrency
+### State Management Pattern (NO ViewModels!)
+```swift
+// ✅ CORRECT: @Observable with @State
+@Observable
+class SearchModel {
+    var query: String = ""
+    var results: [Work] = []
+}
+
+struct SearchView: View {
+    @State private var model = SearchModel()
+    @Environment(\.modelContext) private var modelContext
+    
+    var body: some View {
+        List(model.results) { work in
+            Text(work.title)
+        }
+        .searchable(text: $model.query)
+    }
+}
+
+// ❌ WRONG: Don't use ObservableObject or ViewModels
+```
+
+### SwiftData Child View Pattern
+```swift
+// ✅ CORRECT: Use @Bindable for reactive updates
+struct BookDetailView: View {
+    @Bindable var work: Work
+    
+    var body: some View {
+        TextField("Rating", value: $work.personalRating, format: .number)
+            .onChange(of: work.personalRating) { /* Updates automatically */ }
+    }
+}
+
+// ❌ WRONG: View won't update when model changes
+struct BookDetailView: View {
+    let work: Work  // Missing @Bindable!
+}
+```
+
+### Swift 6 Concurrency Pattern
+```swift
+// ✅ CORRECT: Use Task.sleep in actors
+actor BackgroundService {
+    func pollForUpdates() async {
+        while true {
+            await performUpdate()
+            try? await Task.sleep(for: .seconds(30))
+        }
+    }
+}
+
+// ❌ WRONG: Timer.publish crashes in actors
+actor BackgroundService {
+    var cancellable: AnyCancellable?
+    
+    func start() {
+        cancellable = Timer.publish(every: 30, on: .main, in: .common)  // CRASH!
+            .sink { _ in }
+    }
+}
+```
+
+### Navigation Pattern (iOS 26 HIG)
+```swift
+// ✅ CORRECT: Push navigation with navigationDestination
+NavigationStack {
+    List(works) { work in
+        NavigationLink(value: work) {
+            WorkRow(work: work)
+        }
+    }
+    .navigationDestination(for: Work.self) { work in
+        WorkDetailView(work: work)
+    }
+}
+
+// ❌ WRONG: Sheets break navigation stack
+.sheet(item: $selectedWork) { work in
+    WorkDetailView(work: work)
+}
+```
+
+### Testing Pattern (Swift Testing)
+```swift
+// ✅ CORRECT: Use @Test and #expect
+import Testing
+@testable import BooksTrackerFeature
+
+@Test("Work creation with valid title")
+func testWorkCreation() throws {
+    let work = Work(title: "1984")
+    #expect(work.title == "1984")
+    #expect(work.authors.isEmpty)
+}
+
+@Test("ISBN validation", arguments: [
+    ("9780141036144", true),
+    ("invalid", false)
+])
+func testISBNValidation(isbn: String, expected: Bool) {
+    #expect(ISBN.isValid(isbn) == expected)
+}
+```
+
+## CRITICAL Rules
+
+**Insert-Before-Relate Pattern:**
+```
+1. Create model objects
+2. Call insert() immediately for each
+3. Set relationships AFTER both inserted
+4. Call save() before using persistentModelID
+```
+
+**Swift 6.2 Concurrency Rules:**
+- **ALWAYS** `@MainActor` for UI components and SwiftUI views
 - **NEVER** `Timer.publish` in actors → use `await Task.sleep(for:)`
-- **ALWAYS** `@MainActor` for UI
-- **NEVER** pass non-Sendable across actor boundaries
+- **NEVER** pass non-Sendable types across actor boundaries
+- Prefer structured concurrency (TaskGroup) over unstructured Task.init
 
-### State Management
-- Use `@Observable` + `@State` (NO ViewModels!)
-- Use `@Bindable` for SwiftData in child views (reactive updates)
-- Never mix `@FocusState` with `.searchable()` (iOS 26 manages focus)
+**State Management Rules:**
+- Use `@Observable` + `@State` (NO ObservableObject or ViewModels!)
+- Use `@Bindable` for SwiftData models in child views (enables reactive updates)
+- Never mix `@FocusState` with `.searchable()` (iOS 26 manages focus internally)
 
 ## Project Structure
 ```

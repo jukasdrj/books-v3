@@ -50,6 +50,10 @@ public class BookSearchAPIService {
             // Dedicated ISBN endpoint for ISBNdb lookups (7-day cache, most accurate)
             endpoint = "/v1/search/isbn"
             urlString = "\(EnrichmentConfig.baseURL)\(endpoint)?isbn=\(encodedQuery)"
+        case .semantic:
+            // Use v2 unified search endpoint for semantic queries
+            endpoint = "/api/v2/search"
+            urlString = "\(EnrichmentConfig.baseURL)\(endpoint)?q=\(encodedQuery)&mode=semantic"
         }
         guard let url = URL(string: urlString) else {
             throw SearchError.invalidURL
@@ -529,6 +533,222 @@ public class BookSearchAPIService {
         }
     }
 
+    // MARK: - V2 Search
+
+    /// V2 Unified Search API Response DTOs
+    private struct V2SearchResponse: Codable {
+        let results: [V2SearchResultItem]
+        let total: Int
+        let mode: String
+        let query: String
+        let latencyMs: Int
+
+        enum CodingKeys: String, CodingKey {
+            case results, total, mode, query
+            case latencyMs = "latency_ms"
+        }
+    }
+
+    private struct V2SearchResultItem: Codable {
+        let isbn: String?
+        let title: String
+        let authors: [String]
+        let coverUrl: String?
+        let relevanceScore: Double
+
+        enum CodingKeys: String, CodingKey {
+            case isbn, title, authors
+            case coverUrl = "cover_url"
+            case relevanceScore = "relevance_score"
+        }
+    }
+
+    public func searchV2(query: String, mode: SearchMode, limit: Int = 20) async throws -> SearchResponse {
+        guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            throw SearchError.invalidQuery
+        }
+
+        let urlString = "\(EnrichmentConfig.baseURL)/api/v2/search?q=\(encodedQuery)&mode=\(mode.rawValue)&limit=\(limit)"
+        guard let url = URL(string: urlString) else {
+            throw SearchError.invalidURL
+        }
+
+        let startTime = Date()
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await urlSession.data(from: url)
+        } catch {
+            throw SearchError.networkError(error)
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw SearchError.invalidResponse
+        }
+
+        if httpResponse.statusCode == 429 {
+            let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After").flatMap(Int.init)
+            logger.warning("V2 Search rate limited. Retry after: \(retryAfter ?? 0)s")
+            throw SearchError.rateLimitExceeded(retryAfter: retryAfter)
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            logger.error("V2 Search failed with HTTP status code: \(httpResponse.statusCode)")
+            throw SearchError.httpError(httpResponse.statusCode)
+        }
+
+        let responseTime = Date().timeIntervalSince(startTime) * 1000
+
+        let v2Response: V2SearchResponse
+        do {
+            v2Response = try JSONDecoder().decode(V2SearchResponse.self, from: data)
+        } catch {
+            logger.error("V2 Search decoding error: \(error)")
+            throw SearchError.decodingError(error)
+        }
+
+        let results = convertV2ResultsToSearchResults(v2Response.results, mode: mode)
+
+        return SearchResponse(
+            results: results,
+            cacheHitRate: 0.0, // V2 API doesn't provide cache headers yet
+            provider: "v2-unified-\(mode.rawValue)",
+            responseTime: responseTime,
+            totalItems: v2Response.total
+        )
+    }
+
+    /// Converts the flat V2 search results into the SwiftData-based `SearchResult` models.
+    /// This creates non-persisted, in-memory model instances for display in the search results.
+    private func convertV2ResultsToSearchResults(_ v2Results: [V2SearchResultItem], mode: SearchMode) -> [SearchResult] {
+        return v2Results.map { item in
+            // Create non-persisted SwiftData models for the UI
+            let work = Work(title: item.title)
+
+            let authors = item.authors.map { authorName in
+                Author(name: authorName)
+            }
+            work.authors = authors
+
+            var editions: [Edition] = []
+            if let isbn = item.isbn {
+                let edition = Edition(isbn: isbn)
+                edition.coverImageURL = item.coverUrl
+                edition.work = work
+                editions.append(edition)
+            }
+
+            return SearchResult(
+                work: work,
+                editions: editions,
+                authors: authors,
+                relevanceScore: item.relevanceScore,
+                provider: "v2-unified-\(mode.rawValue)"
+            )
+        }
+    }
+
+    // MARK: - Similar Books API
+
+    /// Response structure for the similar books endpoint
+    struct SimilarBooksResponse: Codable {
+        let results: [SimilarBook]
+        let source_isbn: String
+        let total: Int
+    }
+
+    struct SimilarBook: Codable {
+        let isbn: String
+        let title: String
+        let authors: [String]
+        let cover_url: String?
+        let similarity_score: Double
+    }
+
+    func findSimilarBooks(isbn: String, limit: Int = 10) async throws -> SearchResponse {
+        logger.info("📚 Finding similar books for ISBN \(isbn)...")
+
+        guard let encodedIsbn = isbn.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            throw SearchError.invalidQuery
+        }
+
+        let urlString = "\(EnrichmentConfig.baseURL)/v1/search/similar?isbn=\(encodedIsbn)&limit=\(limit)"
+        guard let url = URL(string: urlString) else {
+            throw SearchError.invalidURL
+        }
+
+        let startTime = Date()
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await urlSession.data(from: url)
+        } catch {
+            throw SearchError.networkError(error)
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw SearchError.invalidResponse
+        }
+
+        if httpResponse.statusCode == 429 {
+            let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After").flatMap(Int.init)
+            throw SearchError.rateLimitExceeded(retryAfter: retryAfter)
+        }
+
+        if httpResponse.statusCode == 404 {
+            logger.info("✅ No similar books found for ISBN \(isbn) (404)")
+            return SearchResponse(results: [], cacheHitRate: 0.0, provider: "similar-books", responseTime: 0, totalItems: 0)
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            throw SearchError.httpError(httpResponse.statusCode)
+        }
+
+        let responseTime = Date().timeIntervalSince(startTime) * 1000
+
+        let similarBooksResponse: SimilarBooksResponse
+        do {
+            similarBooksResponse = try JSONDecoder().decode(SimilarBooksResponse.self, from: data)
+        } catch {
+            throw SearchError.decodingError(error)
+        }
+
+        if similarBooksResponse.results.isEmpty {
+            logger.info("✅ No similar books found for ISBN \(isbn)")
+            return SearchResponse(results: [], cacheHitRate: 0.0, provider: "similar-books", responseTime: responseTime, totalItems: 0)
+        }
+
+        // Convert similar books directly to SearchResults (similar to V2 search pattern)
+        let results = similarBooksResponse.results.map { similarBook in
+            // Create non-persisted SwiftData models for the UI
+            let work = Work(title: similarBook.title)
+
+            let authors = similarBook.authors.map { authorName in
+                Author(name: authorName)
+            }
+            work.authors = authors
+
+            let edition = Edition(isbn: similarBook.isbn)
+            edition.coverImageURL = similarBook.cover_url
+            edition.work = work
+
+            return SearchResult(
+                work: work,
+                editions: [edition],
+                authors: authors,
+                relevanceScore: similarBook.similarity_score,
+                provider: "similar-books"
+            )
+        }
+
+        logger.info("✅ Found \(results.count) similar books in \(Int(responseTime))ms")
+
+        return SearchResponse(
+            results: results,
+            cacheHitRate: 0.0,
+            provider: "similar-books",
+            responseTime: responseTime,
+            totalItems: results.count
+        )
+    }
 }
 
 // MARK: - Response Models

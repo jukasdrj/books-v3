@@ -20,10 +20,10 @@ public final class EnhancedDiversityStats {
     public var translationStatus: [String: Int]
 
     /// Own Voices theme (e.g., {"Own Voices": 10, "Not Own Voices": 8})
-    public var ownVoicesTheme: [String: Int]
+    public var ownVoicesCount: Int
 
     /// Niche/Accessibility features (e.g., {"Accessible": 5, "Standard": 13})
-    public var nicheAccessibility: [String: Int]
+    public var accessibilityTags: [String: Int]
 
     // MARK: - Completion Tracking (for Gamification)
 
@@ -102,8 +102,8 @@ public final class EnhancedDiversityStats {
         self.culturalOrigins = [:]
         self.genderDistribution = [:]
         self.translationStatus = [:]
-        self.ownVoicesTheme = [:]
-        self.nicheAccessibility = [:]
+        self.ownVoicesCount = 0
+        self.accessibilityTags = [:]
         self.totalBooks = 0
         self.booksWithCulturalData = 0
         self.booksWithGenderData = 0

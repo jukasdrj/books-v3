@@ -21,7 +21,7 @@ actor EnrichmentAPIClient {
         // Use canonical /v1 endpoint by default (Issue #425)
         // Legacy /api endpoint will be removed in backend v2.0 (January 2026)
         // Feature flag available to disable canonical endpoint if needed via FeatureFlags.disableCanonicalEnrichment
-        let disableCanonical = FeatureFlags.shared.disableCanonicalEnrichment
+        let disableCanonical = await FeatureFlags.shared.disableCanonicalEnrichment
 
         let primaryEndpoint = disableCanonical ? "/api/enrichment/batch" : "/v1/enrichment/batch"
         let fallbackEndpoint = "/api/enrichment/batch"
@@ -185,5 +185,43 @@ actor EnrichmentAPIClient {
         #endif
 
         return result
+    }
+
+    /// Enriches a book using the V2 sync API.
+    /// - Parameters:
+    ///   - barcode: The ISBN or barcode to enrich
+    ///   - idempotencyKey: Optional stable key for retry safety. If nil, generates one based on barcode.
+    ///   - preferProvider: Provider preference hint (default: "auto")
+    func enrichBookV2(barcode: String, idempotencyKey: String? = nil, preferProvider: String = "auto") async throws -> EnrichedBookDTO {
+        let url = EnrichmentConfig.enrichBookV2URL
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        // Use provided idempotency key or generate a stable one based on barcode
+        // This ensures retries use the same key, preserving idempotency semantics
+        let key = idempotencyKey ?? "scan_\(barcode)"
+        let payload = EnrichBookV2Request(barcode: barcode, preferProvider: preferProvider, idempotencyKey: key)
+        request.httpBody = try JSONEncoder().encode(payload)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(EnrichedBookDTO.self, from: data)
+        case 404:
+            throw EnrichmentError.noMatchFound
+        case 429:
+            // Use conservative default of 5 seconds to prevent busy-wait loops
+            let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After")
+            let retryAfterSeconds = Int(retryAfter ?? "5") ?? 5
+            throw EnrichmentError.rateLimitExceeded(retryAfter: retryAfterSeconds)
+        default:
+            throw URLError(.badServerResponse)
+        }
     }
 }
