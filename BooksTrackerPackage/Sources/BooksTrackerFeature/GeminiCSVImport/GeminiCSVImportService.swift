@@ -35,7 +35,7 @@ enum GeminiCSVImportError: Error, LocalizedError {
 
 public struct GeminiCSVImportResponse: Codable, Sendable {
     public let jobId: String
-    public let token: String  // NEW: Auth token for WebSocket
+    // V2 Migration: No auth token needed - SSE is public streaming endpoint
 }
 
 public struct GeminiCSVImportJob: Codable, Sendable {
@@ -88,11 +88,11 @@ actor GeminiCSVImportService {
 
     // MARK: - Upload CSV
 
-    /// Upload CSV file and receive jobId and auth token for WebSocket tracking
+    /// Upload CSV file to V2 API and receive jobId for SSE tracking
     /// - Parameter csvText: Raw CSV content
-    /// - Returns: Tuple with jobId and auth token for WebSocket authentication
+    /// - Returns: jobId for SSE stream connection
     /// - Throws: GeminiCSVImportError on failure
-    func uploadCSV(csvText: String) async throws -> (jobId: String, token: String) {
+    func uploadCSV(csvText: String) async throws -> String {
         #if DEBUG
         print("[CSV Upload] Starting upload, size: \(csvText.utf8.count) bytes")
         #endif
@@ -121,42 +121,30 @@ actor GeminiCSVImportService {
             throw GeminiCSVImportError.fileTooLarge(dataSize)
         }
 
-        // Create multipart/form-data request
-        let boundary = UUID().uuidString
-        var request = URLRequest(url: endpoint)
+        // V2 API: Use JSON payload instead of multipart/form-data
+        let url = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/v2/imports")!
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-
-        // Timeout rationale:
-        // The timeout is set to 120 seconds (2 minutes) to accommodate uploading files up to the maximum allowed size (10MB, see `maxFileSize`)
-        // under typical network conditions. This value should be sufficient for most users on modern networks.
-        // If the backend's MAX_FILE_SIZE is increased, or if users frequently experience timeouts on slow connections,
-        // consider increasing this value or scaling it based on file size.
-        request.timeoutInterval = 120 // 2 minute timeout for files up to 10MB
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 120 // 2 minute timeout for large CSV files
 
         #if DEBUG
-        print("[CSV Upload] Request configured, endpoint: \(endpoint)")
+        print("[CSV Upload] Request configured, endpoint: \(url)")
         #endif
 
-        var body = Data()
-
-        // Add CSV file field
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"import.csv\"\r\n".data(using: .utf8)!)
-        body.append("Content-Type: text/csv\r\n\r\n".data(using: .utf8)!)
-        body.append(csvText.data(using: .utf8)!)
-        body.append("\r\n".data(using: .utf8)!)
-
-        // Close boundary
-        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        // Create JSON payload with CSV content
+        let payload: [String: Any] = [
+            "csvContent": csvText,
+            "delimiter": ",",
+            "hasHeader": true
+        ]
+        let body = try JSONSerialization.data(withJSONObject: payload)
 
         request.httpBody = body
 
         #if DEBUG
-        print("[CSV Upload] Multipart body constructed, size: \(body.count) bytes")
-        #endif
-        #if DEBUG
-        print("[CSV Upload] Sending request to backend...")
+        print("[CSV Upload] JSON payload constructed, size: \(body.count) bytes")
+        print("[CSV Upload] Sending request to V2 API...")
         #endif
 
         // Execute request
@@ -209,9 +197,9 @@ actor GeminiCSVImportService {
             }
             
             #if DEBUG
-            print("[CSV Upload] ✅ Got jobId: \(importResponse.jobId), token: \(importResponse.token.prefix(8))...")
+            print("[CSV Upload] ✅ Got jobId: \(importResponse.jobId)")
             #endif
-            return (jobId: importResponse.jobId, token: importResponse.token)
+            return importResponse.jobId
 
         } catch let error as GeminiCSVImportError {
             #if DEBUG

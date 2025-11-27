@@ -60,8 +60,7 @@ public struct GeminiCSVImportView: View {
     @State private var progress: Double = 0.0
     @State private var statusMessage: String = ""
     @State private var errorMessage: String?
-    @State private var webSocketTask: URLSessionWebSocketTask?
-    @State private var receiveTask: Task<Void, Never>?
+    @State private var sseClient: SSEClient?
 
     // Rate limit banner (Issue #426)
     @State private var showRateLimitBanner = false
@@ -321,17 +320,17 @@ public struct GeminiCSVImportView: View {
 
             let csvText = try String(contentsOf: url, encoding: .utf8)
 
-            // Upload to backend and get auth token
+            // Upload to V2 API and get jobId
             let service = GeminiCSVImportService.shared
-            let (uploadedJobId, authToken) = try await service.uploadCSV(csvText: csvText)
+            let uploadedJobId = try await service.uploadCSV(csvText: csvText)
 
             #if DEBUG
-            print("[CSV Upload] 🔐 Auth token received (length: \(authToken.count))")
+            print("[CSV Upload] ✅ Job created: \(uploadedJobId)")
             #endif
 
-            // Start WebSocket connection with authentication
+            // Start SSE stream for progress tracking
             jobId = uploadedJobId
-            startWebSocketProgress(jobId: uploadedJobId, token: authToken)
+            startSSEStream(jobId: uploadedJobId)
 
         } catch let error as GeminiCSVImportError {
             importStatus = .failed(error.localizedDescription)
@@ -340,267 +339,62 @@ public struct GeminiCSVImportView: View {
         }
     }
 
-    private func startWebSocketProgress(jobId: String, token: String) {
+    private func startSSEStream(jobId: String) {
         #if DEBUG
-        print("[CSV WebSocket] Starting secure WebSocket connection (v2.4.1 compliant)")
+        print("[CSV SSE] Starting SSE stream for job: \(jobId)")
         #endif
 
-        receiveTask = Task {
-            do {
-                // ✅ SECURITY FIX (#7): Secure WebSocket authentication
-                // Build WebSocket URL (jobId in query is OK, token MUST be in header)
-                let wsURL = URL(string: "\(EnrichmentConfig.webSocketBaseURL)/ws/progress?jobId=\(jobId)")!
-
-                // ✅ PROTOCOL FIX (#7): HTTP/1.1 enforcement for WebSocket compatibility
-                // iOS defaults to HTTP/2 for HTTPS, which breaks RFC 6455 WebSocket upgrade
-                var request = URLRequest(url: wsURL)
-                request.assumesHTTP3Capable = false  // Forces HTTP/1.1 negotiation (disables HTTP/2 and HTTP/3)
-                request.setValue("websocket", forHTTPHeaderField: "Upgrade")
-                request.setValue("Upgrade", forHTTPHeaderField: "Connection")
-
-                // ✅ SECURITY FIX (#7): Add token via Sec-WebSocket-Protocol header
-                // This prevents token leakage in server logs, proxy logs, or error reports
-                // Matches WebSocketProgressManager pattern (line 156 in WebSocketProgressManager.swift)
-                request.setValue("bookstrack-auth.\(token)", forHTTPHeaderField: "Sec-WebSocket-Protocol")
-
-                #if DEBUG
-                print("[CSV WebSocket] 🔐 Token secured in Sec-WebSocket-Protocol header")
-                print("[CSV WebSocket] 🌐 HTTP/1.1 enforcement enabled (assumesHTTP3Capable=false)")
-                #endif
-
-                // Create URLSession with HTTP/1.1 configuration
-                let config = URLSessionConfiguration.default
-                config.httpMaximumConnectionsPerHost = 1
-                config.timeoutIntervalForRequest = 10.0  // 10 second timeout
-                let session = URLSession(configuration: config)
-
-                // Create and start WebSocket task
-                let wsTask = session.webSocketTask(with: request)
-                self.webSocketTask = wsTask
-                wsTask.resume()
-
-                #if DEBUG
-                print("[CSV WebSocket] ⏳ Waiting for WebSocket handshake...")
-                #endif
-
-                // Wait for connection (prevents POSIX error 57 "Socket is not connected")
-                try await WebSocketHelpers.waitForConnection(wsTask, timeout: 10.0)
-
-                #if DEBUG
-                print("[CSV WebSocket] ✅ WebSocket connection established")
-                #endif
-
-                // Send ready signal to backend
-                let readyMessage: [String: Any] = [
-                    "type": "ready",
-                    "timestamp": Date().timeIntervalSince1970 * 1000
-                ]
-                if let messageData = try? JSONSerialization.data(withJSONObject: readyMessage),
-                   let messageString = String(data: messageData, encoding: .utf8) {
-                    try await wsTask.send(.string(messageString))
+        // Create SSE client with callbacks
+        let client = SSEClient(
+            baseURL: EnrichmentConfig.apiBaseURL,
+            onQueued: { [weak self] event in
+                Task { @MainActor in
+                    guard let self = self else { return }
                     #if DEBUG
-                    print("[CSV WebSocket] ✅ Sent ready signal to backend")
+                    print("[CSV SSE] Queued: \(event.jobId)")
                     #endif
+                    self.importStatus = .processing(progress: 0.0, message: "Job queued...")
                 }
-
-                // Listen for messages
-                #if DEBUG
-                print("[CSV WebSocket] 📡 Listening for csv_import pipeline messages...")
-                #endif
-
-                while !Task.isCancelled {
-                    let message = try await wsTask.receive()
-
-                    switch message {
-                    case .string(let text):
-                        handleWebSocketMessage(text)
-                    case .data(let data):
-                        if let text = String(data: data, encoding: .utf8) {
-                            handleWebSocketMessage(text)
-                        }
-                    @unknown default:
-                        break
-                    }
+            },
+            onStarted: { [weak self] event in
+                Task { @MainActor in
+                    guard let self = self else { return }
+                    #if DEBUG
+                    print("[CSV SSE] Started: \(event.totalRows) rows")
+                    #endif
+                    self.importStatus = .processing(progress: 0.0, message: "Processing \(event.totalRows) rows...")
                 }
-
-            } catch {
-                #if DEBUG
-                print("[CSV WebSocket] ❌ Error: \(String(describing: error))")
-                #endif
-
-                if !Task.isCancelled {
-                    // Fall back to polling
-                    importStatus = .processing(progress: 0.1, message: "Connecting via alternate method...")
-                    await fallbackPollingForJobStatus(jobId: jobId)
+            },
+            onProgress: { [weak self] event in
+                Task { @MainActor in
+                    guard let self = self else { return }
+                    #if DEBUG
+                    print("[CSV SSE] Progress: \(Int(event.progress * 100))% (\(event.processedRows)/\(event.successfulRows))")
+                    #endif
+                    self.importStatus = .processing(
+                        progress: event.progress,
+                        message: "Processed \(event.processedRows) rows..."
+                    )
                 }
-            }
-        }
-    }
-
-    /// Fallback polling when WebSocket connection fails
-    /// Used when backend closes connection after ready_ack (POSIX error 57)
-    private func fallbackPollingForJobStatus(jobId: String) async {
-        #if DEBUG
-        print("[CSV Polling] Starting fallback polling for job \(jobId)")
-        #endif
-
-        let maxPolls = 60 // Poll for up to 5 minutes (60 * 5s = 5min)
-        var pollCount = 0
-
-        while pollCount < maxPolls && !Task.isCancelled {
-            do {
-                // Wait before polling (exponential backoff: 2s, 4s, then 5s)
-                let delay: TimeInterval = min(5.0, 2.0 * pow(2.0, Double(min(pollCount, 2))))
-                try await Task.sleep(for: .seconds(delay))
-
-                pollCount += 1
-
-                #if DEBUG
-                print("[CSV Polling] Poll #\(pollCount) (every \(Int(delay))s)")
-                #endif
-
-                // Check job status via REST API
-                let service = GeminiCSVImportService.shared
-                let result = try await service.checkJobStatus(jobId: jobId)
-
-                #if DEBUG
-                print("[CSV Polling] Status: \(result.status)")
-                #endif
-
-                switch result.status {
-                case "completed":
-                    if let books = result.books, let errors = result.errors {
-                        #if DEBUG
-                        print("[CSV Polling] ✅ Job complete: \(books.count) books, \(errors.count) errors")
-                        #endif
-                        importStatus = .completed(books: books, errors: errors)
-                        return
-                    } else {
-                        throw GeminiCSVImportError.serverError(500, "Job completed but missing data")
-                    }
-
-                case "failed":
-                    let errorMsg = result.error ?? "Unknown error"
+            },
+            onComplete: { [weak self] event in
+                Task { @MainActor in
+                    guard let self = self else { return }
                     #if DEBUG
-                    print("[CSV Polling] ❌ Job failed: \(errorMsg)")
-                    #endif
-                    importStatus = .failed(errorMsg)
-                    return
-
-                case "processing":
-                    let progress = result.progress ?? 0.0
-                    let message = result.message ?? "Processing..."
-                    #if DEBUG
-                    print("[CSV Polling] Processing: \(Int(progress * 100))% - \(message)")
-                    #endif
-                    importStatus = .processing(progress: progress, message: message)
-
-                default:
-                    #if DEBUG
-                    print("[CSV Polling] Unknown status: \(result.status)")
-                    #endif
-                }
-
-            } catch {
-                #if DEBUG
-                print("[CSV Polling] ❌ Error: \(error)")
-                #endif
-                if !Task.isCancelled {
-                    importStatus = .failed("Polling failed: \(error.localizedDescription)")
-                }
-                return
-            }
-        }
-
-        // Timeout after max polls
-        if pollCount >= maxPolls {
-            #if DEBUG
-            print("[CSV Polling] ❌ Timeout after \(maxPolls) polls")
-            #endif
-            importStatus = .failed("Import timed out. Please try again.")
-        }
-    }
-
-    private func handleWebSocketMessage(_ text: String) {
-        guard let data = text.data(using: .utf8) else {
-            #if DEBUG
-            print("[CSV WebSocket] ❌ Failed to convert text to data")
-            #endif
-            return
-        }
-
-        // First check for legacy ready_ack message (backend still sends this without unified schema)
-        if text.contains("\"type\":\"ready_ack\"") {
-            #if DEBUG
-            print("[CSV WebSocket] ✅ Backend acknowledged ready signal, processing will start")
-            #endif
-            return
-        }
-
-        do {
-            // Use unified WebSocket schema (Phase 1 #363)
-            let message = try JSONDecoder().decode(TypedWebSocketMessage.self, from: data)
-            #if DEBUG
-            print("[CSV WebSocket] Decoded message type: \(message.type), pipeline: \(message.pipeline)")
-            #endif
-
-            // Verify this is for csv_import pipeline
-            guard message.pipeline == .csvImport else {
-                #if DEBUG
-                print("[CSV WebSocket] ⚠️ Ignoring message for different pipeline: \(message.pipeline)")
-                #endif
-                return
-            }
-
-            // Dispatch UI updates to MainActor (WebSocket runs on background thread)
-            Task { @MainActor in
-                switch message.payload {
-                case .jobProgress(let progressPayload):
-                    #if DEBUG
-                    print("[CSV WebSocket] Progress: \(Int(progressPayload.progress * 100))% - \(progressPayload.status)")
-                    #endif
-                    importStatus = .processing(progress: progressPayload.progress, message: progressPayload.status)
-
-                case .reconnected(let payload):
-                    let syntheticProgress = payload.toJobProgressPayload()
-                    #if DEBUG
-                    print("[CSV WebSocket] Reconnected: \(Int(syntheticProgress.progress * 100))% - \(syntheticProgress.status)")
-                    #endif
-                    importStatus = .processing(progress: syntheticProgress.progress, message: syntheticProgress.status)
-
-                case .jobComplete(let completePayload):
-                    // Extract CSV-specific completion data
-                    guard case .csvImport(let csvPayload) = completePayload else {
-                        #if DEBUG
-                        print("[CSV WebSocket] ❌ Wrong completion payload type for csv_import")
-                        #endif
-                        return
-                    }
-
-                    #if DEBUG
-                    print("[CSV WebSocket] ✅ Import complete: \(csvPayload.summary.successCount) books processed, \(csvPayload.summary.failureCount) errors")
-                    print("[CSV WebSocket] 📦 Fetching full results from KV cache (resourceId: \(csvPayload.summary.resourceId ?? "none"))")
+                    print("[CSV SSE] Complete: \(event.resultSummary.booksCreated) created, \(event.resultSummary.enrichmentSucceeded) enriched")
                     #endif
 
-                    // v2.0 Migration: Fetch full results via HTTP GET
-                    // WebSocket now only sends lightweight summary (<1 KB)
-                    // Full results stored in KV cache for 24 hours
-                    guard let resourceId = csvPayload.summary.resourceId else {
-                        #if DEBUG
-                        print("[CSV WebSocket] ❌ No resourceId provided, cannot fetch results")
-                        #endif
-                        importStatus = .failed("No results available from backend")
-                        return
-                    }
+                    // Convert SSE result to legacy format
+                    let books: [GeminiCSVImportJob.ParsedBook] = []  // V2 API doesn't return book details in SSE
+                    let errors = event.resultSummary.errors?.map { error in
+                        GeminiCSVImportJob.ImportError(title: error.isbn, error: error.error)
+                    } ?? []
 
-                    // Extract jobId from resourceId format: "job-results:uuid"
-                    let jobId = self.jobId ?? resourceId.replacingOccurrences(of: "job-results:", with: "")
-
-                    // Fetch full results via HTTP
+                    // Fetch full results from the backend
                     do {
-                        let fullResults = try await fetchJobResults(jobId: jobId)
+                        let fullResults = try await self.fetchJobResults(jobId: jobId)
 
-                        // Convert unified schema ParsedBook to legacy GeminiCSVImportJob.ParsedBook
+                        // Convert to legacy format
                         let legacyBooks = (fullResults.books ?? []).map { book in
                             GeminiCSVImportJob.ParsedBook(
                                 title: book.title,
@@ -613,76 +407,38 @@ public struct GeminiCSVImportView: View {
                             )
                         }
 
-                        // Convert unified schema ImportError to legacy GeminiCSVImportJob.ImportError
                         let legacyErrors = (fullResults.errors ?? []).map { error in
                             GeminiCSVImportJob.ImportError(title: error.title, error: error.error)
                         }
 
-                        importStatus = .completed(books: legacyBooks, errors: legacyErrors)
-
-                        #if DEBUG
-                        print("[CSV WebSocket] ✅ Fetched full results: \(legacyBooks.count) books, \(legacyErrors.count) errors")
-                        #endif
+                        self.importStatus = .completed(books: legacyBooks, errors: legacyErrors)
                     } catch {
                         #if DEBUG
-                        print("[CSV WebSocket] ❌ Failed to fetch results: \(error)")
+                        print("[CSV SSE] ❌ Failed to fetch results: \(error)")
                         #endif
-
-                        if let csvError = error as? CSVImportError, case .rateLimited(let retryAfter) = csvError {
-                            // Show rate limit banner
-                            self.rateLimitRetryAfter = retryAfter ?? 60
-                            self.showRateLimitBanner = true
-                            importStatus = .failed("Rate limited fetching results. Please wait and try again.")
-                        } else {
-                            importStatus = .failed("Failed to fetch import results: \(error.localizedDescription)")
-                        }
+                        // Use summary data as fallback
+                        self.importStatus = .completed(books: books, errors: errors)
                     }
-
-                    // Proactively close the connection from the client side
-                    // This prevents the ENOTCONN (57) "Socket not connected" error
-                    self.webSocketTask?.cancel(with: .goingAway, reason: "Job complete".data(using: .utf8))
-                    self.receiveTask?.cancel()
-                    return  // Exit message loop - job is complete
-
-                case .error(let errorPayload):
+                }
+            },
+            onError: { [weak self] error in
+                Task { @MainActor in
+                    guard let self = self else { return }
                     #if DEBUG
-                    print("[CSV WebSocket] ❌ Error from backend: \(errorPayload.message)")
+                    print("[CSV SSE] Error: \(error.localizedDescription)")
                     #endif
-                    importStatus = .failed(errorPayload.message)
-                    self.webSocketTask?.cancel(with: .goingAway, reason: "Job failed".data(using: .utf8))
-                    self.receiveTask?.cancel()
-                    return  // Exit message loop - job failed
-
-                case .readyAck:
-                    #if DEBUG
-                    print("[CSV WebSocket] ✅ Backend acknowledged ready signal, processing will start")
-                    #endif
-                    // No UI update needed, progress messages will follow
-
-                case .jobStarted:
-                    #if DEBUG
-                    print("[CSV WebSocket] Job started (informational)")
-                    #endif
-                    // No UI update needed, progress messages will follow
-
-                case .ping, .pong:
-                    // Heartbeat messages, no action needed
-                    break
-
-                case .batchInit, .batchProgress, .batchComplete, .batchCanceling:
-                    // Batch scanning messages - ignore in CSV import pipeline
-                    // These should never reach here due to pipeline filtering at line 414
-                    break
+                    self.importStatus = .failed(error.localizedDescription)
                 }
             }
+        )
 
-        } catch {
-            #if DEBUG
-            print("[CSV WebSocket] ❌ Failed to decode WebSocket message: \(error)")
-            print("[CSV WebSocket] Raw message: \(text)")
-            #endif
+        self.sseClient = client
+
+        Task {
+            await client.connect(jobId: jobId)
         }
     }
+
 
     /// Fetch full job results from KV cache via HTTP GET
     /// v2.0 Migration: WebSocket sends lightweight summary, full results fetched on demand
@@ -756,11 +512,16 @@ public struct GeminiCSVImportView: View {
             }
         }
 
-        // Explicitly close the WebSocket with a normal "going away" message
-        webSocketTask?.cancel(with: .goingAway, reason: "User canceled".data(using: .utf8))
-        receiveTask?.cancel()
-        webSocketTask = nil
-        receiveTask = nil
+        // Disconnect SSE stream
+        if let sseClient = sseClient {
+            Task {
+                await sseClient.disconnect()
+                #if DEBUG
+                print("[CSV Import] ✅ SSE stream disconnected")
+                #endif
+            }
+        }
+        sseClient = nil
     }
 
     @MainActor

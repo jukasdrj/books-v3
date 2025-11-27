@@ -157,13 +157,8 @@ struct WorkDetailView: View {
                 // MARK: - Book Cover Hero
                 bookCoverHero
 
-<<<<<<< HEAD
-                // MARK: - Edition Metadata Card
-                EditionMetadataView(work: work, edition: primaryEdition, showingProfilingSheet: $showingProfilingSheet)
-=======
                 // MARK: - Metadata & Diversity Tabs
                 metadataTabsSection
->>>>>>> origin/main
                     .padding(.horizontal, 20)
 
                 // MARK: - Similar Books Section
