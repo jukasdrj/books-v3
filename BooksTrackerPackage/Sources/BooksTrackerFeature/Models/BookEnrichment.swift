@@ -6,19 +6,19 @@ import SwiftData
 @Model
 public final class BookEnrichment {
     /// A unique identifier for the work (book) this enrichment applies to.
-    @Attribute(.unique) public var workId: String
+    public var workId: String?
 
     /// The user's rating for the book, from 1 to 5 stars (optional).
     public var userRating: Int?
 
     /// A list of genres assigned to the book by the user.
-    public var genres: [String]
+    public var genres: [String] = []
 
     /// A list of themes identified in the book by the user.
-    public var themes: [String]
+    public var themes: [String] = []
 
     /// A list of content warnings for the book, added by the user.
-    public var contentWarnings: [String]
+    public var contentWarnings: [String] = []
 
     /// Personal notes or reflections on the book.
     public var personalNotes: String?
@@ -31,10 +31,10 @@ public final class BookEnrichment {
 
     /// A flag indicating if the author-related fields (`authorCulturalBackground`, `authorGenderIdentity`)
     /// were automatically filled from `AuthorMetadata`.
-    public var isCascaded: Bool
+    public var isCascaded: Bool = false
 
     /// The date when this book's enrichment data was last updated.
-    public var lastEnriched: Date
+    public var lastEnriched: Date = Date()
 
     /// A computed property representing the percentage of key enrichment fields that have been filled.
     /// This provides a quick overview of how complete the user's enrichment data is for a book.
@@ -66,7 +66,7 @@ public final class BookEnrichment {
     ///   - authorGenderIdentity: Initial author gender identity (defaults to `nil`).
     ///   - isCascaded: Flag indicating if author info was cascaded (defaults to `false`).
     ///   - lastEnriched: The date of last enrichment (defaults to the current date).
-    init(workId: String,
+    public init(workId: String? = nil,
          userRating: Int? = nil,
          genres: [String] = [],
          themes: [String] = [],

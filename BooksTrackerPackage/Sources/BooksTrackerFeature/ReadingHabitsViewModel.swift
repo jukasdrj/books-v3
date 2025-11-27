@@ -7,7 +7,7 @@ class ReadingHabitsViewModel {
 
     init(work: Work) {
         // Sort sessions by date for accurate streak calculation
-        self.readingSessions = work.userLibraryEntries?.first?.readingSessions.sorted { $0.date < $1.date } ?? []
+        self.readingSessions = work.userLibraryEntries?.first?.readingSessions?.sorted { $0.date < $1.date } ?? []
     }
 
     /// Calculates the average reading pace in pages per hour.

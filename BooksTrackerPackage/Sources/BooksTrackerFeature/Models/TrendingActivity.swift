@@ -5,21 +5,21 @@ import SwiftData
 @Model
 public final class TrendingActivity {
     /// ISBN of the book (primary identifier)
-    var isbn: String
+    var isbn: String?
 
     /// Book title (for display)
-    var title: String
+    var title: String?
 
     /// Number of times this book was searched
-    var searchCount: Int
+    var searchCount: Int = 0
 
     /// Number of times this book was added to library
-    var addCount: Int
+    var addCount: Int = 0
 
     /// Last time this book had activity (search or add)
-    var lastActivity: Date
+    var lastActivity: Date = Date()
 
-    public init(isbn: String, title: String) {
+    public init(isbn: String? = nil, title: String? = nil) {
         self.isbn = isbn
         self.title = title
         self.searchCount = 0

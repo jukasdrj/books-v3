@@ -5,37 +5,37 @@ import SwiftData
 @Model
 public final class StreakData {
     /// A unique identifier for the user.
-    @Attribute(.unique) public var userId: String
+    public var userId: String?
 
     /// The current number of consecutive days with reading sessions.
-    public var currentStreak: Int
+    public var currentStreak: Int = 0
 
     /// The longest streak achieved by the user.
-    public var longestStreak: Int
+    public var longestStreak: Int = 0
 
     /// The date of the last recorded reading session.
-    public var lastSessionDate: Date
+    public var lastSessionDate: Date = Date()
 
     /// The total number of reading sessions recorded for the user.
-    public var totalSessions: Int
+    public var totalSessions: Int = 0
 
     /// The total number of minutes the user has read across all sessions.
-    public var totalMinutesRead: Int
+    public var totalMinutesRead: Int = 0
 
     /// The average number of pages read per hour across all sessions.
-    public var averagePagesPerHour: Double
+    public var averagePagesPerHour: Double = 0.0
 
     /// The number of reading sessions completed this calendar week.
-    public var sessionsThisWeek: Int
+    public var sessionsThisWeek: Int = 0
 
     /// The number of reading sessions completed this calendar month.
-    public var sessionsThisMonth: Int
+    public var sessionsThisMonth: Int = 0
 
     /// The count of how many times the user's streak has been broken.
-    public var streakBrokenCount: Int
+    public var streakBrokenCount: Int = 0
 
     /// The date when the streak data was last calculated or updated.
-    public var lastCalculated: Date
+    public var lastCalculated: Date = Date()
 
     /// A computed property indicating whether the user is currently on an active streak.
     /// A streak is considered active if the last session was either today or yesterday.
@@ -71,10 +71,10 @@ public final class StreakData {
     ///   - sessionsThisMonth: Initial sessions this month (defaults to 0).
     ///   - streakBrokenCount: Initial streak broken count (defaults to 0).
     ///   - lastCalculated: The date of last calculation (defaults to the current date).
-    init(userId: String,
+    public init(userId: String? = nil,
          currentStreak: Int = 0,
          longestStreak: Int = 0,
-         lastSessionDate: Date = Date.distantPast,
+         lastSessionDate: Date = Date(),
          totalSessions: Int = 0,
          totalMinutesRead: Int = 0,
          averagePagesPerHour: Double = 0.0,

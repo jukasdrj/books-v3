@@ -51,7 +51,7 @@ public final class Work {
     #Index<Work>([\.title])  // Database index for title searches
 
     /// Stable, unique identifier for this work (survives CloudKit sync)
-    @Attribute(.unique) var uuid: UUID = UUID()
+    var uuid: UUID = UUID()
 
     var title: String = "" // CloudKit: default value required
     var originalLanguage: String?

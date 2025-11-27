@@ -2,9 +2,12 @@ import Foundation
 
 struct APIConfig {
     static let baseURL: URL = {
-        guard let urlString = Bundle.main.object(forInfoDictionaryKey: "API_BASE_URL") as? String,
-              let url = URL(string: urlString) else {
-            fatalError("API_BASE_URL not set in Info.plist")
+        // Hardcoded since Swift compiler flags don't support string values
+        // xcconfig API_BASE_URL is for documentation only
+        let urlString = "https://api.oooefam.net/api/v2"
+
+        guard let url = URL(string: urlString) else {
+            fatalError("Invalid API_BASE_URL: \(urlString)")
         }
         return url
     }()

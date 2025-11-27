@@ -172,7 +172,7 @@ public class BookSearchAPIService {
 
         await withTaskGroup(of: (SearchResult?, Double)?.self) { group in
             for activity in top10 {
-                let isbn = activity.isbn  // Capture value to avoid sendability issues
+                guard let isbn = activity.isbn else { continue }  // Skip if ISBN is nil
                 group.addTask { [logger] in
                     do {
                         let response = try await self.search(query: isbn, maxResults: 1, persist: false)
