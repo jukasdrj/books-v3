@@ -1,8 +1,20 @@
-# BooksTrack API Contract v3.0
+# BooksTrack API Contract v3.1
 
 **Status:** Production ✅
 **Last Updated:** November 27, 2025
 **Base URL:** `https://api.oooefam.net`
+
+---
+
+## Changelog (v3.1)
+
+- **NEW:** `DELETE /v1/jobs/{jobId}` - Job cancellation with R2/KV cleanup (§7.5)
+- **NEW:** WebSocket late-connect support - clients connecting after job completes receive results immediately (§8.3)
+- **NEW:** `enrichmentStatus: "circuit_open"` - explicit status for circuit breaker failures (§7.6.1)
+- **SECURITY:** WebSocket token via `Sec-WebSocket-Protocol` header (recommended) - query param deprecated (§8.1)
+- **FIX:** Results TTL now 2 hours (was 1 hour) to match token expiry
+- **FIX:** Summary counts clarified: `photosProcessed`, `booksDetected`, `booksUnique`, `booksEnriched`
+- **FIX:** D1-primary persistence pattern (D1 first, then KV cache)
 
 ---
 
@@ -352,15 +364,28 @@ data: {"jobId":"...","status":"processing","progress":0.5,"processedCount":50,"t
 
 event: completed
 data: {"jobId":"...","status":"completed","progress":1.0,"processedCount":100,"totalCount":100}
+
+event: failed
+data: {"jobId":"...","status":"failed","progress":0.3,"processedCount":30,"totalCount":100,"error":{"code":"E_CSV_PARSE_FAILED","message":"Invalid CSV format at row 31","retryable":false,"details":{"row":31}}}
 ```
 
 **Event Types:**
 - `initialized`: Job created
 - `processing`: Progress update (sent every 2s or on change)
 - `completed`: Job finished successfully
-- `failed`: Job failed with error
+- `failed`: Job failed with structured error (see Error Object below)
 - `error`: Stream error (reconnect recommended)
 - `timeout`: No progress for 5 minutes
+
+**Error Object Structure (for `failed` events):**
+```typescript
+{
+  "code": string,        // Machine-readable error code (e.g., "E_CSV_PARSE_FAILED")
+  "message": string,     // Human-readable error message
+  "retryable": boolean,  // Whether the operation can be retried
+  "details"?: object     // Optional additional context (row numbers, field names, etc.)
+}
+```
 
 **Reconnection:**
 - Client sends `Last-Event-ID` header with last received event ID
@@ -418,16 +443,48 @@ GET /api/v2/imports/{jobId}/results
   },
   "metadata": {
     "cached": true,
-    "ttl": "1 hour"
+    "ttl": "2 hours"
   }
 }
 ```
 
-**TTL:** Results stored for 1 hour after job completion
+**TTL:** Results stored for 2 hours after job completion (matches token expiry)
 
 ---
 
-### 7.5 Bookshelf Photo Scan
+### 7.5 Job Cancellation
+
+```http
+DELETE /v1/jobs/{jobId}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "jobId": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "canceled",
+    "message": "Job canceled successfully",
+    "cleanup": {
+      "r2ObjectsDeleted": 3,
+      "kvCacheCleared": true
+    }
+  }
+}
+```
+
+**Behavior:**
+- Cancels the job (sets `canceled: true` in DO state)
+- Deletes R2 images for bookshelf scans
+- Clears KV cache entries for job results
+- Returns partial results if processing was in progress
+
+**Note:** This is an idempotent operation. Calling DELETE on an already-canceled or completed job returns success.
+
+---
+
+### 7.6 Bookshelf Photo Scan
 ```http
 POST /api/batch-scan
 Content-Type: multipart/form-data
@@ -439,27 +496,100 @@ photos: <1-5 JPEG/PNG files>
 
 **Rate Limit:** 5 req/min per IP
 
+#### 7.6.1 Detected Book Object
+
+Each detected book in the results array has the following structure:
+
+```json
+{
+  "title": "The Great Gatsby",
+  "author": "F. Scott Fitzgerald",
+  "isbn": "9780743273565",
+  "confidence": 0.92,
+  "boundingBox": { "x": 0.1, "y": 0.2, "width": 0.3, "height": 0.4 },
+  "enrichmentStatus": "success",
+  "enrichment": {
+    "status": "success",
+    "work": { /* WorkDTO */ },
+    "editions": [ /* EditionDTO[] */ ],
+    "authors": [ /* AuthorDTO[] */ ],
+    "provider": "google_books",
+    "cachedResult": true
+  }
+}
+```
+
+**enrichmentStatus Values:**
+| Status | Description |
+|--------|-------------|
+| `pending` | Enrichment not yet attempted |
+| `success` | Book found and enriched with metadata |
+| `not_found` | No matching book found in providers |
+| `error` | Enrichment failed (transient error) |
+| `circuit_open` | Provider circuit breaker is open; retry later |
+
+**circuit_open Details:**
+
+When `enrichmentStatus: "circuit_open"`, the `enrichment` object includes:
+```json
+{
+  "status": "circuit_open",
+  "error": "Provider google_books temporarily unavailable",
+  "retryAfterMs": 60000,
+  "work": null,
+  "editions": [],
+  "authors": []
+}
+```
+
+The `retryAfterMs` field indicates when the client can retry enrichment.
+
 ---
 
-## 8. WebSocket API (Legacy)
+## 8. WebSocket API
 
 ### 8.1 Connection
+
+**Secure Method (Recommended):**
+```javascript
+// Token via Sec-WebSocket-Protocol header (secure, not logged)
+const ws = new WebSocket(
+  'wss://api.oooefam.net/ws/progress?jobId={jobId}',
+  ['bookstrack-auth.{authToken}']
+);
+```
+
+**Legacy Method (Deprecated):**
 ```
 wss://api.oooefam.net/ws/progress?jobId={jobId}&token={authToken}
 ```
+⚠️ **Warning:** URL query param tokens are logged in browser history and server logs. This method is deprecated and will be removed when `REQUIRE_SUBPROTOCOL_AUTH=true` is enabled.
 
 **Requirements:**
 - HTTP/1.1 only (not HTTP/2 or HTTP/3)
 - Valid `jobId` and `authToken` from job initiation response
+- Token valid for 2 hours from job creation
 
-**Lifecycle:**
-1. Client connects with jobId + token
-2. Client sends `{"type":"ready"}` signal
-3. Server sends `{"type":"ready_ack"}`
-4. Server streams progress updates
-5. Server closes with code 1000 on completion
+### 8.2 Lifecycle
 
-**Message Format:**
+1. Client connects with jobId + token (subprotocol preferred)
+2. **NEW:** If job already complete, server sends `job_complete` immediately and closes
+3. Client sends `{"type":"ready"}` signal
+4. Server sends `{"type":"ready_ack"}`
+5. Server streams progress updates
+6. Server closes with code 1000 on completion
+
+### 8.3 Late-Connect Support
+
+**NEW (v3.0):** If client connects after job completes, the server will:
+1. Send the stored `job_complete` message immediately
+2. Close the connection with code 1000
+
+This ensures clients that reconnect or connect late still receive results without polling.
+
+### 8.4 Message Format
+
+**Progress Update:**
 ```json
 {
   "type": "job_progress",
@@ -472,7 +602,26 @@ wss://api.oooefam.net/ws/progress?jobId={jobId}&token={authToken}
 }
 ```
 
-**Note:** WebSocket is maintained for backward compatibility. New integrations should use SSE (section 7.2).
+**Job Complete (AI Scan):**
+```json
+{
+  "type": "job_complete",
+  "payload": {
+    "summary": {
+      "photosProcessed": 3,
+      "booksDetected": 25,
+      "booksUnique": 20,
+      "booksEnriched": 18,
+      "approved": 15,
+      "needsReview": 5,
+      "duration": 12500,
+      "resourceId": "scan-results:{jobId}"
+    }
+  }
+}
+```
+
+**Note:** SSE is now the recommended method for new integrations (section 7.2).
 
 ---
 

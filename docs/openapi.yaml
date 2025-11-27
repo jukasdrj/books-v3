@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: BooksTrack API
-  version: 3.0.0
+  version: 3.1.0
   description: Book search, enrichment, and AI-powered scanning API
   contact:
     email: api-support@oooefam.net
@@ -229,6 +229,98 @@ components:
         pipeline:
           type: string
           enum: [csv_import, batch_enrichment, ai_scan]
+
+    DetectedBook:
+      type: object
+      description: Book detected by AI bookshelf scan (v3.1)
+      properties:
+        title:
+          type: string
+        author:
+          type: string
+        isbn:
+          type: string
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: AI confidence score
+        boundingBox:
+          type: object
+          properties:
+            x:
+              type: number
+            y:
+              type: number
+            width:
+              type: number
+            height:
+              type: number
+        enrichmentStatus:
+          type: string
+          enum: [pending, success, not_found, error, circuit_open]
+          description: |
+            Status of book enrichment:
+            - pending: Not yet attempted
+            - success: Enriched with metadata
+            - not_found: No matching book in providers
+            - error: Enrichment failed (transient)
+            - circuit_open: Provider circuit breaker open (NEW in v3.1)
+        enrichment:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [success, not_found, error, circuit_open]
+            work:
+              type: object
+            editions:
+              type: array
+              items:
+                type: object
+            authors:
+              type: array
+              items:
+                type: object
+            provider:
+              type: string
+            cachedResult:
+              type: boolean
+            error:
+              type: string
+            retryAfterMs:
+              type: integer
+              description: For circuit_open status, milliseconds until retry is allowed
+
+    ScanJobSummary:
+      type: object
+      description: AI scan job completion summary (v3.1 semantics)
+      properties:
+        photosProcessed:
+          type: integer
+          description: Number of photos scanned
+        booksDetected:
+          type: integer
+          description: Total books found across all photos (before dedup)
+        booksUnique:
+          type: integer
+          description: Unique books after ISBN deduplication
+        booksEnriched:
+          type: integer
+          description: Books with successful enrichment
+        approved:
+          type: integer
+          description: Books with confidence >= threshold
+        needsReview:
+          type: integer
+          description: Books with confidence < threshold
+        duration:
+          type: integer
+          description: Processing time in milliseconds
+        resourceId:
+          type: string
+          description: KV cache key for full results
 
 paths:
   /health:
@@ -679,12 +771,94 @@ paths:
               schema:
                 $ref: '#/components/schemas/JobResponse'
 
+  /v1/jobs/{jobId}:
+    delete:
+      tags: [Import]
+      summary: Cancel job and cleanup resources
+      description: |
+        Cancels a running job and cleans up associated resources (R2 images, KV cache).
+        This is an idempotent operation - calling DELETE on completed/canceled jobs returns success.
+
+        **NEW in v3.1** - Added for shelf scan fixes.
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job canceled successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          jobId:
+                            type: string
+                            format: uuid
+                          status:
+                            type: string
+                            const: canceled
+                          message:
+                            type: string
+                          cleanup:
+                            type: object
+                            properties:
+                              r2ObjectsDeleted:
+                                type: integer
+                              kvCacheCleared:
+                                type: boolean
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/jobs/{jobId}/status:
+    get:
+      tags: [Import]
+      summary: Get job status
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job status
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/JobStatus'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /v1/jobs/{jobId}/results:
     get:
       tags: [Import]
-      summary: Get job results (V1 legacy)
-      deprecated: true
-      description: Use /api/v2/imports/{jobId}/results instead
+      summary: Get job results (unified endpoint)
+      description: |
+        Returns job results for any pipeline type (csv_import, batch_enrichment, ai_scan).
+        Results are cached for 2 hours (matches token expiry).
       parameters:
         - name: jobId
           in: path
@@ -700,7 +874,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
         '404':
-          description: Results not found
+          description: Results not found or expired
           content:
             application/json:
               schema:
