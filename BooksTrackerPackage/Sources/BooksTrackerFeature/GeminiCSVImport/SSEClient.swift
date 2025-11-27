@@ -317,7 +317,7 @@ actor SSEClient: NSObject {
         case "error":
             do {
                 let event = try decoder.decode(SSEErrorEvent.self, from: jsonData)
-                onError(.serverError(event.message))
+                onError(.serverError(event.error.message))
                 // Auto-disconnect on error
                 Task {
                     await self.disconnect()

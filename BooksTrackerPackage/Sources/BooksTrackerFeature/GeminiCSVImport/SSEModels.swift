@@ -66,20 +66,55 @@ public struct SSECompleteEvent: Codable, Sendable {
     }
 }
 
+/// Error detail structure for SSE failed/error events (V2 API)
+public struct ErrorDetail: Codable, Sendable, Equatable {
+    public let code: String
+    public let message: String
+    public let retryable: Bool?
+    public let details: AnyCodable?
+
+    public init(code: String, message: String, retryable: Bool? = nil, details: AnyCodable? = nil) {
+        self.code = code
+        self.message = message
+        self.retryable = retryable
+        self.details = details
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case code
+        case message
+        case retryable
+        case details
+    }
+
+    // Custom Equatable to handle AnyCodable
+    public static func == (lhs: ErrorDetail, rhs: ErrorDetail) -> Bool {
+        lhs.code == rhs.code &&
+        lhs.message == rhs.message &&
+        lhs.retryable == rhs.retryable
+        // Ignoring details for equality since AnyCodable holds Any
+    }
+}
+
+// Note: AnyCodable is defined in DTOs/WebSocketMessages.swift and reused here
+
 /// Failed/Error event from SSE stream (V2 API)
+/// ⚠️ Updated to match backend spec: error is now a structured ErrorDetail object
 public struct SSEErrorEvent: Codable, Sendable {
     public let jobId: String?
     public let status: String?
-    public let error: String
-    public let message: String
-    public let details: String?
+    public let progress: Double?
+    public let processedCount: Int?
+    public let totalCount: Int?
+    public let error: ErrorDetail  // ⚠️ Changed from String to ErrorDetail
 
     enum CodingKeys: String, CodingKey {
         case jobId
         case status
+        case progress
+        case processedCount
+        case totalCount
         case error
-        case message
-        case details
     }
 }
 

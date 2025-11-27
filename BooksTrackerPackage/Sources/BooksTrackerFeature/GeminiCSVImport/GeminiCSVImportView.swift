@@ -73,7 +73,12 @@ public struct GeminiCSVImportView: View {
         case uploading
         case processing(progress: Double, message: String)
         case completed(books: [GeminiCSVImportJob.ParsedBook], errors: [GeminiCSVImportJob.ImportError])
-        case failed(String)
+        case failed(ErrorDetail)
+    }
+
+    // Helper to create ErrorDetail for local errors
+    private func makeErrorDetail(code: String = "CLIENT_ERROR", message: String, retryable: Bool = false) -> ErrorDetail {
+        ErrorDetail(code: code, message: message, retryable: retryable, details: nil)
     }
 
     public var body: some View {
@@ -263,7 +268,7 @@ public struct GeminiCSVImportView: View {
         }
     }
 
-    private func failedView(error: String) -> some View {
+    private func failedView(error: ErrorDetail) -> some View {
         VStack(spacing: 20) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 64))
@@ -273,11 +278,23 @@ public struct GeminiCSVImportView: View {
                 .font(.title2)
                 .fontWeight(.semibold)
 
-            Text(error)
-                .font(.body)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding()
+            VStack(spacing: 8) {
+                Text(error.message)
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+
+                Text("Error Code: \(error.code)")
+                    .font(.caption)
+                    .foregroundColor(.secondary.opacity(0.6))
+
+                if let retryable = error.retryable, retryable {
+                    Label("This error is retryable", systemImage: "arrow.clockwise.circle")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+            }
+            .padding()
 
             Button {
                 importStatus = .idle
@@ -303,7 +320,7 @@ public struct GeminiCSVImportView: View {
             Task { await uploadCSV(from: url) }
 
         case .failure(let error):
-            importStatus = .failed("File selection failed: \(error.localizedDescription)")
+            importStatus = .failed(makeErrorDetail(message: "File selection failed: \(error.localizedDescription)"))
         }
     }
 
@@ -313,7 +330,7 @@ public struct GeminiCSVImportView: View {
         do {
             // Read CSV content
             guard url.startAccessingSecurityScopedResource() else {
-                importStatus = .failed("Cannot access file")
+                importStatus = .failed(makeErrorDetail(message: "Cannot access file"))
                 return
             }
             defer { url.stopAccessingSecurityScopedResource() }
@@ -333,9 +350,9 @@ public struct GeminiCSVImportView: View {
             startSSEStream(jobId: uploadedJobId)
 
         } catch let error as GeminiCSVImportError {
-            importStatus = .failed(error.localizedDescription)
+            importStatus = .failed(makeErrorDetail(message: error.localizedDescription))
         } catch {
-            importStatus = .failed("Upload failed: \(error.localizedDescription)")
+            importStatus = .failed(makeErrorDetail(message: "Upload failed: \(error.localizedDescription)"))
         }
     }
 
@@ -391,16 +408,16 @@ public struct GeminiCSVImportView: View {
                         #if DEBUG
                         print("[CSV SSE] ❌ Failed to fetch results: \(error)")
                         #endif
-                        self.importStatus = .failed("Failed to fetch results: \(error.localizedDescription)")
+                        self.importStatus = .failed(makeErrorDetail(code: "RESULTS_FETCH_FAILED", message: "Failed to fetch results: \(error.localizedDescription)"))
                     }
                 }
             },
             onFailed: { event in
                 Task { @MainActor in
                     #if DEBUG
-                    print("[CSV SSE] Failed: \(event.message)")
+                    print("[CSV SSE] Failed: \(event.error.message)")
                     #endif
-                    self.importStatus = .failed(event.message)
+                    self.importStatus = .failed(event.error)
                 }
             },
             onError: { error in
@@ -408,7 +425,7 @@ public struct GeminiCSVImportView: View {
                     #if DEBUG
                     print("[CSV SSE] Error: \(error.localizedDescription)")
                     #endif
-                    self.importStatus = .failed(error.localizedDescription)
+                    self.importStatus = .failed(makeErrorDetail(message: error.localizedDescription))
                 }
             },
             onTimeout: { event in
@@ -416,7 +433,7 @@ public struct GeminiCSVImportView: View {
                     #if DEBUG
                     print("[CSV SSE] Timeout: \(event.message)")
                     #endif
-                    self.importStatus = .failed("Import timed out: \(event.message)")
+                    self.importStatus = .failed(makeErrorDetail(code: "TIMEOUT", message: "Import timed out: \(event.message)"))
                 }
             }
         )
@@ -612,7 +629,7 @@ public struct GeminiCSVImportView: View {
             generator.notificationOccurred(.error)
 
             // Update UI with error
-            importStatus = .failed("Failed to save: \(error.localizedDescription)")
+            importStatus = .failed(makeErrorDetail(code: "SAVE_FAILED", message: "Failed to save: \(error.localizedDescription)"))
             return false
         }
     }
