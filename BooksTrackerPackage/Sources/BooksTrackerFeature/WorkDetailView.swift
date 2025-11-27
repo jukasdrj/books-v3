@@ -152,8 +152,8 @@ struct WorkDetailView: View {
                 // MARK: - Book Cover Hero
                 bookCoverHero
 
-                // MARK: - Edition Metadata Card
-                EditionMetadataView(work: work, edition: primaryEdition)
+                // MARK: - Metadata & Diversity Tabs
+                metadataTabsSection
                     .padding(.horizontal, 20)
 
                 // MARK: - Similar Books Section
@@ -250,6 +250,29 @@ struct WorkDetailView: View {
                 }
             }
             .padding(.horizontal, 20)
+        }
+    }
+
+    // MARK: - Metadata & Diversity Tabs Section
+
+    @ViewBuilder
+    private var metadataTabsSection: some View {
+        let diversityScore = DiversityScore(work: work)
+
+        if diversityScore.hasAnyData {
+            // Show tabbed interface when diversity data is available
+            TabView {
+                EditionMetadataView(work: work, edition: primaryEdition)
+                    .tag(0)
+
+                DiversityInsightsTab(work: work)
+                    .tag(1)
+            }
+            .tabViewStyle(.page(indexDisplayMode: .always))
+            .frame(minHeight: 400) // Adjust based on content
+        } else {
+            // Show only metadata when no diversity data
+            EditionMetadataView(work: work, edition: primaryEdition)
         }
     }
 
@@ -597,13 +620,21 @@ struct AuthorSearchResultsView: View {
         let container = try! ModelContainer(for: Work.self, Edition.self, UserLibraryEntry.self, Author.self)
         let context = container.mainContext
 
-        // Sample data
-        let author = Author(name: "Kazuo Ishiguro", culturalRegion: .asia)
+        // Sample data with diversity information
+        let author = Author(
+            name: "Kazuo Ishiguro",
+            nationality: "British-Japanese",
+            gender: .male,
+            culturalRegion: .asia
+        )
         let work = Work(
             title: "Klara and the Sun",
             originalLanguage: "English",
             firstPublicationYear: 2021
         )
+        work.isOwnVoices = false
+        work.accessibilityTags = ["audiobook", "large-print"]
+
         let edition = Edition(
             isbn: "9780571364893",
             publisher: "Faber & Faber",
@@ -611,6 +642,7 @@ struct AuthorSearchResultsView: View {
             pageCount: 303,
             format: .hardcover
         )
+        edition.originalLanguage = "English"
 
         context.insert(author)
         context.insert(work)
