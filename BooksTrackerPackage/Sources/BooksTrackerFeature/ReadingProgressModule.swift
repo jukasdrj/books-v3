@@ -62,8 +62,7 @@ struct ReadingProgressModule: View {
             }
         }
         .padding()
-        .background(GlassEffect(tint: .green.opacity(0.1)))
-        .cornerRadius(20)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
         .sheet(isPresented: $showEndSessionSheet) {
             EndSessionSheet(
                 workTitle: work.title,

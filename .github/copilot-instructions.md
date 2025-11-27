@@ -19,7 +19,7 @@ xcodebuild -workspace BooksTracker.xcworkspace \
            -configuration Debug \
            build
 
-# MCP command (requires XcodeBuildMCP server):
+# Slash command (uses xcodebuild CLI):
 /build
 ```
 
@@ -30,18 +30,18 @@ xcodebuild test -workspace BooksTracker.xcworkspace \
                 -scheme BooksTracker \
                 -destination 'platform=iOS Simulator,name=iPhone 15 Pro'
 
-# MCP command:
+# Slash command:
 /test
 ```
 
 ### Run
 ```bash
 # Launch in simulator with log streaming
-# MCP command:
+# Slash command:
 /sim
 
 # Deploy to connected iPhone/iPad
-# MCP command:
+# Slash command:
 /device-deploy
 ```
 

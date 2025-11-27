@@ -121,29 +121,37 @@ actor GeminiCSVImportService {
             throw GeminiCSVImportError.fileTooLarge(dataSize)
         }
 
-        // V2 API: Use JSON payload instead of multipart/form-data
+        // V2 API: Use multipart/form-data (backend expects 'file' field)
         let url = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/v2/imports")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 120 // 2 minute timeout for large CSV files
+
+        // Create multipart/form-data boundary
+        let boundary = "Boundary-\(UUID().uuidString)"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
         #if DEBUG
         print("[CSV Upload] Request configured, endpoint: \(url)")
         #endif
 
-        // Create JSON payload with CSV content
-        let payload: [String: Any] = [
-            "csvContent": csvText,
-            "delimiter": ",",
-            "hasHeader": true
-        ]
-        let body = try JSONSerialization.data(withJSONObject: payload)
+        // Build multipart/form-data body
+        var body = Data()
+
+        // Add CSV file field
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"import.csv\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: text/csv\r\n\r\n".data(using: .utf8)!)
+        body.append(csvText.data(using: .utf8)!)
+        body.append("\r\n".data(using: .utf8)!)
+
+        // Close multipart boundary
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 
         request.httpBody = body
 
         #if DEBUG
-        print("[CSV Upload] JSON payload constructed, size: \(body.count) bytes")
+        print("[CSV Upload] Multipart/form-data constructed, size: \(body.count) bytes")
         print("[CSV Upload] Sending request to V2 API...")
         #endif
 
@@ -209,6 +217,78 @@ actor GeminiCSVImportService {
         } catch {
             #if DEBUG
             print("[CSV Upload] ❌ Network Error: \(error.localizedDescription)")
+            #endif
+            throw GeminiCSVImportError.networkError(error)
+        }
+    }
+
+    // MARK: - Fetch Results
+
+    /// Fetch results from completed import job (V2 API)
+    /// - Parameter jobId: The import job ID
+    /// - Returns: Results summary with counts and errors
+    /// - Throws: GeminiCSVImportError on failure
+    func fetchResults(jobId: String) async throws -> SSEResultsResponse {
+        #if DEBUG
+        print("[CSV Results] Fetching results for job: \(jobId)")
+        #endif
+
+        let url = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/v2/imports/\(jobId)/results")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 30
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw GeminiCSVImportError.invalidResponse
+            }
+
+            #if DEBUG
+            print("[CSV Results] Status code: \(httpResponse.statusCode)")
+            #endif
+
+            if httpResponse.statusCode != 200 {
+                // Try to decode error response
+                if let errorResponse = try? JSONDecoder().decode(ResponseEnvelope<SSEResultsResponse>.self, from: data),
+                   let error = errorResponse.error {
+                    let errorMessageWithCode = error.code != nil
+                        ? "\(error.message) (Code: \(error.code!))"
+                        : error.message
+                    throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessageWithCode)
+                }
+                let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+                throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessage)
+            }
+
+            // Decode response
+            let decoder = JSONDecoder()
+            let envelope = try decoder.decode(ResponseEnvelope<SSEResultsResponse>.self, from: data)
+
+            // Check for errors in response
+            if let error = envelope.error {
+                let errorMessageWithCode = error.code != nil
+                    ? "\(error.message) (Code: \(error.code!))"
+                    : error.message
+                throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessageWithCode)
+            }
+
+            // Extract data
+            guard let results = envelope.data else {
+                throw GeminiCSVImportError.serverError(httpResponse.statusCode, "No data in response")
+            }
+
+            #if DEBUG
+            print("[CSV Results] ✅ Results fetched: \(results.booksCreated) created, \(results.booksUpdated) updated")
+            #endif
+            return results
+
+        } catch let error as GeminiCSVImportError {
+            throw error
+        } catch {
+            #if DEBUG
+            print("[CSV Results] ❌ Network Error: \(error.localizedDescription)")
             #endif
             throw GeminiCSVImportError.networkError(error)
         }

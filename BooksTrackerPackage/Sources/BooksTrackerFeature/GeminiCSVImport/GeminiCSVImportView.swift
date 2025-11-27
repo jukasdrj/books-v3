@@ -344,81 +344,67 @@ public struct GeminiCSVImportView: View {
         print("[CSV SSE] Starting SSE stream for job: \(jobId)")
         #endif
 
-        // Create SSE client with callbacks
+        // Create SSE client with V2 API callbacks
         let client = SSEClient(
             baseURL: EnrichmentConfig.apiBaseURL,
-            onQueued: { [weak self] event in
+            onInitialized: { [weak self] event in
                 Task { @MainActor in
                     guard let self = self else { return }
                     #if DEBUG
-                    print("[CSV SSE] Queued: \(event.jobId)")
+                    print("[CSV SSE] Initialized: \(event.jobId), total: \(event.totalCount)")
                     #endif
-                    self.importStatus = .processing(progress: 0.0, message: "Job queued...")
+                    self.importStatus = .processing(progress: event.progress, message: "Job initialized...")
                 }
             },
-            onStarted: { [weak self] event in
+            onProcessing: { [weak self] event in
                 Task { @MainActor in
                     guard let self = self else { return }
                     #if DEBUG
-                    print("[CSV SSE] Started: \(event.totalRows) rows")
-                    #endif
-                    self.importStatus = .processing(progress: 0.0, message: "Processing \(event.totalRows) rows...")
-                }
-            },
-            onProgress: { [weak self] event in
-                Task { @MainActor in
-                    guard let self = self else { return }
-                    #if DEBUG
-                    print("[CSV SSE] Progress: \(Int(event.progress * 100))% (\(event.processedRows)/\(event.successfulRows))")
+                    print("[CSV SSE] Processing: \(Int(event.progress * 100))% (\(event.processedCount)/\(event.totalCount))")
                     #endif
                     self.importStatus = .processing(
                         progress: event.progress,
-                        message: "Processed \(event.processedRows) rows..."
+                        message: "Processed \(event.processedCount) of \(event.totalCount) rows..."
                     )
                 }
             },
-            onComplete: { [weak self] event in
+            onCompleted: { [weak self] event in
                 Task { @MainActor in
                     guard let self = self else { return }
                     #if DEBUG
-                    print("[CSV SSE] Complete: \(event.resultSummary.booksCreated) created, \(event.resultSummary.enrichmentSucceeded) enriched")
+                    print("[CSV SSE] Completed: \(event.jobId)")
                     #endif
 
-                    // Convert SSE result to legacy format
-                    let books: [GeminiCSVImportJob.ParsedBook] = []  // V2 API doesn't return book details in SSE
-                    let errors = event.resultSummary.errors?.map { error in
-                        GeminiCSVImportJob.ImportError(title: error.isbn, error: error.error)
-                    } ?? []
-
-                    // Fetch full results from the backend
+                    // V2 API: Fetch full results from /api/v2/imports/{jobId}/results
                     do {
-                        let fullResults = try await self.fetchJobResults(jobId: jobId)
+                        let results = try await GeminiCSVImportService.shared.fetchResults(jobId: event.jobId)
 
-                        // Convert to legacy format
-                        let legacyBooks = (fullResults.books ?? []).map { book in
-                            GeminiCSVImportJob.ParsedBook(
-                                title: book.title,
-                                author: book.author,
-                                isbn: book.isbn,
-                                coverUrl: book.coverUrl,
-                                publisher: book.publisher,
-                                publicationYear: book.publicationYear,
-                                enrichmentError: book.enrichmentError
-                            )
+                        #if DEBUG
+                        print("[CSV SSE] Results: \(results.booksCreated) created, \(results.booksUpdated) updated")
+                        #endif
+
+                        // Convert to display format (no book details, just summary)
+                        let errors = results.errors.map { error in
+                            GeminiCSVImportJob.ImportError(title: error.isbn, error: error.error)
                         }
 
-                        let legacyErrors = (fullResults.errors ?? []).map { error in
-                            GeminiCSVImportJob.ImportError(title: error.title, error: error.error)
-                        }
-
-                        self.importStatus = .completed(books: legacyBooks, errors: legacyErrors)
+                        // Display completion with summary
+                        self.importStatus = .completed(books: [], errors: errors)
                     } catch {
                         #if DEBUG
                         print("[CSV SSE] ❌ Failed to fetch results: \(error)")
                         #endif
-                        // Use summary data as fallback
-                        self.importStatus = .completed(books: books, errors: errors)
+                        self.importStatus = .failed("Failed to fetch results: \(error.localizedDescription)")
                     }
+                }
+            },
+            onFailed: { [weak self] event in
+                Task { @MainActor in
+                    guard let self = self else { return }
+                    #if DEBUG
+                    print("[CSV SSE] Failed: \(event.message)")
+                    #endif
+                    self.importStatus = .failed(event.message)
                 }
             },
             onError: { [weak self] error in
@@ -428,6 +414,15 @@ public struct GeminiCSVImportView: View {
                     print("[CSV SSE] Error: \(error.localizedDescription)")
                     #endif
                     self.importStatus = .failed(error.localizedDescription)
+                }
+            },
+            onTimeout: { [weak self] event in
+                Task { @MainActor in
+                    guard let self = self else { return }
+                    #if DEBUG
+                    print("[CSV SSE] Timeout: \(event.message)")
+                    #endif
+                    self.importStatus = .failed("Import timed out: \(event.message)")
                 }
             }
         )

@@ -4,7 +4,7 @@ description: Launch BooksTrack in iOS Simulator with log streaming
 
 📲 **Simulator Launch & Debug** 📲
 
-Boot iOS Simulator, install BooksTrack, and stream runtime logs using XcodeBuildMCP.
+Boot iOS Simulator, install BooksTrack, and stream runtime logs using xcodebuild.
 
 **Tasks:**
 
@@ -19,7 +19,7 @@ Boot iOS Simulator, install BooksTrack, and stream runtime logs using XcodeBuild
    - Launch BooksTrack automatically
 
 3. **Log Streaming**
-   - Stream app logs in real-time via MCP
+   - Stream app logs in real-time
    - Filter for relevant messages:
      - ✅ CSV import progress ("📖 Enrichment progress")
      - ⚠️ Warnings and errors

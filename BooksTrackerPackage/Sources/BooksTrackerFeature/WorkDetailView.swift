@@ -619,7 +619,6 @@ struct AuthorSearchResultsView: View {
 
 // MARK: - Preview
 
-@available(iOS 26.0, *)
 #Preview {
     @Previewable @State var container: ModelContainer = {
         let container = try! ModelContainer(for: Work.self, Edition.self, UserLibraryEntry.self, Author.self)

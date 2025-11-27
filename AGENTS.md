@@ -57,12 +57,12 @@ docs/                               # Documentation hub (see docs/README.md)
 - Scheme: `BooksTracker`
 - Zero warnings enforced: `GCC_TREAT_WARNINGS_AS_ERRORS = YES`
 
-**MCP Commands (Claude Code only):**
+**Slash Commands (Claude Code only):**
 ```bash
-/build         # Quick build validation
-/test          # Run Swift Testing suite
+/build         # Quick build validation using xcodebuild
+/test          # Run Swift Testing suite using xcodebuild
 /sim           # Launch in iOS Simulator with log streaming
-/device-deploy # Deploy to connected iPhone/iPad
+/device-deploy # Deploy to connected iPhone/iPad using xcodebuild
 ```
 
 **Manual Build:**
@@ -674,7 +674,6 @@ xcodebuild clean -workspace BooksTracker.xcworkspace -scheme BooksTracker
 ```
 📄 AGENTS.md                ← This file (unified AI agent guide)
 📄 CLAUDE.md                ← Claude Code-specific (MCP, slash commands)
-📄 MCP_SETUP.md            ← XcodeBuildMCP workflows
 📄 CHANGELOG.md            ← Victory stories + debugging sagas
 
 📁 docs/

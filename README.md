@@ -136,7 +136,7 @@ This project uses Claude Code with MCP servers for AI-assisted development.
 
 **Slash Commands:**
 ```bash
-/build         # Quick build validation using XcodeBuildMCP
+/build         # Quick build validation using xcodebuild
 /test          # Run Swift Testing suite
 /sim           # Launch app in iOS Simulator with log streaming
 /device-deploy # Deploy to connected iPhone/iPad

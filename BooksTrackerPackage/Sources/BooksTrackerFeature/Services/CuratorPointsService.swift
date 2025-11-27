@@ -7,7 +7,7 @@ public class CuratorPointsService: ObservableObject {
 
     /// UserDefaults key for storing points.
     private let pointsKey = "com.bookstracker.curatorPoints"
-    private let userDefaults: UserDefaults
+    private nonisolated(unsafe) let userDefaults: UserDefaults
 
     /// Total points accumulated by the user.
     @Published public private(set) var totalPoints: Int

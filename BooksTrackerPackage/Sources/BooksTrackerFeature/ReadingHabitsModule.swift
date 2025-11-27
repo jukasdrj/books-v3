@@ -45,8 +45,7 @@ struct ReadingHabitsModule: View {
             Spacer()
         }
         .padding()
-        .background(GlassEffect(tint: .purple.opacity(0.1)))
-        .cornerRadius(20)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
     }
 }
 

@@ -1,15 +1,15 @@
 ---
-description: Deploy BooksTrack to connected iPhone/iPad using XcodeBuildMCP
+description: Deploy BooksTrack to connected iPhone/iPad using xcodebuild
 ---
 
 📱 **Physical Device Deployment** 📱
 
-Build, install, and validate BooksTrack on connected iOS device using XcodeBuildMCP.
+Build, install, and validate BooksTrack on connected iOS device using xcodebuild.
 
 **Tasks:**
 
 1. **Device Discovery**
-   - List all connected iOS devices via MCP
+   - List all connected iOS devices
    - Show device name, model, iOS version, and UUID
    - Verify device is eligible for development builds
 
@@ -19,7 +19,7 @@ Build, install, and validate BooksTrack on connected iOS device using XcodeBuild
    - Report build time and any errors
 
 3. **Install on Device**
-   - Install .app bundle on device via MCP
+   - Install .app bundle on device
    - Verify installation success
    - Report app bundle size
 

@@ -1,10 +1,10 @@
 ---
-description: Quick build validation using XcodeBuildMCP
+description: Quick build validation using xcodebuild
 ---
 
 🔨 **Quick Build Check** 🔨
 
-Use XcodeBuildMCP to build BooksTracker.xcworkspace for iOS Simulator and report any issues.
+Use xcodebuild to build BooksTracker.xcworkspace for iOS Simulator and report any issues.
 
 **Tasks:**
 1. Build for iPhone 17 Pro simulator (Debug configuration)

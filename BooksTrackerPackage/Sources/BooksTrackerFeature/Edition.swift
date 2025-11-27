@@ -37,7 +37,6 @@ public final class Edition {
     var format: EditionFormat = EditionFormat.hardcover
     var coverImageURL: String?
     var editionTitle: String? // "Deluxe Edition", "Abridged", etc.
-    var originalLanguage: String?
 
     /// Original language of this edition (e.g., "English", "Japanese", "Spanish")
     /// Used for diversity metrics - translations from non-English score higher

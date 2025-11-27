@@ -195,7 +195,6 @@ private func makePreviewContainer(configure: (ModelContext) -> Void) -> ModelCon
 
 // MARK: - Preview
 
-@available(iOS 26.0, *)
 #Preview("With Complete Data") {
     @Previewable @State var container = makePreviewContainer { context in
         let author = Author(

@@ -1,10 +1,10 @@
 ---
-description: Run Swift tests using XcodeBuildMCP
+description: Run Swift tests using xcodebuild
 ---
 
 🧪 **Swift Test Suite Runner** 🧪
 
-Execute BooksTrackerPackage test suite using XcodeBuildMCP and provide detailed failure analysis.
+Execute BooksTrackerPackage test suite using xcodebuild and provide detailed failure analysis.
 
 **Tasks:**
 1. Run Swift Testing suite in BooksTrackerPackage

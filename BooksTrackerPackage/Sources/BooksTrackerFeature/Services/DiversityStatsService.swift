@@ -76,8 +76,8 @@ public final class DiversityStatsService {
             }
 
             // Accessibility
-            if let tags = work.accessibilityTags, !tags.isEmpty {
-                for tag in tags {
+            if !work.accessibilityTags.isEmpty {
+                for tag in work.accessibilityTags {
                     accessibilityTags[tag, default: 0] += 1
                 }
                 booksWithAccessibilityData += 1
@@ -182,7 +182,7 @@ public final class DiversityStatsService {
         }
 
         // Check Accessibility
-        if work.accessibilityTags == nil || work.accessibilityTags?.isEmpty == true {
+        if work.accessibilityTags.isEmpty {
             missing.append("accessibilityTags")
         }
 
@@ -230,10 +230,7 @@ public final class DiversityStatsService {
 
         case "accessibilityTags":
             if let value = value as? String {
-                if work.accessibilityTags == nil {
-                    work.accessibilityTags = []
-                }
-                work.accessibilityTags?.append(value)
+                work.accessibilityTags.append(value)
             }
 
         default:

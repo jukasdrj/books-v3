@@ -321,7 +321,6 @@ extension EnhancedDiversityStats {
 
 // MARK: - Preview
 
-@available(iOS 26.0, *)
 #Preview {
     @Previewable @State var container: ModelContainer = {
         // Mock data for preview

@@ -62,6 +62,8 @@ public struct CelebrationView: View {
 /// A simple confetti view using particle effects.
 @available(iOS 26.0, *)
 struct ConfettiView: View {
+    @State private var isAnimating = false
+
     var body: some View {
         ZStack {
             ForEach(0..<50) { _ in
@@ -78,9 +80,12 @@ struct ConfettiView: View {
                         )
                         .repeatForever(autoreverses: false)
                         .delay(.random(in: 0...0.5)),
-                        value: showConfetti
+                        value: isAnimating
                     )
             }
+        }
+        .onAppear {
+            isAnimating = true
         }
     }
 

@@ -2,101 +2,101 @@ import Foundation
 
 // MARK: - SSE Event Models
 
-/// SSE event types for CSV import progress tracking
+/// SSE event types for CSV import progress tracking (V2 API)
 public enum SSEEventType: String, Sendable {
-    case queued
-    case started
-    case progress
-    case complete
+    case initialized
+    case processing
+    case completed
+    case failed
     case error
+    case timeout
 }
 
-/// Progress event from SSE stream
+/// Processing event from SSE stream (V2 API)
 public struct SSEProgressEvent: Codable, Sendable {
-    public let progress: Double
-    public let processedRows: Int
-    public let successfulRows: Int
-    public let failedRows: Int
-
-    enum CodingKeys: String, CodingKey {
-        case progress
-        case processedRows = "processed_rows"
-        case successfulRows = "successful_rows"
-        case failedRows = "failed_rows"
-    }
-}
-
-/// Started event from SSE stream
-public struct SSEStartedEvent: Codable, Sendable {
+    public let jobId: String
     public let status: String
-    public let totalRows: Int
-    public let startedAt: String
+    public let progress: Double
+    public let processedCount: Int
+    public let totalCount: Int
 
     enum CodingKeys: String, CodingKey {
+        case jobId
         case status
-        case totalRows = "total_rows"
-        case startedAt = "started_at"
+        case progress
+        case processedCount
+        case totalCount
     }
 }
 
-/// Complete event from SSE stream
+/// Initialized event from SSE stream (V2 API)
+public struct SSEInitializedEvent: Codable, Sendable {
+    public let jobId: String
+    public let status: String
+    public let progress: Double
+    public let processedCount: Int
+    public let totalCount: Int
+
+    enum CodingKeys: String, CodingKey {
+        case jobId
+        case status
+        case progress
+        case processedCount
+        case totalCount
+    }
+}
+
+/// Completed event from SSE stream (V2 API)
+/// Note: resultSummary NOT included - fetch from /api/v2/imports/{jobId}/results
 public struct SSECompleteEvent: Codable, Sendable {
+    public let jobId: String
     public let status: String
     public let progress: Double
-    public let resultSummary: ResultSummary
+    public let processedCount: Int
+    public let totalCount: Int
+    public let completedAt: String?
 
     enum CodingKeys: String, CodingKey {
+        case jobId
         case status
         case progress
-        case resultSummary = "result_summary"
-    }
-
-    public struct ResultSummary: Codable, Sendable {
-        public let booksCreated: Int
-        public let booksUpdated: Int
-        public let duplicatesSkipped: Int
-        public let enrichmentSucceeded: Int
-        public let enrichmentFailed: Int
-        public let errors: [ImportError]?
-
-        enum CodingKeys: String, CodingKey {
-            case booksCreated = "books_created"
-            case booksUpdated = "books_updated"
-            case duplicatesSkipped = "duplicates_skipped"
-            case enrichmentSucceeded = "enrichment_succeeded"
-            case enrichmentFailed = "enrichment_failed"
-            case errors
-        }
-    }
-
-    public struct ImportError: Codable, Sendable {
-        public let row: Int
-        public let isbn: String
-        public let error: String
+        case processedCount
+        case totalCount
+        case completedAt
     }
 }
 
-/// Error event from SSE stream
+/// Failed/Error event from SSE stream (V2 API)
 public struct SSEErrorEvent: Codable, Sendable {
-    public let status: String
+    public let jobId: String?
+    public let status: String?
     public let error: String
-    public let processedRows: Int?
+    public let message: String
+    public let details: String?
 
     enum CodingKeys: String, CodingKey {
+        case jobId
         case status
         case error
-        case processedRows = "processed_rows"
+        case message
+        case details
     }
 }
 
-/// Queued event from SSE stream
-public struct SSEQueuedEvent: Codable, Sendable {
-    public let status: String
+/// Timeout event from SSE stream (V2 API)
+public struct SSETimeoutEvent: Codable, Sendable {
+    public let error: String
+    public let message: String
     public let jobId: String
+    public let lastStatus: String
+    public let lastProgress: Double
 
     enum CodingKeys: String, CodingKey {
-        case status
-        case jobId = "job_id"
+        case error
+        case message
+        case jobId
+        case lastStatus
+        case lastProgress
     }
 }
 
@@ -130,11 +130,39 @@ public enum SSEClientError: Error, LocalizedError, Sendable {
 
 // MARK: - SSE Event Wrapper
 
-/// Wrapper for all SSE events with type information
+/// Wrapper for all SSE events with type information (V2 API)
 public enum SSEEvent: Sendable {
-    case queued(SSEQueuedEvent)
-    case started(SSEStartedEvent)
-    case progress(SSEProgressEvent)
-    case complete(SSECompleteEvent)
+    case initialized(SSEInitializedEvent)
+    case processing(SSEProgressEvent)
+    case completed(SSECompleteEvent)
+    case failed(SSEErrorEvent)
     case error(SSEErrorEvent)
+    case timeout(SSETimeoutEvent)
+}
+
+// MARK: - Results Response Models
+
+/// Results response from /api/v2/imports/{jobId}/results
+public struct SSEResultsResponse: Codable, Sendable {
+    public let booksCreated: Int
+    public let booksUpdated: Int
+    public let duplicatesSkipped: Int
+    public let enrichmentSucceeded: Int
+    public let enrichmentFailed: Int
+    public let errors: [ImportError]
+
+    enum CodingKeys: String, CodingKey {
+        case booksCreated
+        case booksUpdated
+        case duplicatesSkipped
+        case enrichmentSucceeded
+        case enrichmentFailed
+        case errors
+    }
+
+    public struct ImportError: Codable, Sendable {
+        public let row: Int
+        public let isbn: String
+        public let error: String
+    }
 }

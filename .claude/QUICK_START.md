@@ -69,7 +69,7 @@ You: "/test"
 
 ---
 
-## ⚡ Slash Commands (XcodeBuildMCP)
+## ⚡ Slash Commands (xcodebuild CLI)
 
 ```bash
 /build          # Quick build validation (<30s)
@@ -183,7 +183,6 @@ Transcripts archived to ~/.claude/transcripts/
 
 **MCPs Enabled:**
 - ✅ Zen MCP (debug, codereview, secaudit, etc.)
-- ✅ XcodeBuildMCP (slash commands)
 - ✅ Filesystem MCP (file editing)
 
 **Custom Agents:**

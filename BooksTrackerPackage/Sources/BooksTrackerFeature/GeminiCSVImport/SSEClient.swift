@@ -23,37 +23,42 @@ actor SSEClient: NSObject {
 
     // MARK: - Callbacks
 
-    /// Called when a queued event is received
-    nonisolated let onQueued: @Sendable (SSEQueuedEvent) -> Void
+    /// Called when an initialized event is received
+    nonisolated let onInitialized: @Sendable (SSEInitializedEvent) -> Void
 
-    /// Called when a started event is received
-    nonisolated let onStarted: @Sendable (SSEStartedEvent) -> Void
+    /// Called when a processing event is received
+    nonisolated let onProcessing: @Sendable (SSEProgressEvent) -> Void
 
-    /// Called when a progress event is received
-    nonisolated let onProgress: @Sendable (SSEProgressEvent) -> Void
+    /// Called when a completed event is received
+    nonisolated let onCompleted: @Sendable (SSECompleteEvent) -> Void
 
-    /// Called when a complete event is received
-    nonisolated let onComplete: @Sendable (SSECompleteEvent) -> Void
+    /// Called when a failed event is received
+    nonisolated let onFailed: @Sendable (SSEErrorEvent) -> Void
 
     /// Called when an error event is received
     nonisolated let onError: @Sendable (SSEClientError) -> Void
+
+    /// Called when a timeout event is received
+    nonisolated let onTimeout: @Sendable (SSETimeoutEvent) -> Void
 
     // MARK: - Initialization
 
     init(
         baseURL: String = EnrichmentConfig.baseURL,
-        onQueued: @escaping @Sendable (SSEQueuedEvent) -> Void,
-        onStarted: @escaping @Sendable (SSEStartedEvent) -> Void,
-        onProgress: @escaping @Sendable (SSEProgressEvent) -> Void,
-        onComplete: @escaping @Sendable (SSECompleteEvent) -> Void,
-        onError: @escaping @Sendable (SSEClientError) -> Void
+        onInitialized: @escaping @Sendable (SSEInitializedEvent) -> Void,
+        onProcessing: @escaping @Sendable (SSEProgressEvent) -> Void,
+        onCompleted: @escaping @Sendable (SSECompleteEvent) -> Void,
+        onFailed: @escaping @Sendable (SSEErrorEvent) -> Void,
+        onError: @escaping @Sendable (SSEClientError) -> Void,
+        onTimeout: @escaping @Sendable (SSETimeoutEvent) -> Void
     ) {
         self.baseURL = baseURL
-        self.onQueued = onQueued
-        self.onStarted = onStarted
-        self.onProgress = onProgress
-        self.onComplete = onComplete
+        self.onInitialized = onInitialized
+        self.onProcessing = onProcessing
+        self.onCompleted = onCompleted
+        self.onFailed = onFailed
         self.onError = onError
+        self.onTimeout = onTimeout
         super.init()
     }
 
@@ -257,50 +262,54 @@ actor SSEClient: NSObject {
         let decoder = JSONDecoder()
 
         switch type {
-        case "queued":
+        case "initialized":
             do {
-                let event = try decoder.decode(SSEQueuedEvent.self, from: jsonData)
-                onQueued(event)
+                let event = try decoder.decode(SSEInitializedEvent.self, from: jsonData)
+                onInitialized(event)
             } catch {
                 #if DEBUG
-                print("[SSE] ❌ Failed to decode queued event: \(error)")
+                print("[SSE] ❌ Failed to decode initialized event: \(error)")
                 #endif
                 onError(.eventParsingFailed)
             }
 
-        case "started":
-            do {
-                let event = try decoder.decode(SSEStartedEvent.self, from: jsonData)
-                onStarted(event)
-            } catch {
-                #if DEBUG
-                print("[SSE] ❌ Failed to decode started event: \(error)")
-                #endif
-                onError(.eventParsingFailed)
-            }
-
-        case "progress":
+        case "processing":
             do {
                 let event = try decoder.decode(SSEProgressEvent.self, from: jsonData)
-                onProgress(event)
+                onProcessing(event)
             } catch {
                 #if DEBUG
-                print("[SSE] ❌ Failed to decode progress event: \(error)")
+                print("[SSE] ❌ Failed to decode processing event: \(error)")
                 #endif
                 onError(.eventParsingFailed)
             }
 
-        case "complete":
+        case "completed":
             do {
                 let event = try decoder.decode(SSECompleteEvent.self, from: jsonData)
-                onComplete(event)
+                onCompleted(event)
                 // Auto-disconnect on completion
                 Task {
                     await self.disconnect()
                 }
             } catch {
                 #if DEBUG
-                print("[SSE] ❌ Failed to decode complete event: \(error)")
+                print("[SSE] ❌ Failed to decode completed event: \(error)")
+                #endif
+                onError(.eventParsingFailed)
+            }
+
+        case "failed":
+            do {
+                let event = try decoder.decode(SSEErrorEvent.self, from: jsonData)
+                onFailed(event)
+                // Auto-disconnect on failure
+                Task {
+                    await self.disconnect()
+                }
+            } catch {
+                #if DEBUG
+                print("[SSE] ❌ Failed to decode failed event: \(error)")
                 #endif
                 onError(.eventParsingFailed)
             }
@@ -308,7 +317,7 @@ actor SSEClient: NSObject {
         case "error":
             do {
                 let event = try decoder.decode(SSEErrorEvent.self, from: jsonData)
-                onError(.serverError(event.error))
+                onError(.serverError(event.message))
                 // Auto-disconnect on error
                 Task {
                     await self.disconnect()
@@ -316,6 +325,21 @@ actor SSEClient: NSObject {
             } catch {
                 #if DEBUG
                 print("[SSE] ❌ Failed to decode error event: \(error)")
+                #endif
+                onError(.eventParsingFailed)
+            }
+
+        case "timeout":
+            do {
+                let event = try decoder.decode(SSETimeoutEvent.self, from: jsonData)
+                onTimeout(event)
+                // Auto-disconnect on timeout
+                Task {
+                    await self.disconnect()
+                }
+            } catch {
+                #if DEBUG
+                print("[SSE] ❌ Failed to decode timeout event: \(error)")
                 #endif
                 onError(.eventParsingFailed)
             }

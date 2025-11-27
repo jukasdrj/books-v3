@@ -42,7 +42,13 @@ struct DiversityPreviewModule: View {
             }
         }
         .padding()
-        .background(GlassEffect(tint: .orange.opacity(0.1)))
+        .background(.ultraThinMaterial)
+        .overlay {
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.orange.opacity(0.1))
+                .blendMode(.overlay)
+                .allowsHitTesting(false)
+        }
         .cornerRadius(20)
     }
 }

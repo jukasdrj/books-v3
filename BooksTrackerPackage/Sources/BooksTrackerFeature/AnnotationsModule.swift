@@ -50,8 +50,7 @@ struct AnnotationsModule: View {
             }
         }
         .padding()
-        .background(GlassEffect(tint: .blue.opacity(0.1)))
-        .cornerRadius(20)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
         .sheet(isPresented: $showingNotesEditor) {
             NotesEditorView(
                 notes: Binding(

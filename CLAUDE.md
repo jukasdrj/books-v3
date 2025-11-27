@@ -35,18 +35,17 @@
 
 ## Claude Code MCP Setup
 
-### Essential MCP Commands
+### Essential Commands
 
-**🚀 iOS Development (XcodeBuildMCP):**
+**🚀 iOS Development (xcodebuild CLI):**
 ```bash
-/build         # Quick build validation using XcodeBuildMCP
+/build         # Quick build validation
 /test          # Run Swift Testing suite
 /sim           # Launch BooksTrack in iOS Simulator with log streaming
-/device-deploy # Deploy BooksTrack to connected iPhone/iPad using XcodeBuildMCP
+/device-deploy # Deploy BooksTrack to connected iPhone/iPad
 ```
 
-**XcodeBuildMCP Configuration:**
-All slash commands use the XcodeBuildMCP server for native Xcode integration.
+**Note:** All slash commands use standard `xcodebuild` command-line tools.
 
 ### Available MCP Servers
 
@@ -789,6 +788,6 @@ Sonnet (you):
 
 ---
 
-**Last Updated:** November 26, 2025 (v3.7.5, Build 189)
+**Last Updated:** November 27, 2025 (v3.7.5, Build 189)
 **Maintained by:** oooe (jukasdrj)
-**See Also:** [`AGENTS.md`](AGENTS.md), [`MCP_SETUP.md`](MCP_SETUP.md)
+**See Also:** [`AGENTS.md`](AGENTS.md)
