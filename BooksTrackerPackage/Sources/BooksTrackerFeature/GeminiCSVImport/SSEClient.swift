@@ -168,17 +168,21 @@ actor SSEClient: NSObject {
         #endif
 
         Task {
-            try? await Task.sleep(for: .seconds(reconnectionDelay))
-
-            guard let jobId = await self.currentJobId else {
-                #if DEBUG
-                print("[SSE] No job ID for reconnection")
-                #endif
-                return
-            }
-
-            await self.startStreaming(jobId: jobId)
+            await self.performReconnection()
         }
+    }
+
+    private func performReconnection() async {
+        try? await Task.sleep(for: .seconds(reconnectionDelay))
+
+        guard let jobId = currentJobId else {
+            #if DEBUG
+            print("[SSE] No job ID for reconnection")
+            #endif
+            return
+        }
+
+        startStreaming(jobId: jobId)
     }
 
     private func parseSSEEvents(_ eventString: String) {
@@ -289,9 +293,7 @@ actor SSEClient: NSObject {
                 let event = try decoder.decode(SSECompleteEvent.self, from: jsonData)
                 onCompleted(event)
                 // Auto-disconnect on completion
-                Task {
-                    await self.disconnect()
-                }
+                disconnect()
             } catch {
                 #if DEBUG
                 print("[SSE] ❌ Failed to decode completed event: \(error)")
@@ -304,9 +306,7 @@ actor SSEClient: NSObject {
                 let event = try decoder.decode(SSEErrorEvent.self, from: jsonData)
                 onFailed(event)
                 // Auto-disconnect on failure
-                Task {
-                    await self.disconnect()
-                }
+                disconnect()
             } catch {
                 #if DEBUG
                 print("[SSE] ❌ Failed to decode failed event: \(error)")
@@ -319,9 +319,7 @@ actor SSEClient: NSObject {
                 let event = try decoder.decode(SSEErrorEvent.self, from: jsonData)
                 onError(.serverError(event.error.message))
                 // Auto-disconnect on error
-                Task {
-                    await self.disconnect()
-                }
+                disconnect()
             } catch {
                 #if DEBUG
                 print("[SSE] ❌ Failed to decode error event: \(error)")
@@ -334,9 +332,7 @@ actor SSEClient: NSObject {
                 let event = try decoder.decode(SSETimeoutEvent.self, from: jsonData)
                 onTimeout(event)
                 // Auto-disconnect on timeout
-                Task {
-                    await self.disconnect()
-                }
+                disconnect()
             } catch {
                 #if DEBUG
                 print("[SSE] ❌ Failed to decode timeout event: \(error)")

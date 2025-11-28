@@ -1,0 +1,12 @@
+{
+  "/Users/juju/dev_repos/books-v3/BooksTrackerWidgets/AppIntent.swift" : {
+    "abi-baseline-json" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTrackerWidgetsExtension.build/Objects-normal/arm64/BooksTrackerWidgetsExtension.abi.json",
+    "const-values" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTrackerWidgetsExtension.build/Objects-normal/arm64/BooksTrackerWidgetsExtension-primary.swiftconstvalues",
+    "dependencies" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTrackerWidgetsExtension.build/Objects-normal/arm64/BooksTrackerWidgetsExtension-primary.d",
+    "diagnostics" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTrackerWidgetsExtension.build/Objects-normal/arm64/BooksTrackerWidgetsExtension-primary.dia",
+    "objc-header" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTrackerWidgetsExtension.build/Objects-normal/arm64/BooksTrackerWidgetsExtension-Swift.h",
+    "swiftdoc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTrackerWidgetsExtension.build/Objects-normal/arm64/BooksTrackerWidgetsExtension.swiftdoc",
+    "swiftmodule" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTrackerWidgetsExtension.build/Objects-normal/arm64/BooksTrackerWidgetsExtension.swiftmodule",
+    "swiftsourceinfo" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTrackerWidgetsExtension.build/Objects-normal/arm64/BooksTrackerWidgetsExtension.swiftsourceinfo"
+  }
+}

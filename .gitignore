@@ -120,6 +120,10 @@ repomix-output.xml
 # gemini-cli settings
 .gemini/
 
+# Code analysis reports
+report/
+jscpd-report.json
+
 # GitHub App credentials
 gha-creds-*.json
 test_output.log

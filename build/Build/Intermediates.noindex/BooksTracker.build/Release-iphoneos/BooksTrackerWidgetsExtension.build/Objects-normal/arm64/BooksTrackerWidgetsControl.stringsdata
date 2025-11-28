@@ -1,0 +1,84 @@
+{
+  "source": "/Users/juju/dev_repos/books-v3/BooksTrackerWidgets/BooksTrackerWidgetsControl.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Timer",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 28
+        }
+      },
+      {
+        "comment": "",
+        "key": "A an example control that runs a timer.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 29
+        }
+      },
+      {
+        "comment": "",
+        "key": "Start Timer",
+        "location": {
+          "startingColumn": 17,
+          "startingLine": 21
+        }
+      },
+      {
+        "comment": "",
+        "key": "Timer Name"
+      },
+      {
+        "comment": "",
+        "key": "Timer is running"
+      },
+      {
+        "comment": "",
+        "key": "On",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 25
+        }
+      },
+      {
+        "comment": "",
+        "key": "Off",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 25
+        }
+      },
+      {
+        "comment": "",
+        "key": "Timer Name Configuration",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 52
+        }
+      },
+      {
+        "comment": "",
+        "key": "Timer Name"
+      },
+      {
+        "comment": "",
+        "key": "Start a timer",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 59
+        }
+      },
+      {
+        "comment": "",
+        "key": "Timer Name"
+      },
+      {
+        "comment": "",
+        "key": "Timer is running"
+      }
+    ]
+  },
+  "version": 1
+}
