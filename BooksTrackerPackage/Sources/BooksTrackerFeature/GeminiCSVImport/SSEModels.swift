@@ -185,6 +185,7 @@ public struct SSEResultsResponse: Codable, Sendable {
     public let enrichmentSucceeded: Int
     public let enrichmentFailed: Int
     public let errors: [ImportError]
+    public let books: [ParsedBook]?  // Optional for backwards compatibility
 
     enum CodingKeys: String, CodingKey {
         case booksCreated
@@ -193,11 +194,24 @@ public struct SSEResultsResponse: Codable, Sendable {
         case enrichmentSucceeded
         case enrichmentFailed
         case errors
+        case books
     }
 
     public struct ImportError: Codable, Sendable {
         public let row: Int
         public let isbn: String
         public let error: String
+    }
+
+    /// Parsed book from backend CSV import
+    /// Backend returns simple format, not full canonical book object
+    public struct ParsedBook: Codable, Sendable {
+        public let title: String
+        public let author: String
+        public let isbn: String?
+        public let coverUrl: String?
+        public let publisher: String?
+        public let publicationYear: Int?
+        public let enrichmentError: String?
     }
 }

@@ -430,6 +430,7 @@ GET /api/v2/imports/{jobId}
 ### 7.4 Job Results
 ```http
 GET /api/v2/imports/{jobId}/results
+GET /v1/jobs/{jobId}/results
 ```
 
 **Response:**
@@ -444,16 +445,33 @@ GET /api/v2/imports/{jobId}/results
     "enrichmentFailed": 5,
     "errors": [
       {"row": 15, "isbn": "1234567890", "error": "Invalid ISBN"}
+    ],
+    "books": [
+      {
+        "isbn": "9780439708180",
+        "isbn13": "9780439708180",
+        "title": "Harry Potter and the Sorcerer's Stone",
+        "authors": ["J.K. Rowling"],
+        "publisher": "Scholastic",
+        "publishedDate": "1998-09-01",
+        "description": "...",
+        "pageCount": 320,
+        "categories": ["Fiction", "Fantasy"],
+        "language": "en",
+        "coverUrl": "https://..."
+      }
     ]
   },
   "metadata": {
     "cached": true,
-    "ttl": "2 hours"
+    "ttl": "1 hour"
   }
 }
 ```
 
-**TTL:** Results stored for 2 hours after job completion (matches token expiry)
+**Important:** The `books` array contains the full canonical book objects that were successfully imported. iOS clients MUST parse this array to save books to local SwiftData storage.
+
+**TTL:** Results stored for 1 hour after job completion
 
 ---
 

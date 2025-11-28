@@ -31,7 +31,8 @@ class ModelContainerFactory {
             BookEnrichment.self,
             AuthorMetadata.self,
             WorkOverride.self,
-            StreakData.self
+            StreakData.self,
+            UserSettings.self
         ])
 
         #if targetEnvironment(simulator)
@@ -93,15 +94,26 @@ class ModelContainerFactory {
                 #if DEBUG
                 print("❌ Fallback also failed: \(fallbackError)")
                 print("💡 Migration failure detected - attempting database reset")
+                print("⚠️  DATABASE RESET WARNING: User data will be lost!")
+                print("📋 Migration Error Details:")
+                print("   - Initial Error: \(error)")
+                print("   - Fallback Error: \(fallbackError)")
                 #endif
 
                 // If migration failed due to constraint violations, try deleting the old database
                 // This is a destructive operation but necessary for schema changes
+                // TODO: Issue #75 - Add user-facing alert before destructive reset
                 let fileManager = FileManager.default
                 if let storeURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?.appendingPathComponent("default.store") {
+                    #if DEBUG
+                    print("📍 Database location: \(storeURL.path)")
+                    #endif
+
                     try? fileManager.removeItem(at: storeURL)
+
                     #if DEBUG
                     print("🗑️ Removed corrupted database at \(storeURL)")
+                    print("✅ Attempting fresh database creation...")
                     #endif
 
                     // Try one more time with fresh database
