@@ -361,47 +361,21 @@ struct iOS26LiquidListRow: View {
             }
     }
 
-    // MARK: - Quick Actions
+    // MARK: - Quick Actions (Using Shared Components)
 
     private var quickActionsMenu: some View {
-        Group {
-            if userEntry != nil {
-                Button("Mark as Reading", systemImage: "book.pages") {
-                    updateReadingStatus(.reading)
-                }
-
-                Button("Mark as Read", systemImage: "checkmark.circle") {
-                    updateReadingStatus(.read)
-                }
-
-                Button("Remove from Library", systemImage: "trash", role: .destructive) {
-                    removeFromLibrary()
-                }
-            }
-            // ⚠️ REMOVED: Non-functional Add to Library/Wishlist buttons
-            // These buttons had no ModelContext and couldn't persist changes
-            // For full book details and persistence actions, navigate to WorkDetailView
-
-            Button("View Details", systemImage: "info.circle") {
-                // Navigate to detail view
-            }
-        }
+        SimpleBookCardQuickActions(
+            userEntry: userEntry,
+            onMarkReading: { updateReadingStatus(.reading) },
+            onMarkRead: { updateReadingStatus(.read) },
+            onRemove: { removeFromLibrary() }
+        )
     }
 
     // MARK: - Helper Properties
 
     private var accessibilityDescription: String {
-        var description = "Book: \(work.title) by \(work.authorNames)"
-        if let year = work.firstPublicationYear {
-            description += ", Published \(year)"
-        }
-        if let userEntry = userEntry {
-            description += ", Status: \(userEntry.readingStatus.displayName). Already in library."
-            if userEntry.readingStatus == .reading && userEntry.readingProgress > 0 {
-                description += ", Progress: \(Int(userEntry.readingProgress * 100))%"
-            }
-        }
-        return description
+        BookCardAccessibility.buildDescription(work: work, userEntry: userEntry, includeYear: true)
     }
 
     // MARK: - Style Properties
@@ -502,27 +476,14 @@ struct iOS26LiquidListRow: View {
         }
     }
 
-    // MARK: - Actions
-
+    // MARK: - Actions (Using Shared Helpers)
 
     private func triggerHapticFeedback() {
-        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-        impactFeedback.impactOccurred()
+        BookCardActions.triggerImpactFeedback()
     }
 
     private func updateReadingStatus(_ status: ReadingStatus) {
-        guard let userEntry = userEntry else { return }
-
-        userEntry.readingStatus = status
-        if status == .reading && userEntry.dateStarted == nil {
-            userEntry.dateStarted = Date()
-        } else if status == .read {
-            userEntry.markAsCompleted()
-        }
-        userEntry.touch()
-
-        let notificationFeedback = UINotificationFeedbackGenerator()
-        notificationFeedback.notificationOccurred(.success)
+        BookCardActions.updateReadingStatus(status, for: userEntry)
     }
 
     // ⚠️ REMOVED: Non-functional addToLibrary() and addToWishlist() functions

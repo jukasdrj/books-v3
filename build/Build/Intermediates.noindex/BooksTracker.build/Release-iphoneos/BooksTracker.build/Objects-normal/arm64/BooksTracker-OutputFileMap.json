@@ -1,0 +1,21 @@
+{
+  "" : {
+    "const-values" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTracker.build/Objects-normal/arm64/BooksTracker-primary.swiftconstvalues",
+    "dependencies" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTracker.build/Objects-normal/arm64/BooksTracker-primary.d",
+    "diagnostics" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTracker.build/Objects-normal/arm64/BooksTracker-primary.dia",
+    "emit-module-dependencies" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTracker.build/Objects-normal/arm64/BooksTracker-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTracker.build/Objects-normal/arm64/BooksTracker-primary-emit-module.dia",
+    "pch" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTracker.build/Objects-normal/arm64/BooksTracker-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTracker.build/Objects-normal/arm64/BooksTracker-primary.swiftdeps"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTracker/BooksTrackerApp.swift" : {
+    "index-unit-output-path" : "/BooksTracker.build/Release-iphoneos/BooksTracker.build/Objects-normal/arm64/BooksTrackerApp.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTracker.build/Objects-normal/arm64/BooksTrackerApp.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTracker.build/Objects-normal/arm64/BooksTrackerApp.o"
+  },
+  "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTracker.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/BooksTracker.build/Release-iphoneos/BooksTracker.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTracker.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTracker.build/Release-iphoneos/BooksTracker.build/Objects-normal/arm64/GeneratedAssetSymbols.o"
+  }
+}

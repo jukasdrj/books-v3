@@ -93,7 +93,7 @@ struct ReadingProgressModule: View {
 
     private func endSession() {
         let service = ReadingSessionService(modelContext: modelContext)
-        try? service.endSession(endPage: endingPage)
+        _ = try? service.endSession(endPage: endingPage)
         isSessionActive = false
     }
 }

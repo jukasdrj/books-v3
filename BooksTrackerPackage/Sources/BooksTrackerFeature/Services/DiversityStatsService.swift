@@ -14,10 +14,32 @@ public final class DiversityStatsService {
         self.modelContext = modelContext
     }
 
+    /// Fetch or create UserSettings for the default user
+    private func fetchOrCreateUserSettings() async throws -> UserSettings {
+        let settingsDescriptor = FetchDescriptor<UserSettings>(
+            predicate: #Predicate { $0.userId == "default-user" }
+        )
+        if let existingSettings = try modelContext.fetch(settingsDescriptor).first {
+            return existingSettings
+        } else {
+            let newSettings = UserSettings(
+                userId: Self.defaultUserId,
+                primaryReadingLanguage: UserSettings.defaultPrimaryReadingLanguage()
+            )
+            modelContext.insert(newSettings)
+            try modelContext.save()
+            return newSettings
+        }
+    }
+
     /// Calculate diversity statistics for a given period
     /// - Parameter period: Time period for stats aggregation (allTime, year, month)
     /// - Returns: EnhancedDiversityStats with aggregated metrics
     public func calculateStats(period: StatsPeriod = .allTime) async throws -> EnhancedDiversityStats {
+        // Fetch user settings to get the primary reading language
+        let userSettings = try await fetchOrCreateUserSettings()
+        let primaryReadingLanguage = userSettings.primaryReadingLanguage.lowercased()
+
         // Fetch all library entries
         let entryDescriptor = FetchDescriptor<UserLibraryEntry>()
         let entries = try modelContext.fetch(entryDescriptor)
@@ -61,7 +83,7 @@ public final class DiversityStatsService {
 
             // Translation status (from edition)
             if let edition = entry.edition, let language = edition.originalLanguage, !language.isEmpty {
-                let isTranslated = language.lowercased() != "english" // TODO: Make this configurable
+                let isTranslated = language.lowercased() != primaryReadingLanguage
                 let statusKey = isTranslated ? "Translated" : "Original Language"
                 translationStatus[statusKey, default: 0] += 1
                 booksWithTranslationData += 1

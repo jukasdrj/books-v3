@@ -394,16 +394,38 @@ public struct GeminiCSVImportView: View {
                         let results = try await GeminiCSVImportService.shared.fetchResults(jobId: event.jobId)
 
                         #if DEBUG
-                        print("[CSV SSE] Results: \(results.booksCreated) created, \(results.booksUpdated) updated")
+                        print("[CSV SSE] Results: \(results.booksCreated) created, \(results.booksUpdated) updated, \(results.books?.count ?? 0) books in response")
                         #endif
 
-                        // Convert to display format (no book details, just summary)
+                        // Convert books from SSEResultsResponse.ParsedBook to GeminiCSVImportJob.ParsedBook
+                        // Structures are identical, so just map directly
+                        let books = results.books?.map { apiBook in
+                            GeminiCSVImportJob.ParsedBook(
+                                title: apiBook.title,
+                                author: apiBook.author,
+                                isbn: apiBook.isbn,
+                                coverUrl: apiBook.coverUrl,
+                                publisher: apiBook.publisher,
+                                publicationYear: apiBook.publicationYear,
+                                enrichmentError: apiBook.enrichmentError
+                            )
+                        } ?? []
+
+                        #if DEBUG
+                        if results.books == nil {
+                            print("[CSV SSE] ⚠️ Backend did not include books array - needs backend update!")
+                        } else {
+                            print("[CSV SSE] ✅ Parsed \(books.count) books from response")
+                        }
+                        #endif
+
+                        // Convert errors
                         let errors = results.errors.map { error in
                             GeminiCSVImportJob.ImportError(title: error.isbn, error: error.error)
                         }
 
-                        // Display completion with summary
-                        self.importStatus = .completed(books: [], errors: errors)
+                        // Display completion with actual book data
+                        self.importStatus = .completed(books: books, errors: errors)
                     } catch {
                         #if DEBUG
                         print("[CSV SSE] ❌ Failed to fetch results: \(error)")

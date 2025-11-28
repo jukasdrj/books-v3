@@ -1,0 +1,56 @@
+{
+  "source": "/Users/juju/dev_repos/books-v3/BooksTrackerWidgets/AppIntent.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Configuration",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 12
+        }
+      },
+      {
+        "comment": "",
+        "key": "This is an example widget.",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 13
+        }
+      },
+      {
+        "comment": "",
+        "key": "Favorite Emoji",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 16
+        }
+      },
+      {
+        "comment": "",
+        "key": "Timer Name",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 19
+        }
+      },
+      {
+        "comment": "",
+        "key": "Timer Name",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 19
+        }
+      },
+      {
+        "comment": "",
+        "key": "Timer is running",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 19
+        }
+      }
+    ]
+  },
+  "version": 1
+}
