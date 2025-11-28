@@ -22,56 +22,34 @@ public struct CombinedImportView: View {
                     VStack(spacing: 20) {
                         topHeader
 
-                        HStack(spacing: 16) {
-                            // Scan card
-                            NavigationLink(value: "scan") {
-                                importCard(
-                                    title: "Scan Bookshelf",
-                                    subtitle: "Capture photos of your shelf to detect books",
-                                    systemImage: "viewfinder",
-                                    accent: themeStore.primaryColor
-                                )
-                            }
-                            .buttonStyle(.plain)
-
-                            // CSV import card (sheet)
-                            Button {
-                                showingCSVImport = true
-                            } label: {
-                                importCard(
-                                    title: "Import CSV",
-                                    subtitle: "Upload a CSV export to add many books",
-                                    systemImage: "doc.badge.plus",
-                                    accent: themeStore.primaryColor
-                                )
-                            }
-                            .buttonStyle(.plain)
+                        // Card 1: Scan Bookshelf
+                        NavigationLink(value: "scan") {
+                            largeGlassCard(
+                                icon: "camera.fill",
+                                title: "Scan Bookshelf",
+                                description: "Point at your shelf - AI recognizes books",
+                                accent: themeStore.primaryColor
+                            )
                         }
-                        .padding(.horizontal)
+                        .buttonStyle(.plain)
 
-                        // Secondary actions / guidance
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Quick actions")
-                                .font(.headline)
-
-                            HStack(spacing: 12) {
-                                Button(action: { showingCSVImport = true }) {
-                                    Label("Select CSV", systemImage: "tray.and.arrow.down")
-                                }
-                                .buttonStyle(.borderedProminent)
-
-                                NavigationLink("Open Scanner", value: "scan")
-                                    .buttonStyle(.bordered)
-                            }
+                        // Card 2: Import CSV
+                        Button {
+                            showingCSVImport = true
+                        } label: {
+                            largeGlassCard(
+                                icon: "doc.text.fill",
+                                title: "Import CSV",
+                                description: "Upload Goodreads export",
+                                accent: themeStore.primaryColor
+                            )
                         }
-                        .padding()
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .padding(.horizontal)
+                        .buttonStyle(.plain)
 
                         Spacer()
                     }
                     .padding(.top, 24)
+                    .padding(.horizontal, 20)
                 }
             }
             .navigationTitle("Add Books")
@@ -92,11 +70,11 @@ public struct CombinedImportView: View {
 
     private var topHeader: some View {
         VStack(spacing: 8) {
-            Text("Add books quickly")
+            Text("AI-Powered Book Import")
                 .font(.title2)
                 .fontWeight(.semibold)
 
-            Text("Scan your shelf or import a CSV to populate your library fast")
+            Text("Scan your shelf or import a CSV to populate your library")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -105,29 +83,38 @@ public struct CombinedImportView: View {
         .padding(.vertical, 12)
     }
 
-    private func importCard<Accent: View>(title: String, subtitle: String, systemImage: String, accent: Accent) -> some View {
-        VStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .font(.system(size: 36))
-                .foregroundStyle(themeStore.primaryColor)
+    private func largeGlassCard(icon: String, title: String, description: String, accent: Color) -> some View {
+        HStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 48))
+                .foregroundStyle(accent)
+                .frame(width: 64, height: 64)
 
-            Text(title)
-                .font(.headline)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.title3)
+                    .fontWeight(.semibold)
 
-            Text(subtitle)
-                .font(.caption)
+                Text(description)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.title3)
                 .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
         }
-        .padding()
-        .frame(maxWidth: .infinity, minHeight: 140)
+        .padding(20)
+        .frame(maxWidth: .infinity, minHeight: 100)
         .background {
             RoundedRectangle(cornerRadius: 16)
                 .fill(.ultraThinMaterial)
                 .overlay {
                     RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(Color.black.opacity(0.05), lineWidth: 1)
+                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
                 }
         }
     }
