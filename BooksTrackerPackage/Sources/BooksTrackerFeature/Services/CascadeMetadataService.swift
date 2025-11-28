@@ -107,12 +107,12 @@ public final class CascadeMetadataService {
 
         for work in allWorks {
             // Check if this work is associated with the authorId
-            // Work.authors is [Author]? - compare persistentModelID hash
+            // Work.authors is [Author]? - compare stable UUID
             guard let authors = work.authors else { continue }
-            let isAuthorOfWork = authors.contains(where: { $0.persistentModelID.hashValue.description == authorId })
+            let isAuthorOfWork = authors.contains(where: { $0.uuid.uuidString == authorId })
 
             if isAuthorOfWork {
-                let workId = work.persistentModelID.hashValue.description
+                let workId = work.uuid.uuidString
                 logger.debug("Updating enrichment for work ID: \(workId) due to author cascade.")
                 try await updateWorkEnrichment(work: work, metadata: metadata)
                 updatedWorkIDs.insert(workId)
@@ -132,7 +132,7 @@ public final class CascadeMetadataService {
     ///   - metadata: The AuthorMetadata to apply.
     /// - Throws: `CascadeMetadataServiceError` if enrichment cannot be fetched or updated.
     public func updateWorkEnrichment(work: Work, metadata: AuthorMetadata) async throws {
-        let workId = work.persistentModelID.hashValue.description
+        let workId = work.uuid.uuidString
         let bookEnrichment = try fetchOrCreateEnrichment(workId: workId)
 
         // Fetch overrides for this specific work and author
@@ -248,7 +248,7 @@ public final class CascadeMetadataService {
             // Re-apply enrichment for this specific work to revert to cascaded data
             let allWorksDescriptor = FetchDescriptor<Work>()
             let allWorks = try modelContext.fetch(allWorksDescriptor)
-            if let work = allWorks.first(where: { $0.persistentModelID.hashValue.description == workId }) {
+            if let work = allWorks.first(where: { $0.uuid.uuidString == workId }) {
                 try await updateWorkEnrichment(work: work, metadata: authorMetadata)
             } else {
                 logger.warning("Could not find Work for workId \(workId) to re-apply enrichment after override removal.")

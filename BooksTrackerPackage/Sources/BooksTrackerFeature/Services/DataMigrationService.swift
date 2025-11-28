@@ -34,4 +34,30 @@ public final class DataMigrationService {
             #endif
         }
     }
+
+    /// Migrate existing Author records to have UUIDs
+    /// This is needed when adding the uuid field to Author for the first time
+    /// Fixes Issue #79: Stabilize authorId using UUID instead of unstable hashValue
+    public func migrateAuthorsToUUID() throws {
+        let descriptor = FetchDescriptor<Author>()
+        let allAuthors = try modelContext.fetch(descriptor)
+
+        var migratedCount = 0
+        for author in allAuthors {
+            // Check if uuid is the default (all zeros) which indicates it needs migration
+            // SwiftData initializes UUID() for new fields, but we want unique values
+            if author.uuid == UUID(uuidString: "00000000-0000-0000-0000-000000000000") ||
+               allAuthors.filter({ $0.uuid == author.uuid }).count > 1 {
+                author.uuid = UUID()
+                migratedCount += 1
+            }
+        }
+
+        if migratedCount > 0 {
+            try modelContext.save()
+            #if DEBUG
+            print("✅ Migrated \(migratedCount) Author records to have unique UUIDs")
+            #endif
+        }
+    }
 }

@@ -46,6 +46,14 @@ public struct DetectedBook: Identifiable, Sendable {
     public var enrichmentEditions: [EditionDTO]?
     public var enrichmentAuthors: [AuthorDTO]?
 
+    /// Enrichment status from backend (API contract v3.1)
+    /// Tracks the progress and result of backend enrichment operations
+    public var enrichmentStatus: EnrichmentStatus?
+
+    /// Retry delay in milliseconds (when enrichmentStatus == .circuitOpen)
+    /// Indicates how long to wait before retrying enrichment
+    public var retryAfterMs: Int?
+
     /// Confidence threshold for requiring human review
     /// Books below 0.60 (60%) confidence should be reviewed
     private static let reviewThreshold: Double = 0.60
@@ -79,6 +87,46 @@ public struct DetectedBook: Identifiable, Sendable {
         self.enrichmentWork = nil
         self.enrichmentEditions = nil
         self.enrichmentAuthors = nil
+    }
+}
+
+// MARK: - Enrichment Status (API Contract v3.1)
+
+public enum EnrichmentStatus: String, CaseIterable, Sendable {
+    case pending = "pending"
+    case success = "success"
+    case notFound = "not_found"
+    case error = "error"
+    case circuitOpen = "circuit_open"
+
+    var displayName: String {
+        switch self {
+        case .pending: return "Enriching..."
+        case .success: return "Enriched"
+        case .notFound: return "Not Found"
+        case .error: return "Error"
+        case .circuitOpen: return "Service Unavailable"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .pending: return .blue
+        case .success: return .green
+        case .notFound: return .orange
+        case .error: return .red
+        case .circuitOpen: return .yellow
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .pending: return "arrow.clockwise.circle"
+        case .success: return "checkmark.circle.fill"
+        case .notFound: return "questionmark.circle"
+        case .error: return "xmark.circle"
+        case .circuitOpen: return "exclamationmark.triangle"
+        }
     }
 }
 

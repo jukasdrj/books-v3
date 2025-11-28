@@ -25,6 +25,9 @@ import SwiftUI
 /// changes or statistics are recalculated via `updateStatistics()`.
 @Model
 public final class Author {
+    /// Stable, unique identifier for this author (survives CloudKit sync)
+    var uuid: UUID = UUID()
+
     var name: String = "" // CloudKit: default value required
     var nationality: String?
     var gender: AuthorGender = AuthorGender.unknown

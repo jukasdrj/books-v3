@@ -29,6 +29,7 @@ public struct ProgressiveProfilingSheet: View {
     @State private var pendingCascadeAnswer: (answer: String, question: ProfileQuestion)?
     @State private var affectedWorksCount = 0
     @State private var pointsAwarded = 0
+    @State private var errorMessage: String?
 
     // Questions to ask (filtered based on missing data)
     @State private var questions: [ProfileQuestion] = []
@@ -70,6 +71,15 @@ public struct ProgressiveProfilingSheet: View {
         }
         .task {
             await loadQuestions()
+        }
+        .alert("Save Failed", isPresented: errorBinding) {
+            Button("OK", role: .cancel) {
+                errorMessage = nil
+            }
+        } message: {
+            if let errorMessage {
+                Text(errorMessage)
+            }
         }
     }
 
@@ -303,7 +313,7 @@ public struct ProgressiveProfilingSheet: View {
         if isAuthorQuestion, let author = work.primaryAuthor {
             // Count affected works
             Task {
-                let count = await countAffectedWorks(authorId: author.persistentModelID)
+                let count = await countAffectedWorks(authorId: author.uuid)
                 await MainActor.run {
                     affectedWorksCount = count
 
@@ -365,6 +375,14 @@ public struct ProgressiveProfilingSheet: View {
         curatorPointsService?.awardPoints(totalPoints, for: "Progressive Profiling Contribution")
     }
 
+    private var errorBinding: Binding<Bool> {
+        Binding(get: { errorMessage != nil }, set: { isPresented in
+            if !isPresented {
+                errorMessage = nil
+            }
+        })
+    }
+
 
     private func confirmCascade() {
         guard let pending = pendingCascadeAnswer else { return }
@@ -396,10 +414,13 @@ public struct ProgressiveProfilingSheet: View {
         }
     }
 
-    private func countAffectedWorks(authorId: PersistentIdentifier) async -> Int {
+    private func countAffectedWorks(authorId: UUID) async -> Int {
         do {
-            // Fetch author to access their works relationship
-            guard let author = modelContext.model(for: authorId) as? Author else {
+            // Fetch author by UUID
+            let descriptor = FetchDescriptor<Author>(
+                predicate: #Predicate<Author> { $0.uuid == authorId }
+            )
+            guard let author = try modelContext.fetch(descriptor).first else {
                 return 1
             }
 
@@ -420,7 +441,7 @@ public struct ProgressiveProfilingSheet: View {
         guard let author = work.primaryAuthor else { return }
 
         let cascadeService = BooksTrackerFeature.CascadeMetadataService(modelContext: modelContext)
-        let authorId = author.persistentModelID.hashValue.description
+        let authorId = author.uuid.uuidString
 
         do {
             // Map question dimension to AuthorMetadata fields
@@ -441,6 +462,9 @@ public struct ProgressiveProfilingSheet: View {
                 break
             }
         } catch {
+            await MainActor.run {
+                errorMessage = "Failed to apply cascade: \(error.localizedDescription)"
+            }
             #if DEBUG
             print("❌ Failed to apply cascade: \(error)")
             #endif
@@ -461,6 +485,9 @@ public struct ProgressiveProfilingSheet: View {
                         value: value
                     )
                 } catch {
+                    await MainActor.run {
+                        errorMessage = "Failed to save \(dimension): \(error.localizedDescription)"
+                    }
                     #if DEBUG
                     print("❌ Failed to save \(dimension): \(error)")
                     #endif

@@ -187,6 +187,82 @@ actor EnrichmentAPIClient {
         return result
     }
 
+    // MARK: - Job Cancellation (API v3.1)
+
+    struct JobCancellationResponse: Codable, Sendable {
+        let jobId: String
+        let status: String
+        let message: String
+        let cleanup: CleanupDetails
+
+        struct CleanupDetails: Codable, Sendable {
+            let r2ObjectsDeleted: Int
+            let kvCacheCleared: Bool
+        }
+    }
+
+    /// Cancel an enrichment job and cleanup R2 images/KV cache (API v3.2)
+    /// - Parameters:
+    ///   - jobId: The unique job identifier to cancel
+    ///   - authToken: Bearer token from job creation (required as of API v3.2)
+    /// - Returns: Job cancellation response with cleanup details
+    /// - Note: Idempotent - calling DELETE on completed jobs returns success
+    func cancelJob(jobId: String, authToken: String) async throws -> JobCancellationResponse {
+        guard let url = URL(string: "\(baseURL)/v1/jobs/\(jobId)") else {
+            throw URLError(.badURL)
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("ios-v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown")", forHTTPHeaderField: "X-Client-Version")
+        request.timeoutInterval = 15  // 15 second timeout for DELETE request
+
+        #if DEBUG
+        print("[EnrichmentAPIClient] 🗑️ Sending DELETE to /v1/jobs/\(jobId)")
+        #endif
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        // Handle authentication errors (API v3.2 requirement)
+        if httpResponse.statusCode == 401 {
+            #if DEBUG
+            print("🚨 Job cancellation unauthorized: Invalid or expired token")
+            #endif
+            throw NSError(domain: "com.bookstrack.api", code: 401, userInfo: [NSLocalizedDescriptionKey: "Authentication failed: Invalid or expired token"])
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            #if DEBUG
+            print("🚨 Job cancellation failed: HTTP \(httpResponse.statusCode)")
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("🚨 Response body: \(responseString)")
+            }
+            #endif
+            throw NSError(domain: "com.bookstrack.api", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Job cancellation failed"])
+        }
+
+        // Decode ResponseEnvelope and unwrap data
+        let envelope = try JSONDecoder().decode(ResponseEnvelope<JobCancellationResponse>.self, from: data)
+
+        guard let result = envelope.data else {
+            #if DEBUG
+            print("🚨 Job cancellation response missing data field")
+            #endif
+            throw URLError(.badServerResponse)
+        }
+
+        #if DEBUG
+        print("✅ Job \(jobId) canceled successfully: \(result.cleanup.r2ObjectsDeleted) R2 objects deleted")
+        #endif
+
+        return result
+    }
+
     /// Enriches a book using the V2 sync API.
     /// - Parameters:
     ///   - barcode: The ISBN or barcode to enrich
