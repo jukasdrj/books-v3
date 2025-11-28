@@ -340,32 +340,11 @@ struct iOS26AdaptiveBookCard: View {
     }
 
     private var culturalDiversityBadge: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "globe.americas.fill")
-                .font(.caption2)
-                .foregroundColor(.white)
-
-            if let region = work.primaryAuthor?.culturalRegion {
-                Text(region.emoji)
-                    .font(.caption2)
-            }
-        }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 3)
-        .background(.ultraThinMaterial, in: Capsule())
-        .glassEffect(.subtle, tint: .white.opacity(0.2))
+        CulturalDiversityBadge(for: work.primaryAuthor)
     }
 
     private func statusBadge(for status: ReadingStatus) -> some View {
-        Circle()
-            .fill(status.color)
-            .frame(width: 20, height: 20)
-            .overlay {
-                Image(systemName: status.systemImage)
-                    .font(.caption2.bold())
-                    .foregroundColor(.white)
-            }
-            .glassEffect(.subtle, interactive: true)
+        StatusBadgeCircle(status: status, size: 20)
     }
 
     private func readingProgressBar(_ progress: Double) -> some View {
@@ -439,41 +418,21 @@ struct iOS26AdaptiveBookCard: View {
         }
     }
 
-    // MARK: - Quick Actions
+    // MARK: - Quick Actions (Using Shared Components)
 
     private var quickActionsMenu: some View {
-        Group {
-            if userEntry != nil {
-                Button("Mark as Reading", systemImage: "book.pages") {
-                    updateReadingStatus(.reading)
-                }
-
-                Button("Mark as Read", systemImage: "checkmark.circle") {
-                    updateReadingStatus(.read)
-                }
-
-                Button("Remove from Library", systemImage: "trash", role: .destructive) {
-                    removeFromLibrary()
-                }
-            }
-
-            Button("View Details", systemImage: "info.circle") {
-                // Navigate to detail view
-            }
-        }
+        SimpleBookCardQuickActions(
+            userEntry: userEntry,
+            onMarkReading: { updateReadingStatus(.reading) },
+            onMarkRead: { updateReadingStatus(.read) },
+            onRemove: { removeFromLibrary() }
+        )
     }
 
     // MARK: - Helper Properties
 
     private var accessibilityDescription: String {
-        var description = "Book: \(work.title) by \(work.authorNames)"
-        if let userEntry = userEntry {
-            description += ", Status: \(userEntry.readingStatus.displayName)"
-            if userEntry.readingStatus == .reading && userEntry.readingProgress > 0 {
-                description += ", Progress: \(Int(userEntry.readingProgress * 100))%"
-            }
-        }
-        return description
+        BookCardAccessibility.buildDescription(work: work, userEntry: userEntry)
     }
 
     private var cardAspectRatio: CGFloat {
@@ -488,27 +447,14 @@ struct iOS26AdaptiveBookCard: View {
         }
     }
 
-    // MARK: - Actions
-
+    // MARK: - Actions (Using Shared Helpers)
 
     private func triggerHapticFeedback() {
-        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-        impactFeedback.impactOccurred()
+        BookCardActions.triggerImpactFeedback()
     }
 
     private func updateReadingStatus(_ status: ReadingStatus) {
-        guard let userEntry = userEntry else { return }
-
-        userEntry.readingStatus = status
-        if status == .reading && userEntry.dateStarted == nil {
-            userEntry.dateStarted = Date()
-        } else if status == .read {
-            userEntry.markAsCompleted()
-        }
-        userEntry.touch()
-
-        let notificationFeedback = UINotificationFeedbackGenerator()
-        notificationFeedback.notificationOccurred(.success)
+        BookCardActions.updateReadingStatus(status, for: userEntry)
     }
 
     private func removeFromLibrary() {

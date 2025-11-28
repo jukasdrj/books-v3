@@ -169,48 +169,19 @@ struct iOS26FloatingBookCard: View {
         .padding(.horizontal, 6)
     }
 
-    // MARK: - Status Indicators
+    // MARK: - Status Indicators (Using Shared Components)
 
     private func statusIndicator(for status: ReadingStatus) -> some View {
-        Circle()
-            .fill(status.color.gradient)
-            .frame(width: 28, height: 28)
-            .overlay {
-                Image(systemName: status.systemImage)
-                    .font(.caption.weight(.bold))
-                    .foregroundColor(.white)
-            }
-            .glassEffect(.subtle)
-            .shadow(color: status.color.opacity(0.4), radius: 5, x: 0, y: 2)
+        StatusBadgeCircle(status: status)
     }
     
-    // ✅ NEW: Compact status indicator for the info card
+    // ✅ Compact status indicator for the info card
     private func infoCardStatus(for status: ReadingStatus) -> some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(status.color)
-                .frame(width: 8, height: 8)
-            Text(status.displayName)
-                .font(.caption2.weight(.medium))
-                .foregroundColor(status.color)
-        }
+        StatusBadgeInline(status: status)
     }
 
     private var culturalDiversityBadge: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "globe.americas.fill")
-                .font(.caption2)
-                .foregroundColor(.white.opacity(0.9))
-
-            if let region = work.primaryAuthor?.culturalRegion {
-                Text(region.emoji)
-                    .font(.caption2)
-            }
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(.ultraThinMaterial, in: Capsule())
-        .glassEffect(.subtle)
+        CulturalDiversityBadge(for: work.primaryAuthor)
     }
 
     // MARK: - Quick Actions
@@ -256,42 +227,17 @@ struct iOS26FloatingBookCard: View {
     }
 
     private var accessibilityDescription: String {
-        var description = "Book: \(work.title) by \(work.authorNames)"
-        if let userEntry = userEntry {
-            description += ", Status: \(userEntry.readingStatus.displayName)"
-            if userEntry.readingStatus == .reading && userEntry.readingProgress > 0 {
-                description += ", Progress: \(Int(userEntry.readingProgress * 100))%"
-            }
-        }
-        return description
+        BookCardAccessibility.buildDescription(work: work, userEntry: userEntry)
     }
 
-    // MARK: - Actions
+    // MARK: - Actions (Using Shared Helpers)
 
     private func updateReadingStatus(_ status: ReadingStatus) {
-        guard let userEntry = userEntry else { return }
-
-        userEntry.readingStatus = status
-        if status == .reading && userEntry.dateStarted == nil {
-            userEntry.dateStarted = Date()
-        } else if status == .read {
-            userEntry.markAsCompleted()
-        }
-        userEntry.touch()
-
-        // Haptic feedback
-        triggerHapticFeedback(.success)
+        BookCardActions.updateReadingStatus(status, for: userEntry)
     }
 
     private func setRating(_ rating: Double) {
-        guard let userEntry = userEntry, !userEntry.isWishlistItem else { return }
-
-        userEntry.personalRating = rating > 0 ? rating : nil
-        userEntry.rating = rating > 0 ? Int(rating) : nil
-        userEntry.touch()
-
-        // Haptic feedback
-        triggerHapticFeedback(.success)
+        BookCardActions.setRating(rating, for: userEntry)
     }
 
     // ⚠️ REMOVED: Non-functional addToLibrary() and addToWishlist() functions
@@ -306,13 +252,7 @@ struct iOS26FloatingBookCard: View {
             work.userLibraryEntries?.remove(at: index)
         }
 
-        triggerHapticFeedback(.warning)
-    }
-
-    @MainActor
-    private func triggerHapticFeedback(_ type: UINotificationFeedbackGenerator.FeedbackType) {
-        let notificationFeedback = UINotificationFeedbackGenerator()
-        notificationFeedback.notificationOccurred(type)
+        BookCardActions.triggerHapticFeedback(.warning)
     }
 }
 
@@ -492,110 +432,43 @@ struct OptimizedFloatingBookCard: View {
     }
 
     private func statusIndicator(for status: ReadingStatus) -> some View {
-        Circle()
-            .fill(status.color.gradient)
-            .frame(width: 28, height: 28)
-            .overlay {
-                Image(systemName: status.systemImage)
-                    .font(.caption.weight(.bold))
-                    .foregroundColor(.white)
-            }
-            .glassEffect(.subtle)
-            .shadow(color: status.color.opacity(0.4), radius: 5, x: 0, y: 2)
+        StatusBadgeCircle(status: status)
     }
     
     private func infoCardStatus(for status: ReadingStatus) -> some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(status.color)
-                .frame(width: 8, height: 8)
-            Text(status.displayName)
-                .font(.caption2.weight(.medium))
-                .foregroundColor(status.color)
-        }
+        StatusBadgeInline(status: status)
     }
     
     private var culturalDiversityBadge: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "globe.americas.fill")
-                .font(.caption2)
-                .foregroundColor(.white.opacity(0.9))
-            
-            if let region = work.primaryAuthor?.culturalRegion {
-                Text(region.emoji)
-                    .font(.caption2)
-            }
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(.ultraThinMaterial, in: Capsule())
-        .glassEffect(.subtle)
+        CulturalDiversityBadge(for: work.primaryAuthor)
     }
     
     private var quickActionsMenu: some View {
-        Group {
-            if let userEntry = cachedUserEntry {
-                Menu("Change Status", systemImage: "bookmark") {
-                    ForEach(ReadingStatus.allCases.filter { $0 != userEntry.readingStatus }, id: \.self) { status in
-                        Button(status.displayName, systemImage: status.systemImage) {
-                            updateReadingStatus(status)
-                        }
-                    }
-                }
-                
-                Divider()
-                
-                if !userEntry.isWishlistItem {
-                    Menu("Rate Book", systemImage: "star") {
-                        ForEach(1...5, id: \.self) { rating in
-                            Button("\(rating) Stars") {
-                                setRating(Double(rating))
-                            }
-                        }
-                        Button("Remove Rating") {
-                            setRating(0)
-                        }
-                    }
-                }
-                
-                Divider()
-                
-                Button("Remove from Library", systemImage: "trash", role: .destructive) {
-                    removeFromLibrary()
-                }
+        BookCardQuickActionsMenu(
+            work: work,
+            userEntry: cachedUserEntry,
+            onStatusChange: { status in
+                updateReadingStatus(status)
+            },
+            onRatingChange: { rating in
+                setRating(rating)
+            },
+            onRemove: {
+                removeFromLibrary()
             }
-            // ⚠️ REMOVED: Non-functional Add to Library/Wishlist buttons
-            // These buttons had no ModelContext and couldn't persist changes
-            // For full book details and persistence actions, navigate to WorkDetailView
-        }
+        )
     }
     
-    // MARK: - Actions
+    // MARK: - Actions (Using Shared Helpers)
     
     private func updateReadingStatus(_ status: ReadingStatus) {
-        guard let userEntry = cachedUserEntry else { return }
-        
-        userEntry.readingStatus = status
-        if status == .reading && userEntry.dateStarted == nil {
-            userEntry.dateStarted = Date()
-        } else if status == .read {
-            userEntry.markAsCompleted()
-        }
-        userEntry.touch()
+        BookCardActions.updateReadingStatus(status, for: cachedUserEntry)
         updateCachedProperties()
-        
-        triggerHapticFeedback(.success)
     }
     
     private func setRating(_ rating: Double) {
-        guard let userEntry = cachedUserEntry, !userEntry.isWishlistItem else { return }
-        
-        userEntry.personalRating = rating > 0 ? rating : nil
-        userEntry.rating = rating > 0 ? Int(rating) : nil
-        userEntry.touch()
+        BookCardActions.setRating(rating, for: cachedUserEntry)
         updateCachedProperties()
-        
-        triggerHapticFeedback(.success)
     }
     
     // ⚠️ REMOVED: Non-functional addToLibrary() and addToWishlist() functions
@@ -611,13 +484,7 @@ struct OptimizedFloatingBookCard: View {
         }
 
         updateCachedProperties()
-        triggerHapticFeedback(.warning)
-    }
-    
-    @MainActor
-    private func triggerHapticFeedback(_ type: UINotificationFeedbackGenerator.FeedbackType) {
-        let notificationFeedback = UINotificationFeedbackGenerator()
-        notificationFeedback.notificationOccurred(type)
+        BookCardActions.triggerHapticFeedback(.warning)
     }
 }
 
