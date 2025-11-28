@@ -10,6 +10,30 @@ public struct CombinedImportView: View {
 
     @State private var showingCSVImport = false
 
+    // MARK: - Design Constants
+    private enum Layout {
+        static let cardSpacing: CGFloat = 20
+        static let cardPadding: CGFloat = 20
+        static let cardCornerRadius: CGFloat = 16
+        static let cardMinHeight: CGFloat = 100
+        static let cardBorderOpacity: CGFloat = 0.1
+        static let cardBorderWidth: CGFloat = 1
+
+        static let iconSize: CGFloat = 48
+        static let iconFrameSize: CGFloat = 64
+        static let iconSpacing: CGFloat = 16
+
+        static let textSpacing: CGFloat = 6
+        static let textLineLimit: Int = 2
+
+        static let headerSpacing: CGFloat = 8
+        static let headerPaddingVertical: CGFloat = 12
+        static let headerPaddingHorizontal: CGFloat = 32
+
+        static let contentPaddingTop: CGFloat = 24
+        static let contentPaddingHorizontal: CGFloat = 20
+    }
+
     public init() {}
 
     public var body: some View {
@@ -19,7 +43,7 @@ public struct CombinedImportView: View {
                     .ignoresSafeArea()
 
                 ScrollView {
-                    VStack(spacing: 20) {
+                    VStack(spacing: Layout.cardSpacing) {
                         topHeader
 
                         // Card 1: Scan Bookshelf
@@ -48,8 +72,8 @@ public struct CombinedImportView: View {
 
                         Spacer()
                     }
-                    .padding(.top, 24)
-                    .padding(.horizontal, 20)
+                    .padding(.top, Layout.contentPaddingTop)
+                    .padding(.horizontal, Layout.contentPaddingHorizontal)
                 }
             }
             .navigationTitle("Add Books")
@@ -69,7 +93,7 @@ public struct CombinedImportView: View {
     }
 
     private var topHeader: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: Layout.headerSpacing) {
             Text("AI-Powered Book Import")
                 .font(.title2)
                 .fontWeight(.semibold)
@@ -78,19 +102,19 @@ public struct CombinedImportView: View {
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
+                .padding(.horizontal, Layout.headerPaddingHorizontal)
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, Layout.headerPaddingVertical)
     }
 
     private func largeGlassCard(icon: String, title: String, description: String, accent: Color) -> some View {
-        HStack(spacing: 16) {
+        HStack(spacing: Layout.iconSpacing) {
             Image(systemName: icon)
-                .font(.system(size: 48))
+                .font(.system(size: Layout.iconSize))
                 .foregroundStyle(accent)
-                .frame(width: 64, height: 64)
+                .frame(width: Layout.iconFrameSize, height: Layout.iconFrameSize)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: Layout.textSpacing) {
                 Text(title)
                     .font(.title3)
                     .fontWeight(.semibold)
@@ -98,7 +122,7 @@ public struct CombinedImportView: View {
                 Text(description)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-                    .lineLimit(2)
+                    .lineLimit(Layout.textLineLimit)
             }
 
             Spacer()
@@ -107,14 +131,14 @@ public struct CombinedImportView: View {
                 .font(.title3)
                 .foregroundColor(.secondary)
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, minHeight: 100)
+        .padding(Layout.cardPadding)
+        .frame(maxWidth: .infinity, minHeight: Layout.cardMinHeight)
         .background {
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: Layout.cardCornerRadius)
                 .fill(.ultraThinMaterial)
                 .overlay {
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: Layout.cardCornerRadius)
+                        .strokeBorder(Color.white.opacity(Layout.cardBorderOpacity), lineWidth: Layout.cardBorderWidth)
                 }
         }
     }
