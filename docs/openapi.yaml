@@ -536,6 +536,39 @@ paths:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
 
+  /v1/search/semantic:
+    get:
+      tags: [Search]
+      summary: Natural language semantic search
+      description: Search books using natural language queries powered by Workers AI embeddings
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "books about adventure in space"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 10
+      responses:
+        '200':
+          description: Semantic search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '503':
+          description: Vectorize not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v2/books/enrich:
     post:
       tags: [Enrichment]
@@ -580,10 +613,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/batch-enrich:
+  /v1/enrichment/batch:
     post:
       tags: [Enrichment]
       summary: Batch book enrichment (async)
+      description: REAL endpoint for batch enrichment (not /api/batch-enrich which was a documentation error)
       requestBody:
         required: true
         content:
@@ -607,7 +641,30 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  data:
+                    type: object
+                    properties:
+                      jobId:
+                        type: string
+                        format: uuid
+                      success:
+                        type: boolean
+                      processedCount:
+                        type: integer
+                      totalCount:
+                        type: integer
+                      authToken:
+                        type: string
+                        format: uuid
+                      message:
+                        type: string
+                      websocketUrl:
+                        type: string
 
   /api/v2/imports:
     post:
