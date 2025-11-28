@@ -48,7 +48,13 @@ import SwiftUI
 /// Index rebuilding happens transparently in the background.
 @Model
 public final class Work {
-    #Index<Work>([\.title], [\.reviewStatusRawValue])  // Database indexes for title searches and review queue queries
+    // NOTE: SwiftData limitation - can only have ONE #Index declaration per model.
+    // Using compound index for now. Ideally we'd have separate indexes for:
+    // 1. Title prefix searches: #Index<Work>([\.title])
+    // 2. Review queue queries: #Index<Work>([\.reviewStatusRawValue])
+    // Compound index helps title searches and combined queries, but not reviewStatusRawValue-only queries.
+    // TODO: Monitor SwiftData updates for multiple index support (FB tracked)
+    #Index<Work>([\.title], [\.reviewStatusRawValue])
 
     /// Stable, unique identifier for this work (survives CloudKit sync)
     var uuid: UUID = UUID()
