@@ -100,16 +100,7 @@ public struct iOS26LiquidLibraryView: View {
                 pendingEnrichmentCount = 0
             }
             .onReceive(NotificationCenter.default.publisher(for: .libraryWasReset)) { _ in
-                // CRITICAL: Immediately clear all cached state to prevent stale references
-                cachedFilteredWorks = []
-                cachedDiversityScore = 0.0
-                cachedStatusCounts = [:] // PERFORMANCE: Clear cached status counts
-                pendingEnrichmentCount = 0
-                reviewQueueCount = 0
-                isEnriching = false
-                #if DEBUG
-                print("✅ Library view: Cleared cache after library reset")
-                #endif
+                clearAllCaches()
             }
             .onChange(of: searchText) { _, newValue in
                 // Clear quick filter when search text changes
@@ -595,6 +586,20 @@ public struct iOS26LiquidLibraryView: View {
         
         cachedStatusCounts = counts
     }
+    
+    /// Clear all cached state to prevent stale references.
+    /// CRITICAL: Call this during library reset to avoid accessing deleted objects.
+    private func clearAllCaches() {
+        cachedFilteredWorks = []
+        cachedDiversityScore = 0.0
+        cachedStatusCounts = [:]
+        pendingEnrichmentCount = 0
+        reviewQueueCount = 0
+        isEnriching = false
+        #if DEBUG
+        print("✅ Library view: Cleared all caches after library reset")
+        #endif
+    }
 
     // MARK: - Performance Optimizations
 
@@ -669,9 +674,11 @@ public struct iOS26LiquidLibraryView: View {
         // PERFORMANCE: Use database-level predicate with fetchCount() instead of in-memory filter.
         // For 1000 works, this takes ~5ms vs ~50ms with in-memory filtering.
         // Query the stored String property directly (reviewStatus is a computed property).
+        // Use ReviewStatus.needsReview.rawValue to avoid hardcoding the string value.
+        let needsReviewRawValue = ReviewStatus.needsReview.rawValue
         let descriptor = FetchDescriptor<Work>(
             predicate: #Predicate { work in
-                work.reviewStatusRawValue == "needsReview"
+                work.reviewStatusRawValue == needsReviewRawValue
             }
         )
         reviewQueueCount = (try? modelContext.fetchCount(descriptor)) ?? 0

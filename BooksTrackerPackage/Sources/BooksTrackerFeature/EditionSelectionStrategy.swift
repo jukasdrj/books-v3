@@ -124,6 +124,12 @@ public struct RecentStrategy: EditionSelectionStrategy {
     /// PERFORMANCE: Static cached date formatters to avoid repeated allocation.
     /// DateFormatter is expensive to create (~10x cost of parsing itself).
     /// Thread-safe due to value semantics in struct context.
+    ///
+    /// NOTE: Using `en_US_POSIX` locale is intentional and recommended by Apple for
+    /// parsing fixed-format date strings (ISO 8601, API responses). This ensures
+    /// consistent parsing regardless of the user's locale settings. The formatters
+    /// already include region-specific formats (US: MM/dd/yyyy, European: dd/MM/yyyy).
+    /// See: https://developer.apple.com/library/archive/qa/qa1480/_index.html
     private static let cachedFormatters: [DateFormatter] = {
         let formats = [
             "yyyy-MM-dd",        // ISO 8601
@@ -136,7 +142,7 @@ public struct RecentStrategy: EditionSelectionStrategy {
         return formats.map { format in
             let formatter = DateFormatter()
             formatter.dateFormat = format
-            formatter.locale = Locale(identifier: "en_US_POSIX") // Consistent parsing
+            formatter.locale = Locale(identifier: "en_US_POSIX") // Required for fixed-format parsing
             formatter.timeZone = TimeZone(identifier: "UTC")
             return formatter
         }
