@@ -51,7 +51,7 @@ public struct SettingsView: View {
     @State private var showingAcknowledgements = false
     @State private var showingAboutMaker = false
     @State private var showingDeleteLibraryConfirmation = false
-    @State private var libraryBookCount: Int = 0
+    @State private var libraryBookCount: Int? = nil
 
     // CloudKit status (simplified for now)
     @State private var cloudKitStatus: CloudKitStatus = .unknown
@@ -317,16 +317,16 @@ public struct SettingsView: View {
 
             Section {
                 Button(role: .destructive) {
-                    Task {
-                        do {
-                            let fetchDescriptor = FetchDescriptor<Work>()
-                            libraryBookCount = try modelContext.fetchCount(fetchDescriptor)
-                            showingDeleteLibraryConfirmation = true
-                        } catch {
-                            print("Failed to fetch library count: \(error)")
-                            libraryBookCount = 0
-                            showingDeleteLibraryConfirmation = true
-                        }
+                    do {
+                        let fetchDescriptor = FetchDescriptor<Work>(predicate: #Predicate { !($0.userLibraryEntries?.isEmpty ?? true) })
+                        libraryBookCount = try modelContext.fetchCount(fetchDescriptor)
+                        showingDeleteLibraryConfirmation = true
+                    } catch {
+                        #if DEBUG
+                        print("Failed to fetch library count: \(error)")
+                        #endif
+                        libraryBookCount = nil
+                        showingDeleteLibraryConfirmation = true
                     }
                 } label: {
                     HStack {
@@ -336,6 +336,7 @@ public struct SettingsView: View {
                         Text("Delete Library")
                     }
                 }
+                .sensoryFeedback(.warning, trigger: showingDeleteLibraryConfirmation)
             } header: {
                 Text("⚠️ Danger Zone")
                     .textCase(nil)
@@ -410,12 +411,17 @@ public struct SettingsView: View {
         ) {
             Button("Delete Library", role: .destructive) {
                 Task {
+                    // TODO: Rename libraryRepository.resetLibrary() to deleteLibrary() for consistency (PR #91 review comment)
                     await libraryRepository.resetLibrary()
                 }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This will permanently delete your \(libraryBookCount) books, reading progress, and ratings from your library. This action cannot be undone.")
+            if let count = libraryBookCount {
+                Text("This will permanently delete your \(count) books, reading progress, and ratings from your library. This action cannot be undone.")
+            } else {
+                Text("This will permanently delete all books, reading progress, and ratings from your library. This action cannot be undone.")
+            }
         }
     }
 
