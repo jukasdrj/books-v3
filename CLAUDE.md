@@ -38,12 +38,28 @@
 ### Essential Commands
 
 **🚀 iOS Development (xcodebuild CLI):**
+
+**Safe Testing (Recommended - Prevents System Crashes):**
 ```bash
-/build         # Quick build validation
-/test          # Run Swift Testing suite
-/sim           # Launch BooksTrack in iOS Simulator with log streaming
-/device-deploy # Deploy BooksTrack to connected iPhone/iPad
+/quick-validate  # Build validation without Simulator (safe, fast)
+/sim-safe        # Monitored Simulator with resource limits
+/kill-xcode      # Emergency cleanup of all Xcode processes
+/device-deploy   # Deploy to real device (most resource-efficient)
 ```
+
+**Standard Testing (Higher Resource Usage):**
+```bash
+/build         # Quick build validation (can be resource-intensive)
+/test          # Run Swift Testing suite
+/sim           # Launch Simulator (WARNING: can crash system if low RAM)
+```
+
+**⚠️ IMPORTANT: Resource Management**
+- **Always prefer `/quick-validate`** over `/build` during development
+- **Use `/device-deploy`** for UI testing (much lighter than Simulator)
+- **Only use `/sim-safe`** when Simulator specifically needed (has auto-kill limits)
+- **Never use `/sim`** if you have <16GB RAM or system is slow
+- **Use `/kill-xcode`** immediately if system becomes unresponsive
 
 **Note:** All slash commands use standard `xcodebuild` command-line tools.
 
@@ -264,6 +280,84 @@ mcp__zen__debug(
 - `multiSelect: true` for multiple answers
 - 2-4 options per question
 - 1-4 questions max
+
+---
+
+## 🛡️ Safe Testing & Resource Management
+
+### Critical Rule: Prevent System Crashes
+
+**ALWAYS follow this workflow when user requests testing:**
+
+1. **Default to safe validation:**
+   ```
+   User: "Test my changes"
+   Claude: [Uses /quick-validate, not /build or /sim]
+   ```
+
+2. **Only use Simulator when UI testing explicitly needed:**
+   ```
+   User: "Test the new button layout"
+   Claude: [Uses /sim-safe with resource monitoring, not /sim]
+   ```
+
+3. **Prefer real device testing:**
+   ```
+   User: "Make sure this works"
+   Claude: [Suggests /device-deploy instead of /sim]
+   ```
+
+### Safe Testing Workflows
+
+**Pattern A: Code Validation (Default)**
+```
+User: "Check if this builds"
+Claude:
+  1. Use /quick-validate (NOT /build)
+  2. Check build-quick.log for errors
+  3. Report results
+  4. If success: suggest real device test if UI changes
+```
+
+**Pattern B: UI Testing (When Needed)**
+```
+User: "Test the new LibraryView UI"
+Claude:
+  1. Ask: "Should I test on real device (/device-deploy) or Simulator?"
+  2. If Simulator: Use /sim-safe (NOT /sim)
+  3. Monitor resource usage in logs
+  4. Auto-cleanup after testing
+```
+
+**Pattern C: Emergency Recovery**
+```
+User: "System is frozen" / "Xcode won't quit"
+Claude:
+  1. Use /kill-xcode immediately
+  2. Wait 10 seconds
+  3. Verify cleanup: ps aux | grep -E "(Xcode|Simulator)"
+  4. Recommend /quick-validate for next test
+```
+
+### Resource-Aware Decision Making
+
+**Before ANY testing command, check context:**
+
+- **User mentions "slow", "crash", "frozen", "RAM", "CPU"** → Use /quick-validate
+- **User has low RAM (<16GB)** → Prefer /device-deploy over Simulator
+- **Simple code changes (syntax, logic, refactor)** → Use /quick-validate
+- **UI/UX validation needed** → Ask about real device vs Simulator
+- **Performance testing** → Real device only (Simulator misleading)
+
+### Available Scripts
+
+All safe testing scripts are in `.claude/scripts/`:
+
+- `quick-validate.sh` - Build without Simulator (2 jobs, 5min timeout)
+- `safe-test.sh` - Monitored Simulator (8GB limit, auto-kill)
+- `kill-all-xcode.sh` - Emergency cleanup
+
+**Full documentation:** `.claude/SAFE_TESTING.md`
 
 ---
 

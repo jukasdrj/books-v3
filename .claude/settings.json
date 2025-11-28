@@ -1,6 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "model": "claude-sonnet-4-5-20250929",
+  "customInstructions": "CRITICAL: Safe Testing Policy - ALWAYS use /quick-validate instead of /build. NEVER use /sim (use /sim-safe or /device-deploy). When user requests testing, default to safe validation workflow (see CLAUDE.md Safe Testing section).",
   "subagentModels": {
     "cloudflare-specialist": "claude-sonnet-4-5-20250929",
     "code-review-grok": "grok-code-fast-1",
