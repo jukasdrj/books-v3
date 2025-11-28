@@ -49,6 +49,7 @@ import SwiftUI
 @Model
 public final class Work {
     #Index<Work>([\.title])  // Database index for title searches
+    #Index<Work>([\.reviewStatusRawValue])  // Database index for review queue queries (Issue #improve-performance)
 
     /// Stable, unique identifier for this work (survives CloudKit sync)
     var uuid: UUID = UUID()
