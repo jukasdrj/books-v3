@@ -262,7 +262,7 @@ struct APIContractComplianceTests {
     @Suite("Section 7: Import & Scanning")
     struct ImportScanningTests {
 
-        /// Contract 7.2: SSE event data structure
+        /// Contract 7.3: Job status polling response structure
         @Test("Job status fields match contract (Section 7.3)")
         func jobStatusFieldsMatchContract() throws {
             // API Contract Section 7.3 - Job Status:
@@ -285,6 +285,27 @@ struct APIContractComplianceTests {
             #expect(progress.progress == 0.67)
             #expect(progress.status == "processing")
             #expect(progress.processedCount == 100)
+        }
+
+        /// Test that JobProgressPayload handles optional processedCount field
+        @Test("JobProgressPayload decodes without processedCount (optional field)")
+        func jobProgressPayloadHandlesMissingProcessedCount() throws {
+            // processedCount is optional per the DTO definition
+            let json = """
+            {
+              "type": "job_progress",
+              "progress": 0.5,
+              "status": "processing"
+            }
+            """
+
+            let data = json.data(using: .utf8)!
+            let progress = try JSONDecoder().decode(JobProgressPayload.self, from: data)
+
+            #expect(progress.type == "job_progress")
+            #expect(progress.progress == 0.5)
+            #expect(progress.status == "processing")
+            #expect(progress.processedCount == nil, "processedCount should be nil when not provided")
         }
 
         /// Contract 7.5: Job cancellation response structure

@@ -4,7 +4,7 @@
 
 ## Overview
 
-The BooksTrack iOS app communicates with a Cloudflare Workers API. Mismatches between the API contract and Swift DTOs can cause:
+The BooksTracker iOS app communicates with a Cloudflare Workers API. Mismatches between the API contract and Swift DTOs can cause:
 - **Runtime crashes** when JSON decoding fails
 - **Silent data loss** when fields are missing
 - **Feature regressions** when new API fields aren't captured
