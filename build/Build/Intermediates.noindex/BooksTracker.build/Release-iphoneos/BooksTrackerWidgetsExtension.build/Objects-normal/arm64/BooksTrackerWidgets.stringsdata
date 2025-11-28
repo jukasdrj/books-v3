@@ -1,0 +1,24 @@
+{
+  "source": "/Users/juju/dev_repos/books-v3/BooksTrackerWidgets/BooksTrackerWidgets.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Time:",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 49
+        }
+      },
+      {
+        "comment": "",
+        "key": "Favorite Emoji:",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 52
+        }
+      }
+    ]
+  },
+  "version": 1
+}

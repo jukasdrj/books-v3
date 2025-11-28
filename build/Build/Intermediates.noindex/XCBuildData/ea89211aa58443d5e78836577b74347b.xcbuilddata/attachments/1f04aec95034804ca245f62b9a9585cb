@@ -1,0 +1,981 @@
+{
+  "" : {
+    "const-values" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature-primary.swiftconstvalues",
+    "dependencies" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature-primary.d",
+    "diagnostics" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature-primary.dia",
+    "emit-module-dependencies" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature-primary-emit-module.dia",
+    "pch" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature-primary.swiftdeps"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/AboutMakerView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AboutMakerView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AboutMakerView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AboutMakerView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/AcknowledgementsView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AcknowledgementsView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AcknowledgementsView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AcknowledgementsView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/AdvancedSearchView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AdvancedSearchView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AdvancedSearchView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AdvancedSearchView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/AnnotationsModule.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AnnotationsModule.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AnnotationsModule.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AnnotationsModule.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Author.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/Author.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/Author.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/Author.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BentoGridView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BentoGridView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BentoGridView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BentoGridView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookActionsModule.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookActionsModule.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookActionsModule.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookActionsModule.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/BatchCaptureView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BatchCaptureView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BatchCaptureView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BatchCaptureView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/BookshelfScannerView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfScannerView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfScannerView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfScannerView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/BoundingBoxOverlayView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BoundingBoxOverlayView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BoundingBoxOverlayView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BoundingBoxOverlayView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Camera/BookshelfCameraPreview.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfCameraPreview.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfCameraPreview.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfCameraPreview.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Camera/BookshelfCameraSessionManager.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfCameraSessionManager.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfCameraSessionManager.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfCameraSessionManager.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Camera/BookshelfCameraView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfCameraView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfCameraView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfCameraView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Camera/BookshelfCameraViewModel.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfCameraViewModel.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfCameraViewModel.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfCameraViewModel.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/CombinedImportView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CombinedImportView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CombinedImportView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CombinedImportView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/ConfidenceThresholds.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ConfidenceThresholds.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ConfidenceThresholds.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ConfidenceThresholds.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/DetectedBook.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DetectedBook.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DetectedBook.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DetectedBook.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Models/BatchScanModels.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BatchScanModels.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BatchScanModels.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BatchScanModels.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Models/ProgressStrategy.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ProgressStrategy.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ProgressStrategy.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ProgressStrategy.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Models/ScanAnalyticsEvent.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ScanAnalyticsEvent.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ScanAnalyticsEvent.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ScanAnalyticsEvent.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/PrivacyDisclosureBanner.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/PrivacyDisclosureBanner.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/PrivacyDisclosureBanner.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/PrivacyDisclosureBanner.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/ScanResultsView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ScanResultsView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ScanResultsView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ScanResultsView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/ScanStatisticsView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ScanStatisticsView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ScanStatisticsView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ScanStatisticsView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/ScanningTipsView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ScanningTipsView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ScanningTipsView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ScanningTipsView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Services/BatchWebSocketHandler.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BatchWebSocketHandler.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BatchWebSocketHandler.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BatchWebSocketHandler.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Services/BookshelfAIService+Polling.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfAIService+Polling.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfAIService+Polling.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfAIService+Polling.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Services/BookshelfAIService.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfAIService.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfAIService.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookshelfAIService.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Services/ScanProgressModels.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ScanProgressModels.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ScanProgressModels.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ScanProgressModels.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/SuggestionGenerator.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SuggestionGenerator.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SuggestionGenerator.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SuggestionGenerator.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/VisionProcessingActor.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/VisionProcessingActor.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/VisionProcessingActor.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/VisionProcessingActor.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/CacheHealthDebugView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CacheHealthDebugView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CacheHealthDebugView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CacheHealthDebugView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/CachedAsyncImage.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CachedAsyncImage.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CachedAsyncImage.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CachedAsyncImage.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/CloudKitHelpView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CloudKitHelpView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CloudKitHelpView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CloudKitHelpView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/AIProvider.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AIProvider.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AIProvider.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AIProvider.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/APIError.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/APIError.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/APIError.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/APIError.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/EnrichmentAPIClient.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentAPIClient.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentAPIClient.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentAPIClient.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/EnrichmentConfig.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentConfig.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentConfig.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentConfig.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/GenericWebSocketHandler.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/GenericWebSocketHandler.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/GenericWebSocketHandler.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/GenericWebSocketHandler.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/JobModels.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/JobModels.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/JobModels.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/KeychainHelper.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/KeychainHelper.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/KeychainHelper.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/KeychainHelper.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/LoadingState.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/LoadingState.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/LoadingState.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/LoadingState.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/SyncCoordinator.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SyncCoordinator.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SyncCoordinator.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SyncCoordinator.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/WebSocketHelpers.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WebSocketHelpers.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WebSocketHelpers.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WebSocketHelpers.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/WebSocketProgressManager.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WebSocketProgressManager.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WebSocketProgressManager.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WebSocketProgressManager.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/AuroraGradient.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AuroraGradient.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AuroraGradient.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AuroraGradient.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/BookCardSkeleton.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookCardSkeleton.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookCardSkeleton.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookCardSkeleton.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/BookMetadataRow.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookMetadataRow.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookMetadataRow.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookMetadataRow.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/EditionMetadataView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EditionMetadataView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EditionMetadataView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EditionMetadataView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/EndSessionSheet.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EndSessionSheet.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EndSessionSheet.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EndSessionSheet.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/EnrichmentCompletionToast.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentCompletionToast.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentCompletionToast.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentCompletionToast.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/EnrichmentErrorToast.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentErrorToast.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentErrorToast.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentErrorToast.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/EnrichmentIndicator.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentIndicator.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentIndicator.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentIndicator.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/GenreTagView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/GenreTagView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/GenreTagView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/GenreTagView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/GlassCard.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/GlassCard.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/GlassCard.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/GlassCard.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/LibraryStatusBadge.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/LibraryStatusBadge.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/LibraryStatusBadge.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/LibraryStatusBadge.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/NotesEditorView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/NotesEditorView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/NotesEditorView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/NotesEditorView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/RateLimitBanner.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/RateLimitBanner.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/RateLimitBanner.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/RateLimitBanner.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/ScaleButtonStyle.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ScaleButtonStyle.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ScaleButtonStyle.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ScaleButtonStyle.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/StarRatingView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/StarRatingView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/StarRatingView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/StarRatingView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ContentView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ContentView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ApiErrorCode.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ApiErrorCode.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ApiErrorCode.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ApiErrorCode.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/AuthorDTO.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AuthorDTO.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AuthorDTO.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AuthorDTO.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/BatchEnrichmentPayload.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BatchEnrichmentPayload.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BatchEnrichmentPayload.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BatchEnrichmentPayload.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/DTOEnums.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DTOEnums.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DTOEnums.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DTOEnums.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EditionDTO.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EditionDTO.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EditionDTO.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EditionDTO.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EnrichedBookDTO.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichedBookDTO.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichedBookDTO.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichedBookDTO.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ErrorResponseDTO.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ErrorResponseDTO.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ErrorResponseDTO.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ErrorResponseDTO.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ListWorkDTO.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ListWorkDTO.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ListWorkDTO.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ListWorkDTO.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ResponseEnvelope.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ResponseEnvelope.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ResponseEnvelope.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/SearchLinksDTO.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchLinksDTO.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchLinksDTO.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchLinksDTO.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WebSocketMessages.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WebSocketMessages.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WebSocketMessages.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WorkDTO.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkDTO.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkDTO.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkDTO.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WorkflowDTOs.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkflowDTOs.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkflowDTOs.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkflowDTOs.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DiversityPreviewModule.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityPreviewModule.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityPreviewModule.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityPreviewModule.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Edition.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/Edition.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/Edition.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/Edition.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/EditionComparisonSheet.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EditionComparisonSheet.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EditionComparisonSheet.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EditionComparisonSheet.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/EditionSelectionStrategy.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EditionSelectionStrategy.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EditionSelectionStrategy.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EditionSelectionStrategy.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Enrichment/EnrichmentQueue.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentQueue.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentQueue.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentQueue.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Enrichment/EnrichmentService.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentService.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentService.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentService.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Enrichment/EnrichmentWebSocketHandler.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentWebSocketHandler.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentWebSocketHandler.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentWebSocketHandler.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Extensions/Data+toString.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/Data+toString.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/Data+toString.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/Data+toString.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Extensions/String+TitleNormalization.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/String+TitleNormalization.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/String+TitleNormalization.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/String+TitleNormalization.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/FeatureFlags.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/FeatureFlags.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/FeatureFlags.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/FeatureFlags.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/FloatingPillsView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/FloatingPillsView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/FloatingPillsView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/FloatingPillsView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/GeminiCSVImport/CSVValidator.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CSVValidator.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CSVValidator.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CSVValidator.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/GeminiCSVImport/GeminiCSVImportService.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/GeminiCSVImportService.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/GeminiCSVImportService.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/GeminiCSVImportService.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/GeminiCSVImport/GeminiCSVImportView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/GeminiCSVImportView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/GeminiCSVImportView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/GeminiCSVImportView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/GeminiCSVImport/SSEClient.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SSEClient.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SSEClient.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SSEClient.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/GeminiCSVImport/SSEModels.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SSEModels.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SSEModels.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SSEModels.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ISBNScannerView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ISBNScannerView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ISBNScannerView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ISBNScannerView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ISBNValidator.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ISBNValidator.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ISBNValidator.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ISBNValidator.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ImmersiveHeaderView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ImmersiveHeaderView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ImmersiveHeaderView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ImmersiveHeaderView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Insights/Components/CulturalRegionsChart.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CulturalRegionsChart.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CulturalRegionsChart.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CulturalRegionsChart.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Insights/Components/GenderDonutChart.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/GenderDonutChart.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/GenderDonutChart.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/GenderDonutChart.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Insights/Components/HeroStatsCard.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/HeroStatsCard.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/HeroStatsCard.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/HeroStatsCard.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Insights/Components/LanguageTagCloud.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/LanguageTagCloud.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/LanguageTagCloud.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/LanguageTagCloud.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Insights/Components/RadarChartView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/RadarChartView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/RadarChartView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/RadarChartView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Insights/Components/ReadingStatsSection.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingStatsSection.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingStatsSection.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingStatsSection.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Insights/DiversityInsightsTab.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityInsightsTab.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityInsightsTab.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityInsightsTab.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Insights/InsightsView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/InsightsView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/InsightsView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/InsightsView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Insights/Utilities/FlowLayout.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/FlowLayout.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/FlowLayout.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/FlowLayout.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/LibraryRepository.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/LibraryRepository.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/LibraryRepository.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/LibraryRepository.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ModelTypes.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ModelTypes.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ModelTypes.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ModelTypes.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/APICapabilities.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/APICapabilities.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/APICapabilities.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/APICapabilities.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/AuthorMetadata.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AuthorMetadata.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AuthorMetadata.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AuthorMetadata.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/BookEnrichment.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookEnrichment.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookEnrichment.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookEnrichment.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/DiversityMetric.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityMetric.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityMetric.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityMetric.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/DiversityScore.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityScore.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityScore.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityScore.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/DiversityStats.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityStats.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityStats.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityStats.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/DiversityStatsMigrationPlan.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityStatsMigrationPlan.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityStatsMigrationPlan.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityStatsMigrationPlan.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/EnhancedDiversityStats.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnhancedDiversityStats.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnhancedDiversityStats.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnhancedDiversityStats.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/NotificationPayloads.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/NotificationPayloads.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/NotificationPayloads.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/NotificationPayloads.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/ReadingSession.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingSession.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingSession.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingSession.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/ReadingStats.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingStats.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingStats.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingStats.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/ReviewStatus.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReviewStatus.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReviewStatus.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReviewStatus.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/SearchCoordinator.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchCoordinator.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchCoordinator.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchCoordinator.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/SearchResultDTO.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchResultDTO.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchResultDTO.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchResultDTO.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/SimilarBooksCache.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SimilarBooksCache.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SimilarBooksCache.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SimilarBooksCache.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/StreakData.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/StreakData.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/StreakData.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/StreakData.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/TrendingActivity.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/TrendingActivity.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/TrendingActivity.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/TrendingActivity.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/WeeklyRecommendation.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WeeklyRecommendation.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WeeklyRecommendation.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WeeklyRecommendation.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/WorkOverride.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkOverride.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkOverride.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkOverride.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ProgressViews/ProgressComponents.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ProgressComponents.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ProgressComponents.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ProgressComponents.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ReadingHabitsModule.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingHabitsModule.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingHabitsModule.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingHabitsModule.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ReadingHabitsViewModel.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingHabitsViewModel.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingHabitsViewModel.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingHabitsViewModel.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ReadingProgressModule.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingProgressModule.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingProgressModule.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingProgressModule.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ReadingStatusParser.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingStatusParser.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingStatusParser.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingStatusParser.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ReviewQueue/CorrectionView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CorrectionView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CorrectionView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CorrectionView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ReviewQueue/ManualMatchView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ManualMatchView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ManualMatchView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ManualMatchView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ReviewQueue/ReviewQueueModel.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReviewQueueModel.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReviewQueueModel.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReviewQueueModel.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ReviewQueue/ReviewQueueView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReviewQueueView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReviewQueueView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReviewQueueView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchModel.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchModel.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchModel.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchModel.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchView/SearchMode.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchMode.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchMode.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchMode.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchView/SearchView+EmptyStates.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchView+EmptyStates.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchView+EmptyStates.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchView+EmptyStates.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchView/SearchView+InitialState.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchView+InitialState.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchView+InitialState.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchView+InitialState.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchView/SearchView+Loading.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchView+Loading.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchView+Loading.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchView+Loading.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchView/SearchView+Results.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchView+Results.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchView+Results.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchView+Results.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchViewState.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchViewState.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchViewState.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SearchViewState.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/APIConfig.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/APIConfig.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/APIConfig.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/APIConfig.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/BackgroundTaskScheduler.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BackgroundTaskScheduler.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BackgroundTaskScheduler.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BackgroundTaskScheduler.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/BookSearchAPIService.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookSearchAPIService.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookSearchAPIService.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookSearchAPIService.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/BookSearchAPIServiceKey.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookSearchAPIServiceKey.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookSearchAPIServiceKey.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/BookSearchAPIServiceKey.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/CacheHealthMetrics.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CacheHealthMetrics.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CacheHealthMetrics.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CacheHealthMetrics.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/CapabilitiesService.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CapabilitiesService.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CapabilitiesService.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CapabilitiesService.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/CascadeMetadataService.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CascadeMetadataService.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CascadeMetadataService.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CascadeMetadataService.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/CoverImageService.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CoverImageService.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CoverImageService.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CoverImageService.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/CuratorPointsService.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CuratorPointsService.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CuratorPointsService.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CuratorPointsService.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/CuratorPointsServiceEnvironmentKey.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CuratorPointsServiceEnvironmentKey.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CuratorPointsServiceEnvironmentKey.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CuratorPointsServiceEnvironmentKey.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/DTOMapper.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DTOMapper.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DTOMapper.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DTOMapper.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/DTOMapperEnvironmentKey.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DTOMapperEnvironmentKey.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DTOMapperEnvironmentKey.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DTOMapperEnvironmentKey.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/DataMigrationService.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DataMigrationService.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DataMigrationService.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DataMigrationService.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/DiversityStatsService.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityStatsService.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityStatsService.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityStatsService.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/DuplicateDetectionService.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DuplicateDetectionService.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DuplicateDetectionService.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DuplicateDetectionService.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ImageCleanupService.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ImageCleanupService.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ImageCleanupService.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ImageCleanupService.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ImageCompressionService.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ImageCompressionService.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ImageCompressionService.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ImageCompressionService.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ImagePrefetcher.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ImagePrefetcher.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ImagePrefetcher.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ImagePrefetcher.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ImportService.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ImportService.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ImportService.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ImportService.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/LaunchMetrics.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/LaunchMetrics.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/LaunchMetrics.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/LaunchMetrics.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/LibraryFilterService.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/LibraryFilterService.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/LibraryFilterService.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/LibraryFilterService.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/NotificationCoordinator.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/NotificationCoordinator.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/NotificationCoordinator.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/NotificationCoordinator.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ReadingSessionService.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingSessionService.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingSessionService.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ReadingSessionService.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/SampleDataGenerator.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SampleDataGenerator.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SampleDataGenerator.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SampleDataGenerator.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/SessionAnalyticsService.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SessionAnalyticsService.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SessionAnalyticsService.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SessionAnalyticsService.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/WeeklyRecommendationsCache.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WeeklyRecommendationsCache.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WeeklyRecommendationsCache.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WeeklyRecommendationsCache.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/WeeklyRecommendationsService.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WeeklyRecommendationsService.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WeeklyRecommendationsService.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WeeklyRecommendationsService.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/WorkflowImportService.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkflowImportService.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkflowImportService.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkflowImportService.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Settings/EnrichmentQueueDetailsView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentQueueDetailsView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentQueueDetailsView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentQueueDetailsView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Settings/EnrichmentQueueRow.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentQueueRow.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentQueueRow.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentQueueRow.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SettingsView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SettingsView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SettingsView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/SettingsView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/TabCoordinator.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/TabCoordinator.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/TabCoordinator.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/TabCoordinator.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ThemeSelectionView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ThemeSelectionView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ThemeSelectionView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ThemeSelectionView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/UI/EnrichmentBanner.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentBanner.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentBanner.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/EnrichmentBanner.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/UserLibraryEntry.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/UserLibraryEntry.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/UserLibraryEntry.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/UserLibraryEntry.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/Components/CelebrationView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CelebrationView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CelebrationView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/CelebrationView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/Components/ConfidenceBadge.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ConfidenceBadge.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ConfidenceBadge.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ConfidenceBadge.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/DiversityCompletionWidget.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityCompletionWidget.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityCompletionWidget.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/DiversityCompletionWidget.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/HorizontalBookCarousel.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/HorizontalBookCarousel.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/HorizontalBookCarousel.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/HorizontalBookCarousel.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/Library/AlphabeticalIndexView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AlphabeticalIndexView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AlphabeticalIndexView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/AlphabeticalIndexView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/ProgressiveProfilingSheet.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ProgressiveProfilingSheet.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ProgressiveProfilingSheet.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/ProgressiveProfilingSheet.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/RepresentationRadarChart.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/RepresentationRadarChart.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/RepresentationRadarChart.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/RepresentationRadarChart.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/StreakVisualizationView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/StreakVisualizationView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/StreakVisualizationView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/StreakVisualizationView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/WeeklyPicksView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WeeklyPicksView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WeeklyPicksView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WeeklyPicksView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/WorkflowProgressView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkflowProgressView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkflowProgressView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkflowProgressView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Work.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/Work.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/Work.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/Work.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/WorkDetailView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkDetailView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkDetailView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkDetailView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/WorkDiscoveryView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkDiscoveryView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkDiscoveryView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/WorkDiscoveryView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/iOS26AdaptiveBookCard.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26AdaptiveBookCard.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26AdaptiveBookCard.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26AdaptiveBookCard.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/iOS26FloatingBookCard.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26FloatingBookCard.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26FloatingBookCard.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26FloatingBookCard.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/iOS26FluidGridSystem.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26FluidGridSystem.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26FluidGridSystem.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26FluidGridSystem.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/iOS26GlassModifiers.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26GlassModifiers.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26GlassModifiers.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26GlassModifiers.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/iOS26LiquidLibraryView.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26LiquidLibraryView.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26LiquidLibraryView.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26LiquidLibraryView.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/iOS26LiquidListRow.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26LiquidListRow.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26LiquidListRow.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26LiquidListRow.o"
+  },
+  "/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/iOS26ThemeSystem.swift" : {
+    "index-unit-output-path" : "/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26ThemeSystem.o",
+    "llvm-bc" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26ThemeSystem.bc",
+    "object" : "/Users/juju/dev_repos/books-v3/build/Build/Intermediates.noindex/BooksTrackerFeature.build/Release-iphoneos/BooksTrackerFeature.build/Objects-normal/arm64/iOS26ThemeSystem.o"
+  }
+}

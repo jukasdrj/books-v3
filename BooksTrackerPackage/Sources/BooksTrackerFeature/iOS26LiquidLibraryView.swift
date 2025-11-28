@@ -343,7 +343,7 @@ public struct iOS26LiquidLibraryView: View {
         LazyVGrid(columns: gridColumns, spacing: 16) {
             ForEach(cachedFilteredWorks, id: \.id) { work in
                 NavigationLink(value: work) {
-                    OptimizedFloatingBookCard(work: work, namespace: layoutTransition , uniqueID: nil)
+                    iOS26FloatingBookCard(work: work, namespace: layoutTransition , uniqueID: nil)
                 }
                 .buttonStyle(ScaleButtonStyle()) // GitHub Issue #434: Visual press feedback
                 .id(work.id) // ✅ Explicit ID for view recycling
@@ -925,7 +925,7 @@ public struct UltraOptimizedLibraryView: View {
         LazyVGrid(columns: adaptiveColumns, spacing: 16) {
             ForEach(filteredWorks, id: \.id) { work in
                 NavigationLink(value: work) {
-                    OptimizedFloatingBookCard(
+                    iOS26FloatingBookCard(
                         work: work,
                         namespace: layoutTransition,
                         uniqueID: nil

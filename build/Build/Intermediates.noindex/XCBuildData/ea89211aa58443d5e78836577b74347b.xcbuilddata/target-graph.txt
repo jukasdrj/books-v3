@@ -1,0 +1,9 @@
+Target dependency graph (4 targets)
+Target 'BooksTracker' in project 'BooksTracker'
+➜ Explicit dependency on target 'BooksTrackerWidgetsExtension' in project 'BooksTracker'
+➜ Explicit dependency on target 'BooksTrackerFeature' in project 'BooksTrackerFeature'
+Target 'BooksTrackerWidgetsExtension' in project 'BooksTracker'
+➜ Explicit dependency on target 'BooksTrackerFeature' in project 'BooksTrackerFeature'
+Target 'BooksTrackerFeature' in project 'BooksTrackerFeature'
+➜ Explicit dependency on target 'BooksTrackerFeature' in project 'BooksTrackerFeature'
+Target 'BooksTrackerFeature' in project 'BooksTrackerFeature' (no dependencies)
