@@ -153,6 +153,15 @@ See `CLAUDE.md` for complete Claude Code workflow documentation.
 /test
 ```
 
+**Test Categories:**
+- **Unit Tests** - DTO parsing, service logic, model validation
+- **Contract Compliance Tests** - Verify Swift DTOs match API contract
+- **Integration Tests** - Live API endpoint validation
+- **Performance Tests** - UI rendering and data processing benchmarks
+
+**API Contract Testing:**
+See `docs/API_CONTRACT_TESTING_STRATEGY.md` for comprehensive testing strategies to catch mismatches between the API contract and Swift codebase.
+
 **Manual testing checklist:**
 - ✅ Build succeeds with zero warnings (`-Werror` enforced)
 - ✅ SwiftData models persist correctly
