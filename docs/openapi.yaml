@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: BooksTrack API
-  version: 3.1.0
+  version: 3.2.0
   description: Book search, enrichment, and AI-powered scanning API
   contact:
     email: api-support@oooefam.net
@@ -779,7 +779,12 @@ paths:
         Cancels a running job and cleans up associated resources (R2 images, KV cache).
         This is an idempotent operation - calling DELETE on completed/canceled jobs returns success.
 
+        **Requires Authentication:** Bearer token from job creation.
+
         **NEW in v3.1** - Added for shelf scan fixes.
+        **UPDATED in v3.2** - Added Bearer token authentication (Issue #102).
+      security:
+        - bearerAuth: []
       parameters:
         - name: jobId
           in: path
@@ -815,6 +820,12 @@ paths:
                                 type: integer
                               kvCacheCleared:
                                 type: boolean
+        '401':
+          description: Unauthorized - missing or invalid Bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Job not found
           content:

@@ -1,4 +1,4 @@
-# BooksTrack API Contract v3.1
+# BooksTrack API Contract v3.2
 
 **Status:** Production ✅
 **Last Updated:** November 27, 2025
@@ -6,8 +6,12 @@
 
 ---
 
-## Changelog (v3.1)
+## Changelog
 
+### v3.2 (November 27, 2025)
+- **SECURITY:** `DELETE /v1/jobs/{jobId}` now requires Bearer token authentication (Issue #102)
+
+### v3.1 (November 27, 2025)
 - **NEW:** `DELETE /v1/jobs/{jobId}` - Job cancellation with R2/KV cleanup (§7.5)
 - **NEW:** WebSocket late-connect support - clients connecting after job completes receive results immediately (§8.3)
 - **NEW:** `enrichmentStatus: "circuit_open"` - explicit status for circuit breaker failures (§7.6.1)
@@ -456,7 +460,10 @@ GET /api/v2/imports/{jobId}/results
 
 ```http
 DELETE /v1/jobs/{jobId}
+Authorization: Bearer <token>
 ```
+
+**Authentication:** Required. Bearer token must match the token returned when the job was created.
 
 **Response:**
 ```json
@@ -474,7 +481,13 @@ DELETE /v1/jobs/{jobId}
 }
 ```
 
+**Error Responses:**
+- `401 Unauthorized` - Missing or invalid Authorization header
+- `401 Unauthorized` - Token expired or doesn't match job
+- `404 Not Found` - Job ID not found
+
 **Behavior:**
+- Validates Bearer token before any cleanup
 - Cancels the job (sets `canceled: true` in DO state)
 - Deletes R2 images for bookshelf scans
 - Clears KV cache entries for job results
