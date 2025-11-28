@@ -634,6 +634,11 @@ This ensures clients that reconnect or connect late still receive results withou
 }
 ```
 
+**Summary Field Semantics:**
+- `booksEnriched`: Count of books with `enrichmentStatus: "success"` ONLY. Does NOT include books with status `not_found`, `error`, or `circuit_open`.
+- `booksUnique`: Total unique books after ISBN deduplication (all statuses).
+- For complete enrichment metrics, calculate `booksUnique - booksEnriched` to find books that failed enrichment.
+
 **Note:** SSE is now the recommended method for new integrations (section 7.2).
 
 ---

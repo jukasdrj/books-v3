@@ -295,7 +295,12 @@ components:
 
     ScanJobSummary:
       type: object
-      description: AI scan job completion summary (v3.1 semantics)
+      description: |
+        AI scan job completion summary (v3.1 semantics).
+
+        **IMPORTANT:** `booksEnriched` counts ONLY books with `enrichmentStatus: "success"`.
+        Books with status `not_found`, `error`, or `circuit_open` are NOT included.
+        Use `booksUnique` for total unique books detected (all statuses).
       properties:
         photosProcessed:
           type: integer
@@ -305,10 +310,12 @@ components:
           description: Total books found across all photos (before dedup)
         booksUnique:
           type: integer
-          description: Unique books after ISBN deduplication
+          description: Unique books after ISBN deduplication (all enrichmentStatus values)
         booksEnriched:
           type: integer
-          description: Books with successful enrichment
+          description: |
+            Books with enrichmentStatus: "success" ONLY.
+            Does NOT include not_found, error, or circuit_open books.
         approved:
           type: integer
           description: Books with confidence >= threshold
