@@ -430,6 +430,7 @@ GET /api/v2/imports/{jobId}
 ### 7.4 Job Results
 ```http
 GET /api/v2/imports/{jobId}/results
+GET /v1/jobs/{jobId}/results
 ```
 
 **Response:**
@@ -444,16 +445,33 @@ GET /api/v2/imports/{jobId}/results
     "enrichmentFailed": 5,
     "errors": [
       {"row": 15, "isbn": "1234567890", "error": "Invalid ISBN"}
+    ],
+    "books": [
+      {
+        "isbn": "9780439708180",
+        "isbn13": "9780439708180",
+        "title": "Harry Potter and the Sorcerer's Stone",
+        "authors": ["J.K. Rowling"],
+        "publisher": "Scholastic",
+        "publishedDate": "1998-09-01",
+        "description": "...",
+        "pageCount": 320,
+        "categories": ["Fiction", "Fantasy"],
+        "language": "en",
+        "coverUrl": "https://..."
+      }
     ]
   },
   "metadata": {
     "cached": true,
-    "ttl": "2 hours"
+    "ttl": "1 hour"
   }
 }
 ```
 
-**TTL:** Results stored for 2 hours after job completion (matches token expiry)
+**Important:** The `books` array contains the full canonical book objects that were successfully imported. iOS clients MUST parse this array to save books to local SwiftData storage.
+
+**TTL:** Results stored for 1 hour after job completion
 
 ---
 
@@ -562,6 +580,8 @@ The `retryAfterMs` field indicates when the client can retry enrichment.
 
 ## 8. WebSocket API
 
+**DEPRECATION NOTICE:** WebSocket progress updates are supported for legacy job types (e.g., `batch_enrichment`) but are considered deprecated. All new integrations, and especially all V2 jobs like CSV Import (§7.1) and Photo Scan (§7.6), **MUST** use the SSE Progress Stream (§7.2) for real-time updates. This WebSocket API may be removed in a future version.
+
 ### 8.1 Connection
 
 **Secure Method (Recommended):**
@@ -607,11 +627,39 @@ This ensures clients that reconnect or connect late still receive results withou
 ```json
 {
   "type": "job_progress",
+  "jobId": "uuid",
+  "pipeline": "batch_enrichment",
+  "timestamp": 1732760000000,
+  "version": "2.0.0",
   "payload": {
-    "jobId": "...",
+    "type": "job_progress",
     "progress": 0.5,
+    "status": "Enriching (50/100): Book Title",
     "processedCount": 50,
     "totalCount": 100
+  }
+}
+```
+
+**Job Complete (Batch Enrichment):**
+```json
+{
+  "type": "job_complete",
+  "jobId": "uuid",
+  "pipeline": "batch_enrichment",
+  "timestamp": 1732760000000,
+  "version": "2.0.0",
+  "payload": {
+    "type": "job_complete",
+    "pipeline": "batch_enrichment",
+    "summary": {
+      "totalProcessed": 100,
+      "successCount": 95,
+      "failureCount": 5,
+      "duration": 12500,
+      "resourceId": "job-results:uuid"
+    },
+    "expiresAt": "2025-11-28T12:00:00.000Z"
   }
 }
 ```
