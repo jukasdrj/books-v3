@@ -19,7 +19,7 @@
 ### Migration Timeline
 - **March 1, 2026:** WebSocket deprecated (backend team deadline)
 - **June 1, 2026:** WebSocket endpoints removed (hard cutoff)
-- **Implementation Window:** 8-12 weeks (January-March 2026)
+- **Implementation Window:** 9-12 weeks (January-March 2026)
 
 ### Risk Level
 - **Overall Risk:** MEDIUM (with mitigation strategies in place)
@@ -385,8 +385,18 @@ public var sseRolloutPercentage: Int {
 }
 
 // User in SSE rollout group?
+// Uses stable device identifier to ensure consistent cohort assignment
 public var isInSSERollout: Bool {
-    let userId = UUID().uuidString.hash
+    let key = "device.uuid.rollout"
+    let uuidString: String
+    if let existing = UserDefaults.standard.string(forKey: key) {
+        uuidString = existing
+    } else {
+        let newUUID = UUID().uuidString
+        UserDefaults.standard.set(newUUID, forKey: key)
+        uuidString = newUUID
+    }
+    let userId = uuidString.hashValue
     return abs(userId % 100) < sseRolloutPercentage
 }
 ```
@@ -515,18 +525,21 @@ Tests/BookshelfAIServiceWebSocketTests.swift
    - Test edge cases (SSE stream drops mid-event, incomplete JSON, etc.)
 
 2. **Automated Network Simulation:**
-   - Use Xcode's `NetworkLinkConditioner` in tests
+   - Use `NetworkLinkConditioner` for MANUAL testing only (not automated tests)
+   - For automated tests: Use URLProtocol mocking or network stubbing frameworks (OHHTTPStubs)
    - Simulate poor connectivity, high latency, packet loss
    - Ensure SSE client remains resilient across network conditions
 
 **Updated Testing Strategy:**
 ```swift
 // New test file: Tests/SSENetworkConditionTests.swift
+// NOTE: NetworkLinkConditioner is for manual testing only (system-wide setting)
+// For automated tests, use URLProtocol mocking or network stubbing frameworks
 @MainActor
 final class SSENetworkConditionTests: XCTestCase {
     func testPoorConnectivity() async throws {
-        // Simulate high latency, packet loss
-        NetworkLinkConditioner.enable(profile: .poor3G)
+        // For MANUAL testing: NetworkLinkConditioner.enable(profile: .poor3G)
+        // For automated tests: Use URLProtocol mocking or OHHTTPStubs
         // Verify SSE client reconnects successfully
     }
 
@@ -823,7 +836,7 @@ Week 8:
 - Error rate >5% for any feature → Slack alert
 - Connection success rate <95% → Slack alert
 - Performance SLO violation → Slack alert
-- Critical bug reported → Page on-call engineer
+- Critical bug reported → Page the on-call engineer
 
 **Dashboard Tools:**
 - Firebase Analytics (user cohorts, error rates)
@@ -849,7 +862,10 @@ Week 8:
 **Rollback Tool:**
 ```swift
 // Admin-only function (remote config trigger)
-func emergencyRollback(reason: String) {
+@MainActor func emergencyRollback(reason: String) {
+    // Capture rollout percentage BEFORE resetting for accurate logging
+    let percentageAtRollback = FeatureFlags.shared.sseRolloutPercentage
+
     FeatureFlags.shared.sseRolloutPercentage = 0
     FeatureFlags.shared.useBatchEnrichmentSSE = false
     FeatureFlags.shared.useBookshelfScanSSE = false
@@ -858,7 +874,7 @@ func emergencyRollback(reason: String) {
     Analytics.log(event: "sse_rollback", parameters: [
         "reason": reason,
         "timestamp": Date(),
-        "rollout_percentage_at_rollback": FeatureFlags.shared.sseRolloutPercentage
+        "rollout_percentage_at_rollback": percentageAtRollback
     ])
 
     // Alert engineering team

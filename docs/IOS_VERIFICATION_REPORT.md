@@ -142,20 +142,21 @@ public struct SSEResultsResponse: Codable, Sendable {
 **Status:** Using WebSocket - **MUST migrate to SSE by March 1, 2026**
 
 #### WebSocket Usage
-- **Endpoint:** `ws://[baseURL]/ws/progress?jobId={jobId}&token={token}`
+- **Endpoint:** `ws://[baseURL]/ws/progress?jobId={jobId}` with `Authorization: Bearer {token}` header
 - **File:** `BookshelfAIService.swift:160-268` (`processViaWebSocket` method)
 - **Features:**
   - Real-time progress updates (line 226)
   - Scan completion with results (line 229-246)
   - Error handling (line 249-257)
   - Authentication token required (line 188)
+- **Note:** Token authentication via header aligns with security best practices (prevents token logging in server logs/browser history)
 
 #### Migration Path
 
 **Same as Batch Enrichment:**
 - Create `BookshelfScanSSEClient`
 - Endpoint: `GET /api/v2/scans/{jobId}/stream` (TBD by backend)
-- Must support authentication (Bearer token or query param)
+- Must support authentication (`Authorization: Bearer {token}` header recommended)
 - Event types: `initialized`, `processing`, `completed`, `failed`
 - Results endpoint: `GET /api/v2/scans/{jobId}/results`
 
