@@ -84,6 +84,12 @@ components:
             provider:
               type: string
 
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Bearer token authentication required for job cancellation (v3.2)
+
     Book:
       type: object
       properties:

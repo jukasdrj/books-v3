@@ -38,7 +38,8 @@ BooksTrack is a Cloudflare Workers API providing book search, enrichment, and AI
 
 ## 2. Authentication
 
-**Current:** No authentication required (public API)
+**Current:** No authentication required for most endpoints (public API)
+**Exception:** `DELETE /v1/jobs/{jobId}` requires Bearer token authentication (v3.2)
 **Rate Limiting:** Per-IP, endpoint-specific (see section 8)
 
 ---
