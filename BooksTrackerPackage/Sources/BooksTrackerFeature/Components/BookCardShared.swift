@@ -168,7 +168,7 @@ public enum BookCardActions {
         }
         userEntry.touch()
         
-        triggerHapticFeedback(.success)
+        triggerNotificationFeedback(.success)
     }
     
     /// Sets the rating for a library entry
@@ -180,12 +180,12 @@ public enum BookCardActions {
         userEntry.rating = rating > 0 ? Int(rating) : nil
         userEntry.touch()
         
-        triggerHapticFeedback(.success)
+        triggerNotificationFeedback(.success)
     }
     
-    /// Triggers haptic feedback for user interactions
+    /// Triggers notification-style haptic feedback (success, warning, error)
     @MainActor
-    public static func triggerHapticFeedback(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+    public static func triggerNotificationFeedback(_ type: UINotificationFeedbackGenerator.FeedbackType) {
         let notificationFeedback = UINotificationFeedbackGenerator()
         notificationFeedback.notificationOccurred(type)
     }

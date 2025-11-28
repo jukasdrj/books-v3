@@ -252,7 +252,7 @@ struct iOS26FloatingBookCard: View {
             work.userLibraryEntries?.remove(at: index)
         }
 
-        BookCardActions.triggerHapticFeedback(.warning)
+        BookCardActions.triggerNotificationFeedback(.warning)
     }
 }
 
@@ -484,7 +484,7 @@ struct OptimizedFloatingBookCard: View {
         }
 
         updateCachedProperties()
-        BookCardActions.triggerHapticFeedback(.warning)
+        BookCardActions.triggerNotificationFeedback(.warning)
     }
 }
 
