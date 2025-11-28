@@ -467,7 +467,7 @@ public enum EnrichmentResult {
     case failure(EnrichmentError)
 }
 
-public enum EnrichmentError: Error, Sendable {
+public enum EnrichmentError: Error, Sendable, LocalizedError {
     case missingTitle
     case noMatchFound
     case apiError(String)
@@ -476,6 +476,31 @@ public enum EnrichmentError: Error, Sendable {
     case invalidResponse
     case httpError(Int)
     case rateLimitExceeded(retryAfter: Int)
+    case circuitOpen(provider: String, retryAfterMs: Int)
+
+    public var errorDescription: String? {
+        switch self {
+        case .missingTitle:
+            return "Book title is required"
+        case .noMatchFound:
+            return "No matching book found"
+        case .apiError(let message):
+            return "API error: \(message)"
+        case .invalidQuery:
+            return "Invalid search query"
+        case .invalidURL:
+            return "Invalid API URL"
+        case .invalidResponse:
+            return "Invalid response from server"
+        case .httpError(let code):
+            return "HTTP error \(code)"
+        case .rateLimitExceeded(let retryAfter):
+            return "Rate limit exceeded. Try again in \(retryAfter) seconds."
+        case .circuitOpen(let provider, let retryAfterMs):
+            let seconds = retryAfterMs / 1000
+            return "Provider '\(provider)' temporarily unavailable. Retry in \(seconds) seconds."
+        }
+    }
 }
 
 public struct BatchEnrichmentResult: Sendable {

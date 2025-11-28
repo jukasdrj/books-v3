@@ -6,8 +6,11 @@ enum EnrichmentConfig {
     /// Base URL for the Cloudflare Worker API (Custom Domain)
     static let baseURL = "https://api.oooefam.net"
 
-    /// WebSocket base URL for the Cloudflare Worker (Custom Domain)
+    /// API base URL for the Cloudflare Worker (Custom Domain)
     static let apiBaseURL = "https://api.oooefam.net"
+
+    /// WebSocket base URL for the Cloudflare Worker (Custom Domain)
+    /// ⚠️ DEPRECATED: Used by legacy bookshelf scanning. Will be removed when bookshelf scanning migrates to SSE.
     static let webSocketBaseURL = "wss://api.oooefam.net"
 
     // MARK: - Search Endpoints
@@ -85,23 +88,13 @@ enum EnrichmentConfig {
         URL(string: "\(baseURL)/v2/import/workflow/\(workflowId)")!
     }
 
-    // MARK: - WebSocket Endpoints
+    // MARK: - WebSocket Endpoints (Legacy - Bookshelf Scanning Only)
 
-    /// WebSocket progress tracking for background jobs (v2.4 - Secure Auth)
-    ///
-    /// ⚠️ SECURITY (Issue #163): Token authentication now uses Sec-WebSocket-Protocol header
-    /// instead of query parameters to prevent token leakage in server logs.
-    ///
-    /// **NEW (Secure) - Recommended:**
-    /// ```swift
-    /// let url = EnrichmentConfig.webSocketURL(jobId: jobId)
-    /// var request = URLRequest(url: url)
-    /// request.setValue("bookstrack-auth.\(token)", forHTTPHeaderField: "Sec-WebSocket-Protocol")
-    /// let webSocket = URLSession.shared.webSocketTask(with: request)
-    /// ```
-    ///
+    /// WebSocket progress tracking for background jobs
+    /// ⚠️ DEPRECATED: Only used by bookshelf scanning. CSV import uses SSE.
+    /// TODO: Migrate bookshelf scanning to SSE and remove this method.
     /// - Parameter jobId: The unique job identifier
-    /// - Returns: WebSocket URL for the specified job (WITHOUT token in query params)
+    /// - Returns: WebSocket URL for the specified job
     static func webSocketURL(jobId: String) -> URL {
         URL(string: "\(webSocketBaseURL)/ws/progress?jobId=\(jobId)")!
     }
@@ -115,14 +108,14 @@ enum EnrichmentConfig {
 
     // MARK: - Timeout Configuration
 
-    /// WebSocket connection timeout for background jobs
+    /// SSE connection timeout for background jobs
     /// - AI processing (Gemini): 25-40s
     /// - Enrichment: 5-10s
     /// - Network buffer: ~20s
     /// - Total: 70s recommended for most networks
-    static let webSocketTimeout: TimeInterval = 70.0
+    static let sseTimeout: TimeInterval = 70.0
 
     /// Slow network timeout (2x standard)
     /// For users on slower connections or high-latency networks
-    static let webSocketTimeoutSlow: TimeInterval = 140.0
+    static let sseTimeoutSlow: TimeInterval = 140.0
 }

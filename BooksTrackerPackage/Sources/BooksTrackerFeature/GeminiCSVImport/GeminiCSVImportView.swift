@@ -8,8 +8,8 @@ import UIKit
 
 // MARK: - CSV Import Job Results (v2.0)
 
-/// Full job results fetched via HTTP GET after WebSocket completion
-/// v2.0 Migration: WebSocket now sends lightweight summary, full results stored in KV cache
+/// Full job results fetched via HTTP GET after SSE completion
+/// v2.0 Migration: SSE now sends lightweight summary, full results stored in KV cache
 struct CSVImportJobResults: Codable, Sendable {
     let books: [ParsedBook]?
     let errors: [ImportError]?
@@ -44,7 +44,7 @@ enum CSVImportError: Error, LocalizedError {
 
 // MARK: - Gemini CSV Import View
 
-/// Simplified CSV import using Gemini AI for parsing with WebSocket progress
+/// Simplified CSV import using Gemini AI for parsing with SSE progress tracking
 /// No column mapping needed - Gemini handles intelligent parsing
 @available(iOS 26.0, *)
 @MainActor
@@ -447,7 +447,7 @@ public struct GeminiCSVImportView: View {
 
 
     /// Fetch full job results from KV cache via HTTP GET
-    /// v2.0 Migration: WebSocket sends lightweight summary, full results fetched on demand
+    /// v2.0 Migration: SSE sends lightweight summary, full results fetched on demand
     /// Results are cached for 24 hours after job completion
     private func fetchJobResults(jobId: String) async throws -> CSVImportJobResults {
         let baseURL = "https://api.oooefam.net"

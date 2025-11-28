@@ -220,6 +220,27 @@ actor EnrichmentAPIClient {
             let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After")
             let retryAfterSeconds = Int(retryAfter ?? "5") ?? 5
             throw EnrichmentError.rateLimitExceeded(retryAfter: retryAfterSeconds)
+        case 503:
+            // Service unavailable - parse structured error response
+            do {
+                let errorResponse = try JSONDecoder().decode(ErrorResponseDTO.self, from: data)
+                if errorResponse.error.code == "CIRCUIT_OPEN" {
+                    let provider = errorResponse.error.provider ?? "unknown"
+                    let retryAfterMs = errorResponse.error.retryAfterMs ?? 60000
+                    #if DEBUG
+                    print("⚠️ Circuit breaker open for provider '\(provider)', retry in \(retryAfterMs)ms: \(errorResponse.error.message)")
+                    #endif
+                    throw EnrichmentError.circuitOpen(provider: provider, retryAfterMs: retryAfterMs)
+                }
+                // Handle other 503 errors with structured message
+                throw EnrichmentError.apiError(errorResponse.error.message)
+            } catch let decodingError as DecodingError {
+                // Fallback if error response doesn't match expected format
+                #if DEBUG
+                print("⚠️ Failed to decode 503 error response: \(decodingError)")
+                #endif
+            }
+            throw URLError(.badServerResponse)
         default:
             throw URLError(.badServerResponse)
         }

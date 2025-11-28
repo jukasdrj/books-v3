@@ -91,7 +91,7 @@ actor BookshelfAIService {
     // MARK: - Configuration
 
     private let endpoint = EnrichmentConfig.scanBookshelfURL
-    private let timeout: TimeInterval = EnrichmentConfig.webSocketTimeout
+    private let timeout: TimeInterval = EnrichmentConfig.sseTimeout
     private let maxImageSize: Int = 10_000_000 // 10MB max (matches worker limit)
 
     // MARK: - Singleton

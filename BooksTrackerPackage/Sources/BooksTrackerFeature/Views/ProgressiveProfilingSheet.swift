@@ -398,15 +398,16 @@ public struct ProgressiveProfilingSheet: View {
 
     private func countAffectedWorks(authorId: PersistentIdentifier) async -> Int {
         do {
-            let descriptor = FetchDescriptor<Work>()
-            let allWorks = try modelContext.fetch(descriptor)
+            // Fetch author to access their works relationship
+            guard let author = modelContext.model(for: authorId) as? Author else {
+                return 1
+            }
 
-            let count = allWorks.filter { work in
-                guard let authors = work.authors else { return false }
-                return authors.contains(where: { $0.persistentModelID == authorId })
-            }.count
+            // Count works directly from the author's works relationship
+            // This is more efficient than fetching all works and filtering
+            let count = author.works?.count ?? 0
 
-            return count
+            return count > 0 ? count : 1
         } catch {
             #if DEBUG
             print("❌ Failed to count affected works: \(error)")

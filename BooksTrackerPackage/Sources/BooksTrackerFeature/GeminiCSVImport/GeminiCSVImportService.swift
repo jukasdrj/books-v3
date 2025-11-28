@@ -72,7 +72,7 @@ public struct GeminiCSVImportJobStatus: Codable, Sendable {
 
 // MARK: - Gemini CSV Import Service
 
-/// Service for Gemini-powered CSV import with WebSocket progress tracking
+/// Service for Gemini-powered CSV import with SSE progress tracking
 /// Actor-isolated for thread-safe network operations
 actor GeminiCSVImportService {
     // MARK: - Configuration
