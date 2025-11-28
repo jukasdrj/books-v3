@@ -47,11 +47,11 @@ public struct SettingsView: View {
 
     // MARK: - State Management
 
-    @State private var showingGeminiCSVImporter = false
     @State private var showingCloudKitHelp = false
     @State private var showingAcknowledgements = false
-    @State private var showingResetConfirmation = false
     @State private var showingAboutMaker = false
+    @State private var showingDeleteLibraryConfirmation = false
+    @State private var libraryBookCount: Int = 0
 
     // CloudKit status (simplified for now)
     @State private var cloudKitStatus: CloudKitStatus = .unknown
@@ -119,40 +119,9 @@ public struct SettingsView: View {
                 Text("Customize your reading experience with themes and appearance settings. Cover selection controls which edition is displayed when a book has multiple formats.")
             }
 
-            // MARK: - Library Management Section
+            // MARK: - Data Management Section
 
             Section {
-                // Gemini import FIRST (promoted)
-                Button {
-                    showingGeminiCSVImporter = true
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: "brain.head.profile")
-                            .foregroundStyle(themeStore.primaryColor)
-                            .frame(width: 28)
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text("AI-Powered CSV Import")
-                                    .font(.body)
-
-                                Text("RECOMMENDED")
-                                    .font(.caption2)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(themeStore.primaryColor)
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                            }
-
-                            Text("Gemini automatically parses your CSV files")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-
                 Button {
                     enrichAllBooks()
                 } label: {
@@ -173,21 +142,10 @@ public struct SettingsView: View {
                 }
                 .disabled(EnrichmentQueue.shared.isProcessing())
 
-                Button(role: .destructive) {
-                    showingResetConfirmation = true
-                } label: {
-                    HStack {
-                        Image(systemName: "trash")
-                            .frame(width: 28)
-
-                        Text("Reset Library")
-                    }
-                }
-
             } header: {
-                Text("Library Management")
+                Text("Data Management")
             } footer: {
-                Text("Import books from CSV, enrich metadata, or reset your entire library. Resetting is permanent and cannot be undone.")
+                Text("Enrich metadata for your library.")
             }
 
             // MARK: - Background Tasks Section
@@ -355,6 +313,37 @@ public struct SettingsView: View {
                 Text("About")
             }
 
+            // MARK: - Danger Zone Section
+
+            Section {
+                Button(role: .destructive) {
+                    Task {
+                        do {
+                            let fetchDescriptor = FetchDescriptor<Work>()
+                            libraryBookCount = try modelContext.fetchCount(fetchDescriptor)
+                            showingDeleteLibraryConfirmation = true
+                        } catch {
+                            print("Failed to fetch library count: \(error)")
+                            libraryBookCount = 0
+                            showingDeleteLibraryConfirmation = true
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "trash.fill")
+                            .frame(width: 28)
+
+                        Text("Delete Library")
+                    }
+                }
+            } header: {
+                Text("⚠️ Danger Zone")
+                    .textCase(nil)
+                    .foregroundStyle(.red)
+            } footer: {
+                Text("Permanently delete all books, reading progress, and ratings from your library. This action cannot be undone and is irreversible.")
+            }
+
             // MARK: - Debug Section
 
             Section {
@@ -405,12 +394,6 @@ public struct SettingsView: View {
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
         .background(backgroundView.ignoresSafeArea())
-        .sheet(isPresented: $showingGeminiCSVImporter) {
-            GeminiCSVImportView()
-                .environment(tabCoordinator)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-        }
         .sheet(isPresented: $showingCloudKitHelp) {
             CloudKitHelpView()
         }
@@ -421,18 +404,18 @@ public struct SettingsView: View {
             AboutMakerView()
         }
         .confirmationDialog(
-            "Reset Library",
-            isPresented: $showingResetConfirmation,
+            "Delete Library",
+            isPresented: $showingDeleteLibraryConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Reset Library", role: .destructive) {
+            Button("Delete Library", role: .destructive) {
                 Task {
                     await libraryRepository.resetLibrary()
                 }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This will permanently delete all books, reading progress, and ratings from your library. This action cannot be undone.")
+            Text("This will permanently delete your \(libraryBookCount) books, reading progress, and ratings from your library. This action cannot be undone.")
         }
     }
 
