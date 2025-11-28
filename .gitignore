@@ -127,3 +127,6 @@ jscpd-report.json
 # GitHub App credentials
 gha-creds-*.json
 test_output.log
+
+# Build logs
+build-output.log
