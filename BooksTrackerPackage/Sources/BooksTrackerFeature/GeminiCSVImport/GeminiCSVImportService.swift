@@ -280,7 +280,7 @@ actor GeminiCSVImportService {
             }
 
             #if DEBUG
-            print("[CSV Results] ✅ Results fetched: \(results.booksCreated) created, \(results.booksUpdated) updated")
+            print("[CSV Results] ✅ Results fetched: \(results.results?.count ?? 0) books")
             #endif
             return results
 

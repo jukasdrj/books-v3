@@ -78,7 +78,7 @@ public struct GeminiCSVImportView: View {
 
     // Helper to create ErrorDetail for local errors
     private func makeErrorDetail(code: String = "CLIENT_ERROR", message: String, retryable: Bool = false) -> ErrorDetail {
-        ErrorDetail(code: code, message: message, retryable: retryable, details: nil)
+        ErrorDetail(message: message, code: code, retryable: retryable)
     }
 
     public var body: some View {
@@ -361,7 +361,15 @@ public struct GeminiCSVImportView: View {
         print("[CSV SSE] Starting SSE stream for job: \(jobId)")
         #endif
 
-        // Create SSE client with V2 API callbacks
+        // TODO: Refactor to use new SSEClient API (AsyncStream-based)
+        // The old callback-based API is no longer supported
+        importStatus = .failed(makeErrorDetail(
+            code: "NOT_IMPLEMENTED",
+            message: "CSV import via SSE needs to be refactored for new API contract v3.3"
+        ))
+
+        /*
+        // OLD CODE - Needs refactoring for new SSEClient API
         let client = SSEClient(
             baseURL: EnrichmentConfig.apiBaseURL,
             onInitialized: { event in
@@ -465,6 +473,7 @@ public struct GeminiCSVImportView: View {
         Task {
             await client.connect(jobId: jobId)
         }
+        */
     }
 
 
