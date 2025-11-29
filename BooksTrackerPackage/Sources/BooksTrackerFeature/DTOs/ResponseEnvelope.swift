@@ -33,10 +33,14 @@ public struct ResponseMetadata: Codable, Sendable {
 /// Universal response envelope for all API endpoints (Section 4.2)
 /// Mirrors TypeScript ResponseEnvelope in api-worker/src/types/responses.ts exactly
 public struct ResponseEnvelope<T: Codable>: Codable {
+    /// Success discriminator (true = success, false = error)
+    /// Matches backend contract from FRONTEND_HANDOFF.md
+    public let success: Bool
+
     /// Response payload (null on error)
     public let data: T?
 
-    /// Response metadata (always present)
+    /// Response metadata (always present per API_CONTRACT.md)
     public let metadata: ResponseMetadata
 
     /// Error information (present on failure)
@@ -46,6 +50,8 @@ public struct ResponseEnvelope<T: Codable>: Codable {
         public let message: String
         public let code: String?
         public let details: AnyCodable?
+        public let statusCode: Int?
+        public let retryable: Bool?
     }
 }
 

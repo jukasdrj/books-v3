@@ -33,7 +33,7 @@ extension ResponseEnvelope {
             provider: provider,
             cached: cached
         )
-        return ResponseEnvelope(data: data, metadata: metadata, error: nil)
+        return ResponseEnvelope(success: true, data: data, metadata: metadata, error: nil)
     }
 
     /// Create a mock error response for testing
@@ -47,12 +47,16 @@ extension ResponseEnvelope {
         message: String,
         code: String? = nil,
         details: Any? = nil,
+        statusCode: Int? = nil,
+        retryable: Bool? = nil,
         processingTime: Int? = nil
     ) -> ResponseEnvelope<T> {
         let apiError = ResponseEnvelope<T>.ApiErrorInfo(
             message: message,
             code: code,
-            details: details != nil ? AnyCodable(details!) : nil
+            details: details != nil ? AnyCodable(details!) : nil,
+            statusCode: statusCode,
+            retryable: retryable
         )
         let metadata = ResponseMetadata(
             timestamp: "2025-11-18T12:00:00Z",
@@ -61,7 +65,7 @@ extension ResponseEnvelope {
             provider: nil,
             cached: nil
         )
-        return ResponseEnvelope(data: nil, metadata: metadata, error: apiError)
+        return ResponseEnvelope(success: false, data: nil, metadata: metadata, error: apiError)
     }
 }
 

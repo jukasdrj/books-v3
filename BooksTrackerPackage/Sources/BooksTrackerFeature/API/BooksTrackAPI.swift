@@ -16,7 +16,8 @@ actor BooksTrackAPI {
         self.session = session ?? URLSession(configuration: config)
 
         self.decoder = JSONDecoder()
-        self.decoder.keyDecodingStrategy = .convertFromSnakeCase // Common for backend JSON
+        // Backend uses camelCase (retryAfterMs, traceId, statusCode) per API_CONTRACT.md
+        // No key decoding strategy needed
 
         // Extract client version from Info.plist
         self.clientVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
@@ -36,27 +37,41 @@ actor BooksTrackAPI {
             throw APIError.decodingError(message: "Failed to decode ResponseEnvelope: \(error.localizedDescription)")
         }
 
-        // Check for errors first (canonical contract: error presence indicates failure)
-        if let error = envelope.error {
+        // Use success discriminator (backend contract from FRONTEND_HANDOFF.md)
+        guard envelope.success else {
+            // Error case: envelope.success == false
+            guard let error = envelope.error else {
+                throw APIError.decodingError(message: "Response has success=false but no error field")
+            }
+
             // Map canonical ApiErrorInfo to our APIError enum
             if let code = error.code {
-                // Try to map known error codes
-                if code == "CIRCUIT_OPEN", let details = error.details?.value as? [String: Any],
-                   let provider = details["provider"] as? String,
-                   let retryAfterMs = details["retryAfterMs"] as? Int {
-                    throw APIError.circuitOpen(provider: provider, retryAfterMs: retryAfterMs)
-                } else if code == "RATE_LIMIT_EXCEEDED" {
+                // Try to map known error codes with safe casting
+                if code == "CIRCUIT_OPEN" {
+                    // Safe parsing of circuit breaker details
+                    if let details = error.details?.value as? [String: Any],
+                       let provider = details["provider"] as? String,
+                       let retryAfterMs = details["retryAfterMs"] as? Int {
+                        throw APIError.circuitOpen(provider: provider, retryAfterMs: retryAfterMs)
+                    }
+                    // If details parsing fails, fall through to generic server error
+                }
+
+                if code == "RATE_LIMIT_EXCEEDED" {
                     throw APIError.rateLimitExceeded(retryAfter: nil) // Will get from headers
-                } else if code == "NOT_FOUND" {
+                }
+
+                if code == "NOT_FOUND" {
                     throw APIError.notFound(message: error.message)
                 }
             }
             throw APIError.serverError(message: error.message)
         }
 
+        // Success case: envelope.success == true
         // Extract data or throw
         guard let result = envelope.data else {
-            throw APIError.decodingError(message: "Missing data in successful response")
+            throw APIError.decodingError(message: "Response has success=true but missing data field")
         }
 
         return result
