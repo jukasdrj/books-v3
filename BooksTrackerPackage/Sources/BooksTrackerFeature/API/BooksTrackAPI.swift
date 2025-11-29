@@ -5,8 +5,13 @@ actor BooksTrackAPI {
     let session: URLSession  // Internal for extensions
     let decoder: JSONDecoder  // Internal for extensions
     private let clientVersion: String
+    private let tokenProvider: (any AuthTokenProvider)? // Optional auth token provider
 
-    init(baseURL: URL = URL(string: "https://api.oooefam.net")!, session: URLSession? = nil) {
+    init(
+        baseURL: URL = URL(string: "https://api.oooefam.net")!,
+        session: URLSession? = nil,
+        tokenProvider: (any AuthTokenProvider)? = nil
+    ) {
         self.baseURL = baseURL
 
         // Configure URLSession with 10s request and 30s resource timeouts as default for GET requests
@@ -21,6 +26,8 @@ actor BooksTrackAPI {
 
         // Extract client version from Info.plist
         self.clientVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+
+        self.tokenProvider = tokenProvider
     }
 
     /// Decodes canonical `ResponseEnvelope` and extracts data or throws `APIError`.
@@ -83,12 +90,23 @@ actor BooksTrackAPI {
     ///   - method: The HTTP method (e.g., "GET", "POST"). Defaults to "GET".
     ///   - body: Optional `Data` for the HTTP body.
     ///   - contentType: The `Content-Type` header value. Defaults to "application/json".
+    ///   - accessToken: Optional Bearer token for authentication.
     /// - Returns: A configured `URLRequest`.
-    func makeRequest(url: URL, method: String = "GET", body: Data? = nil, contentType: String? = "application/json") -> URLRequest {
+    func makeRequest(
+        url: URL,
+        method: String = "GET",
+        body: Data? = nil,
+        contentType: String? = "application/json",
+        accessToken: String? = nil
+    ) -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.addValue(contentType ?? "application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("ios-v\(clientVersion)", forHTTPHeaderField: "X-Client-Version")
+
+        if let token = accessToken {
+            request.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
 
         if let body = body {
             request.httpBody = body
@@ -153,5 +171,80 @@ actor BooksTrackAPI {
         } catch {
             throw APIError(error) // Wrap any other error into APIError if not already one
         }
+    }
+
+    // MARK: - Authenticated Request Handling
+
+    /// Performs requests with authentication and automatic 401 retry logic.
+    /// - Parameters:
+    ///   - requestBuilder: Closure that builds the request given an access token
+    ///   - maxRetries: Maximum number of retry attempts (default: 1)
+    /// - Returns: Tuple of response Data and URLResponse
+    /// - Throws: APIError if request fails or authentication cannot be refreshed
+    private func performAuthenticatedRequest(
+        requestBuilder: @escaping (String?) async throws -> URLRequest,
+        maxRetries: Int = 1
+    ) async throws -> (Data, URLResponse) {
+        guard let tokenProvider = tokenProvider else {
+            throw APIError.unauthorized(message: "No auth token provider configured")
+        }
+
+        var attempts = 0
+        var currentAccessToken: String? = nil
+
+        while attempts <= maxRetries {
+            attempts += 1
+            do {
+                // Fetch token on first attempt or after refresh
+                if currentAccessToken == nil {
+                    currentAccessToken = try await tokenProvider.getAccessToken()
+                }
+
+                // Build the request with the current token
+                let request = try await requestBuilder(currentAccessToken)
+
+                // Perform the network call
+                return try await performRequest(request: request)
+            } catch APIError.unauthorized where attempts <= maxRetries {
+                // Unauthorized error: attempt token refresh and retry
+                do {
+                    currentAccessToken = try await tokenProvider.refreshAndGetAccessToken()
+                    // Loop will continue for the next attempt with the new token
+                } catch {
+                    // Refresh failed, re-throw the refresh error
+                    throw error
+                }
+            } catch {
+                // Any other error, or unauthorized after max retries, re-throw
+                throw error
+            }
+        }
+        // Should not be reached if maxRetries is honored correctly, but as a safeguard
+        throw APIError.unauthorized(message: "Authentication failed after retries")
+    }
+
+    // MARK: - Job Cancellation
+
+    /// Cancels an enrichment or import job.
+    /// Requires authentication with a Bearer token.
+    /// - Parameter jobId: The ID of the job to cancel.
+    /// - Returns: JobCancellationResponse indicating the job status.
+    /// - Throws: APIError if the request fails, authentication is invalid, or decoding fails.
+    public func cancelEnrichmentJob(jobId: String) async throws -> JobCancellationResponse {
+        // Using the endpoint from API Contract v3.3
+        let path = "/api/v2/jobs/\(jobId)/cancel"
+        let url = baseURL.appendingPathComponent(path)
+
+        // Define how to build the request. The token will be provided by performAuthenticatedRequest.
+        let requestBuilder: (String?) async throws -> URLRequest = { token in
+            // Using makeRequest to construct the URLRequest, passing the dynamically obtained token.
+            await self.makeRequest(url: url, method: "DELETE", accessToken: token)
+        }
+
+        // Perform the request with authentication and retry logic
+        let (data, _) = try await performAuthenticatedRequest(requestBuilder: requestBuilder, maxRetries: 1)
+
+        // Decode the response envelope
+        return try decodeEnvelope(JobCancellationResponse.self, from: data)
     }
 }

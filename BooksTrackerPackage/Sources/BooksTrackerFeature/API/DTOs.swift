@@ -24,9 +24,13 @@ public struct BookDTO: Codable, Sendable, Hashable {
 // MARK: - Import DTOs
 
 /// Response from initiating a CSV import or enrichment batch job
+/// API Contract v3.3: Added sseUrl and statusUrl for SSE/polling support
 public struct JobInitiationResponse: Codable, Sendable {
     public let jobId: String
-    public let authToken: String
+    public let authToken: String // DEPRECATED: Use `token` field, removed in v3.4
+    public let token: String? // New field name (v3.3+), backward compatible
+    public let sseUrl: String? // SSE stream endpoint (v3.3+)
+    public let statusUrl: String? // Polling fallback endpoint (v3.3+)
 }
 
 public struct ImportResults: Codable, Sendable {
