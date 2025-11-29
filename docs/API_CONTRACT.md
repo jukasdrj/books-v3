@@ -8,6 +8,17 @@
 
 ## Changelog
 
+### v3.3 (November 28, 2025)
+- **BREAKING:** V2 endpoints (CSV Import §7.1, Photo Scan §7.6) now require SSE instead of WebSocket
+- **DEPRECATED:** WebSocket API for all endpoints (removal Q3 2026, see §8 migration guide)
+- **BREAKING:** Response field renamed: `token` → `authToken` (backward compatible until March 1, 2026)
+- **NEW:** V2 job responses include `sseUrl` and `statusUrl` for SSE/polling
+- **NEW:** SSE client implementation examples added (§7.2)
+- **NEW:** WebSocket migration guide with troubleshooting (§8)
+- **NEW:** Implementation Notes section (§14) documenting Hono router and Swagger UI
+- **NEW:** Technical Stack overview in §1 (router, runtime, state management)
+- **FIX:** TypeScript response types updated for async job endpoints (Issues #118, #119)
+
 ### v3.2 (November 27, 2025)
 - **SECURITY:** `DELETE /v1/jobs/{jobId}` now requires Bearer token authentication (Issue #102)
 
@@ -33,6 +44,13 @@ BooksTrack is a Cloudflare Workers API providing book search, enrichment, and AI
 - Bookshelf photo scanning with Gemini Vision
 - Semantic search using vector embeddings (Vectorize)
 - Real-time progress via WebSocket or SSE
+
+**Technical Stack:**
+- **Router:** Hono (TypeScript-based, OpenAPI-ready)
+- **Runtime:** Cloudflare Workers (V8 isolates, edge compute)
+- **State Management:** Durable Objects for WebSocket connections and job state
+- **Caching:** KV (distributed key-value store) with 24-hour TTL
+- **Storage:** R2 (object storage for bookshelf scan images)
 
 ---
 
@@ -310,12 +328,21 @@ Content-Type: application/json
   "success": true,
   "data": {
     "jobId": "batch_abc123",
+    "processedCount": 0,
+    "totalCount": 2,
     "authToken": "uuid-token",
+    "token": "uuid-token",
     "message": "Batch enrichment initiated",
     "websocketUrl": "/ws/progress?jobId=batch_abc123&token=uuid-token"
   }
 }
 ```
+
+**Field Notes:**
+- `authToken` (string): WebSocket authentication token - **canonical field, use this**
+- `token` (string): **DEPRECATED** - Use `authToken` instead. Provided for backward compatibility with existing clients. **Removal: March 1, 2026**
+- `processedCount` (number): Books processed so far (0 at job start)
+- `totalCount` (number): Total books to process
 
 **Rate Limit:** 10 req/min per IP
 
@@ -400,6 +427,69 @@ data: {"jobId":"...","status":"failed","progress":0.3,"processedCount":30,"total
 **Heartbeat:** Server sends `: heartbeat` comment every 30 seconds during idle periods
 
 **No Authentication Required:** SSE streams are public (jobId is sufficient)
+
+**Client Implementation Examples:**
+
+```javascript
+// JavaScript/Web
+const eventSource = new EventSource(
+  `https://api.oooefam.net${sseUrl}`
+);
+
+eventSource.addEventListener('processing', (event) => {
+  const data = JSON.parse(event.data);
+  updateProgressBar(data.progress * 100);
+  console.log(`Progress: ${data.processedCount}/${data.totalCount}`);
+});
+
+eventSource.addEventListener('completed', (event) => {
+  const data = JSON.parse(event.data);
+  fetchResults(data.jobId);
+  eventSource.close();
+});
+
+eventSource.addEventListener('failed', (event) => {
+  const data = JSON.parse(event.data);
+  showError(data.error.message);
+  eventSource.close();
+});
+
+eventSource.onerror = (error) => {
+  console.error('SSE connection error:', error);
+  // EventSource automatically reconnects
+};
+```
+
+```swift
+// Swift/iOS (using custom SSEClient)
+let sseClient = SSEClient(
+    url: URL(string: "\(baseURL)\(sseUrl)")!,
+    onEvent: { event in
+        switch event.event {
+        case "processing":
+            if let data = event.data?.data(using: .utf8),
+               let progress = try? JSONDecoder().decode(ProgressPayload.self, from: data) {
+                updateProgress(progress.progress)
+            }
+        case "completed":
+            fetchResults(jobId)
+            sseClient.disconnect()
+        case "failed":
+            if let data = event.data?.data(using: .utf8),
+               let error = try? JSONDecoder().decode(ErrorPayload.self, from: data) {
+                showError(error.error.message)
+            }
+        default:
+            break
+        }
+    },
+    onError: { error in
+        print("SSE error: \(error)")
+    }
+)
+
+await sseClient.connect()
+```
 
 ---
 
@@ -524,7 +614,22 @@ Content-Type: multipart/form-data
 photos: <1-5 JPEG/PNG files>
 ```
 
-**Response:** Same async job format as CSV import (section 7.1)
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "jobId": "scan_abc123",
+    "authToken": "uuid-token",
+    "sseUrl": "/api/v2/imports/scan_abc123/stream",
+    "statusUrl": "/api/v2/imports/scan_abc123",
+    "totalPhotos": 3,
+    "status": "processing"
+  }
+}
+```
+
+**Migration Note (Nov 2025):** Previous versions returned a `token` field instead of `authToken`. The backend now returns `authToken` + `sseUrl` for SSE-based progress tracking. iOS clients must migrate from WebSocket to SSE (see issue #120 for migration guide).
 
 **Rate Limit:** 5 req/min per IP
 
@@ -580,7 +685,31 @@ The `retryAfterMs` field indicates when the client can retry enrichment.
 
 ## 8. WebSocket API
 
-**DEPRECATION NOTICE:** WebSocket progress updates are supported for legacy job types (e.g., `batch_enrichment`) but are considered deprecated. All new integrations, and especially all V2 jobs like CSV Import (§7.1) and Photo Scan (§7.6), **MUST** use the SSE Progress Stream (§7.2) for real-time updates. This WebSocket API may be removed in a future version.
+**DEPRECATION NOTICE:** WebSocket progress updates are supported for legacy job types (e.g., `batch_enrichment`) but are considered deprecated. All new integrations, and especially all V2 jobs like CSV Import (§7.1) and Photo Scan (§7.6), **MUST** use the SSE Progress Stream (§7.2) for real-time updates.
+
+**Migration Guide:**
+- **V2 Endpoints (CSV Import, Photo Scan):** Use the `sseUrl` and `statusUrl` fields in job initialization responses. WebSocket connections are no longer supported for these endpoints.
+- **Legacy Endpoints (Batch Enrichment):** Continue using `websocketUrl` for now. Migration to SSE planned for Q2 2026.
+- **SSE Client Implementation:** See §7.2 for event format, reconnection logic, and code examples.
+
+**Timeline:**
+- **Now:** V2 endpoints require SSE (CSV Import §7.1, Photo Scan §7.6)
+- **Q2 2026:** Batch enrichment will migrate to SSE
+- **Q3 2026:** WebSocket API fully removed
+
+**Breaking Changes:**
+- Responses now include `authToken` instead of `token` (backward compatible until March 1, 2026)
+- V2 endpoints return `sseUrl` + `statusUrl` instead of WebSocket token
+- Clients must handle SSE reconnection and event parsing (see §7.2)
+
+**Migration Troubleshooting:**
+
+| Issue | Solution |
+|-------|----------|
+| Client receives `sseUrl` but still tries WebSocket | Update client to check for `sseUrl` field and use SSE if present |
+| WebSocket closes with code 1001 "Going Away" | Expected behavior - client should use `sseUrl` instead |
+| SSE connection fails with 404 | Use the full `sseUrl` from response, don't construct it manually |
+| SSE events not received | Verify `Accept: text/event-stream` header is set |
 
 ### 8.1 Connection
 
@@ -830,7 +959,40 @@ GET /api/v2/capabilities
 
 ---
 
-## 14. Support
+## 14. Implementation Notes
+
+### 14.1 Router Architecture
+
+**Current Implementation (Nov 2025):** Hono TypeScript Router
+
+BooksTrack uses [Hono](https://hono.dev/) as its single HTTP router, providing:
+- **Type safety:** Full TypeScript support with request/response validation
+- **OpenAPI support:** Automatic OpenAPI spec generation via `@hono/zod-openapi`
+- **Performance:** Optimized for Cloudflare Workers runtime
+- **Middleware:** Built-in CORS, rate limiting, analytics tracking
+
+**Frontend Integration:**
+- All requests return the `X-Router: hono` header for observability
+- No client-side changes needed - API contract remains stable
+- Response format follows canonical ResponseEnvelope (§3.1, §3.2)
+
+**Historical Note:**
+- Manual router deprecated and removed Nov 21, 2025 (Issue #243)
+- Archived: `docs/archive/manual-router-legacy-2025-11-21.js`
+
+### 14.2 Swagger Documentation
+
+**Interactive API Docs:** https://api.oooefam.net/doc
+
+The API includes auto-generated Swagger UI for testing endpoints:
+- Browse all available endpoints
+- Test requests directly from browser
+- View request/response schemas
+- Download OpenAPI spec: https://api.oooefam.net/doc/openapi.json
+
+---
+
+## 15. Support
 
 **API Issues:** https://github.com/yourusername/bookstrack/issues
 **Status Page:** https://status.oooefam.net
@@ -847,8 +1009,8 @@ GET /api/v2/capabilities
 ### Standard Response Headers
 - `Content-Type`: `application/json` or `text/event-stream`
 - `X-Response-Format`: `v2.0` (canonical format version)
-- `X-Router`: `hono` (router used)
-- `X-Response-Time`: `45ms` (processing time)
+- `X-Router`: `hono` (always "hono" - single router implementation as of Nov 2025)
+- `X-Response-Time`: `45ms` (processing time in milliseconds)
 - `Cache-Control`: Varies by endpoint
 
 ### CORS Headers

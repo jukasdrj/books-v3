@@ -1,0 +1,907 @@
+Command line invocation:
+    /Applications/Xcode-beta.app/Contents/Developer/usr/bin/xcodebuild -scheme BooksTracker -destination "platform=iOS Simulator,name=iPhone 17 Pro" -configuration Debug build -parallelizeTargets -jobs 2
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  BooksTrackerFeature: /Users/juju/dev_repos/books-v3/BooksTrackerPackage
+
+Build Preparation
+Build task concurrency set to 2 via user default IDEBuildOperationMaxNumberOfConcurrentCompileTasks
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (4 targets)
+    Target 'BooksTracker' in project 'BooksTracker'
+        ➜ Explicit dependency on target 'BooksTrackerWidgetsExtension' in project 'BooksTracker'
+        ➜ Explicit dependency on target 'BooksTrackerFeature' in project 'BooksTrackerFeature'
+    Target 'BooksTrackerWidgetsExtension' in project 'BooksTracker'
+        ➜ Explicit dependency on target 'BooksTrackerFeature' in project 'BooksTrackerFeature'
+    Target 'BooksTrackerFeature' in project 'BooksTrackerFeature'
+        ➜ Explicit dependency on target 'BooksTrackerFeature' in project 'BooksTrackerFeature'
+    Target 'BooksTrackerFeature' in project 'BooksTrackerFeature' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode-beta.app/Contents/Developer/usr/bin/actool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode-beta.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/juju/dev_repos/books-v3/BooksTracker/Assets.xcassets
+
+ExecuteExternalTool /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+Build description signature: 001d0ad18294d7defeb447a5fa9b8c68
+Build description path: /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/XCBuildData/001d0ad18294d7defeb447a5fa9b8c68.xcbuilddata
+ClangStatCache /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk /Users/juju/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.2-23C5044a-c6bb09c85eeb1a59968f08cee6a58242.sdkstatcache
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -o /Users/juju/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.2-23C5044a-c6bb09c85eeb1a59968f08cee6a58242.sdkstatcache
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature.SwiftFileList (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTrackerPackage
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature.SwiftFileList
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature.SwiftConstValuesFileList (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTrackerPackage
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature.LinkFileList (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTrackerPackage
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature.LinkFileList
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature-OutputFileMap.json (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTrackerPackage
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature-OutputFileMap.json
+
+SwiftDriver BooksTrackerFeature normal arm64 com.apple.xcode.tools.swift.compiler (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    builtin-SwiftDriver -- /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name BooksTrackerFeature -Onone -enforce-exclusivity\=checked @/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature.SwiftFileList -DSWIFT_PACKAGE -DDEBUG -DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE -DXcode -plugin-path /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -target arm64-apple-ios26.0-simulator -g -module-cache-path /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -profile-coverage-mapping -profile-generate -enable-testing -index-store-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 6 -I /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator -Isystem /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator -F /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/Developer/Library/Frameworks -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/juju/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.2-23C5044a-c6bb09c85eeb1a59968f08cee6a58242.sdkstatcache -output-file-map /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -package-name bookstrackerpackage -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature_const_extract_protocols.json -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/DerivedSources-normal/arm64 -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/DerivedSources/arm64 -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature-Swift.h -working-directory /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj -experimental-emit-module-separately -disable-cmo
+
+SwiftCompile normal arm64 Compiling\ ImageCleanupService.swift,\ ImageCompressionService.swift,\ ImagePrefetcher.swift,\ ImportService.swift,\ LaunchMetrics.swift,\ LibraryFilterService.swift,\ NotificationCoordinator.swift,\ ReadingSessionService.swift,\ SampleDataGenerator.swift,\ SessionAnalyticsService.swift,\ WeeklyRecommendationsCache.swift,\ WeeklyRecommendationsService.swift,\ WorkflowImportService.swift,\ EnrichmentQueueDetailsView.swift,\ EnrichmentQueueRow.swift,\ SettingsView.swift,\ TabCoordinator.swift,\ ThemeSelectionView.swift,\ EnrichmentBanner.swift,\ UserLibraryEntry.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ImageCleanupService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ImageCompressionService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ImagePrefetcher.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ImportService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/LaunchMetrics.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/LibraryFilterService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/NotificationCoordinator.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ReadingSessionService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/SampleDataGenerator.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/SessionAnalyticsService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/WeeklyRecommendationsCache.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/WeeklyRecommendationsService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/WorkflowImportService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Settings/EnrichmentQueueDetailsView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Settings/EnrichmentQueueRow.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SettingsView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/TabCoordinator.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ThemeSelectionView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/UI/EnrichmentBanner.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/UserLibraryEntry.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ImageCleanupService.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ImageCompressionService.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ImagePrefetcher.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ImportService.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/LaunchMetrics.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/LibraryFilterService.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/NotificationCoordinator.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ReadingSessionService.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/SampleDataGenerator.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/SessionAnalyticsService.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/WeeklyRecommendationsCache.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/WeeklyRecommendationsService.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/WorkflowImportService.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Settings/EnrichmentQueueDetailsView.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Settings/EnrichmentQueueRow.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SettingsView.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/TabCoordinator.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ThemeSelectionView.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/UI/EnrichmentBanner.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/UserLibraryEntry.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ BooksTrackerFeature (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+Failed frontend command:
+/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -emit-module -experimental-skip-non-inlinable-function-bodies-without-types /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/APIError.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/BooksTrackAPI+Enrichment.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/BooksTrackAPI+Import.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/BooksTrackAPI+Search.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/BooksTrackAPI.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/AboutMakerView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/AcknowledgementsView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/AdvancedSearchView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/AnnotationsModule.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Author.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BentoGridView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookActionsModule.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/BatchCaptureView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/BookshelfScannerView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/BoundingBoxOverlayView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Camera/BookshelfCameraPreview.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Camera/BookshelfCameraSessionManager.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Camera/BookshelfCameraView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Camera/BookshelfCameraViewModel.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/CombinedImportView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/ConfidenceThresholds.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/DetectedBook.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Models/BatchScanModels.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Models/ProgressStrategy.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Models/ScanAnalyticsEvent.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/PrivacyDisclosureBanner.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/ScanResultsView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/ScanStatisticsView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/ScanningTipsView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Services/BatchWebSocketHandler.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Services/BookshelfAIService+Polling.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Services/BookshelfAIService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/Services/ScanProgressModels.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/SuggestionGenerator.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/VisionProcessingActor.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/CacheHealthDebugView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/CachedAsyncImage.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/CloudKitHelpView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/AIProvider.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/EnrichmentAPIClient.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/EnrichmentConfig.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/EnrichmentResultsClient.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/GenericWebSocketHandler.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/KeychainHelper.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/LoadingState.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/SyncCoordinator.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/WebSocketHelpers.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/WebSocketProgressManager.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/AuroraGradient.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/BookCardAccessibility.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/BookCardActions.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/BookCardBadges.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/BookCardMenus.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/BookCardSkeleton.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/BookMetadataRow.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/EditionMetadataView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/EndSessionSheet.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/EnrichmentCompletionToast.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/EnrichmentErrorToast.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/EnrichmentIndicator.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/GenreTagView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/GlassCard.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/LibraryStatusBadge.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/NotesEditorView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/RateLimitBanner.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/ScaleButtonStyle.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Components/StarRatingView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ContentView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ApiErrorCode.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/AuthorDTO.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/BatchEnrichmentPayload.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/DTOEnums.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EditionDTO.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EnrichedBookDTO.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ErrorResponseDTO.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ListWorkDTO.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/SearchLinksDTO.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WorkDTO.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WorkflowDTOs.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DiversityPreviewModule.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Edition.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/EditionComparisonSheet.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/EditionSelectionStrategy.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Enrichment/EnrichmentQueue.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Enrichment/EnrichmentService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Enrichment/EnrichmentWebSocketHandler.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Extensions/Data+toString.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Extensions/String+TitleNormalization.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/FeatureFlags.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/FloatingPillsView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/GeminiCSVImport/CSVValidator.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/GeminiCSVImport/GeminiCSVImportService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/GeminiCSVImport/GeminiCSVImportView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/GeminiCSVImport/SSEClient.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/GeminiCSVImport/SSEModels.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ISBNScannerView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ISBNValidator.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ImmersiveHeaderView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Insights/Components/CulturalRegionsChart.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Insights/Components/GenderDonutChart.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Insights/Components/HeroStatsCard.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Insights/Components/LanguageTagCloud.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Insights/Components/RadarChartView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Insights/Components/ReadingStatsSection.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Insights/DiversityInsightsTab.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Insights/InsightsView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Insights/Utilities/FlowLayout.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/LibraryRepository.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ModelTypes.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/APICapabilities.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/AuthorMetadata.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/BookEnrichment.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/DiversityMetric.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/DiversityScore.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/DiversityStats.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/DiversityStatsMigrationPlan.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/EnhancedDiversityStats.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/NotificationPayloads.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/ReadingSession.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/ReadingStats.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/ReviewStatus.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/SearchCoordinator.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/SearchResultDTO.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/SimilarBooksCache.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/StreakData.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/TrendingActivity.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/UserSettings.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/WeeklyRecommendation.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Models/WorkOverride.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ProgressViews/ProgressComponents.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ReadingHabitsModule.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ReadingHabitsViewModel.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ReadingProgressModule.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ReadingStatusParser.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ReviewQueue/CorrectionView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ReviewQueue/ManualMatchView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ReviewQueue/ReviewQueueModel.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ReviewQueue/ReviewQueueView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchModel.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchView/SearchMode.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchView/SearchView+EmptyStates.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchView/SearchView+InitialState.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchView/SearchView+Loading.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchView/SearchView+Results.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchViewState.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/APIConfig.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/BackgroundTaskScheduler.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/BookSearchAPIService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/BookSearchAPIServiceKey.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/CacheHealthMetrics.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/CapabilitiesService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/CascadeMetadataService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/CoverImageService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/CuratorPointsService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/CuratorPointsServiceEnvironmentKey.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/DTOMapper.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/DTOMapperEnvironmentKey.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/DataMigrationService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/DiversityStatsService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/DuplicateDetectionService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ImageCleanupService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ImageCompressionService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ImagePrefetcher.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ImportService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/LaunchMetrics.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/LibraryFilterService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/NotificationCoordinator.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/ReadingSessionService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/SampleDataGenerator.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/SessionAnalyticsService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/WeeklyRecommendationsCache.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/WeeklyRecommendationsService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/WorkflowImportService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Settings/EnrichmentQueueDetailsView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Settings/EnrichmentQueueRow.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SettingsView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/TabCoordinator.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/ThemeSelectionView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/UI/EnrichmentBanner.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/UserLibraryEntry.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/Components/CelebrationView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/Components/ConfidenceBadge.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/DiversityCompletionWidget.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/HorizontalBookCarousel.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/Library/AlphabeticalIndexView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/ProgressiveProfilingSheet.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/RepresentationRadarChart.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/StreakVisualizationView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/WeeklyPicksView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Views/WorkflowProgressView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Work.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/WorkDetailView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/WorkDiscoveryView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/iOS26AdaptiveBookCard.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/iOS26FloatingBookCard.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/iOS26FluidGridSystem.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/iOS26GlassModifiers.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/iOS26LiquidLibraryView.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/iOS26LiquidListRow.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/iOS26ThemeSystem.swift -target arm64-apple-ios26.0-simulator -module-can-import-version AVFoundation 2395.6.1.1 2.0.0 -module-can-import-version PhotosUI 822.0.130 822.0.130 -module-can-import-version UIKit 9126.2.4.1 9126.2.4 -module-can-import-version Vision 9.3.1 9.3.1 -disable-cross-import-overlay-search -swift-module-cross-import PhotosUI /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/Frameworks/PhotosUI.framework/Modules/PhotosUI.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import PhotosUI /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/Frameworks/PhotosUI.framework/Modules/PhotosUI.swiftcrossimport/WidgetKit.swiftoverlay -swift-module-cross-import PhotosUI /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/PhotosUI.framework/Modules/PhotosUI.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import PhotosUI /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/PhotosUI.framework/Modules/PhotosUI.swiftcrossimport/WidgetKit.swiftoverlay -swift-module-cross-import SwiftData /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/SwiftData.framework/Modules/SwiftData.swiftcrossimport/CoreData.swiftoverlay -swift-module-cross-import SwiftData /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/SwiftData.framework/Modules/SwiftData.swiftcrossimport/SwiftUI.swiftoverlay -load-resolved-plugin /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libFoundationMacros.dylib\#/Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#FoundationMacros -load-resolved-plugin /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libObservationMacros.dylib\#/Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#ObservationMacros -load-resolved-plugin /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libPreviewsMacros.dylib\#/Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#PreviewsMacros -load-resolved-plugin /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libSwiftDataMacros.dylib\#/Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#SwiftDataMacros -load-resolved-plugin /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#/Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#SwiftMacros -load-resolved-plugin /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libSwiftUIMacros.dylib\#/Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#SwiftUIMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature-dependencies-1.json -Xllvm -aarch64-use-tbi -enable-objc-interop -sdk /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -I /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator -Isystem /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator -F /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/Developer/Library/Frameworks -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=5 -module-cache-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -profile-generate -profile-coverage-mapping -swift-version 6 -enforce-exclusivity\=checked -Onone -D SWIFT_PACKAGE -D DEBUG -D SWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE -D Xcode -serialize-debugging-options -const-gather-protocols-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature_const_extract_protocols.json -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj -enable-anonymous-context-mangled-names -file-compilation-dir /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/juju/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.2-23C5044a-c6bb09c85eeb1a59968f08cee6a58242.sdkstatcache -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/swift-overrides.hmap -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/DerivedSources-normal/arm64 -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/DerivedSources/arm64 -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name BooksTrackerFeature -package-name bookstrackerpackage -frontend-parseable-output -disable-clang-spi -target-sdk-version 26.2 -target-sdk-name iphonesimulator26.2 -clang-target arm64-apple-ios26.2-simulator -in-process-plugin-server-path /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -emit-module-doc-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature.swiftdoc -emit-module-source-info-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature.swiftsourceinfo -emit-objc-header-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature-Swift.h -serialize-diagnostics-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature-primary-emit-module.dia -emit-dependencies-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature-primary-emit-module.d -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature.swiftmodule -emit-abi-descriptor-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature.abi.json
+
+EmitSwiftModule normal arm64 (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/BooksTrackAPI+Enrichment.swift:5:85: error: 'EnrichedBookDTO' is ambiguous for type lookup in this context
+    func enrichBook(barcode: String, idempotencyKey: String? = nil) async throws -> EnrichedBookDTO {
+                                                                                    ^~~~~~~~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:51:15: note: found this candidate
+public struct EnrichedBookDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EnrichedBookDTO.swift:5:15: note: found this candidate
+public struct EnrichedBookDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/BooksTrackAPI+Import.swift:50:54: error: 'JobStatus' is ambiguous for type lookup in this context
+    func getJobStatus(jobId: String) async throws -> JobStatus {
+                                                     ^~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:88:15: note: found this candidate
+public struct JobStatus: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:19:13: note: found this candidate
+public enum JobStatus: Codable, Sendable, Equatable {
+            ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:6:16: error: stored property 'data' of 'Sendable'-conforming generic struct 'ResponseEnvelope' contains non-Sendable type 'T'
+    public let data: T?
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:4:32: note: consider making generic parameter 'T' conform to the 'Sendable' protocol
+public struct ResponseEnvelope<T: Decodable>: Decodable, Sendable {
+                               ^
+                                            & Sendable
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:4:15: error: invalid redeclaration of 'ResponseEnvelope'
+public struct ResponseEnvelope<T: Decodable>: Decodable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:35:15: note: 'ResponseEnvelope' previously declared here
+public struct ResponseEnvelope<T: Codable>: Codable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:35:15: note: 'ResponseEnvelope' previously declared here
+public struct ResponseEnvelope<T: Codable>: Codable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:41:26: error: 'AuthorDTO' is ambiguous for type lookup in this context
+    public let authors: [AuthorDTO]?
+                         ^~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:71:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Hashable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/AuthorDTO.swift:12:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:38:15: error: type 'BookDTO' does not conform to protocol 'Decodable'
+public struct BookDTO: Codable, Sendable, Hashable {
+              ^
+Swift.Decodable.init:2:1: note: protocol requires initializer 'init(from:)' with type 'Decodable'
+init(from decoder: any Decoder) throws}
+^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:41:16: note: cannot automatically synthesize 'Decodable' because '[AuthorDTO]?' does not conform to 'Decodable'
+    public let authors: [AuthorDTO]?
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:38:15: error: type 'BookDTO' does not conform to protocol 'Encodable'
+public struct BookDTO: Codable, Sendable, Hashable {
+              ^
+Swift.Encodable.encode:2:6: note: protocol requires function 'encode(to:)' with type 'Encodable'
+func encode(to encoder: any Encoder) throws}
+     ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:41:16: note: cannot automatically synthesize 'Encodable' because '[AuthorDTO]?' does not conform to 'Encodable'
+    public let authors: [AuthorDTO]?
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:38:15: error: type 'BookDTO' does not conform to protocol 'Hashable'
+public struct BookDTO: Codable, Sendable, Hashable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:41:16: note: stored property type '<<error type>>' does not conform to protocol 'Hashable', preventing synthesized conformance of 'BookDTO' to 'Hashable'
+    public let authors: [AuthorDTO]?
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:38:15: error: type 'BookDTO' does not conform to protocol 'Equatable'
+public struct BookDTO: Codable, Sendable, Hashable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:41:16: note: stored property type '<<error type>>' does not conform to protocol 'Equatable', preventing synthesized conformance of 'BookDTO' to 'Equatable'
+    public let authors: [AuthorDTO]?
+               ^
+Swift.==:1:24: note: candidate would match if 'BookDTO' conformed to 'RawRepresentable'
+@inlinable public func == <T>(lhs: T, rhs: T) -> Bool where T : RawRepresentable, T.RawValue : Equatable
+                       ^
+Swift.FloatingPoint.==:2:20: note: candidate would match if 'BookDTO' conformed to 'FloatingPoint'
+public static func == (lhs: Self, rhs: Self) -> Bool}
+                   ^
+Swift.BinaryInteger.==:2:20: note: candidate would match if 'BookDTO' conformed to 'BinaryInteger'
+public static func == <Other>(lhs: Self, rhs: Other) -> Bool where Other : BinaryInteger}
+                   ^
+Swift._Pointer.==:2:20: note: candidate would match if 'BookDTO' conformed to '_Pointer'
+public static func == (lhs: Self, rhs: Self) -> Bool}
+                   ^
+Swift._Pointer.==:2:31: note: candidate would match if 'BookDTO' conformed to '_Pointer'
+@inlinable public static func == <Other>(lhs: Self, rhs: Other) -> Bool where Other : _Pointer}
+                              ^
+Swift.Strideable.==:2:31: note: candidate would match if 'BookDTO' conformed to 'Strideable'
+@inlinable public static func == (x: Self, y: Self) -> Bool}
+                              ^
+Swift.StringProtocol.==:2:31: note: candidate would match if 'BookDTO' conformed to 'StringProtocol'
+@inlinable public static func == <RHS>(lhs: Self, rhs: RHS) -> Bool where RHS : StringProtocol}
+                              ^
+Swift.SIMD.==:2:20: note: candidate would match if 'BookDTO' conformed to 'SIMD'
+public static func == (a: Self, b: Self) -> Bool}
+                   ^
+Foundation.AttributedStringProtocol.==:2:20: note: candidate would match if 'BookDTO' conformed to 'AttributedStringProtocol'
+public static func == <RHS>(lhs: Self, rhs: RHS) -> Bool where RHS : AttributedStringProtocol}
+                   ^
+Foundation._BridgedStoredNSError.==:2:20: note: candidate would match if 'BookDTO' conformed to '_BridgedStoredNSError'
+public static func == (lhs: Self, rhs: Self) -> Bool}
+                   ^
+CoreFoundation._CFObject.==:2:20: note: candidate would match if 'BookDTO' conformed to '_CFObject'
+public static func == (left: Self, right: Self) -> Bool}
+                   ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:38:15: note: add stubs for conformance
+public struct BookDTO: Codable, Sendable, Hashable {
+              ^
+Swift.Equatable.==:2:13: note: protocol requires function '==' with type '(BookDTO, BookDTO) -> Bool'
+static func == (lhs: Self, rhs: Self) -> Bool}
+            ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:52:22: error: 'WorkDTO' is ambiguous for type lookup in this context
+    public let work: WorkDTO?
+                     ^~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:57:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WorkDTO.swift:12:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:53:25: error: 'EditionDTO' is ambiguous for type lookup in this context
+    public let edition: EditionDTO?
+                        ^~~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:64:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EditionDTO.swift:12:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:54:26: error: 'AuthorDTO' is ambiguous for type lookup in this context
+    public let authors: [AuthorDTO]?
+                         ^~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:71:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Hashable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/AuthorDTO.swift:12:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:51:15: error: type 'EnrichedBookDTO' does not conform to protocol 'Decodable'
+public struct EnrichedBookDTO: Codable, Sendable {
+              ^
+Swift.Decodable.init:2:1: note: protocol requires initializer 'init(from:)' with type 'Decodable'
+init(from decoder: any Decoder) throws}
+^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:52:16: note: cannot automatically synthesize 'Decodable' because 'WorkDTO?' does not conform to 'Decodable'
+    public let work: WorkDTO?
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:53:16: note: cannot automatically synthesize 'Decodable' because 'EditionDTO?' does not conform to 'Decodable'
+    public let edition: EditionDTO?
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:54:16: note: cannot automatically synthesize 'Decodable' because '[AuthorDTO]?' does not conform to 'Decodable'
+    public let authors: [AuthorDTO]?
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:51:15: error: type 'EnrichedBookDTO' does not conform to protocol 'Encodable'
+public struct EnrichedBookDTO: Codable, Sendable {
+              ^
+Swift.Encodable.encode:2:6: note: protocol requires function 'encode(to:)' with type 'Encodable'
+func encode(to encoder: any Encoder) throws}
+     ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:52:16: note: cannot automatically synthesize 'Encodable' because 'WorkDTO?' does not conform to 'Encodable'
+    public let work: WorkDTO?
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:53:16: note: cannot automatically synthesize 'Encodable' because 'EditionDTO?' does not conform to 'Encodable'
+    public let edition: EditionDTO?
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:54:16: note: cannot automatically synthesize 'Encodable' because '[AuthorDTO]?' does not conform to 'Encodable'
+    public let authors: [AuthorDTO]?
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:51:15: error: invalid redeclaration of 'EnrichedBookDTO'
+public struct EnrichedBookDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EnrichedBookDTO.swift:5:15: note: 'EnrichedBookDTO' previously declared here
+public struct EnrichedBookDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EnrichedBookDTO.swift:5:15: note: 'EnrichedBookDTO' previously declared here
+public struct EnrichedBookDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:57:15: error: invalid redeclaration of 'WorkDTO'
+public struct WorkDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WorkDTO.swift:12:15: note: 'WorkDTO' previously declared here
+public struct WorkDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WorkDTO.swift:12:15: note: 'WorkDTO' previously declared here
+public struct WorkDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:64:15: error: invalid redeclaration of 'EditionDTO'
+public struct EditionDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EditionDTO.swift:12:15: note: 'EditionDTO' previously declared here
+public struct EditionDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EditionDTO.swift:12:15: note: 'EditionDTO' previously declared here
+public struct EditionDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:71:15: error: invalid redeclaration of 'AuthorDTO'
+public struct AuthorDTO: Codable, Sendable, Hashable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/AuthorDTO.swift:12:15: note: 'AuthorDTO' previously declared here
+public struct AuthorDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/AuthorDTO.swift:12:15: note: 'AuthorDTO' previously declared here
+public struct AuthorDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:88:15: error: invalid redeclaration of 'JobStatus'
+public struct JobStatus: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:19:13: note: 'JobStatus' previously declared here
+public enum JobStatus: Codable, Sendable, Equatable {
+            ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:19:13: note: 'JobStatus' previously declared here
+public enum JobStatus: Codable, Sendable, Equatable {
+            ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/DetectedBook.swift:45:32: error: 'WorkDTO' is ambiguous for type lookup in this context
+    public var enrichmentWork: WorkDTO?
+                               ^~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:57:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WorkDTO.swift:12:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/DetectedBook.swift:46:37: error: 'EditionDTO' is ambiguous for type lookup in this context
+    public var enrichmentEditions: [EditionDTO]?
+                                    ^~~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:64:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EditionDTO.swift:12:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/BookshelfScanning/DetectedBook.swift:47:36: error: 'AuthorDTO' is ambiguous for type lookup in this context
+    public var enrichmentAuthors: [AuthorDTO]?
+                                   ^~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:71:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Hashable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/AuthorDTO.swift:12:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/EnrichmentAPIClient.swift:271:120: error: 'EnrichedBookDTO' is ambiguous for type lookup in this context
+    func enrichBookV2(barcode: String, idempotencyKey: String? = nil, preferProvider: String = "auto") async throws -> EnrichedBookDTO {
+                                                                                                                       ^~~~~~~~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:51:15: note: found this candidate
+public struct EnrichedBookDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EnrichedBookDTO.swift:5:15: note: found this candidate
+public struct EnrichedBookDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:106:30: error: 'WorkDTO' is ambiguous for type lookup in this context
+            public let work: WorkDTO?
+                             ^~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:57:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WorkDTO.swift:12:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:107:35: error: 'EditionDTO' is ambiguous for type lookup in this context
+            public let editions: [EditionDTO]?
+                                  ^~~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:64:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EditionDTO.swift:12:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:108:34: error: 'AuthorDTO' is ambiguous for type lookup in this context
+            public let authors: [AuthorDTO]?
+                                 ^~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:71:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Hashable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/AuthorDTO.swift:12:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:104:23: error: type 'ScanResultPayload.BookPayload.EnrichmentPayload' does not conform to protocol 'Decodable'
+        public struct EnrichmentPayload: Codable, Sendable, Equatable {
+                      ^
+Swift.Decodable.init:2:1: note: protocol requires initializer 'init(from:)' with type 'Decodable'
+init(from decoder: any Decoder) throws}
+^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:106:24: note: cannot automatically synthesize 'Decodable' because 'WorkDTO?' does not conform to 'Decodable'
+            public let work: WorkDTO?
+                       ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:107:24: note: cannot automatically synthesize 'Decodable' because '[EditionDTO]?' does not conform to 'Decodable'
+            public let editions: [EditionDTO]?
+                       ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:108:24: note: cannot automatically synthesize 'Decodable' because '[AuthorDTO]?' does not conform to 'Decodable'
+            public let authors: [AuthorDTO]?
+                       ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:104:23: error: type 'ScanResultPayload.BookPayload.EnrichmentPayload' does not conform to protocol 'Encodable'
+        public struct EnrichmentPayload: Codable, Sendable, Equatable {
+                      ^
+Swift.Encodable.encode:2:6: note: protocol requires function 'encode(to:)' with type 'Encodable'
+func encode(to encoder: any Encoder) throws}
+     ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:106:24: note: cannot automatically synthesize 'Encodable' because 'WorkDTO?' does not conform to 'Encodable'
+            public let work: WorkDTO?
+                       ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:107:24: note: cannot automatically synthesize 'Encodable' because '[EditionDTO]?' does not conform to 'Encodable'
+            public let editions: [EditionDTO]?
+                       ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:108:24: note: cannot automatically synthesize 'Encodable' because '[AuthorDTO]?' does not conform to 'Encodable'
+            public let authors: [AuthorDTO]?
+                       ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:104:23: error: type 'ScanResultPayload.BookPayload.EnrichmentPayload' does not conform to protocol 'Equatable'
+        public struct EnrichmentPayload: Codable, Sendable, Equatable {
+                      ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:106:24: note: stored property type '<<error type>>' does not conform to protocol 'Equatable', preventing synthesized conformance of 'ScanResultPayload.BookPayload.EnrichmentPayload' to 'Equatable'
+            public let work: WorkDTO?
+                       ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:107:24: note: stored property type '<<error type>>' does not conform to protocol 'Equatable', preventing synthesized conformance of 'ScanResultPayload.BookPayload.EnrichmentPayload' to 'Equatable'
+            public let editions: [EditionDTO]?
+                       ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:108:24: note: stored property type '<<error type>>' does not conform to protocol 'Equatable', preventing synthesized conformance of 'ScanResultPayload.BookPayload.EnrichmentPayload' to 'Equatable'
+            public let authors: [AuthorDTO]?
+                       ^
+Swift.==:1:24: note: candidate would match if 'ScanResultPayload.BookPayload.EnrichmentPayload' conformed to 'RawRepresentable'
+@inlinable public func == <T>(lhs: T, rhs: T) -> Bool where T : RawRepresentable, T.RawValue : Equatable
+                       ^
+Swift.FloatingPoint.==:2:20: note: candidate would match if 'ScanResultPayload.BookPayload.EnrichmentPayload' conformed to 'FloatingPoint'
+public static func == (lhs: Self, rhs: Self) -> Bool}
+                   ^
+Swift.BinaryInteger.==:2:20: note: candidate would match if 'ScanResultPayload.BookPayload.EnrichmentPayload' conformed to 'BinaryInteger'
+public static func == <Other>(lhs: Self, rhs: Other) -> Bool where Other : BinaryInteger}
+                   ^
+Swift._Pointer.==:2:20: note: candidate would match if 'ScanResultPayload.BookPayload.EnrichmentPayload' conformed to '_Pointer'
+public static func == (lhs: Self, rhs: Self) -> Bool}
+                   ^
+Swift._Pointer.==:2:31: note: candidate would match if 'ScanResultPayload.BookPayload.EnrichmentPayload' conformed to '_Pointer'
+@inlinable public static func == <Other>(lhs: Self, rhs: Other) -> Bool where Other : _Pointer}
+                              ^
+Swift.Strideable.==:2:31: note: candidate would match if 'ScanResultPayload.BookPayload.EnrichmentPayload' conformed to 'Strideable'
+@inlinable public static func == (x: Self, y: Self) -> Bool}
+                              ^
+Swift.StringProtocol.==:2:31: note: candidate would match if 'ScanResultPayload.BookPayload.EnrichmentPayload' conformed to 'StringProtocol'
+@inlinable public static func == <RHS>(lhs: Self, rhs: RHS) -> Bool where RHS : StringProtocol}
+                              ^
+Swift.SIMD.==:2:20: note: candidate would match if 'ScanResultPayload.BookPayload.EnrichmentPayload' conformed to 'SIMD'
+public static func == (a: Self, b: Self) -> Bool}
+                   ^
+Foundation.AttributedStringProtocol.==:2:20: note: candidate would match if 'ScanResultPayload.BookPayload.EnrichmentPayload' conformed to 'AttributedStringProtocol'
+public static func == <RHS>(lhs: Self, rhs: RHS) -> Bool where RHS : AttributedStringProtocol}
+                   ^
+Foundation._BridgedStoredNSError.==:2:20: note: candidate would match if 'ScanResultPayload.BookPayload.EnrichmentPayload' conformed to '_BridgedStoredNSError'
+public static func == (lhs: Self, rhs: Self) -> Bool}
+                   ^
+CoreFoundation._CFObject.==:2:20: note: candidate would match if 'ScanResultPayload.BookPayload.EnrichmentPayload' conformed to '_CFObject'
+public static func == (left: Self, right: Self) -> Bool}
+                   ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:104:23: note: add stubs for conformance
+        public struct EnrichmentPayload: Codable, Sendable, Equatable {
+                      ^
+Swift.Equatable.==:2:13: note: protocol requires function '==' with type '(ScanResultPayload.BookPayload.EnrichmentPayload, ScanResultPayload.BookPayload.EnrichmentPayload) -> Bool'
+static func == (lhs: Self, rhs: Self) -> Bool}
+            ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/SyncCoordinator.swift:14:56: error: 'JobStatus' is ambiguous for type lookup in this context
+    public private(set) var jobStatus: [JobIdentifier: JobStatus] = [:]
+                                                       ^~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:88:15: note: found this candidate
+public struct JobStatus: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:19:13: note: found this candidate
+public enum JobStatus: Codable, Sendable, Equatable {
+            ^
+@__swiftmacro_19BooksTrackerFeature15SyncCoordinatorC9jobStatus18ObservationTrackedfMp_.swift:1:62: error: 'JobStatus' is ambiguous for type lookup in this context
+@ObservationIgnored private  var _jobStatus: [JobIdentifier: JobStatus] = [:]
+                                                             ^~~~~~~~~
+@__swiftmacro_19BooksTrackerFeature15SyncCoordinatorC9jobStatus10ObservablefMr1_.swift:1:1: note: in expansion of macro 'ObservationTracked' on property 'jobStatus' here
+@ObservationTracked
+^
+@__swiftmacro_19BooksTrackerFeature15SyncCoordinatorC9jobStatus10ObservablefMr1_.swift:1:1: note: in expansion of macro 'ObservationTracked' on property 'jobStatus' here
+@ObservationTracked
+^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:88:15: note: found this candidate
+public struct JobStatus: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:19:13: note: found this candidate
+public enum JobStatus: Codable, Sendable, Equatable {
+            ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/SyncCoordinator.swift:29:59: error: 'JobStatus' is ambiguous for type lookup in this context
+    public func getJobStatus(for jobId: JobIdentifier) -> JobStatus? {
+                                                          ^~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:88:15: note: found this candidate
+public struct JobStatus: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/JobModels.swift:19:13: note: found this candidate
+public enum JobStatus: Codable, Sendable, Equatable {
+            ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/WebSocketProgressManager.swift:808:23: error: 'WorkDTO' is ambiguous for type lookup in this context
+            let work: WorkDTO?
+                      ^~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:57:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WorkDTO.swift:12:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/WebSocketProgressManager.swift:809:28: error: 'EditionDTO' is ambiguous for type lookup in this context
+            let editions: [EditionDTO]?
+                           ^~~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:64:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EditionDTO.swift:12:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/WebSocketProgressManager.swift:810:27: error: 'AuthorDTO' is ambiguous for type lookup in this context
+            let authors: [AuthorDTO]?
+                          ^~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:71:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Hashable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/AuthorDTO.swift:12:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/WebSocketProgressManager.swift:806:16: error: type 'ScanResultData.BookData.Enrichment' does not conform to protocol 'Decodable'
+        struct Enrichment: Codable, Sendable {
+               ^
+Swift.Decodable.init:2:1: note: protocol requires initializer 'init(from:)' with type 'Decodable'
+init(from decoder: any Decoder) throws}
+^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/WebSocketProgressManager.swift:808:17: note: cannot automatically synthesize 'Decodable' because 'WorkDTO?' does not conform to 'Decodable'
+            let work: WorkDTO?
+                ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/WebSocketProgressManager.swift:809:17: note: cannot automatically synthesize 'Decodable' because '[EditionDTO]?' does not conform to 'Decodable'
+            let editions: [EditionDTO]?
+                ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/WebSocketProgressManager.swift:810:17: note: cannot automatically synthesize 'Decodable' because '[AuthorDTO]?' does not conform to 'Decodable'
+            let authors: [AuthorDTO]?
+                ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/WebSocketProgressManager.swift:806:16: error: type 'ScanResultData.BookData.Enrichment' does not conform to protocol 'Encodable'
+        struct Enrichment: Codable, Sendable {
+               ^
+Swift.Encodable.encode:2:6: note: protocol requires function 'encode(to:)' with type 'Encodable'
+func encode(to encoder: any Encoder) throws}
+     ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/WebSocketProgressManager.swift:808:17: note: cannot automatically synthesize 'Encodable' because 'WorkDTO?' does not conform to 'Encodable'
+            let work: WorkDTO?
+                ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/WebSocketProgressManager.swift:809:17: note: cannot automatically synthesize 'Encodable' because '[EditionDTO]?' does not conform to 'Encodable'
+            let editions: [EditionDTO]?
+                ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Common/WebSocketProgressManager.swift:810:17: note: cannot automatically synthesize 'Encodable' because '[AuthorDTO]?' does not conform to 'Encodable'
+            let authors: [AuthorDTO]?
+                ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:57:24: error: 'WorkDTO' is ambiguous for type lookup in this context
+    public let works: [WorkDTO]
+                       ^~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:57:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WorkDTO.swift:12:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:58:27: error: 'EditionDTO' is ambiguous for type lookup in this context
+    public let editions: [EditionDTO]
+                          ^~~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:64:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EditionDTO.swift:12:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:59:26: error: 'AuthorDTO' is ambiguous for type lookup in this context
+    public let authors: [AuthorDTO]
+                         ^~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:71:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Hashable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/AuthorDTO.swift:12:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:56:15: error: type 'BookSearchResponse' does not conform to protocol 'Decodable'
+public struct BookSearchResponse: Codable, Sendable {
+              ^
+Swift.Decodable.init:2:1: note: protocol requires initializer 'init(from:)' with type 'Decodable'
+init(from decoder: any Decoder) throws}
+^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:57:16: note: cannot automatically synthesize 'Decodable' because '[WorkDTO]' does not conform to 'Decodable'
+    public let works: [WorkDTO]
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:58:16: note: cannot automatically synthesize 'Decodable' because '[EditionDTO]' does not conform to 'Decodable'
+    public let editions: [EditionDTO]
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:59:16: note: cannot automatically synthesize 'Decodable' because '[AuthorDTO]' does not conform to 'Decodable'
+    public let authors: [AuthorDTO]
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:56:15: error: type 'BookSearchResponse' does not conform to protocol 'Encodable'
+public struct BookSearchResponse: Codable, Sendable {
+              ^
+Swift.Encodable.encode:2:6: note: protocol requires function 'encode(to:)' with type 'Encodable'
+func encode(to encoder: any Encoder) throws}
+     ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:57:16: note: cannot automatically synthesize 'Encodable' because '[WorkDTO]' does not conform to 'Encodable'
+    public let works: [WorkDTO]
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:58:16: note: cannot automatically synthesize 'Encodable' because '[EditionDTO]' does not conform to 'Encodable'
+    public let editions: [EditionDTO]
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:59:16: note: cannot automatically synthesize 'Encodable' because '[AuthorDTO]' does not conform to 'Encodable'
+    public let authors: [AuthorDTO]
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:90:26: error: 'WorkDTO' is ambiguous for type lookup in this context
+        public let work: WorkDTO
+                         ^~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:57:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WorkDTO.swift:12:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:91:29: error: 'EditionDTO' is ambiguous for type lookup in this context
+        public let edition: EditionDTO
+                            ^~~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:64:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EditionDTO.swift:12:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:89:19: error: type 'BookshelfScanResponse.DetectedBook' does not conform to protocol 'Decodable'
+    public struct DetectedBook: Codable, Sendable {
+                  ^
+Swift.Decodable.init:2:1: note: protocol requires initializer 'init(from:)' with type 'Decodable'
+init(from decoder: any Decoder) throws}
+^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:90:20: note: cannot automatically synthesize 'Decodable' because 'WorkDTO' does not conform to 'Decodable'
+        public let work: WorkDTO
+                   ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:91:20: note: cannot automatically synthesize 'Decodable' because 'EditionDTO' does not conform to 'Decodable'
+        public let edition: EditionDTO
+                   ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:89:19: error: type 'BookshelfScanResponse.DetectedBook' does not conform to protocol 'Encodable'
+    public struct DetectedBook: Codable, Sendable {
+                  ^
+Swift.Encodable.encode:2:6: note: protocol requires function 'encode(to:)' with type 'Encodable'
+func encode(to encoder: any Encoder) throws}
+     ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:90:20: note: cannot automatically synthesize 'Encodable' because 'WorkDTO' does not conform to 'Encodable'
+        public let work: WorkDTO
+                   ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/ResponseEnvelope.swift:91:20: note: cannot automatically synthesize 'Encodable' because 'EditionDTO' does not conform to 'Encodable'
+        public let edition: EditionDTO
+                   ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:283:22: error: 'WorkDTO' is ambiguous for type lookup in this context
+    public let work: WorkDTO
+                     ^~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:57:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WorkDTO.swift:12:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:284:25: error: 'EditionDTO' is ambiguous for type lookup in this context
+    public let edition: EditionDTO?
+                        ^~~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:64:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EditionDTO.swift:12:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:285:26: error: 'AuthorDTO' is ambiguous for type lookup in this context
+    public let authors: [AuthorDTO]
+                         ^~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:71:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Hashable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/AuthorDTO.swift:12:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:282:15: error: type 'EnrichedDataPayload' does not conform to protocol 'Decodable'
+public struct EnrichedDataPayload: Codable, Sendable {
+              ^
+Swift.Decodable.init:2:1: note: protocol requires initializer 'init(from:)' with type 'Decodable'
+init(from decoder: any Decoder) throws}
+^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:283:16: note: cannot automatically synthesize 'Decodable' because 'WorkDTO' does not conform to 'Decodable'
+    public let work: WorkDTO
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:284:16: note: cannot automatically synthesize 'Decodable' because 'EditionDTO?' does not conform to 'Decodable'
+    public let edition: EditionDTO?
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:285:16: note: cannot automatically synthesize 'Decodable' because '[AuthorDTO]' does not conform to 'Decodable'
+    public let authors: [AuthorDTO]
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:282:15: error: type 'EnrichedDataPayload' does not conform to protocol 'Encodable'
+public struct EnrichedDataPayload: Codable, Sendable {
+              ^
+Swift.Encodable.encode:2:6: note: protocol requires function 'encode(to:)' with type 'Encodable'
+func encode(to encoder: any Encoder) throws}
+     ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:283:16: note: cannot automatically synthesize 'Encodable' because 'WorkDTO' does not conform to 'Encodable'
+    public let work: WorkDTO
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:284:16: note: cannot automatically synthesize 'Encodable' because 'EditionDTO?' does not conform to 'Encodable'
+    public let edition: EditionDTO?
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:285:16: note: cannot automatically synthesize 'Encodable' because '[AuthorDTO]' does not conform to 'Encodable'
+    public let authors: [AuthorDTO]
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:380:22: error: 'WorkDTO' is ambiguous for type lookup in this context
+    public let work: WorkDTO?
+                     ^~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:57:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WorkDTO.swift:12:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:381:27: error: 'EditionDTO' is ambiguous for type lookup in this context
+    public let editions: [EditionDTO]?
+                          ^~~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:64:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EditionDTO.swift:12:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:382:26: error: 'AuthorDTO' is ambiguous for type lookup in this context
+    public let authors: [AuthorDTO]?
+                         ^~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:71:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Hashable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/AuthorDTO.swift:12:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:378:15: error: type 'EnrichmentData' does not conform to protocol 'Decodable'
+public struct EnrichmentData: Codable, Sendable {
+              ^
+Swift.Decodable.init:2:1: note: protocol requires initializer 'init(from:)' with type 'Decodable'
+init(from decoder: any Decoder) throws}
+^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:380:16: note: cannot automatically synthesize 'Decodable' because 'WorkDTO?' does not conform to 'Decodable'
+    public let work: WorkDTO?
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:381:16: note: cannot automatically synthesize 'Decodable' because '[EditionDTO]?' does not conform to 'Decodable'
+    public let editions: [EditionDTO]?
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:382:16: note: cannot automatically synthesize 'Decodable' because '[AuthorDTO]?' does not conform to 'Decodable'
+    public let authors: [AuthorDTO]?
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:378:15: error: type 'EnrichmentData' does not conform to protocol 'Encodable'
+public struct EnrichmentData: Codable, Sendable {
+              ^
+Swift.Encodable.encode:2:6: note: protocol requires function 'encode(to:)' with type 'Encodable'
+func encode(to encoder: any Encoder) throws}
+     ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:380:16: note: cannot automatically synthesize 'Encodable' because 'WorkDTO?' does not conform to 'Encodable'
+    public let work: WorkDTO?
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:381:16: note: cannot automatically synthesize 'Encodable' because '[EditionDTO]?' does not conform to 'Encodable'
+    public let editions: [EditionDTO]?
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WebSocketMessages.swift:382:16: note: cannot automatically synthesize 'Encodable' because '[AuthorDTO]?' does not conform to 'Encodable'
+    public let authors: [AuthorDTO]?
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Enrichment/EnrichmentService.swift:385:47: error: 'EnrichedBookDTO' is ambiguous for type lookup in this context
+    private func createOrUpdateWork(from dto: EnrichedBookDTO, in modelContext: ModelContext) -> Work {
+                                              ^~~~~~~~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:51:15: note: found this candidate
+public struct EnrichedBookDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EnrichedBookDTO.swift:5:15: note: found this candidate
+public struct EnrichedBookDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Enrichment/EnrichmentService.swift:539:24: error: 'WorkDTO' is ambiguous for type lookup in this context
+    init(from workDTO: WorkDTO, edition: EditionDTO?, authors: [AuthorDTO]) {
+                       ^~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:57:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WorkDTO.swift:12:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Enrichment/EnrichmentService.swift:539:42: error: 'EditionDTO' is ambiguous for type lookup in this context
+    init(from workDTO: WorkDTO, edition: EditionDTO?, authors: [AuthorDTO]) {
+                                         ^~~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:64:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EditionDTO.swift:12:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Enrichment/EnrichmentService.swift:539:65: error: 'AuthorDTO' is ambiguous for type lookup in this context
+    init(from workDTO: WorkDTO, edition: EditionDTO?, authors: [AuthorDTO]) {
+                                                                ^~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:71:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Hashable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/AuthorDTO.swift:12:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/DTOMapper.swift:74:36: error: 'AuthorDTO' is ambiguous for type lookup in this context
+    public func mapToAuthor(_ dto: AuthorDTO, persist: Bool = true) throws -> Author {
+                                   ^~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:71:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Hashable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/AuthorDTO.swift:12:15: note: found this candidate
+public struct AuthorDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/DTOMapper.swift:106:37: error: 'EditionDTO' is ambiguous for type lookup in this context
+    public func mapToEdition(_ dto: EditionDTO, persist: Bool = true) throws -> Edition {
+                                    ^~~~~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:64:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/EditionDTO.swift:12:15: note: found this candidate
+public struct EditionDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/DTOMapper.swift:157:34: error: 'WorkDTO' is ambiguous for type lookup in this context
+    public func mapToWork(_ dto: WorkDTO, persist: Bool = true) throws -> Work {
+                                 ^~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:57:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WorkDTO.swift:12:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable, Equatable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/DTOMapper.swift:320:37: error: 'WorkDTO' is ambiguous for type lookup in this context
+    private func mergeWorkData(dto: WorkDTO, into work: Work) {
+                                    ^~~~~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/API/DTOs.swift:57:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable {
+              ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/WorkDTO.swift:12:15: note: found this candidate
+public struct WorkDTO: Codable, Sendable, Equatable {
+              ^
+
+SwiftCompile normal arm64 Compiling\ SearchView+EmptyStates.swift,\ SearchView+InitialState.swift,\ SearchView+Loading.swift,\ SearchView+Results.swift,\ SearchViewState.swift,\ APIConfig.swift,\ BackgroundTaskScheduler.swift,\ BookSearchAPIService.swift,\ BookSearchAPIServiceKey.swift,\ CacheHealthMetrics.swift,\ CapabilitiesService.swift,\ CascadeMetadataService.swift,\ CoverImageService.swift,\ CuratorPointsService.swift,\ CuratorPointsServiceEnvironmentKey.swift,\ DTOMapper.swift,\ DTOMapperEnvironmentKey.swift,\ DataMigrationService.swift,\ DiversityStatsService.swift,\ DuplicateDetectionService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchView/SearchView+EmptyStates.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchView/SearchView+InitialState.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchView/SearchView+Loading.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchView/SearchView+Results.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/SearchViewState.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/APIConfig.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/BackgroundTaskScheduler.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/BookSearchAPIService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/BookSearchAPIServiceKey.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/CacheHealthMetrics.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/CapabilitiesService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/CascadeMetadataService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/CoverImageService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/CuratorPointsService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/CuratorPointsServiceEnvironmentKey.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/DTOMapper.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/DTOMapperEnvironmentKey.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/DataMigrationService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/DiversityStatsService.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Sources/BooksTrackerFeature/Services/DuplicateDetectionService.swift (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+
+** BUILD FAILED **
+
+
+The following build commands failed:
+	SwiftEmitModule normal arm64 Emitting\ module\ for\ BooksTrackerFeature (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+	EmitSwiftModule normal arm64 (in target 'BooksTrackerFeature' from project 'BooksTrackerFeature')
+	Building project BooksTracker with scheme BooksTracker and configuration Debug
+(3 failures)

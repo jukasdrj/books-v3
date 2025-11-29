@@ -1,0 +1,812 @@
+Command line invocation:
+    /Applications/Xcode-beta.app/Contents/Developer/usr/bin/xcodebuild test -scheme BooksTracker -destination "platform=iOS Simulator,name=iPhone 17 Pro" "-only-testing:BooksTrackerFeatureTests/ProductionAPIIntegrationTests"
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  BooksTrackerFeature: /Users/juju/dev_repos/books-v3/BooksTrackerPackage
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (6 targets)
+    Target 'BooksTrackerUITests' in project 'BooksTracker'
+        ➜ Explicit dependency on target 'BooksTracker' in project 'BooksTracker'
+        ➜ Explicit dependency on target 'BooksTrackerFeature' in project 'BooksTrackerFeature'
+    Target 'BooksTrackerFeatureTests' in project 'BooksTrackerFeature'
+        ➜ Explicit dependency on target 'BooksTrackerFeature' in project 'BooksTrackerFeature'
+    Target 'BooksTracker' in project 'BooksTracker'
+        ➜ Explicit dependency on target 'BooksTrackerWidgetsExtension' in project 'BooksTracker'
+        ➜ Explicit dependency on target 'BooksTrackerFeature' in project 'BooksTrackerFeature'
+    Target 'BooksTrackerWidgetsExtension' in project 'BooksTracker'
+        ➜ Explicit dependency on target 'BooksTrackerFeature' in project 'BooksTrackerFeature'
+    Target 'BooksTrackerFeature' in project 'BooksTrackerFeature'
+        ➜ Explicit dependency on target 'BooksTrackerFeature' in project 'BooksTrackerFeature'
+    Target 'BooksTrackerFeature' in project 'BooksTrackerFeature' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode-beta.app/Contents/Developer/usr/bin/actool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode-beta.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/juju/dev_repos/books-v3/BooksTracker/Assets.xcassets
+
+ExecuteExternalTool /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+Build description signature: ba5d8deb4559b558f29870792f07f96d
+Build description path: /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/XCBuildData/ba5d8deb4559b558f29870792f07f96d.xcbuilddata
+ClangStatCache /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk /Users/juju/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.2-23C5044a-c6bb09c85eeb1a59968f08cee6a58242.sdkstatcache
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -o /Users/juju/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.2-23C5044a-c6bb09c85eeb1a59968f08cee6a58242.sdkstatcache
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/empty-BooksTracker.plist (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/empty-BooksTracker.plist
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/ProductTypeInfoPlistAdditions.plist (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/ProductTypeInfoPlistAdditions.plist
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker.hmap (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker.hmap
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/Objects-normal/arm64/BooksTrackerUITests-OutputFileMap.json (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/Objects-normal/arm64/BooksTrackerUITests-OutputFileMap.json
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/Objects-normal/arm64/BooksTracker.SwiftConstValuesFileList (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/Objects-normal/arm64/BooksTracker.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/Objects-normal/arm64/BooksTracker.SwiftFileList (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/Objects-normal/arm64/BooksTracker.SwiftFileList
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/Objects-normal/arm64/BooksTrackerUITests_const_extract_protocols.json (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/Objects-normal/arm64/BooksTrackerUITests_const_extract_protocols.json
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/Objects-normal/arm64/BooksTracker.LinkFileList (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/Objects-normal/arm64/BooksTracker.LinkFileList
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/DerivedSources/Entitlements-Simulated.plist (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/DerivedSources/Entitlements-Simulated.plist
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker.DependencyStaticMetadataFileList (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker.DependencyMetadataFileList (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker.DependencyMetadataFileList
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker-project-headers.hmap (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker-project-headers.hmap
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker-own-target-headers.hmap (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker-own-target-headers.hmap
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker-generated-files.hmap (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker-generated-files.hmap
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker-all-target-headers.hmap (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker-all-target-headers.hmap
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker-all-non-framework-target-headers.hmap (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker-all-non-framework-target-headers.hmap
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/empty-BooksTrackerFeatureTests.plist (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTrackerPackage
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/empty-BooksTrackerFeatureTests.plist
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/BooksTrackerFeatureTests_const_extract_protocols.json (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTrackerPackage
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/BooksTrackerFeatureTests_const_extract_protocols.json
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/BooksTrackerFeatureTests.SwiftFileList (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTrackerPackage
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/BooksTrackerFeatureTests.SwiftFileList
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/BooksTrackerFeatureTests.SwiftConstValuesFileList (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTrackerPackage
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/BooksTrackerFeatureTests.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/BooksTrackerFeatureTests.LinkFileList (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTrackerPackage
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/BooksTrackerFeatureTests.LinkFileList
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/BooksTrackerFeatureTests-OutputFileMap.json (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTrackerPackage
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/BooksTrackerFeatureTests-OutputFileMap.json
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/BooksTrackerFeatureTests.DependencyStaticMetadataFileList (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTrackerPackage
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/BooksTrackerFeatureTests.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/BooksTrackerFeatureTests.DependencyMetadataFileList (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTrackerPackage
+    write-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/BooksTrackerFeatureTests.DependencyMetadataFileList
+
+MkDir /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerFeatureTests.xctest (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTrackerPackage
+    /bin/mkdir -p /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerFeatureTests.xctest
+
+MkDir /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker-Runner.app/PlugIns/BooksTracker.xctest (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    /bin/mkdir -p /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker-Runner.app/PlugIns/BooksTracker.xctest
+
+ProcessProductPackaging "" /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/BooksTrackerWidgetsExtension.appex-Simulated.xcent (in target 'BooksTrackerWidgetsExtension' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    
+    Entitlements:
+    
+    {
+    "application-identifier" = "8Z67H8Y8DW.Z67H8Y8DW.com.oooefam.booksV3.BooksTrackerWidgets";
+}
+    
+    builtin-productPackagingUtility -entitlements -format xml -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/BooksTrackerWidgetsExtension.appex-Simulated.xcent
+
+ProcessProductPackagingDER /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/BooksTrackerWidgetsExtension.appex-Simulated.xcent /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/BooksTrackerWidgetsExtension.appex-Simulated.xcent.der (in target 'BooksTrackerWidgetsExtension' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    /usr/bin/derq query -f xml -i /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/BooksTrackerWidgetsExtension.appex-Simulated.xcent -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/BooksTrackerWidgetsExtension.appex-Simulated.xcent.der --raw
+
+ProcessInfoPlistFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerFeatureTests.xctest/Info.plist /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/empty-BooksTrackerFeatureTests.plist (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTrackerPackage
+    builtin-infoPlistUtility /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/empty-BooksTrackerFeatureTests.plist -producttype com.apple.product-type.bundle.unit-test -expandbuildsettings -format binary -platform iphonesimulator -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerFeatureTests.xctest/Info.plist
+
+SwiftDriver BooksTrackerFeatureTests normal arm64 com.apple.xcode.tools.swift.compiler (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    builtin-SwiftDriver -- /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name BooksTrackerFeatureTests -Onone -enforce-exclusivity\=checked @/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/BooksTrackerFeatureTests.SwiftFileList -DSWIFT_PACKAGE -DDEBUG -DXcode -plugin-path /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -target arm64-apple-ios26.0-simulator -g -module-cache-path /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -profile-coverage-mapping -profile-generate -enable-testing -index-store-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 6 -I /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator -Isystem /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator -F /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/Developer/Library/Frameworks -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/juju/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.2-23C5044a-c6bb09c85eeb1a59968f08cee6a58242.sdkstatcache -output-file-map /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/BooksTrackerFeatureTests-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/BooksTrackerFeatureTests.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -package-name bookstrackerpackage -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/BooksTrackerFeatureTests_const_extract_protocols.json -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/DerivedSources-normal/arm64 -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/DerivedSources/arm64 -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -working-directory /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj -experimental-emit-module-separately -disable-cmo
+
+ProcessProductPackaging /Users/juju/dev_repos/books-v3/Config/BooksTracker.entitlements /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker.app.xcent (in target 'BooksTracker' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    
+    Entitlements:
+    
+    {
+}
+    
+    builtin-productPackagingUtility /Users/juju/dev_repos/books-v3/Config/BooksTracker.entitlements -entitlements -format xml -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker.app.xcent
+
+ProcessProductPackaging /Users/juju/dev_repos/books-v3/Config/BooksTracker.entitlements /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker.app-Simulated.xcent (in target 'BooksTracker' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    
+    Entitlements:
+    
+    {
+    "application-identifier" = "8Z67H8Y8DW.Z67H8Y8DW.com.oooefam.booksV3";
+    "aps-environment" = production;
+    "com.apple.developer.icloud-container-identifiers" =     (
+        "iCloud.Z67H8Y8DW.com.oooefam.booksV3"
+    );
+    "com.apple.developer.icloud-services" =     (
+        CloudKit
+    );
+    "com.apple.developer.ubiquity-kvstore-identifier" = "8Z67H8Y8DW.Z67H8Y8DW.com.oooefam.booksV3";
+}
+    
+    builtin-productPackagingUtility /Users/juju/dev_repos/books-v3/Config/BooksTracker.entitlements -entitlements -format xml -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker.app-Simulated.xcent
+
+Ld /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerWidgetsExtension.appex/BooksTrackerWidgetsExtension.debug.dylib normal (in target 'BooksTrackerWidgetsExtension' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios26.0-simulator -dynamiclib -isysroot /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -O0 -L/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator -F/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/PackageFrameworks -F/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator -filelist /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/Objects-normal/arm64/BooksTrackerWidgetsExtension.LinkFileList -install_name @rpath/BooksTrackerWidgetsExtension.debug.dylib -Xlinker -rpath -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/PackageFrameworks -Xlinker -rpath -Xlinker @executable_path/Frameworks -Xlinker -rpath -Xlinker @executable_path/../../Frameworks -dead_strip -Xlinker -object_path_lto -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/Objects-normal/arm64/BooksTrackerWidgetsExtension_lto.o -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -debug_variant -Xlinker -dependency_info -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/Objects-normal/arm64/BooksTrackerWidgetsExtension_dependency_info.dat -fapplication-extension -fobjc-link-runtime -fprofile-instr-generate -L/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/Objects-normal/arm64/BooksTrackerWidgetsExtension.swiftmodule @/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/Objects-normal/arm64/BooksTrackerWidgetsExtension-linker-args.resp -Wl,-no_warn_duplicate_libraries -Xlinker -alias -Xlinker _NSExtensionMain -Xlinker ___debug_main_executable_dylib_entry_point -framework SwiftUI -framework ActivityKit -framework WidgetKit -Xlinker -no_adhoc_codesign -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerWidgetsExtension.appex/BooksTrackerWidgetsExtension.debug.dylib -Xlinker -add_ast_path -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature.swiftmodule @/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature-linker-args.resp
+
+ProcessInfoPlistFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerWidgetsExtension.appex/Info.plist /Users/juju/dev_repos/books-v3/BooksTrackerWidgets/Info.plist (in target 'BooksTrackerWidgetsExtension' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    builtin-infoPlistUtility /Users/juju/dev_repos/books-v3/BooksTrackerWidgets/Info.plist -producttype com.apple.product-type.app-extension -expandbuildsettings -format binary -platform iphonesimulator -additionalcontentfile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/assetcatalog_generated_info.plist -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerWidgetsExtension.appex/Info.plist
+
+ProcessProductPackagingDER /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker.app.xcent /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker.app.xcent.der (in target 'BooksTracker' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    /usr/bin/derq query -f xml -i /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker.app.xcent -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker.app.xcent.der --raw
+
+ProcessProductPackagingDER /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker.app-Simulated.xcent /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker.app-Simulated.xcent.der (in target 'BooksTracker' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    /usr/bin/derq query -f xml -i /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker.app-Simulated.xcent -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker.app-Simulated.xcent.der --raw
+
+ProcessProductPackaging /Users/juju/dev_repos/books-v3/Config/BooksTracker.entitlements /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker.xctest.xcent (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    
+    Entitlements:
+    
+    {
+}
+    
+    builtin-productPackagingUtility /Users/juju/dev_repos/books-v3/Config/BooksTracker.entitlements -entitlements -format xml -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker.xctest.xcent
+
+ProcessProductPackaging /Users/juju/dev_repos/books-v3/Config/BooksTracker.entitlements /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker.xctest-Simulated.xcent (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    
+    Entitlements:
+    
+    {
+    "aps-environment" = production;
+    "com.apple.developer.icloud-container-identifiers" =     (
+        "iCloud.com.bookstrack.BooksTracker.xctrunner"
+    );
+    "com.apple.developer.icloud-services" =     (
+        CloudKit
+    );
+    "com.apple.developer.ubiquity-kvstore-identifier" = "com.bookstrack.BooksTracker.xctrunner";
+}
+    
+    builtin-productPackagingUtility /Users/juju/dev_repos/books-v3/Config/BooksTracker.entitlements -entitlements -format xml -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker.xctest-Simulated.xcent
+
+ProcessProductPackagingDER /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker.xctest.xcent /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker.xctest.xcent.der (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    /usr/bin/derq query -f xml -i /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker.xctest.xcent -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker.xctest.xcent.der --raw
+
+ProcessProductPackagingDER /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker.xctest-Simulated.xcent /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker.xctest-Simulated.xcent.der (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    /usr/bin/derq query -f xml -i /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker.xctest-Simulated.xcent -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker.xctest-Simulated.xcent.der --raw
+
+SwiftDriver BooksTrackerUITests normal arm64 com.apple.xcode.tools.swift.compiler (in target 'BooksTrackerUITests' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    builtin-SwiftDriver -- /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name BooksTrackerUITests -Onone -enforce-exclusivity\=checked @/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/Objects-normal/arm64/BooksTracker.SwiftFileList -DDEBUG -module-alias Testing\=_Testing_Unavailable -plugin-path /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -target arm64-apple-ios26.0-simulator -g -module-cache-path /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -profile-coverage-mapping -profile-generate -enable-testing -index-store-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 6 -I /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator -Isystem /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator -F /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/Developer/Library/Frameworks -parse-as-library -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/juju/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.2-23C5044a-c6bb09c85eeb1a59968f08cee6a58242.sdkstatcache -output-file-map /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/Objects-normal/arm64/BooksTrackerUITests-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/Objects-normal/arm64/BooksTrackerUITests.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/Objects-normal/arm64/BooksTrackerUITests_const_extract_protocols.json -Xcc -iquote -Xcc /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker-generated-files.hmap -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker-own-target-headers.hmap -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker-12e420f7efb496521556679497584161-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/BooksTracker-project-headers.hmap -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/DerivedSources-normal/arm64 -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/DerivedSources/arm64 -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerUITests.build/Objects-normal/arm64/BooksTrackerUITests-Swift.h -working-directory /Users/juju/dev_repos/books-v3 -experimental-emit-module-separately -disable-cmo
+
+ConstructStubExecutorLinkFileList /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/BooksTrackerWidgetsExtension-ExecutorLinkFileList-normal-arm64.txt (in target 'BooksTrackerWidgetsExtension' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    construct-stub-executor-link-file-list /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerWidgetsExtension.appex/BooksTrackerWidgetsExtension.debug.dylib /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libPreviewsJITStubExecutor_no_swift_entry_point.a /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libPreviewsJITStubExecutor.a --output /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/BooksTrackerWidgetsExtension-ExecutorLinkFileList-normal-arm64.txt
+note: Using stub executor library with Swift entry point. (in target 'BooksTrackerWidgetsExtension' from project 'BooksTracker')
+
+Ld /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerWidgetsExtension.appex/BooksTrackerWidgetsExtension normal (in target 'BooksTrackerWidgetsExtension' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios26.0-simulator -isysroot /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -O0 -L/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator -F/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/PackageFrameworks -F/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator -Xlinker -rpath -Xlinker @executable_path -Xlinker -rpath -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/PackageFrameworks -Xlinker -rpath -Xlinker @executable_path/Frameworks -Xlinker -rpath -Xlinker @executable_path/../../Frameworks -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -debug_variant -e ___debug_blank_executor_main -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_dylib -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/BooksTrackerWidgetsExtension-DebugDylibPath-normal-arm64.txt -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_entry -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/BooksTrackerWidgetsExtension-DebugEntryPoint-normal-arm64.txt -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_instlnm -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/BooksTrackerWidgetsExtension-DebugDylibInstallName-normal-arm64.txt -Xlinker -filelist -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/BooksTrackerWidgetsExtension-ExecutorLinkFileList-normal-arm64.txt -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __entitlements -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/BooksTrackerWidgetsExtension.appex-Simulated.xcent -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __ents_der -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/BooksTrackerWidgetsExtension.appex-Simulated.xcent.der /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerWidgetsExtension.appex/BooksTrackerWidgetsExtension.debug.dylib -Xlinker -no_adhoc_codesign -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerWidgetsExtension.appex/BooksTrackerWidgetsExtension
+
+ExtractAppIntentsMetadata (in target 'BooksTrackerWidgetsExtension' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name BooksTrackerWidgetsExtension --sdk-root /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk --xcode-version 17C5038g --platform-family iOS --deployment-target 26.0 --bundle-identifier Z67H8Y8DW.com.oooefam.booksV3.BooksTrackerWidgets --output /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerWidgetsExtension.appex --target-triple arm64-apple-ios26.0-simulator --binary-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerWidgetsExtension.appex/BooksTrackerWidgetsExtension --dependency-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/Objects-normal/arm64/BooksTrackerWidgetsExtension_dependency_info.dat --stringsdata-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/Objects-normal/arm64/BooksTrackerWidgetsExtension.SwiftFileList --metadata-file-list /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/BooksTrackerWidgetsExtension.DependencyMetadataFileList --static-metadata-file-list /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/BooksTrackerWidgetsExtension.DependencyStaticMetadataFileList --swift-const-vals-list /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTrackerWidgetsExtension.build/Objects-normal/arm64/BooksTrackerWidgetsExtension.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
+2025-11-28 20:26:33.580 appintentsmetadataprocessor[51652:998702] Starting appintentsmetadataprocessor export
+2025-11-28 20:26:33.749 appintentsmetadataprocessor[51652:998702] Writing Metadata.appintents
+2025-11-28 20:26:33.749 appintentsmetadataprocessor[51652:998702] Metadata root: /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerWidgetsExtension.appex/Metadata.appintents
+
+CodeSign /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerWidgetsExtension.appex/BooksTrackerWidgetsExtension.debug.dylib (in target 'BooksTrackerWidgetsExtension' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --timestamp\=none --generate-entitlement-der /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerWidgetsExtension.appex/BooksTrackerWidgetsExtension.debug.dylib
+
+CodeSign /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerWidgetsExtension.appex (in target 'BooksTrackerWidgetsExtension' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --timestamp\=none --generate-entitlement-der /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerWidgetsExtension.appex
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_AvailabilityInternal-3UTJVK63GGGFVFWK47QXWDMAA.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_Builtin_float-5FMB3ZOS6SE6TIQJ1LFHS50VY.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/ptrauth-14YWAG0RR58DS7XOQAGHD7YMU.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/DeveloperToolsSupport-1EYTR8MZE0HSK4DVME0UHEADB.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/ptrcheck-CRXTR5QVKS6PA94N92LKL6L1R.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_Builtin_stdarg-2WURODYW72VAYMJWGW4024FRU.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_Builtin_stdbool-29HVP7J03K0V0DSGGBNA9SNN0.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_SwiftConcurrencyShims-1PJE9PZ4BE5KS9ARVA8TDD7UD.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_Builtin_stddef-DO10IFLLO5M6OAX9J12B4B7HU.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/SwiftShims-A0RJ9IGEV72TIXHP2P74QMNKR.pcm
+
+Ld /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/BooksTracker.debug.dylib normal (in target 'BooksTracker' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios26.0-simulator -dynamiclib -isysroot /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -O0 -L/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator -F/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/PackageFrameworks -F/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator -filelist /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/Objects-normal/arm64/BooksTracker.LinkFileList -install_name @rpath/BooksTracker.debug.dylib -Xlinker -rpath -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/PackageFrameworks -Xlinker -rpath -Xlinker @executable_path/Frameworks -dead_strip -Xlinker -object_path_lto -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/Objects-normal/arm64/BooksTracker_lto.o -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -debug_variant -Xlinker -dependency_info -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/Objects-normal/arm64/BooksTracker_dependency_info.dat -fobjc-link-runtime -fprofile-instr-generate -L/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/Objects-normal/arm64/BooksTracker.swiftmodule @/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/Objects-normal/arm64/BooksTracker-linker-args.resp -Wl,-no_warn_duplicate_libraries -Xlinker -alias -Xlinker _main -Xlinker ___debug_main_executable_dylib_entry_point -framework ActivityKit -framework SwiftUI -framework WidgetKit -Xlinker -no_adhoc_codesign -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/BooksTracker.debug.dylib -Xlinker -add_ast_path -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature.swiftmodule @/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeature.build/Objects-normal/arm64/BooksTrackerFeature-linker-args.resp
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_DarwinFoundation1-4DAQ7R9C68DQ02QAHAFHK3ZGO.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_DarwinFoundation2-24T9QUFFNGMPW5QDA9EUN780E.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_Builtin_limits-EIIYBESPDV95E101D9AGADJT5.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules/XCUIAutomation-3J8FM6I1UADWPL3Y34IF1V5VR.pcm
+
+SwiftExplicitDependencyCompileModuleFromInterface arm64 /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules/Testing-31V5L0LO0TQDG.swiftmodule
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/sys_types-2YS0A43T83U667QR9SFQ89B8K.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_Builtin_stdint-ADDWW0KE9N3LBILGTOMCEUL2.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_DarwinFoundation3-2WZXZFF4UWL0BO055PA61F8ZR.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_Builtin_stdatomic-3GC48IRNCJJVDZGHFUHYQOCHN.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules/XCTest-F4OMCBZZGNNJRYKVJ41Z0GW3L.pcm
+
+SwiftExplicitDependencyCompileModuleFromInterface arm64 /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules/XCUIAutomation-348BE5VZUZ0DX.swiftmodule
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_Builtin_inttypes-DO9TTOFJ14CWNUO1JCDDKQDHY.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Darwin-B2WXLZKX7NRSCY4DUUGY0C4BR.pcm
+
+ConstructStubExecutorLinkFileList /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker-ExecutorLinkFileList-normal-arm64.txt (in target 'BooksTracker' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    construct-stub-executor-link-file-list /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/BooksTracker.debug.dylib /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libPreviewsJITStubExecutor_no_swift_entry_point.a /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libPreviewsJITStubExecutor.a --output /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker-ExecutorLinkFileList-normal-arm64.txt
+note: Using stub executor library with Swift entry point. (in target 'BooksTracker' from project 'BooksTracker')
+
+SwiftExplicitDependencyCompileModuleFromInterface arm64 /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules/XCTest-1Z7JM0MTWZ6JP.swiftmodule
+
+SwiftExplicitDependencyCompileModuleFromInterface arm64 /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules/_Testing_Foundation-2Y962FL5DCS7Z.swiftmodule
+
+Ld /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/BooksTracker normal (in target 'BooksTracker' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios26.0-simulator -isysroot /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -O0 -L/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator -F/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/PackageFrameworks -F/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator -Xlinker -rpath -Xlinker @executable_path -Xlinker -rpath -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/PackageFrameworks -Xlinker -rpath -Xlinker @executable_path/Frameworks -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -debug_variant -e ___debug_blank_executor_main -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_dylib -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker-DebugDylibPath-normal-arm64.txt -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_instlnm -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker-DebugDylibInstallName-normal-arm64.txt -Xlinker -filelist -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker-ExecutorLinkFileList-normal-arm64.txt -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __entitlements -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker.app-Simulated.xcent -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __ents_der -Xlinker /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker.app-Simulated.xcent.der /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/BooksTracker.debug.dylib -Xlinker -no_adhoc_codesign -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/BooksTracker
+
+Copy /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/PlugIns/BooksTrackerWidgetsExtension.appex /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerWidgetsExtension.appex (in target 'BooksTracker' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks -remove-static-executable /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTrackerWidgetsExtension.appex /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/PlugIns
+
+ProcessInfoPlistFile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/Info.plist /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/empty-BooksTracker.plist (in target 'BooksTracker' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    builtin-infoPlistUtility /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/empty-BooksTracker.plist -producttype com.apple.product-type.application -genpkginfo /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/PkgInfo -expandbuildsettings -format binary -platform iphonesimulator -additionalcontentfile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/assetcatalog_generated_info.plist -scanforprivacyfile /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/PlugIns/BooksTrackerWidgetsExtension.appex -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/Info.plist
+
+ExtractAppIntentsMetadata (in target 'BooksTracker' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name BooksTracker --sdk-root /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk --xcode-version 17C5038g --platform-family iOS --deployment-target 26.0 --bundle-identifier Z67H8Y8DW.com.oooefam.booksV3 --output /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app --target-triple arm64-apple-ios26.0-simulator --binary-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/BooksTracker --dependency-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/Objects-normal/arm64/BooksTracker_dependency_info.dat --stringsdata-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/Objects-normal/arm64/BooksTracker.SwiftFileList --metadata-file-list /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker.DependencyMetadataFileList --static-metadata-file-list /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker.DependencyStaticMetadataFileList --swift-const-vals-list /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/Objects-normal/arm64/BooksTracker.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
+2025-11-28 20:26:34.524 appintentsmetadataprocessor[51684:998815] Starting appintentsmetadataprocessor export
+2025-11-28 20:26:34.526 appintentsmetadataprocessor[51684:998815] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+
+CopySwiftLibs /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app (in target 'BooksTracker' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    builtin-swiftStdLibTool --copy --verbose --sign - --scan-executable /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/BooksTracker.debug.dylib --scan-folder /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/Frameworks --scan-folder /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/PlugIns --scan-folder /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/SystemExtensions --scan-folder /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/Extensions --scan-folder /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/ActivityKit.framework --scan-folder /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/SwiftUI.framework --scan-folder /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/WidgetKit.framework --platform iphonesimulator --toolchain /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os
+
+CodeSign /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/BooksTracker.debug.dylib (in target 'BooksTracker' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --timestamp\=none --generate-entitlement-der /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/BooksTracker.debug.dylib
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/MachO-9C8D8CK6O3AJ9DGGPF42J5J24.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/ObjectiveC-915TSAEN61SOA4QYNAR4BEYLD.pcm
+
+CodeSign /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/__preview.dylib (in target 'BooksTracker' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --timestamp\=none --generate-entitlement-der /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/__preview.dylib
+/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app/__preview.dylib: replacing existing signature
+
+CodeSign /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app (in target 'BooksTracker' from project 'BooksTracker')
+    cd /Users/juju/dev_repos/books-v3
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --entitlements /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTracker.build/Debug-iphonesimulator/BooksTracker.build/BooksTracker.app.xcent --timestamp\=none --generate-entitlement-der /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/BooksTracker.app
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ BooksTrackerFeatureTests (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+EmitSwiftModule normal arm64 (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 Compiling\ CombinedImportTests.swift,\ BookMetadataRowTests.swift,\ GenreTagViewTests.swift,\ ActorIsolationTests.swift,\ TaskCancellationTests.swift,\ CoverSelectionTests.swift,\ DTOMapperCacheTests.swift,\ DTOMapperTests.swift,\ DTOTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/CombinedImportTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Components/BookMetadataRowTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Components/GenreTagViewTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Concurrency/ActorIsolationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Concurrency/TaskCancellationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/CoverSelectionTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/DTOMapperCacheTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/DTOMapperTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/DTOTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/CombinedImportTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Components/BookMetadataRowTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Components/GenreTagViewTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Concurrency/ActorIsolationTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Concurrency/TaskCancellationTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/CoverSelectionTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/DTOMapperCacheTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/DTOMapperTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/DTOTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 Compiling\ ScanResultsImportTests.swift,\ SearchModelTests.swift,\ SearchViewStateTests.swift,\ CacheHealthMetricsTests.swift,\ CoverImageServiceTests.swift,\ CuratorPointsServiceTests.swift,\ DuplicateDetectionServiceTests.swift,\ ImageCleanupServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ScanResultsImportTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SearchModelTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SearchViewStateTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/CacheHealthMetricsTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/CoverImageServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/CuratorPointsServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/DuplicateDetectionServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/ImageCleanupServiceTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ScanResultsImportTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SearchModelTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SearchViewStateTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/CacheHealthMetricsTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/CoverImageServiceTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/CuratorPointsServiceTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/DuplicateDetectionServiceTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/ImageCleanupServiceTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 Compiling\ LibraryResetIntegrationTests.swift,\ ManualMatchViewTests.swift,\ AuthorTests.swift,\ DiversityScoreTests.swift,\ EditionTests.swift,\ PrimaryEditionTests.swift,\ SearchCoordinatorTests.swift,\ UserLibraryEntryTests.swift,\ WorkTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/LibraryResetIntegrationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ManualMatchViewTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/AuthorTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/DiversityScoreTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/EditionTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/PrimaryEditionTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/SearchCoordinatorTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/UserLibraryEntryTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/WorkTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/LibraryResetIntegrationTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ManualMatchViewTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/AuthorTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/DiversityScoreTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/EditionTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/PrimaryEditionTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/SearchCoordinatorTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/UserLibraryEntryTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/WorkTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 Compiling\ AppLaunchPerformanceTests.swift,\ RadarChartPerformanceTests.swift,\ SelectiveFetchingValidationTests.swift,\ ProductionAPIIntegrationTests.swift,\ ProgressStrategyTests.swift,\ ReadingSessionTests.swift,\ ReadingStatsTests.swift,\ ReadingStatusParserTests.swift,\ LibraryRepositoryPerformanceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Performance/AppLaunchPerformanceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Performance/RadarChartPerformanceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Performance/SelectiveFetchingValidationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ProductionAPIIntegrationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ProgressStrategyTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ReadingSessionTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ReadingStatsTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ReadingStatusParserTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Repository/LibraryRepositoryPerformanceTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Performance/AppLaunchPerformanceTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Performance/RadarChartPerformanceTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Performance/SelectiveFetchingValidationTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ProductionAPIIntegrationTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ProgressStrategyTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ReadingSessionTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ReadingStatsTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ReadingStatusParserTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Repository/LibraryRepositoryPerformanceTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 Compiling\ RelationshipCascadeTests.swift,\ SyncCoordinatorTests.swift,\ ApiResponseHelpers.swift,\ MockURLProtocol.swift,\ LibraryResetCrashTests.swift,\ UIImageExtensionsTests.swift,\ WebSocketHelpersTests.swift,\ WebSocketProgressManagerTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SwiftData/RelationshipCascadeTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SyncCoordinatorTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/TestHelpers/ApiResponseHelpers.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/TestHelpers/MockURLProtocol.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/UI/LibraryResetCrashTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/UIImageExtensionsTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/WebSocketHelpersTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/WebSocketProgressManagerTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+Failed frontend command:
+/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/AIProviderTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/APIErrorTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/APIIntegrationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Accessibility/TabBarAccessibilityTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BooksTrackerFeatureTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfAIServicePollingTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfAIServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfAIServiceWebSocketTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfScanModelTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfScanning/BatchCaptureUITests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfScanning/BatchScanModelTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfScanning/BatchUploadTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfScanning/ConfidenceThresholdsTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfScanning/EnrichmentPayloadTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfScanning/ScanResultsModelTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/CSVValidatorTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/CanonicalAPIResponseTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/CascadeMetadataServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/CombinedImportTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Components/BookMetadataRowTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Components/GenreTagViewTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Concurrency/ActorIsolationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Concurrency/TaskCancellationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/CoverSelectionTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/DTOMapperCacheTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/DTOMapperTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/DTOTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/DetectedBookTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/DiversityStatsTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/EditionSelectionStrategyTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/EnhancedDiversityStatsTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Enrichment/EnrichmentQueueValidationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/GeminiCSVImport/SSEClientTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/GeminiCSVImportServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/GeminiCSVWebSocketMessageTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ISBNValidatorTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ImportServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/InsightsAccessibilityTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/InsightsIntegrationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Integration/AppLaunchIntegrationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Integration/DiversitySessionIntegrationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/JobModelsTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/KeychainHelperTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/LibraryRepositoryResetTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/LibraryRepositoryTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/LibraryResetIntegrationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ManualMatchViewTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/AuthorTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/DiversityScoreTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/EditionTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/PrimaryEditionTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/SearchCoordinatorTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/UserLibraryEntryTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Models/WorkTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Performance/AppLaunchPerformanceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Performance/RadarChartPerformanceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Performance/SelectiveFetchingValidationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ProductionAPIIntegrationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ProgressStrategyTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ReadingSessionTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ReadingStatsTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ReadingStatusParserTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Repository/LibraryRepositoryPerformanceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ScanResultsImportTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SearchModelTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SearchViewStateTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/CacheHealthMetricsTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/CoverImageServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/CuratorPointsServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/DuplicateDetectionServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/ImageCleanupServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/ImageCompressionServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/ImagePrefetcherTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/LibraryFilterServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/SampleDataGeneratorTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/WeeklyRecommendationsServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SessionAnalyticsServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/StringTitleNormalizationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SwiftData/ModelLifecycleTests.swift -primary-file /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SwiftData/RelationshipCascadeTests.swift -primary-file /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SyncCoordinatorTests.swift -primary-file /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/TestHelpers/ApiResponseHelpers.swift -primary-file /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/TestHelpers/MockURLProtocol.swift -primary-file /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/UI/LibraryResetCrashTests.swift -primary-file /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/UIImageExtensionsTests.swift -primary-file /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/WebSocketHelpersTests.swift -primary-file /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/WebSocketProgressManagerTests.swift -supplementary-output-file-map /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/supplementaryOutputs-10 -target arm64-apple-ios26.0-simulator -module-can-import-version UIKit 9126.2.4.1 9126.2.4 -disable-cross-import-overlay-search -swift-module-cross-import SwiftData /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/SwiftData.framework/Modules/SwiftData.swiftcrossimport/CoreData.swiftoverlay -swift-module-cross-import SwiftData /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/SwiftData.framework/Modules/SwiftData.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import Testing /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/Foundation.swiftoverlay -load-resolved-plugin /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libFoundationMacros.dylib\#/Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#FoundationMacros -load-resolved-plugin /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libObservationMacros.dylib\#/Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#ObservationMacros -load-resolved-plugin /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libPreviewsMacros.dylib\#/Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#PreviewsMacros -load-resolved-plugin /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libSwiftDataMacros.dylib\#/Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#SwiftDataMacros -load-resolved-plugin /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#/Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#SwiftMacros -load-resolved-plugin /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libSwiftUIMacros.dylib\#/Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#SwiftUIMacros -load-resolved-plugin /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib\#\#TestingMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/BooksTrackerFeatureTests-dependencies-1.json -Xllvm -aarch64-use-tbi -enable-objc-interop -sdk /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -I /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator -Isystem /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator -F /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/Developer/Library/Frameworks -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=5 -module-cache-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -profile-generate -profile-coverage-mapping -swift-version 6 -enforce-exclusivity\=checked -Onone -D SWIFT_PACKAGE -D DEBUG -D Xcode -serialize-debugging-options -const-gather-protocols-file /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/BooksTrackerFeatureTests_const_extract_protocols.json -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj -enable-anonymous-context-mangled-names -file-compilation-dir /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/juju/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.2-23C5044a-c6bb09c85eeb1a59968f08cee6a58242.sdkstatcache -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/DerivedSources-normal/arm64 -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/DerivedSources/arm64 -Xcc -I/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name BooksTrackerFeatureTests -package-name bookstrackerpackage -frontend-parseable-output -disable-clang-spi -target-sdk-version 26.2 -target-sdk-name iphonesimulator26.2 -clang-target arm64-apple-ios26.2-simulator -in-process-plugin-server-path /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/RelationshipCascadeTests.o -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/SyncCoordinatorTests.o -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/ApiResponseHelpers.o -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/MockURLProtocol.o -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/LibraryResetCrashTests.o -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/UIImageExtensionsTests.o -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/WebSocketHelpersTests.o -o /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Build/Intermediates.noindex/BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/WebSocketProgressManagerTests.o -index-unit-output-path /BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/RelationshipCascadeTests.o -index-unit-output-path /BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/SyncCoordinatorTests.o -index-unit-output-path /BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/ApiResponseHelpers.o -index-unit-output-path /BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/MockURLProtocol.o -index-unit-output-path /BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/LibraryResetCrashTests.o -index-unit-output-path /BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/UIImageExtensionsTests.o -index-unit-output-path /BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/WebSocketHelpersTests.o -index-unit-output-path /BooksTrackerFeature.build/Debug-iphonesimulator/BooksTrackerFeatureTests.build/Objects-normal/arm64/WebSocketProgressManagerTests.o -index-store-path /Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Index.noindex/DataStore -index-system-modules
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SwiftData/RelationshipCascadeTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Performance/RadarChartPerformanceTests.swift:28:1: error: no exact matches in call to macro 'Test'
+@Test(timeLimit: .seconds(60))
+^
+Testing.Test:1:30: note: incorrect labels for candidate (have: '(timeLimit:)', expected: '(_:)')
+@attached(peer) public macro Test(_ traits: any TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+                             ^
+Testing.Test:1:30: note: incorrect labels for candidate (have: '(timeLimit:)', expected: '(_:)')
+@attached(peer) public macro Test(_ displayName: _const String? = nil, _ traits: any TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+                             ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Performance/RadarChartPerformanceTests.swift:28:19: error: reference to member 'seconds' cannot be resolved without a contextual type
+@Test(timeLimit: .seconds(60))
+                  ^
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SyncCoordinatorTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/TestHelpers/ApiResponseHelpers.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/TestHelpers/ApiResponseHelpers.swift:77:27: error: missing arguments for parameters 'resultCount', 'expiresAt' in call
+        BookSearchResponse(works: [], editions: [], authors: [], totalResults: 0)
+                          ^
+BooksTrackerFeature.BookSearchResponse.init:2:10: note: 'init(works:editions:authors:resultCount:expiresAt:totalResults:)' declared here
+internal init(works: [BooksTrackerFeature.WorkDTO], editions: [BooksTrackerFeature.EditionDTO], authors: [BooksTrackerFeature.AuthorDTO], resultCount: Int, expiresAt: String?, totalResults: Int?)}
+         ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/TestHelpers/ApiResponseHelpers.swift:121:34: error: missing arguments for parameters 'resultCount', 'expiresAt' in call
+        return BookSearchResponse(works: [work], editions: [], authors: [author], totalResults: 1)
+                                 ^
+BooksTrackerFeature.BookSearchResponse.init:2:10: note: 'init(works:editions:authors:resultCount:expiresAt:totalResults:)' declared here
+internal init(works: [BooksTrackerFeature.WorkDTO], editions: [BooksTrackerFeature.EditionDTO], authors: [BooksTrackerFeature.AuthorDTO], resultCount: Int, expiresAt: String?, totalResults: Int?)}
+         ^
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/TestHelpers/MockURLProtocol.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/TestHelpers/MockURLProtocol.swift:4:16: error: static property 'requestHandler' is not concurrency-safe because it is nonisolated global shared mutable state
+    static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data?))?
+               ^
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/TestHelpers/MockURLProtocol.swift:4:16: note: convert 'requestHandler' to a 'let' constant to make 'Sendable' shared state immutable
+    static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data?))?
+           ~~~ ^
+           let
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/TestHelpers/MockURLProtocol.swift:4:16: note: add '@MainActor' to make static property 'requestHandler' part of global actor 'MainActor'
+    static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data?))?
+               ^
+    @MainActor 
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/TestHelpers/MockURLProtocol.swift:4:16: note: disable concurrency-safety checks if accesses are protected by an external synchronization mechanism
+    static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data?))?
+               ^
+    nonisolated(unsafe) 
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/UI/LibraryResetCrashTests.swift:60:21: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+            #expect(true, "Work was correctly identified as deleted")
+                    ^~~~
+/Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/WebSocketHelpersTests.swift:24:21: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+            #expect(true)
+                    ^~~~
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/UI/LibraryResetCrashTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/UIImageExtensionsTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/WebSocketHelpersTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/WebSocketProgressManagerTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 Compiling\ DetectedBookTests.swift,\ DiversityStatsTests.swift,\ EditionSelectionStrategyTests.swift,\ EnhancedDiversityStatsTests.swift,\ EnrichmentQueueValidationTests.swift,\ SSEClientTests.swift,\ GeminiCSVImportServiceTests.swift,\ GeminiCSVWebSocketMessageTests.swift,\ ISBNValidatorTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/DetectedBookTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/DiversityStatsTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/EditionSelectionStrategyTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/EnhancedDiversityStatsTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Enrichment/EnrichmentQueueValidationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/GeminiCSVImport/SSEClientTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/GeminiCSVImportServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/GeminiCSVWebSocketMessageTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ISBNValidatorTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/DetectedBookTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/DiversityStatsTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/EditionSelectionStrategyTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/EnhancedDiversityStatsTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Enrichment/EnrichmentQueueValidationTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/GeminiCSVImport/SSEClientTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/GeminiCSVImportServiceTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/GeminiCSVWebSocketMessageTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ISBNValidatorTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 Compiling\ ImportServiceTests.swift,\ InsightsAccessibilityTests.swift,\ InsightsIntegrationTests.swift,\ AppLaunchIntegrationTests.swift,\ DiversitySessionIntegrationTests.swift,\ JobModelsTests.swift,\ KeychainHelperTests.swift,\ LibraryRepositoryResetTests.swift,\ LibraryRepositoryTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ImportServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/InsightsAccessibilityTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/InsightsIntegrationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Integration/AppLaunchIntegrationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Integration/DiversitySessionIntegrationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/JobModelsTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/KeychainHelperTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/LibraryRepositoryResetTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/LibraryRepositoryTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/ImportServiceTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/InsightsAccessibilityTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/InsightsIntegrationTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Integration/AppLaunchIntegrationTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Integration/DiversitySessionIntegrationTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/JobModelsTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/KeychainHelperTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/LibraryRepositoryResetTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/LibraryRepositoryTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/os_object-4YNQO1LQBRQUAEGGOS33QUKOO.pcm
+
+SwiftCompile normal arm64 Compiling\ BatchCaptureUITests.swift,\ BatchScanModelTests.swift,\ BatchUploadTests.swift,\ ConfidenceThresholdsTests.swift,\ EnrichmentPayloadTests.swift,\ ScanResultsModelTests.swift,\ CSVValidatorTests.swift,\ CanonicalAPIResponseTests.swift,\ CascadeMetadataServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfScanning/BatchCaptureUITests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfScanning/BatchScanModelTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfScanning/BatchUploadTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfScanning/ConfidenceThresholdsTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfScanning/EnrichmentPayloadTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfScanning/ScanResultsModelTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/CSVValidatorTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/CanonicalAPIResponseTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/CascadeMetadataServiceTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfScanning/BatchCaptureUITests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfScanning/BatchScanModelTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfScanning/BatchUploadTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfScanning/ConfidenceThresholdsTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfScanning/EnrichmentPayloadTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/BookshelfScanning/ScanResultsModelTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/CSVValidatorTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/CanonicalAPIResponseTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/CascadeMetadataServiceTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/juju/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/os_workgroup-93F83TADSHHY271YG8088GSF3.pcm
+
+SwiftCompile normal arm64 Compiling\ ImageCompressionServiceTests.swift,\ ImagePrefetcherTests.swift,\ LibraryFilterServiceTests.swift,\ SampleDataGeneratorTests.swift,\ WeeklyRecommendationsServiceTests.swift,\ SessionAnalyticsServiceTests.swift,\ StringTitleNormalizationTests.swift,\ ModelLifecycleTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/ImageCompressionServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/ImagePrefetcherTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/LibraryFilterServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/SampleDataGeneratorTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/WeeklyRecommendationsServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SessionAnalyticsServiceTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/StringTitleNormalizationTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SwiftData/ModelLifecycleTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/ImageCompressionServiceTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/ImagePrefetcherTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/LibraryFilterServiceTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/SampleDataGeneratorTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/Services/WeeklyRecommendationsServiceTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SessionAnalyticsServiceTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/StringTitleNormalizationTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SwiftData/ModelLifecycleTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+    cd /Users/juju/dev_repos/books-v3/BooksTracker.xcodeproj
+    
+
+
+Test session results, code coverage, and logs:
+	/Users/juju/Library/Developer/Xcode/DerivedData/BooksTracker-bobjtxwhtfhvougqiffoybcdmwam/Logs/Test/Test-BooksTracker-2025.11.28_20-26-29--0600.xcresult
+
+Testing failed:
+	No exact matches in call to macro 'Test'
+	Reference to member 'seconds' cannot be resolved without a contextual type
+	Missing arguments for parameters 'resultCount', 'expiresAt' in call
+	Missing arguments for parameters 'resultCount', 'expiresAt' in call
+	Static property 'requestHandler' is not concurrency-safe because it is nonisolated global shared mutable state
+	Testing cancelled because the build failed.
+
+** TEST FAILED **
+
+
+The following build commands failed:
+	SwiftCompile normal arm64 Compiling\ RelationshipCascadeTests.swift,\ SyncCoordinatorTests.swift,\ ApiResponseHelpers.swift,\ MockURLProtocol.swift,\ LibraryResetCrashTests.swift,\ UIImageExtensionsTests.swift,\ WebSocketHelpersTests.swift,\ WebSocketProgressManagerTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SwiftData/RelationshipCascadeTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SyncCoordinatorTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/TestHelpers/ApiResponseHelpers.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/TestHelpers/MockURLProtocol.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/UI/LibraryResetCrashTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/UIImageExtensionsTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/WebSocketHelpersTests.swift /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/WebSocketProgressManagerTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+	SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/SwiftData/RelationshipCascadeTests.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+	SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/TestHelpers/ApiResponseHelpers.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+	SwiftCompile normal arm64 /Users/juju/dev_repos/books-v3/BooksTrackerPackage/Tests/BooksTrackerFeatureTests/TestHelpers/MockURLProtocol.swift (in target 'BooksTrackerFeatureTests' from project 'BooksTrackerFeature')
+	Testing project BooksTracker with scheme BooksTracker
+(5 failures)
