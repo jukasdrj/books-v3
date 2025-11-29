@@ -124,7 +124,7 @@ public final class EnrichmentService {
                 successCount: 0,  // Job accepted, enrichment pending (not complete)
                 failureCount: 0,  // No failures yet (enrichment in progress)
                 errors: [],
-                token: result.token  // WebSocket authentication token
+                token: result.authToken  // WebSocket authentication token
             )
         } catch {
             // Enhanced error logging for debugging enrichment failures

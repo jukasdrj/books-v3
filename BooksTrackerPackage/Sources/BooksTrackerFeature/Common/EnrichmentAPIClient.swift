@@ -9,7 +9,44 @@ actor EnrichmentAPIClient {
         let success: Bool
         let processedCount: Int
         let totalCount: Int
-        let token: String  // Auth token for WebSocket connection
+        let authToken: String  // Auth token for WebSocket connection (canonical)
+
+        @available(*, deprecated, message: "Use authToken instead. Removal: March 1, 2026")
+        let token: String?  // Deprecated field, backward compatibility only
+
+        // Custom decoding to handle both authToken and token fields
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+
+            success = try container.decode(Bool.self, forKey: .success)
+            processedCount = try container.decode(Int.self, forKey: .processedCount)
+            totalCount = try container.decode(Int.self, forKey: .totalCount)
+
+            // Prefer authToken, fallback to token for legacy responses
+            let decodedAuthToken = try? container.decode(String.self, forKey: .authToken)
+            let decodedToken = try? container.decode(String.self, forKey: .token)
+
+            if let authTokenValue = decodedAuthToken {
+                authToken = authTokenValue
+                token = decodedToken  // Optional, may be present
+            } else if let tokenValue = decodedToken {
+                // Legacy response - only has token field
+                authToken = tokenValue
+                token = tokenValue
+            } else {
+                throw DecodingError.keyNotFound(
+                    CodingKeys.authToken,
+                    DecodingError.Context(
+                        codingPath: decoder.codingPath,
+                        debugDescription: "Expected authToken or token field"
+                    )
+                )
+            }
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case success, processedCount, totalCount, authToken, token
+        }
     }
 
     /// Start enrichment job on backend

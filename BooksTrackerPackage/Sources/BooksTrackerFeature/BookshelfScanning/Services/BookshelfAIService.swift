@@ -176,7 +176,7 @@ actor BookshelfAIService {
         do {
             scanResponse = try await startScanJob(imageData, provider: provider, jobId: jobId)
             #if DEBUG
-            print("✅ Image uploaded with jobId: \(jobId), token: \(scanResponse.token.prefix(8))...")
+            print("✅ Image uploaded with jobId: \(jobId), token: \(scanResponse.authToken.prefix(8))...")
             #endif
         } catch {
             throw .networkError(error)
@@ -185,7 +185,7 @@ actor BookshelfAIService {
         // STEP 3: Connect WebSocket with authentication token
         let wsManager = await WebSocketProgressManager()
         do {
-            _ = try await wsManager.establishConnection(jobId: jobId, token: scanResponse.token)
+            _ = try await wsManager.establishConnection(jobId: jobId, token: scanResponse.authToken)
             try await wsManager.configureForJob(jobId: jobId)
 
             // NEW: Send ready signal to server

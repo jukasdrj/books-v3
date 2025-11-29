@@ -19,7 +19,11 @@ public struct BookshelfScanMetadata: Sendable {
 
 public struct ScanJobResponse: Codable, Sendable {
     public let jobId: String
-    public let token: String  // NEW: Auth token for WebSocket
+    public let authToken: String  // Auth token for WebSocket (canonical)
+
+    @available(*, deprecated, message: "Use authToken instead. Removal: March 1, 2026")
+    public let token: String?  // Deprecated field, backward compatibility only
+
     public let stages: [StageMetadata]
     public let estimatedRange: [Int]  // [min, max] seconds
 
@@ -27,6 +31,40 @@ public struct ScanJobResponse: Codable, Sendable {
         public let name: String
         public let typicalDuration: Int  // seconds
         public let progress: Double      // 0.0 - 1.0
+    }
+
+    // Custom decoding to handle both authToken and token fields
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        jobId = try container.decode(String.self, forKey: .jobId)
+        stages = try container.decode([StageMetadata].self, forKey: .stages)
+        estimatedRange = try container.decode([Int].self, forKey: .estimatedRange)
+
+        // Prefer authToken, fallback to token for legacy responses
+        let decodedAuthToken = try? container.decode(String.self, forKey: .authToken)
+        let decodedToken = try? container.decode(String.self, forKey: .token)
+
+        if let authTokenValue = decodedAuthToken {
+            authToken = authTokenValue
+            token = decodedToken  // Optional, may be present
+        } else if let tokenValue = decodedToken {
+            // Legacy response - only has token field
+            authToken = tokenValue
+            token = tokenValue
+        } else {
+            throw DecodingError.keyNotFound(
+                CodingKeys.authToken,
+                DecodingError.Context(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "Expected authToken or token field"
+                )
+            )
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case jobId, authToken, token, stages, estimatedRange
     }
 }
 

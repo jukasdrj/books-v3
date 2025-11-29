@@ -25,12 +25,51 @@ public struct BookDTO: Codable, Sendable, Hashable {
 
 /// Response from initiating a CSV import or enrichment batch job
 /// API Contract v3.3: Added sseUrl and statusUrl for SSE/polling support
+/// Supports both `authToken` (canonical) and `token` (deprecated) for backward compatibility
 public struct JobInitiationResponse: Codable, Sendable {
     public let jobId: String
-    public let authToken: String // DEPRECATED: Use `token` field, removed in v3.4
-    public let token: String? // New field name (v3.3+), backward compatible
+    public let authToken: String // Canonical field (v3.3+)
+
+    @available(*, deprecated, message: "Use authToken instead. Removal: March 1, 2026")
+    public let token: String? // Deprecated field, backward compatibility only
+
     public let sseUrl: String? // SSE stream endpoint (v3.3+)
     public let statusUrl: String? // Polling fallback endpoint (v3.3+)
+
+    // Custom decoding to handle both authToken and token fields
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        jobId = try container.decode(String.self, forKey: .jobId)
+
+        // Prefer authToken, fallback to token for legacy responses
+        let decodedAuthToken = try? container.decode(String.self, forKey: .authToken)
+        let decodedToken = try? container.decode(String.self, forKey: .token)
+
+        if let authTokenValue = decodedAuthToken {
+            authToken = authTokenValue
+            token = decodedToken  // Optional, may be present
+        } else if let tokenValue = decodedToken {
+            // Legacy response - only has token field
+            authToken = tokenValue
+            token = tokenValue
+        } else {
+            throw DecodingError.keyNotFound(
+                CodingKeys.authToken,
+                DecodingError.Context(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "Expected authToken or token field in response"
+                )
+            )
+        }
+
+        sseUrl = try? container.decode(String.self, forKey: .sseUrl)
+        statusUrl = try? container.decode(String.self, forKey: .statusUrl)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case jobId, authToken, token, sseUrl, statusUrl
+    }
 }
 
 public struct ImportResults: Codable, Sendable {
