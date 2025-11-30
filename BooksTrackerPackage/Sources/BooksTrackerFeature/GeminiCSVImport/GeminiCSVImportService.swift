@@ -227,11 +227,15 @@ actor GeminiCSVImportService {
     /// - Parameters:
     ///   - jobId: Import job ID from uploadCSV
     ///   - authToken: Auth token from uploadCSV
-    /// - Returns: AsyncStream of EnrichmentEvent (csv import events)
-    func streamImportProgress(jobId: String, authToken: String) async -> AsyncStream<EnrichmentEvent> {
-        let sseURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/v2/imports/\(jobId)/stream")!
+    /// - Returns: Tuple of (SSEClient, AsyncStream<EnrichmentEvent>) for progress events and cancellation
+    func streamImportProgress(jobId: String, authToken: String) async -> (client: SSEClient, stream: AsyncStream<EnrichmentEvent>) {
+        guard let sseURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/v2/imports/\(jobId)/stream") else {
+            // Return empty stream that finishes immediately if URL is malformed (unlikely but safe)
+            return (client: SSEClient(url: URL(string: "https://invalid")!, authToken: ""), stream: AsyncStream { $0.finish() })
+        }
         let sseClient = SSEClient(url: sseURL, authToken: authToken)
-        return await sseClient.connect()
+        let stream = await sseClient.connect()
+        return (client: sseClient, stream: stream)
     }
 
     // MARK: - Fetch Results

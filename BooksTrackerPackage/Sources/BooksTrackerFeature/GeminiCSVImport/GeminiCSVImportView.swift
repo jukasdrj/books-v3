@@ -361,19 +361,13 @@ public struct GeminiCSVImportView: View {
         print("[CSV SSE] Starting SSE stream for job: \(jobId)")
         #endif
 
-        do {
-            // Connect to SSE stream
-            let stream = await GeminiCSVImportService.shared.streamImportProgress(jobId: jobId, authToken: authToken)
+        // Connect to SSE stream and store client for cancellation support
+        let (client, stream) = await GeminiCSVImportService.shared.streamImportProgress(jobId: jobId, authToken: authToken)
+        sseClient = client
 
-            // Process events
-            for await event in stream {
-                await handleSSEEvent(event)
-            }
-
-        } catch {
-            await MainActor.run {
-                importStatus = .failed(ErrorDetail(message: error.localizedDescription, code: "SSE_STREAM_ERROR"))
-            }
+        // Process events (AsyncStream doesn't throw - errors come via .failed events)
+        for await event in stream {
+            await handleSSEEvent(event)
         }
     }
 
