@@ -92,14 +92,25 @@ public struct DetectedBook: Identifiable, Sendable {
 
 // MARK: - Enrichment Status (API Contract v3.1)
 
-public enum EnrichmentStatus: String, CaseIterable, Sendable {
+/// Type-safe enrichment status values per API Contract v3.1 Section 7.6.1
+///
+/// This enum represents the possible states of book enrichment from the backend:
+/// - `pending`: Enrichment is in progress
+/// - `success`: Book was successfully enriched with metadata
+/// - `notFound`: No matching book found in any provider
+/// - `error`: Enrichment failed due to an error
+/// - `circuitOpen`: Circuit breaker tripped, service temporarily unavailable
+public enum EnrichmentStatus: String, CaseIterable, Codable, Sendable {
     case pending = "pending"
     case success = "success"
     case notFound = "not_found"
     case error = "error"
     case circuitOpen = "circuit_open"
 
-    var displayName: String {
+    // MARK: - Display Properties
+
+    /// Short display name for UI badges
+    public var displayName: String {
         switch self {
         case .pending: return "Enriching..."
         case .success: return "Enriched"
@@ -109,7 +120,24 @@ public enum EnrichmentStatus: String, CaseIterable, Sendable {
         }
     }
 
-    var color: Color {
+    /// User-friendly description for status messages
+    public var displayDescription: String {
+        switch self {
+        case .pending:
+            return "Enrichment pending..."
+        case .success:
+            return "Book enriched successfully"
+        case .notFound:
+            return "No match found - try manual search"
+        case .error:
+            return "Enrichment failed - tap to retry"
+        case .circuitOpen:
+            return "Service temporarily unavailable - will retry automatically"
+        }
+    }
+
+    /// Color for status indicators
+    public var color: Color {
         switch self {
         case .pending: return .blue
         case .success: return .green
@@ -119,13 +147,45 @@ public enum EnrichmentStatus: String, CaseIterable, Sendable {
         }
     }
 
-    var systemImage: String {
+    /// SF Symbol name for status icons
+    public var systemImage: String {
         switch self {
         case .pending: return "arrow.clockwise.circle"
         case .success: return "checkmark.circle.fill"
         case .notFound: return "questionmark.circle"
         case .error: return "xmark.circle"
         case .circuitOpen: return "exclamationmark.triangle"
+        }
+    }
+
+    // MARK: - Status Behavior Properties
+
+    /// Whether this status allows automatic retry
+    ///
+    /// Retryable statuses:
+    /// - `pending`: May need retry if enrichment times out
+    /// - `error`: Transient failures can be retried
+    /// - `circuitOpen`: Will auto-retry after cooldown period
+    public var isRetryable: Bool {
+        switch self {
+        case .pending, .error, .circuitOpen:
+            return true
+        case .success, .notFound:
+            return false
+        }
+    }
+
+    /// Whether this status requires manual user intervention
+    ///
+    /// Statuses requiring manual review:
+    /// - `notFound`: User may need to search manually or correct metadata
+    /// - `error`: User may need to retry or investigate
+    public var requiresManualReview: Bool {
+        switch self {
+        case .notFound, .error:
+            return true
+        case .pending, .success, .circuitOpen:
+            return false
         }
     }
 }

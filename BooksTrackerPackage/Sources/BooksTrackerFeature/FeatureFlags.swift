@@ -142,6 +142,30 @@ public final class FeatureFlags {
         }
     }
 
+    /// Enable SSE for Photo Scan progress updates (API Contract v3.2)
+    ///
+    /// When enabled, photo scan operations will use Server-Sent Events (SSE)
+    /// for real-time progress updates instead of WebSocket.
+    ///
+    /// Benefits:
+    /// - Simpler protocol (HTTP-based)
+    /// - Better firewall/proxy compatibility
+    /// - Automatic reconnection handling
+    /// - Lower server resource usage
+    ///
+    /// Default: `false` (disabled, uses WebSocket for backward compatibility)
+    ///
+    /// Note: This is a P0 feature for API Contract v3.2 migration.
+    /// Will be enabled by default once SSE backend is stable.
+    public var enablePhotoScanSSE: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: "feature.enablePhotoScanSSE")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "feature.enablePhotoScanSSE")
+        }
+    }
+
     /// Stores the API capabilities fetched from the backend.
     /// This property is populated on app launch and is used to conditionally
     /// enable or disable features based on backend support.
@@ -159,8 +183,9 @@ public final class FeatureFlags {
         disableCanonicalEnrichment = false  // Default canonical endpoint
         enableV2Search = false // Default v2 search disabled
         enableWorkflowImport = false // Default workflow import disabled
+        enablePhotoScanSSE = false // Default SSE disabled (WebSocket fallback)
         #if DEBUG
-        print("✅ FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true, v2Search: false, workflowImport: false)")
+        print("FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true, v2Search: false, workflowImport: false, photoScanSSE: false)")
         #endif
     }
 }
