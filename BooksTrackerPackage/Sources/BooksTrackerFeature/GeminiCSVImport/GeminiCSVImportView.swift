@@ -337,9 +337,9 @@ public struct GeminiCSVImportView: View {
 
             let csvText = try String(contentsOf: url, encoding: .utf8)
 
-            // Upload to V2 API and get jobId
+            // Upload to V2 API and get jobId + authToken
             let service = GeminiCSVImportService.shared
-            let uploadedJobId = try await service.uploadCSV(csvText: csvText)
+            let (uploadedJobId, authToken) = try await service.uploadCSV(csvText: csvText)
 
             #if DEBUG
             print("[CSV Upload] ✅ Job created: \(uploadedJobId)")
@@ -347,7 +347,7 @@ public struct GeminiCSVImportView: View {
 
             // Start SSE stream for progress tracking
             jobId = uploadedJobId
-            startSSEStream(jobId: uploadedJobId)
+            await startSSEStream(jobId: uploadedJobId, authToken: authToken)
 
         } catch let error as GeminiCSVImportError {
             importStatus = .failed(makeErrorDetail(message: error.localizedDescription))
@@ -356,112 +356,86 @@ public struct GeminiCSVImportView: View {
         }
     }
 
-    private func startSSEStream(jobId: String) {
+    private func startSSEStream(jobId: String, authToken: String) async {
         #if DEBUG
         print("[CSV SSE] Starting SSE stream for job: \(jobId)")
         #endif
 
-        // Construct SSE URL for CSV import job
-        let sseURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/v2/imports/\(jobId)/stream")!
+        // Connect to SSE stream and store client for cancellation support
+        let (client, stream) = await GeminiCSVImportService.shared.streamImportProgress(jobId: jobId, authToken: authToken)
+        sseClient = client
 
-        // Create SSEClient with AsyncStream-based API (API Contract v3.3)
-        // Use jobId as auth token (backend expects this for job-specific streams)
-        let client = SSEClient(url: sseURL, authToken: jobId)
-        self.sseClient = client
+        // Process events (AsyncStream doesn't throw - errors come via .failed events)
+        for await event in stream {
+            await handleSSEEvent(event)
+        }
 
-        // Start consuming SSE events in background task
-        Task {
-            for await event in await client.connect() {
-                await MainActor.run {
-                    handleSSEEvent(event, jobId: jobId)
+        #if DEBUG
+        print("[CSV SSE] Stream ended for job: \(jobId)")
+        #endif
+    }
+
+    private func handleSSEEvent(_ event: EnrichmentEvent) async {
+        await MainActor.run {
+            switch event {
+            case .csvImportProgress(let progress):
+                #if DEBUG
+                print("[CSV SSE] Progress: \(Int(progress.progress * 100))% - \(progress.status)")
+                #endif
+                let message = "Processing: \(progress.processedCount)/\(progress.totalCount) books"
+                importStatus = .processing(
+                    progress: progress.progress,  // Already 0.0-1.0
+                    message: message
+                )
+
+            case .csvImportCompleted(let completion):
+                #if DEBUG
+                print("[CSV SSE] Completed event received, fetching results...")
+                #endif
+                // Fetch full results now that import is complete
+                Task {
+                    await fetchResults(jobId: completion.jobId)
                 }
-            }
 
-            #if DEBUG
-            print("[CSV SSE] Stream ended for job: \(jobId)")
-            #endif
+            case .csvImportFailed(let failure):
+                #if DEBUG
+                print("[CSV SSE] Failed: \(failure.error.message)")
+                #endif
+                importStatus = .failed(failure.error)
+
+            default:
+                // Ignore other event types (enrichment, photoscan)
+                break
+            }
         }
     }
 
-    /// Handle SSE events from the CSV import stream
-    /// Maps EnrichmentEvent types to CSV import progress/completion
-    private func handleSSEEvent(_ event: EnrichmentEvent, jobId: String) {
-        switch event {
-        case .progress(let progress):
+    private func fetchResults(jobId: String) async {
+        do {
+            let results = try await GeminiCSVImportService.shared.fetchResults(jobId: jobId)
+
             #if DEBUG
-            print("[CSV SSE] Progress: \(progress.progress)% - \(progress.status)")
+            print("[CSV SSE] Results: \(results.booksCreated) created, \(results.booksUpdated) updated")
+            print("[CSV SSE] Books in response: \(results.books.count)")
+            print("[CSV SSE] Errors: \(results.errors.count)")
             #endif
 
-            // Update UI with progress (0-100 scale)
-            let normalizedProgress = Double(progress.progress) / 100.0
-            importStatus = .processing(
-                progress: normalizedProgress,
-                message: "Processing: \(progress.progress)%"
-            )
-
-        case .completed(_):
-            #if DEBUG
-            print("[CSV SSE] Completed event received, fetching results...")
-            #endif
-
-            // Fetch full results from results endpoint
-            Task {
-                do {
-                    let results = try await GeminiCSVImportService.shared.fetchResults(jobId: jobId)
-
-                    #if DEBUG
-                    print("[CSV SSE] Results: \(results.booksCreated) created, \(results.booksUpdated) updated")
-                    print("[CSV SSE] Books in response: \(results.books?.count ?? 0)")
-                    print("[CSV SSE] Errors: \(results.errors.count)")
-                    #endif
-
-                    // Convert ParsedBook to GeminiCSVImportJob.ParsedBook
-                    let books = results.books?.map { apiBook in
-                        GeminiCSVImportJob.ParsedBook(
-                            title: apiBook.title,
-                            author: apiBook.author,
-                            isbn: apiBook.isbn,
-                            coverUrl: apiBook.coverUrl,
-                            publisher: apiBook.publisher,
-                            publicationYear: apiBook.publicationYear,
-                            enrichmentError: apiBook.enrichmentError
-                        )
-                    } ?? []
-
-                    // Convert ImportError to GeminiCSVImportJob.ImportError
-                    let errors = results.errors.map { error in
-                        GeminiCSVImportJob.ImportError(title: error.title, error: error.error)
-                    }
-
-                    // Update UI with completion
-                    await MainActor.run {
-                        self.importStatus = .completed(books: books, errors: errors)
-                    }
-
-                } catch {
-                    #if DEBUG
-                    print("[CSV SSE] ❌ Failed to fetch results: \(error)")
-                    #endif
-
-                    await MainActor.run {
-                        self.importStatus = .failed(makeErrorDetail(
-                            code: "RESULTS_FETCH_FAILED",
-                            message: "Failed to fetch results: \(error.localizedDescription)"
-                        ))
-                    }
-                }
+            await MainActor.run {
+                // Results already in correct format
+                importStatus = .completed(books: results.books, errors: results.errors)
             }
 
-        case .failed(let failed):
+            // Save books in background
+            await saveBooks(results.books)
+
+        } catch {
             #if DEBUG
-            print("[CSV SSE] Failed: \(failed.error)")
+            print("[CSV SSE] ❌ Failed to fetch results: \(error)")
             #endif
 
-            importStatus = .failed(makeErrorDetail(
-                code: "IMPORT_FAILED",
-                message: failed.error,
-                retryable: true
-            ))
+            await MainActor.run {
+                importStatus = .failed(makeErrorDetail(message: error.localizedDescription, code: "FETCH_RESULTS_FAILED"))
+            }
         }
     }
 

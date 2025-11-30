@@ -351,6 +351,10 @@ actor BookshelfAIService {
 
             case .failed(let failed):
                 throw .serverError(500, "SSE job failed: \(failed.error)")
+
+            case .csvImportProgress, .csvImportCompleted, .csvImportFailed:
+                // CSV import events not handled by bookshelf scanning
+                continue
             }
         }
 

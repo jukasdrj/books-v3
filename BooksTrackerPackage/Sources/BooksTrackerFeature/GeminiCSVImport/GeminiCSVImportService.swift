@@ -35,7 +35,7 @@ enum GeminiCSVImportError: Error, LocalizedError {
 
 public struct GeminiCSVImportResponse: Codable, Sendable {
     public let jobId: String
-    // V2 Migration: No auth token needed - SSE is public streaming endpoint
+    public let authToken: String // Job-specific auth token for SSE stream
 }
 
 public struct GeminiCSVImportJob: Codable, Sendable {
@@ -45,11 +45,12 @@ public struct GeminiCSVImportJob: Codable, Sendable {
 
     public struct ParsedBook: Codable, Sendable, Equatable {
         public let title: String
-        public let author: String
+        public let authors: [String]
         public let isbn: String?
         public let coverUrl: String?
         public let publisher: String?
-        public let publicationYear: Int?
+        public let year: Int?
+        public let pageCount: Int?
         public let enrichmentError: String?
     }
 
@@ -88,11 +89,11 @@ actor GeminiCSVImportService {
 
     // MARK: - Upload CSV
 
-    /// Upload CSV file to V2 API and receive jobId for SSE tracking
+    /// Upload CSV file to V2 API and receive jobId + authToken for SSE tracking
     /// - Parameter csvText: Raw CSV content
-    /// - Returns: jobId for SSE stream connection
+    /// - Returns: Tuple of (jobId, authToken) for SSE stream connection
     /// - Throws: GeminiCSVImportError on failure
-    func uploadCSV(csvText: String) async throws -> String {
+    func uploadCSV(csvText: String) async throws -> (jobId: String, authToken: String) {
         #if DEBUG
         print("[CSV Upload] Starting upload, size: \(csvText.utf8.count) bytes")
         #endif
@@ -205,9 +206,9 @@ actor GeminiCSVImportService {
             }
             
             #if DEBUG
-            print("[CSV Upload] ✅ Got jobId: \(importResponse.jobId)")
+            print("[CSV Upload] ✅ Got jobId: \(importResponse.jobId), authToken: <redacted>")
             #endif
-            return importResponse.jobId
+            return (jobId: importResponse.jobId, authToken: importResponse.authToken)
 
         } catch let error as GeminiCSVImportError {
             #if DEBUG
@@ -222,13 +223,28 @@ actor GeminiCSVImportService {
         }
     }
 
+    /// Streams CSV import progress via SSE
+    /// - Parameters:
+    ///   - jobId: Import job ID from uploadCSV
+    ///   - authToken: Auth token from uploadCSV
+    /// - Returns: Tuple of (SSEClient, AsyncStream<EnrichmentEvent>) for progress events and cancellation
+    func streamImportProgress(jobId: String, authToken: String) async -> (client: SSEClient, stream: AsyncStream<EnrichmentEvent>) {
+        guard let sseURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/v2/imports/\(jobId)/stream") else {
+            // Return empty stream that finishes immediately if URL is malformed (unlikely but safe)
+            return (client: SSEClient(url: URL(string: "https://invalid")!, authToken: ""), stream: AsyncStream { $0.finish() })
+        }
+        let sseClient = SSEClient(url: sseURL, authToken: authToken)
+        let stream = await sseClient.connect()
+        return (client: sseClient, stream: stream)
+    }
+
     // MARK: - Fetch Results
 
     /// Fetch results from completed import job (V2 API)
     /// - Parameter jobId: The import job ID
     /// - Returns: Results summary with counts and errors
     /// - Throws: GeminiCSVImportError on failure
-    func fetchResults(jobId: String) async throws -> SSEResultsResponse {
+    func fetchResults(jobId: String) async throws -> GeminiCSVImportJob {
         #if DEBUG
         print("[CSV Results] Fetching results for job: \(jobId)")
         #endif
@@ -251,7 +267,7 @@ actor GeminiCSVImportService {
 
             if httpResponse.statusCode != 200 {
                 // Try to decode error response
-                if let errorResponse = try? JSONDecoder().decode(ResponseEnvelope<SSEResultsResponse>.self, from: data),
+                if let errorResponse = try? JSONDecoder().decode(ResponseEnvelope<GeminiCSVImportJob>.self, from: data),
                    let error = errorResponse.error {
                     let errorMessageWithCode = error.code != nil
                         ? "\(error.message) (Code: \(error.code!))"
@@ -264,7 +280,7 @@ actor GeminiCSVImportService {
 
             // Decode response
             let decoder = JSONDecoder()
-            let envelope = try decoder.decode(ResponseEnvelope<SSEResultsResponse>.self, from: data)
+            let envelope = try decoder.decode(ResponseEnvelope<GeminiCSVImportJob>.self, from: data)
 
             // Check for errors in response
             if let error = envelope.error {
@@ -280,7 +296,7 @@ actor GeminiCSVImportService {
             }
 
             #if DEBUG
-            print("[CSV Results] ✅ Results fetched: \(results.books?.count ?? 0) books")
+            print("[CSV Results] ✅ Results fetched: \(results.books.count) books, \(results.errors.count) errors")
             #endif
             return results
 
