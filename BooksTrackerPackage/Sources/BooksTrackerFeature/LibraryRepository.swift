@@ -470,16 +470,37 @@ public class LibraryRepository {
     /// - 0.2-0.4 = Good diversity
     /// - <0.2 = Room for improvement
     ///
+    /// **Performance (Issue #121):**
+    /// Uses relationship prefetching to avoid N+1 query problem.
+    /// For 1000 books: Single query instead of 2000 individual faults.
+    ///
     /// - Parameter works: Optional works array (defaults to full library)
     /// - Returns: Diversity score as decimal (0.0 to 1.0)
     /// - Throws: `SwiftDataError` if query fails
     public func calculateDiversityScore(for works: [Work]? = nil) throws -> Double {
-        let targetWorks = try works ?? fetchUserLibrary()
+        // PERFORMANCE FIX (Issue #121): Use single query with relationship prefetching
+        // Instead of accepting pre-fetched works and risking N+1, fetch directly with includes
+        let worksWithAuthors: [Work]
 
-        // Note: Work objects already validated by fetchUserLibrary() - no need to re-check
-        let allAuthors = targetWorks.compactMap { work -> [Author]? in
-            return work.authors
-        }.flatMap { $0 }
+        if let providedWorks = works {
+            // If works provided, use them (caller responsible for prefetching)
+            worksWithAuthors = providedWorks
+        } else {
+            // Fetch with relationship prefetching to avoid N+1 query
+            var descriptor = FetchDescriptor<Work>(
+                predicate: #Predicate { work in
+                    // Only works in user's library
+                    work.userLibraryEntries?.isEmpty == false
+                }
+            )
+            // CRITICAL: Prefetch authors relationship in single query
+            descriptor.relationshipKeyPathsForPrefetching = [\.authors]
+
+            worksWithAuthors = try modelContext.fetch(descriptor)
+        }
+
+        // Extract all authors (now prefetched, no additional queries)
+        let allAuthors = worksWithAuthors.flatMap { $0.authors ?? [] }
         guard !allAuthors.isEmpty else { return 0.0 }
 
         // DEFENSIVE: Filter deleted authors AND calculate diversity in single pass
@@ -509,6 +530,10 @@ public class LibraryRepository {
     /// - Currently reading count
     /// - Total pages read
     ///
+    /// **Performance (Issue #122):**
+    /// Uses relationship prefetching to avoid N+1 query problem.
+    /// For 500 read books: Single query instead of 1000 individual faults (entry + edition per work).
+    ///
     /// - Returns: Typed statistics struct (compile-time safe)
     /// - Throws: `SwiftDataError` if query fails
     public func calculateReadingStatistics() throws -> ReadingStatistics {
@@ -516,17 +541,21 @@ public class LibraryRepository {
         let completion = try completionRate()
         let reading = try fetchCurrentlyReading().count
 
-        // Calculate total pages read
-        let readBooks = try fetchByReadingStatus(.read)
-        let totalPages = readBooks.compactMap { work -> Int? in
-            // DEFENSIVE: Validate work is still in context before accessing relationships
-            guard modelContext.model(for: work.persistentModelID) as? Work != nil else {
-                return nil
-            }
-            // Enhanced error handling for missing edition data
-            guard let entry = work.userLibraryEntries?.first,
-                  let edition = entry.edition,
-                  let pageCount = edition.pageCount else {
+        // PERFORMANCE FIX (Issue #122): Fetch entries directly with prefetching
+        // This avoids N+1 queries when accessing work.userLibraryEntries and entry.edition
+        var descriptor = FetchDescriptor<UserLibraryEntry>(
+            predicate: #Predicate { $0.readingStatus == .read }
+        )
+        // CRITICAL: Prefetch both work and edition relationships in single query
+        descriptor.relationshipKeyPathsForPrefetching = [\.work, \.edition]
+
+        let readEntries = try modelContext.fetch(descriptor)
+
+        // Calculate total pages (relationships already prefetched)
+        let totalPages = readEntries.compactMap { entry -> Int? in
+            // No need to validate work (not accessing via relationship)
+            // Access edition directly (already prefetched)
+            guard let pageCount = entry.edition?.pageCount else {
                 return nil
             }
             return pageCount

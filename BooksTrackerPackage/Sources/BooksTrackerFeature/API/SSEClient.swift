@@ -51,7 +51,7 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
             }
             // Start the initial connection attempt.
             // This happens in a Task to avoid blocking the caller of `connect()`.
-            Task { await self.startConnectionAttempt() }
+            Task { self.startConnectionAttempt() }
         }
     }
 
