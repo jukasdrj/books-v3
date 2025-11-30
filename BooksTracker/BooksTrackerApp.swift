@@ -11,8 +11,16 @@ class ModelContainerFactory {
     static let shared = ModelContainerFactory()
 
     private var _container: ModelContainer?
+    private var resetCallback: ((String, @escaping () -> Void) -> Void)?
 
-    var container: ModelContainer {
+    /// Get or create ModelContainer with optional reset callback
+    /// - Parameter onResetNeeded: Callback invoked when database reset is needed (errorMessage, resetAction)
+    func container(onResetNeeded: ((String, @escaping () -> Void) -> Void)? = nil) -> ModelContainer {
+        self.resetCallback = onResetNeeded
+        return container
+    }
+
+    private var container: ModelContainer {
         if let _container = _container {
             return _container
         }
@@ -100,13 +108,60 @@ class ModelContainerFactory {
                 print("   - Fallback Error: \(fallbackError)")
                 #endif
 
-                // If migration failed due to constraint violations, try deleting the old database
+                // If migration failed due to constraint violations, database reset is needed
                 // This is a destructive operation but necessary for schema changes
-                // TODO: Issue #75 - Add user-facing alert before destructive reset
                 let fileManager = FileManager.default
-                if let storeURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?.appendingPathComponent("default.store") {
+                guard let storeURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?.appendingPathComponent("default.store") else {
+                    fatalError("Failed to locate database file. Fallback error: \(fallbackError)")
+                }
+
+                #if DEBUG
+                print("📍 Database location: \(storeURL.path)")
+                #endif
+
+                // Build error message for user
+                let errorMessage = "Initial error: \(error.localizedDescription)\n\nFallback error: \(fallbackError.localizedDescription)"
+
+                // Check if we have a callback to ask the user first
+                if let resetCallback = resetCallback {
+                    // User confirmation flow (Issue #120 - resolved)
+                    let resetAction = {
+                        #if DEBUG
+                        print("🗑️ User confirmed database reset")
+                        #endif
+
+                        try? fileManager.removeItem(at: storeURL)
+
+                        #if DEBUG
+                        print("🗑️ Removed corrupted database at \(storeURL)")
+                        print("✅ Attempting fresh database creation...")
+                        #endif
+
+                        // Try one more time with fresh database
+                        do {
+                            let freshConfig = ModelConfiguration(
+                                schema: schema,
+                                isStoredInMemoryOnly: false,
+                                cloudKitDatabase: .none
+                            )
+                            let container = try ModelContainer(for: schema, configurations: [freshConfig])
+                            LaunchMetrics.shared.recordMilestone("ModelContainer created (fresh database after user confirmation)")
+                            self._container = container
+                        } catch {
+                            fatalError("Failed to create ModelContainer even with fresh database: \(error)")
+                        }
+                    }
+
+                    // Trigger alert and suspend initialization
+                    resetCallback(errorMessage, resetAction)
+
+                    // Wait for user decision - if we get here, user chose reset
+                    // Return a temporary container to avoid crash (will be replaced after reset)
+                    fatalError("Database reset pending user confirmation. Error: \(errorMessage)")
+                } else {
+                    // No callback - automatic reset (legacy behavior for tests/non-UI contexts)
                     #if DEBUG
-                    print("📍 Database location: \(storeURL.path)")
+                    print("⚠️  No reset callback provided - performing automatic reset")
                     #endif
 
                     try? fileManager.removeItem(at: storeURL)
@@ -124,14 +179,12 @@ class ModelContainerFactory {
                             cloudKitDatabase: .none
                         )
                         let container = try ModelContainer(for: schema, configurations: [freshConfig])
-                        LaunchMetrics.shared.recordMilestone("ModelContainer created (fresh database)")
+                        LaunchMetrics.shared.recordMilestone("ModelContainer created (fresh database - automatic)")
                         _container = container
                         return container
                     } catch {
                         fatalError("Failed to create ModelContainer even with fresh database: \(error)")
                     }
-                } else {
-                    fatalError("Failed to create fallback ModelContainer (local-only mode): \(fallbackError)")
                 }
             }
         }
@@ -182,9 +235,20 @@ struct BooksTrackerApp: App {
     @State private var curatorPointsService = CuratorPointsService()
     @State private var capabilitiesService = CapabilitiesService()
 
+    // Database reset state
+    @State private var showDatabaseResetAlert = false
+    @State private var databaseResetError: String = ""
+    @State private var pendingReset: (() -> Void)?
+
     var body: some Scene {
         WindowGroup {
-            let container = ModelContainerFactory.shared.container
+            let container = ModelContainerFactory.shared.container(
+                onResetNeeded: { errorMessage, resetAction in
+                    databaseResetError = errorMessage
+                    pendingReset = resetAction
+                    showDatabaseResetAlert = true
+                }
+            )
             ContentView()
                 .onAppear {
                     LaunchMetrics.shared.recordMilestone("ContentView appeared")
@@ -204,6 +268,16 @@ struct BooksTrackerApp: App {
                 .environment(ModelContainerFactory.shared.libraryRepository)
                 .environment(EnrichmentQueue.shared)
                 .environment(\.curatorPointsService, curatorPointsService)
+                .alert("Database Reset Required", isPresented: $showDatabaseResetAlert) {
+                    Button("Reset & Lose Data", role: .destructive) {
+                        pendingReset?()
+                    }
+                    Button("Cancel", role: .cancel) {
+                        fatalError("Cannot proceed without database reset. Migration failed: \(databaseResetError)")
+                    }
+                } message: {
+                    Text("Migration failed with error:\n\n\(databaseResetError)\n\nResetting will delete all your books and data. This cannot be undone.\n\nIf you cancel, the app will close.")
+                }
         }
     }
 }
