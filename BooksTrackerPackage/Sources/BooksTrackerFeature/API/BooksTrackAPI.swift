@@ -238,7 +238,7 @@ actor BooksTrackAPI {
         // Define how to build the request. The token will be provided by performAuthenticatedRequest.
         let requestBuilder: (String?) async throws -> URLRequest = { token in
             // Using makeRequest to construct the URLRequest, passing the dynamically obtained token.
-            await self.makeRequest(url: url, method: "DELETE", accessToken: token)
+            self.makeRequest(url: url, method: "DELETE", accessToken: token)
         }
 
         // Perform the request with authentication and retry logic

@@ -125,39 +125,36 @@ class ModelContainerFactory {
                 // Check if we have a callback to ask the user first
                 if let resetCallback = resetCallback {
                     // User confirmation flow (Issue #120 - resolved)
+                    // Delete corrupted DB and exit cleanly - fresh DB created on next launch
                     let resetAction = {
                         #if DEBUG
                         print("🗑️ User confirmed database reset")
                         #endif
 
-                        try? fileManager.removeItem(at: storeURL)
-
-                        #if DEBUG
-                        print("🗑️ Removed corrupted database at \(storeURL)")
-                        print("✅ Attempting fresh database creation...")
-                        #endif
-
-                        // Try one more time with fresh database
                         do {
-                            let freshConfig = ModelConfiguration(
-                                schema: schema,
-                                isStoredInMemoryOnly: false,
-                                cloudKitDatabase: .none
-                            )
-                            let container = try ModelContainer(for: schema, configurations: [freshConfig])
-                            LaunchMetrics.shared.recordMilestone("ModelContainer created (fresh database after user confirmation)")
-                            self._container = container
+                            try fileManager.removeItem(at: storeURL)
+                            #if DEBUG
+                            print("🗑️ Removed corrupted database at \(storeURL)")
+                            print("✅ Exiting app - fresh database will be created on next launch")
+                            #endif
+                            // Exit cleanly to allow fresh start on next launch
+                            exit(0)
                         } catch {
-                            fatalError("Failed to create ModelContainer even with fresh database: \(error)")
+                            // If we can't delete the file, we're stuck
+                            fatalError("Failed to remove corrupted database: \(error)")
                         }
                     }
 
                     // Trigger alert and suspend initialization
                     resetCallback(errorMessage, resetAction)
 
-                    // Wait for user decision - if we get here, user chose reset
-                    // Return a temporary container to avoid crash (will be replaced after reset)
-                    fatalError("Database reset pending user confirmation. Error: \(errorMessage)")
+                    // Return temp in-memory container to allow app to launch and show alert
+                    #if DEBUG
+                    print("⚠️ Returning temporary in-memory container while waiting for user decision")
+                    #endif
+                    let tempConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+                    // Force-try is safe here - in-memory container creation should not fail
+                    return try! ModelContainer(for: schema, configurations: [tempConfig])
                 } else {
                     // No callback - automatic reset (legacy behavior for tests/non-UI contexts)
                     #if DEBUG
@@ -273,7 +270,8 @@ struct BooksTrackerApp: App {
                         pendingReset?()
                     }
                     Button("Cancel", role: .cancel) {
-                        fatalError("Cannot proceed without database reset. Migration failed: \(databaseResetError)")
+                        // Exit gracefully instead of crashing (avoids crash report)
+                        exit(0)
                     }
                 } message: {
                     Text("Migration failed with error:\n\n\(databaseResetError)\n\nResetting will delete all your books and data. This cannot be undone.\n\nIf you cancel, the app will close.")
