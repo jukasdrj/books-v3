@@ -1,1 +1,33 @@
-.claude/scripts/quick-validate.sh: line 18: timeout: command not found
+Command line invocation:
+    /Applications/Xcode-beta.app/Contents/Developer/usr/bin/xcodebuild -workspace BooksTracker.xcworkspace -scheme BooksTracker -sdk iphonesimulator -destination "platform=iOS Simulator,name=iPhone 16 Pro,OS=18.0" -derivedDataPath .build -parallelizeTargets -jobs 2 build
+
+Build settings from command line:
+    SDKROOT = iphonesimulator26.2
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  BooksTrackerFeature: /Users/juju/dev_repos/books-v3/BooksTrackerPackage
+
+2025-11-30 14:57:21.718 xcodebuild[37068:3772913] Writing error result bundle to /var/folders/m5/z_nkh5g907n_94hxymrv3zfr0000gn/T/ResultBundle_2025-30-11_14-57-0021.xcresult
+xcodebuild: error: Unable to find a device matching the provided destination specifier:
+		{ platform:iOS Simulator, OS:18.0, name:iPhone 16 Pro }
+
+	The requested device could not be found because no available devices matched the request.
+
+	Available destinations for the "BooksTracker" scheme:
+		{ platform:iOS, arch:arm64, id:00008140-001A70541EE0801C, name:justin_16p256 }
+		{ platform:iOS, id:dvtdevice-DVTiPhonePlaceholder-iphoneos:placeholder, name:Any iOS Device }
+		{ platform:iOS Simulator, id:dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder, name:Any iOS Simulator Device }
+		{ platform:iOS Simulator, arch:arm64, id:62FBA7CB-3345-47DC-AC4C-AC7D21161412, OS:26.2, name:iPad (A16) }
+		{ platform:iOS Simulator, arch:arm64, id:DA4B25CA-0B38-4D50-81EA-1720312E664D, OS:26.2, name:iPad Air 11-inch (M3) }
+		{ platform:iOS Simulator, arch:arm64, id:F54FD80C-FDA5-45A3-AE36-EB892450A497, OS:26.2, name:iPad Air 13-inch (M3) }
+		{ platform:iOS Simulator, arch:arm64, id:439BC83B-8D74-47E2-A604-52595060DC09, OS:26.2, name:iPad Pro 11-inch (M5) }
+		{ platform:iOS Simulator, arch:arm64, id:772AC2BF-6B7A-4247-A1AE-9D83B6498106, OS:26.2, name:iPad Pro 13-inch (M5) }
+		{ platform:iOS Simulator, arch:arm64, id:CD3DE1EF-4250-4677-9FE4-D85C5B51FA82, OS:26.2, name:iPad mini (A17 Pro) }
+		{ platform:iOS Simulator, arch:arm64, id:7DE1CC7C-8421-49FF-BB6E-F26690666327, OS:26.2, name:iPhone 16e }
+		{ platform:iOS Simulator, arch:arm64, id:DC32A0E8-ED36-4526-9CB0-2E26BD42BC5A, OS:26.2, name:iPhone 17 }
+		{ platform:iOS Simulator, arch:arm64, id:7C5AF074-4D44-4E57-973A-923C2FEAD371, OS:26.2, name:iPhone 17 Pro }
+		{ platform:iOS Simulator, arch:arm64, id:EA05BEFA-7209-4162-9286-C2D7209B4DFF, OS:26.2, name:iPhone 17 Pro Max }
+		{ platform:iOS Simulator, arch:arm64, id:D21879A8-476E-4982-AE97-256C26B11066, OS:26.2, name:iPhone Air }
