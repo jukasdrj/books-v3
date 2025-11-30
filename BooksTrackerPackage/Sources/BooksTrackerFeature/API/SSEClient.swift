@@ -271,7 +271,9 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
                     data: AnyCodable(["resultsUrl": completed.resultsUrl, "summary": [
                         "totalDetected": completed.summary.totalDetected,
                         "approved": completed.summary.approved,
-                        "needsReview": completed.summary.needsReview
+                        "needsReview": completed.summary.needsReview,
+                        "enrichedCount": completed.summary.enrichedCount,
+                        "duration": completed.summary.duration
                     ]])
                 )))
                 Task { await disconnect() }

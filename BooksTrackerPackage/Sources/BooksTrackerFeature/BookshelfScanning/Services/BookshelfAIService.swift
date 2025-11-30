@@ -306,9 +306,21 @@ actor BookshelfAIService {
             throw .serverError(501, "SSE URL not provided - backend may not support SSE yet")
         }
 
-        // Construct full SSE URL
-        guard let sseUrl = URL(string: "\(EnrichmentConfig.apiBaseURL)\(sseUrlPath)") else {
-            throw .invalidResponse
+        // Construct full SSE URL - handle both full URL and path-only formats
+        let sseUrl: URL
+        if sseUrlPath.hasPrefix("http://") || sseUrlPath.hasPrefix("https://") {
+            // Backend sent full URL
+            guard let fullUrl = URL(string: sseUrlPath) else {
+                throw .invalidResponse
+            }
+            sseUrl = fullUrl
+        } else {
+            // Backend sent path-only, construct relative to base
+            guard let baseUrl = URL(string: EnrichmentConfig.apiBaseURL),
+                  let relativeUrl = URL(string: sseUrlPath, relativeTo: baseUrl) else {
+                throw .invalidResponse
+            }
+            sseUrl = relativeUrl
         }
 
         // STEP 4: Connect to SSE stream
@@ -412,6 +424,7 @@ actor BookshelfAIService {
             } catch {
                 #if DEBUG
                 print("SSE: Failed, falling back to WebSocket: \(error)")
+                print("[Analytics] sse_fallback_triggered - provider: \(provider.rawValue), scan_id: \(jobId), error: \(error), fallback_to: websocket")
                 #endif
                 // Fall through to WebSocket
             }
@@ -868,8 +881,21 @@ actor BookshelfAIService {
     }
 
     public func fetchScanResults(url: String) async throws -> ScanResultPayload {
-        guard let fullURL = URL(string: "\(EnrichmentConfig.apiBaseURL)\(url)") else {
-            throw BookshelfAIError.invalidResponse
+        // Handle both full URL and path-only formats
+        let fullURL: URL
+        if url.hasPrefix("http://") || url.hasPrefix("https://") {
+            // Backend sent full URL
+            guard let parsedUrl = URL(string: url) else {
+                throw BookshelfAIError.invalidResponse
+            }
+            fullURL = parsedUrl
+        } else {
+            // Backend sent path-only, construct relative to base
+            guard let baseUrl = URL(string: EnrichmentConfig.apiBaseURL),
+                  let relativeUrl = URL(string: url, relativeTo: baseUrl) else {
+                throw BookshelfAIError.invalidResponse
+            }
+            fullURL = relativeUrl
         }
 
         let (data, response) = try await URLSession.shared.data(from: fullURL)
