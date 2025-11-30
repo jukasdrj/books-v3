@@ -108,14 +108,14 @@ actor EnrichmentAPIClient {
         return try await retryWithBackoff(config: retryConfig) { [self] in
             do {
                 return try await self.performEnrichment(endpoint: primaryEndpoint, jobId: jobId, books: books)
-            } catch let error as NSError where !disableCanonical && self.shouldFallbackToLegacy(statusCode: error.code) {
+            } catch let error as NSError where !disableCanonical && Self.shouldFallbackToLegacy(statusCode: error.code) {
                 // Automatic fallback on endpoint-not-available errors (404, 405, 426, 501)
                 #if DEBUG
                 print("⚠️ [EnrichmentAPIClient] Canonical endpoint failed with \(error.code), falling back to legacy: \(fallbackEndpoint)")
                 #endif
 
                 // Log fallback metric for observability
-                self.logFallbackMetric(fromEndpoint: primaryEndpoint, toEndpoint: fallbackEndpoint, reason: "\(error.code)")
+                Self.logFallbackMetric(fromEndpoint: primaryEndpoint, toEndpoint: fallbackEndpoint, reason: "\(error.code)")
 
                 return try await self.performEnrichment(endpoint: fallbackEndpoint, jobId: jobId, books: books)
             }
@@ -125,12 +125,12 @@ actor EnrichmentAPIClient {
     /// Determines if error warrants fallback to legacy endpoint
     /// Fallback on: 404 (Not Found), 405 (Method Not Allowed), 426 (Upgrade Required), 501 (Not Implemented)
     /// Do NOT fallback on: 4xx client errors (400, 401, 403, 422) or 5xx server errors (to avoid duplicate jobs)
-    nonisolated private func shouldFallbackToLegacy(statusCode: Int) -> Bool {
+    private static func shouldFallbackToLegacy(statusCode: Int) -> Bool {
         [404, 405, 426, 501].contains(statusCode)
     }
 
     /// Log fallback event for observability (sends to console in DEBUG, ready for analytics integration)
-    nonisolated private func logFallbackMetric(fromEndpoint: String, toEndpoint: String, reason: String) {
+    private static func logFallbackMetric(fromEndpoint: String, toEndpoint: String, reason: String) {
         #if DEBUG
         print("📊 [EnrichmentAPIClient] Fallback: \(fromEndpoint) → \(toEndpoint) (reason: \(reason))")
         #endif
@@ -383,18 +383,19 @@ actor EnrichmentAPIClient {
 
                 try await Task.sleep(for: .seconds(delay))
             } catch let error as URLError where error.code == .timedOut || error.code == .networkConnectionLost || error.code == .notConnectedToInternet {
-                // Network errors are retryable
+                // Network errors are retryable with exponential backoff
                 lastError = error
-                attempt += 1
 
+                // Calculate delay BEFORE incrementing attempt (consistent with EnrichmentError handling)
+                let delay = min(
+                    config.initialDelay * pow(config.backoffMultiplier, Double(attempt)),
+                    config.maxDelay
+                )
+
+                attempt += 1
                 if attempt >= config.maxAttempts {
                     throw error
                 }
-
-                let delay = min(
-                    config.initialDelay * pow(config.backoffMultiplier, Double(attempt - 1)),
-                    config.maxDelay
-                )
 
                 #if DEBUG
                 print("⚠️ Network error (attempt \(attempt)/\(config.maxAttempts)), retrying in \(String(format: "%.1f", delay))s: \(error.localizedDescription)")

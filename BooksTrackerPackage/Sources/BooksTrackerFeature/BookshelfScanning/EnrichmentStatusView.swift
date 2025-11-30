@@ -108,18 +108,12 @@ struct EnrichmentStatusView: View {
     // MARK: - Status Color
 
     private var statusColor: Color {
-        switch status {
-        case .pending:
+        // Use .secondary for pending in this view context (more subdued)
+        // All other cases reuse the color from the enum
+        if status == .pending {
             return .secondary
-        case .success:
-            return .green
-        case .notFound:
-            return .orange
-        case .error:
-            return .red
-        case .circuitOpen:
-            return .yellow
         }
+        return status.color
     }
 
     // MARK: - Accessibility
@@ -166,7 +160,8 @@ struct EnrichmentStatusView: View {
             }
         }
 
-        // Countdown complete - auto-retry
+        // Countdown complete - check cancellation before auto-retry
+        guard !Task.isCancelled else { return }
         await onRetry?()
     }
 
