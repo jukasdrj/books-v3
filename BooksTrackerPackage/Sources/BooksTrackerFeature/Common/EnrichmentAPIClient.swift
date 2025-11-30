@@ -1,5 +1,43 @@
 import Foundation
 
+// MARK: - Retry Configuration
+
+/// Configuration for retry behavior with exponential backoff
+struct RetryConfiguration: Sendable {
+    /// Maximum number of retry attempts (including the initial attempt)
+    let maxAttempts: Int
+    /// Initial delay before first retry (seconds)
+    let initialDelay: TimeInterval
+    /// Maximum delay between retries (seconds)
+    let maxDelay: TimeInterval
+    /// Multiplier for exponential backoff
+    let backoffMultiplier: Double
+
+    /// Default configuration: 3 attempts, 1s initial delay, 60s max, 2x backoff
+    static let `default` = RetryConfiguration(
+        maxAttempts: 3,
+        initialDelay: 1.0,
+        maxDelay: 60.0,
+        backoffMultiplier: 2.0
+    )
+
+    /// Aggressive configuration: 5 attempts, 0.5s initial delay, 30s max, 1.5x backoff
+    static let aggressive = RetryConfiguration(
+        maxAttempts: 5,
+        initialDelay: 0.5,
+        maxDelay: 30.0,
+        backoffMultiplier: 1.5
+    )
+
+    /// No retry configuration: single attempt only
+    static let none = RetryConfiguration(
+        maxAttempts: 1,
+        initialDelay: 0,
+        maxDelay: 0,
+        backoffMultiplier: 1.0
+    )
+}
+
 /// API client for triggering backend enrichment jobs
 actor EnrichmentAPIClient {
 
@@ -49,12 +87,15 @@ actor EnrichmentAPIClient {
         }
     }
 
-    /// Start enrichment job on backend
+    /// Start enrichment job on backend with automatic retry for retryable errors
     /// Backend will push progress updates via WebSocket
-    /// - Parameter jobId: Unique job identifier for WebSocket tracking
+    /// - Parameters:
+    ///   - jobId: Unique job identifier for WebSocket tracking
+    ///   - books: Books to enrich
+    ///   - retryConfig: Retry configuration (default: .default)
     /// - Returns: Enrichment result with final counts
     /// - Note: Supports automatic fallback from /v1/enrichment/batch → /api/enrichment/batch if canonical endpoint unavailable (404/405/426/501)
-    func startEnrichment(jobId: String, books: [Book]) async throws -> EnrichmentResult {
+    func startEnrichment(jobId: String, books: [Book], retryConfig: RetryConfiguration = .default) async throws -> EnrichmentResult {
         // Use canonical /v1 endpoint by default (Issue #425)
         // Legacy /api endpoint will be removed in backend v2.0 (January 2026)
         // Feature flag available to disable canonical endpoint if needed via FeatureFlags.disableCanonicalEnrichment
@@ -63,30 +104,33 @@ actor EnrichmentAPIClient {
         let primaryEndpoint = disableCanonical ? "/api/enrichment/batch" : "/v1/enrichment/batch"
         let fallbackEndpoint = "/api/enrichment/batch"
 
-        do {
-            return try await performEnrichment(endpoint: primaryEndpoint, jobId: jobId, books: books)
-        } catch let error as NSError where !disableCanonical && shouldFallbackToLegacy(statusCode: error.code) {
-            // Automatic fallback on endpoint-not-available errors (404, 405, 426, 501)
-            #if DEBUG
-            print("⚠️ [EnrichmentAPIClient] Canonical endpoint failed with \(error.code), falling back to legacy: \(fallbackEndpoint)")
-            #endif
+        // Wrap with retry logic - each retry attempt includes fallback logic
+        return try await retryWithBackoff(config: retryConfig) { [self] in
+            do {
+                return try await self.performEnrichment(endpoint: primaryEndpoint, jobId: jobId, books: books)
+            } catch let error as NSError where !disableCanonical && self.shouldFallbackToLegacy(statusCode: error.code) {
+                // Automatic fallback on endpoint-not-available errors (404, 405, 426, 501)
+                #if DEBUG
+                print("⚠️ [EnrichmentAPIClient] Canonical endpoint failed with \(error.code), falling back to legacy: \(fallbackEndpoint)")
+                #endif
 
-            // Log fallback metric for observability
-            logFallbackMetric(fromEndpoint: primaryEndpoint, toEndpoint: fallbackEndpoint, reason: "\(error.code)")
+                // Log fallback metric for observability
+                self.logFallbackMetric(fromEndpoint: primaryEndpoint, toEndpoint: fallbackEndpoint, reason: "\(error.code)")
 
-            return try await performEnrichment(endpoint: fallbackEndpoint, jobId: jobId, books: books)
+                return try await self.performEnrichment(endpoint: fallbackEndpoint, jobId: jobId, books: books)
+            }
         }
     }
 
     /// Determines if error warrants fallback to legacy endpoint
     /// Fallback on: 404 (Not Found), 405 (Method Not Allowed), 426 (Upgrade Required), 501 (Not Implemented)
     /// Do NOT fallback on: 4xx client errors (400, 401, 403, 422) or 5xx server errors (to avoid duplicate jobs)
-    private func shouldFallbackToLegacy(statusCode: Int) -> Bool {
+    nonisolated private func shouldFallbackToLegacy(statusCode: Int) -> Bool {
         [404, 405, 426, 501].contains(statusCode)
     }
 
     /// Log fallback event for observability (sends to console in DEBUG, ready for analytics integration)
-    private func logFallbackMetric(fromEndpoint: String, toEndpoint: String, reason: String) {
+    nonisolated private func logFallbackMetric(fromEndpoint: String, toEndpoint: String, reason: String) {
         #if DEBUG
         print("📊 [EnrichmentAPIClient] Fallback: \(fromEndpoint) → \(toEndpoint) (reason: \(reason))")
         #endif
@@ -300,21 +344,154 @@ actor EnrichmentAPIClient {
         return result
     }
 
-    /// Enriches a book using the V2 sync API.
+    // MARK: - Retry Logic with Exponential Backoff
+
+    /// Retry wrapper with exponential backoff for retryable errors
+    /// - Parameters:
+    ///   - config: Retry configuration
+    ///   - operation: Async operation to retry
+    /// - Returns: Result of successful operation
+    /// - Throws: Error if all retries exhausted or non-retryable error
+    private func retryWithBackoff<T: Sendable>(
+        config: RetryConfiguration,
+        operation: @Sendable () async throws -> T
+    ) async throws -> T {
+        var attempt = 0
+        var lastError: Error?
+
+        while attempt < config.maxAttempts {
+            do {
+                return try await operation()
+            } catch let error as EnrichmentError {
+                lastError = error
+
+                // Determine if error is retryable and get delay
+                let (retryable, delay) = getRetryInfo(for: error, config: config, attempt: attempt)
+
+                if !retryable {
+                    throw error
+                }
+
+                attempt += 1
+                if attempt >= config.maxAttempts {
+                    throw error
+                }
+
+                #if DEBUG
+                print("⚠️ Retryable error (attempt \(attempt)/\(config.maxAttempts)), retrying in \(String(format: "%.1f", delay))s: \(error.localizedDescription)")
+                #endif
+
+                try await Task.sleep(for: .seconds(delay))
+            } catch let error as URLError where error.code == .timedOut || error.code == .networkConnectionLost || error.code == .notConnectedToInternet {
+                // Network errors are retryable
+                lastError = error
+                attempt += 1
+
+                if attempt >= config.maxAttempts {
+                    throw error
+                }
+
+                let delay = min(
+                    config.initialDelay * pow(config.backoffMultiplier, Double(attempt - 1)),
+                    config.maxDelay
+                )
+
+                #if DEBUG
+                print("⚠️ Network error (attempt \(attempt)/\(config.maxAttempts)), retrying in \(String(format: "%.1f", delay))s: \(error.localizedDescription)")
+                #endif
+
+                try await Task.sleep(for: .seconds(delay))
+            } catch {
+                // Non-retryable error - fail immediately
+                throw error
+            }
+        }
+
+        throw lastError ?? EnrichmentError.apiError("Max retries exceeded")
+    }
+
+    /// Determines if an error is retryable and calculates delay
+    /// - Parameters:
+    ///   - error: The EnrichmentError to evaluate
+    ///   - config: Retry configuration for backoff calculation
+    ///   - attempt: Current attempt number (0-indexed)
+    /// - Returns: Tuple of (isRetryable, delayInSeconds)
+    private func getRetryInfo(
+        for error: EnrichmentError,
+        config: RetryConfiguration,
+        attempt: Int
+    ) -> (retryable: Bool, delay: TimeInterval) {
+        switch error {
+        case .rateLimitExceeded(let retryAfter):
+            // Use server-provided retry-after, capped at maxDelay
+            let delay = min(TimeInterval(retryAfter), config.maxDelay)
+            return (true, delay)
+
+        case .circuitOpen(_, let retryAfterMs):
+            // Use circuit breaker cooldown from server, capped at maxDelay
+            let delay = min(TimeInterval(retryAfterMs) / 1000.0, config.maxDelay)
+            return (true, delay)
+
+        case .httpError(let statusCode) where statusCode >= 500:
+            // Server errors are retryable with exponential backoff
+            let delay = min(
+                config.initialDelay * pow(config.backoffMultiplier, Double(attempt)),
+                config.maxDelay
+            )
+            return (true, delay)
+
+        default:
+            // Not retryable - noMatchFound, apiError, invalidQuery, etc.
+            return (false, 0)
+        }
+    }
+
+    // MARK: - V2 Sync Enrichment API
+
+    /// Enriches a book using the V2 sync API with automatic retry for retryable errors.
     /// - Parameters:
     ///   - barcode: The ISBN or barcode to enrich
     ///   - idempotencyKey: Optional stable key for retry safety. If nil, generates one based on barcode.
     ///   - preferProvider: Provider preference hint (default: "auto")
-    func enrichBookV2(barcode: String, idempotencyKey: String? = nil, preferProvider: String = "auto") async throws -> EnrichedBookDTO {
+    ///   - retryConfig: Retry configuration (default: .default)
+    /// - Returns: Enriched book data from the API
+    /// - Throws: EnrichmentError for API-specific errors, URLError for network issues
+    func enrichBookV2(
+        barcode: String,
+        idempotencyKey: String? = nil,
+        preferProvider: String = "auto",
+        retryConfig: RetryConfiguration = .default
+    ) async throws -> EnrichedBookDTO {
+        // Use provided idempotency key or generate a stable one based on barcode
+        // This ensures retries use the same key, preserving idempotency semantics
+        let key = idempotencyKey ?? "scan_\(barcode)"
+
+        return try await retryWithBackoff(config: retryConfig) { [self] in
+            try await self.performEnrichBookV2(
+                barcode: barcode,
+                idempotencyKey: key,
+                preferProvider: preferProvider
+            )
+        }
+    }
+
+    /// Internal implementation of enrichBookV2 without retry wrapper
+    /// - Parameters:
+    ///   - barcode: The ISBN or barcode to enrich
+    ///   - idempotencyKey: Stable key for retry safety
+    ///   - preferProvider: Provider preference hint
+    /// - Returns: Enriched book data from the API
+    private func performEnrichBookV2(
+        barcode: String,
+        idempotencyKey: String,
+        preferProvider: String
+    ) async throws -> EnrichedBookDTO {
         let url = EnrichmentConfig.enrichBookV2URL
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        // Use provided idempotency key or generate a stable one based on barcode
-        // This ensures retries use the same key, preserving idempotency semantics
-        let key = idempotencyKey ?? "scan_\(barcode)"
-        let payload = EnrichBookV2Request(barcode: barcode, preferProvider: preferProvider, idempotencyKey: key)
+        let payload = EnrichBookV2Request(barcode: barcode, preferProvider: preferProvider, idempotencyKey: idempotencyKey)
         request.httpBody = try JSONEncoder().encode(payload)
 
         let (data, response) = try await URLSession.shared.data(for: request)

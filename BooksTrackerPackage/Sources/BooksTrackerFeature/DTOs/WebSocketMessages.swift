@@ -360,29 +360,56 @@ public struct JobMetadata: Codable, Sendable {
     }
 }
 
+// MARK: - Detected Book Payload
+
 public struct DetectedBookPayload: Codable, Sendable {
     public let title: String?
     public let author: String?
     public let isbn: String?
     public let confidence: Double?
     public let boundingBox: BoundingBox?
-    public let enrichmentStatus: String?
+    public let enrichmentStatus: String?  // Keep as String for backward compatibility
     // Deprecated flat fields (use enrichment below)
     public let coverUrl: String?
     public let publisher: String?
     public let publicationYear: Int?
     // Nested enrichment data (canonical DTOs) - Added Nov 2025
     public let enrichment: EnrichmentData?
+
+    /// Check if enrichment can be retried based on status string
+    /// Retryable statuses: pending, error, circuit_open
+    public var canRetryEnrichment: Bool {
+        let status = enrichmentStatus ?? enrichment?.status
+        switch status {
+        case "pending", "error", "circuit_open":
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// Get retry delay if circuit is open (milliseconds)
+    public var circuitOpenRetryDelay: Int? {
+        let status = enrichmentStatus ?? enrichment?.status
+        guard status == "circuit_open" else { return nil }
+        return enrichment?.retryAfterMs
+    }
 }
 
 public struct EnrichmentData: Codable, Sendable {
-    public let status: String
+    public let status: String  // Keep as String for backward compatibility
     public let work: WorkDTO?
     public let editions: [EditionDTO]?
     public let authors: [AuthorDTO]?
     public let provider: String?
     public let cachedResult: Bool?
     public let error: String?
+    public let retryAfterMs: Int?  // Circuit breaker cooldown (API Contract v3.1)
+
+    /// Convenience: Is this a circuit_open status?
+    public var isCircuitOpen: Bool {
+        status == "circuit_open"
+    }
 }
 
 public struct BoundingBox: Codable, Sendable {
