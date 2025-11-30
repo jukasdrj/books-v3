@@ -110,15 +110,54 @@ public enum EnrichmentEvent: Equatable, Sendable {
 // MARK: - CSV Import Progress (SSE Payloads)
 
 /// Progress update during CSV import (SSE event payload)
+/// Matches API Contract v3.3 for CSV import SSE events
 public struct CSVImportProgress: Codable, Equatable, Sendable {
     public let jobId: String
-    public let status: String // "PENDING", "PROCESSING", "COMPLETED", "FAILED"
-    public let processedRecords: Int
-    public let totalRecords: Int
-    public let progressPercentage: Int
-    public let message: String?
-    public let errors: [String]?
-    public let finalResult: String? // URL string for download
+    public let status: String
+    public let progress: Double         // 0.0 - 1.0 (matches backend)
+    public let processedCount: Int      // Renamed from processedRecords
+    public let totalCount: Int          // Renamed from totalRecords
+    public let startedAt: String?       // ISO timestamp when job started
+
+    public init(
+        jobId: String,
+        status: String,
+        progress: Double,
+        processedCount: Int,
+        totalCount: Int,
+        startedAt: String? = nil
+    ) {
+        self.jobId = jobId
+        self.status = status
+        self.progress = progress
+        self.processedCount = processedCount
+        self.totalCount = totalCount
+        self.startedAt = startedAt
+    }
+}
+
+/// Completed CSV import (SSE event: "completed")
+/// Matches API Contract v3.3 for CSV import completion event
+public struct CSVImportCompleted: Codable, Equatable, Sendable {
+    public let jobId: String
+    public let status: String
+    public let progress: Double         // Should be 1.0 on completion
+    public let processedCount: Int
+    public let totalCount: Int
+
+    public init(
+        jobId: String,
+        status: String,
+        progress: Double,
+        processedCount: Int,
+        totalCount: Int
+    ) {
+        self.jobId = jobId
+        self.status = status
+        self.progress = progress
+        self.processedCount = processedCount
+        self.totalCount = totalCount
+    }
 }
 
 // MARK: - Photo Scan Progress (SSE Payloads)
@@ -236,9 +275,13 @@ public enum PhotoScanSSEEvent: Equatable, Sendable {
 // MARK: - Legacy Support for GeminiCSVImport
 
 /// Results response from SSE stream (legacy support)
+/// Updated to match API Contract v3.3 (CSV import results endpoint)
 public struct SSEResultsResponse: Codable, Sendable {
-    public let results: [BookDTO]?
-    public let error: String?
+    public let books: [ParsedBook]?         // Parsed books (with enrichment data)
+    public let errors: [ImportError]        // Import errors
+    public let booksCreated: Int            // Count of new books created
+    public let booksUpdated: Int            // Count of existing books updated
+    public let error: String?               // Legacy error field
 }
 
 /// Error detail structure (legacy support)
