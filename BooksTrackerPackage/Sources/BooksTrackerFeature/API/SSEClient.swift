@@ -286,6 +286,19 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
                 )))
                 Task { await disconnect() }
 
+            // CSV import event parsing
+            case "import.progress":
+                let progress = try decoder.decode(CSVImportProgress.self, from: jsonData)
+                currentContinuation?.yield(.csvImportProgress(progress))
+            case "import.completed":
+                let completed = try decoder.decode(CSVImportCompleted.self, from: jsonData)
+                currentContinuation?.yield(.csvImportCompleted(completed))
+                Task { await disconnect() }
+            case "import.failed":
+                let failed = try decoder.decode(CSVImportFailed.self, from: jsonData)
+                currentContinuation?.yield(.csvImportFailed(failed))
+                Task { await disconnect() }
+
             default:
                 print("SSEClient: Received unknown event type: \(eventName). Data: \(combinedData)")
             }

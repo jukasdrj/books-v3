@@ -105,6 +105,10 @@ public enum EnrichmentEvent: Equatable, Sendable {
     case progress(EnrichmentProgress)
     case completed(EnrichmentCompleted)
     case failed(EnrichmentFailed)
+    // CSV import event types
+    case csvImportProgress(CSVImportProgress)
+    case csvImportCompleted(CSVImportCompleted)
+    case csvImportFailed(CSVImportFailed)
 }
 
 // MARK: - CSV Import Progress (SSE Payloads)
@@ -112,13 +116,28 @@ public enum EnrichmentEvent: Equatable, Sendable {
 /// Progress update during CSV import (SSE event payload)
 public struct CSVImportProgress: Codable, Equatable, Sendable {
     public let jobId: String
-    public let status: String // "PENDING", "PROCESSING", "COMPLETED", "FAILED"
-    public let processedRecords: Int
-    public let totalRecords: Int
-    public let progressPercentage: Int
+    public let status: String
+    public let progress: Int // 0-100
+    public let processedCount: Int
+    public let totalCount: Int
     public let message: String?
-    public let errors: [String]?
-    public let finalResult: String? // URL string for download
+}
+
+/// CSV import completed event
+public struct CSVImportCompleted: Codable, Equatable, Sendable {
+    public let jobId: String
+    public let status: String
+    public let progress: Int
+    public let processedCount: Int
+    public let totalCount: Int
+    public let completedAt: String
+}
+
+/// CSV import failed event
+public struct CSVImportFailed: Codable, Equatable, Sendable {
+    public let jobId: String
+    public let status: String
+    public let error: ErrorDetail
 }
 
 // MARK: - Photo Scan Progress (SSE Payloads)

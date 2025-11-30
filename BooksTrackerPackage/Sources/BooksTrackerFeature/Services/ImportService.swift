@@ -129,7 +129,7 @@ public actor ImportService {
 
                 let isDuplicate = potentialMatches.contains { work in
                     let existingAuthor = work.authorNames.lowercased()
-                    let newAuthor = book.author.lowercased()
+                    let newAuthor = book.authors.joined(separator: ", ").lowercased()
                     return existingAuthor.contains(newAuthor) || newAuthor.contains(existingAuthor)
                 }
 
@@ -138,18 +138,18 @@ public actor ImportService {
                     continue
                 }
 
-                // Create Author FIRST and insert
-                let author = Author(name: book.author)
-                context.insert(author)
+                // Create Authors FIRST and insert
+                let authors = book.authors.map { Author(name: $0) }
+                authors.forEach { context.insert($0) }
 
                 // Create Work, insert, then set relationship
                 let work = Work(
                     title: book.title,
                     originalLanguage: "Unknown",
-                    firstPublicationYear: book.publicationYear
+                    firstPublicationYear: book.year
                 )
                 context.insert(work)
-                work.authors = [author]
+                work.authors = authors
 
                 // Create UserLibraryEntry so book appears in library
                 let libraryEntry = UserLibraryEntry(readingStatus: .toRead)
@@ -161,8 +161,8 @@ public actor ImportService {
                     let edition = Edition(
                         isbn: isbn,
                         publisher: book.publisher,
-                        publicationDate: book.publicationYear.map { "\($0)" },
-                        pageCount: nil,
+                        publicationDate: book.year.map { "\($0)" },
+                        pageCount: book.pageCount,
                         format: .paperback,
                         coverImageURL: book.coverUrl
                     )
