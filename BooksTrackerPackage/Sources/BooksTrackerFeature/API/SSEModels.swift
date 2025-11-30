@@ -133,6 +133,106 @@ public struct PhotoScanProgress: Codable, Equatable, Sendable {
     public let message: String?
 }
 
+// MARK: - Photo Scan SSE Events (API Contract v3.2)
+
+/// PhotoScan progress event (SSE event: "photoscan.progress")
+public struct PhotoScanSSEProgress: Codable, Equatable, Sendable {
+    public let jobId: String
+    public let status: String
+    public let progress: Double  // 0.0 - 1.0
+    public let processedPhotos: Int
+    public let totalPhotos: Int
+    public let recognizedBooks: Int
+    public let message: String?
+
+    public init(
+        jobId: String,
+        status: String,
+        progress: Double,
+        processedPhotos: Int,
+        totalPhotos: Int,
+        recognizedBooks: Int,
+        message: String? = nil
+    ) {
+        self.jobId = jobId
+        self.status = status
+        self.progress = progress
+        self.processedPhotos = processedPhotos
+        self.totalPhotos = totalPhotos
+        self.recognizedBooks = recognizedBooks
+        self.message = message
+    }
+}
+
+/// PhotoScan completed event (SSE event: "photoscan.completed")
+public struct PhotoScanSSECompleted: Codable, Equatable, Sendable {
+    public let jobId: String
+    public let status: String
+    public let resultsUrl: String  // URL to fetch full results
+    public let summary: PhotoScanSummary
+
+    public struct PhotoScanSummary: Codable, Equatable, Sendable {
+        public let totalDetected: Int
+        public let approved: Int
+        public let needsReview: Int
+        public let enrichedCount: Int
+        public let duration: Int  // milliseconds
+
+        public init(
+            totalDetected: Int,
+            approved: Int,
+            needsReview: Int,
+            enrichedCount: Int,
+            duration: Int
+        ) {
+            self.totalDetected = totalDetected
+            self.approved = approved
+            self.needsReview = needsReview
+            self.enrichedCount = enrichedCount
+            self.duration = duration
+        }
+    }
+
+    public init(
+        jobId: String,
+        status: String,
+        resultsUrl: String,
+        summary: PhotoScanSummary
+    ) {
+        self.jobId = jobId
+        self.status = status
+        self.resultsUrl = resultsUrl
+        self.summary = summary
+    }
+}
+
+/// PhotoScan failed event (SSE event: "photoscan.failed")
+public struct PhotoScanSSEFailed: Codable, Equatable, Sendable {
+    public let jobId: String
+    public let status: String
+    public let error: String
+    public let retryable: Bool?
+
+    public init(
+        jobId: String,
+        status: String,
+        error: String,
+        retryable: Bool? = nil
+    ) {
+        self.jobId = jobId
+        self.status = status
+        self.error = error
+        self.retryable = retryable
+    }
+}
+
+/// Union type for all PhotoScan SSE events
+public enum PhotoScanSSEEvent: Equatable, Sendable {
+    case progress(PhotoScanSSEProgress)
+    case completed(PhotoScanSSECompleted)
+    case failed(PhotoScanSSEFailed)
+}
+
 // MARK: - Legacy Support for GeminiCSVImport
 
 /// Results response from SSE stream (legacy support)

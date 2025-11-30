@@ -267,17 +267,126 @@ actor BookshelfAIService {
         }
     }
 
-    /// 2. Upload image (server waits for WebSocket ready signal)
-    /// 3. Signal WebSocket ready to server
-    /// 4. Server starts processing (WebSocket guaranteed listening)
-    /// 5. Stream real-time progress
+    // MARK: - SSE Processing (API Contract v3.2)
+
+    /// Process bookshelf image using SSE for real-time progress (API Contract v3.2)
+    /// - Parameters:
+    ///   - image: UIImage to process
+    ///   - jobId: Pre-generated job identifier
+    ///   - provider: AI provider
+    ///   - progressHandler: Closure for progress updates
+    /// - Returns: Tuple of detected books and suggestions
+    internal func processViaSSE(
+        image: UIImage,
+        jobId: String,
+        provider: AIProvider,
+        progressHandler: @MainActor @escaping (Double, String) -> Void
+    ) async throws(BookshelfAIError) -> ([DetectedBook], [SuggestionViewModel]) {
+        // STEP 1: Compress image
+        let config = provider.preprocessingConfig
+        let processedImage = image.resizeForAI(maxDimension: config.maxDimension)
+
+        guard let imageData = compressImageAdaptive(processedImage, maxSizeBytes: maxImageSize) else {
+            throw .imageCompressionFailed
+        }
+
+        // STEP 2: Upload image and get SSE URL
+        let scanResponse: ScanJobResponse
+        do {
+            scanResponse = try await startScanJob(imageData, provider: provider, jobId: jobId)
+            #if DEBUG
+            print("SSE: Image uploaded with jobId: \(jobId)")
+            #endif
+        } catch {
+            throw .networkError(error)
+        }
+
+        // STEP 3: Check for SSE URL (V2 endpoint)
+        guard let sseUrlPath = scanResponse.sseUrl else {
+            throw .serverError(501, "SSE URL not provided - backend may not support SSE yet")
+        }
+
+        // Construct full SSE URL - handle both full URL and path-only formats
+        let sseUrl: URL
+        if sseUrlPath.hasPrefix("http://") || sseUrlPath.hasPrefix("https://") {
+            // Backend sent full URL
+            guard let fullUrl = URL(string: sseUrlPath) else {
+                throw .invalidResponse
+            }
+            sseUrl = fullUrl
+        } else {
+            // Backend sent path-only, construct relative to base
+            guard let baseUrl = URL(string: EnrichmentConfig.apiBaseURL),
+                  let relativeUrl = URL(string: sseUrlPath, relativeTo: baseUrl) else {
+                throw .invalidResponse
+            }
+            sseUrl = relativeUrl
+        }
+
+        // STEP 4: Connect to SSE stream
+        let sseClient = SSEClient(url: sseUrl, authToken: scanResponse.authToken)
+        let eventStream = await sseClient.connect()
+
+        #if DEBUG
+        print("SSE: Connected for job \(jobId)")
+        #endif
+
+        // STEP 5: Process SSE events
+        var resultsUrl: String?
+
+        for await event in eventStream {
+            switch event {
+            case .progress(let progress):
+                let fraction = Double(progress.progress) / 100.0
+                await progressHandler(fraction, progress.status)
+
+            case .completed(let completed):
+                // Extract results URL from data
+                if let data = completed.data.value as? [String: Any],
+                   let url = data["resultsUrl"] as? String {
+                    resultsUrl = url
+                }
+                // Break out of the stream loop
+                break
+
+            case .failed(let failed):
+                throw .serverError(500, "SSE job failed: \(failed.error)")
+            }
+        }
+
+        // STEP 6: Fetch full results from resultsUrl
+        guard let url = resultsUrl else {
+            throw .invalidResponse
+        }
+
+        let scanResult: ScanResultPayload
+        do {
+            scanResult = try await fetchScanResults(url: url)
+        } catch let error as BookshelfAIError {
+            throw error
+        } catch {
+            throw .networkError(error)
+        }
+
+        // Convert to DetectedBooks
+        let finalBooks = scanResult.books.compactMap { bookPayload in
+            convertPayloadToDetectedBook(bookPayload)
+        }
+
+        let finalSuggestions = generateSuggestionsFromPayload(scanResult)
+
+        return (finalBooks, finalSuggestions)
+    }
+
+    /// Process bookshelf image with real-time progress tracking.
+    /// Strategy: SSE-first (API v3.2), WebSocket fallback (legacy)
     ///
     /// - Parameters:
     ///   - image: UIImage to process
     ///   - progressHandler: Closure to handle progress updates (called on MainActor)
-    /// - Returns: Tuple of detected books and suggestions
+    /// - Returns: Tuple of processed image, detected books, and suggestions
     /// - Throws: BookshelfAIError for image compression, network, or processing errors
-    func processBookshelfImageWithWebSocket(
+    func processBookshelfImageWithProgress(
         _ image: UIImage,
         progressHandler: @MainActor @escaping (Double, String) -> Void
     ) async throws -> (UIImage, [DetectedBook], [SuggestionViewModel]) {
@@ -288,10 +397,43 @@ actor BookshelfAIService {
         print("[Analytics] bookshelf_scan_started - provider: \(provider.rawValue), scan_id: \(jobId)")
         #endif
 
-        // Try WebSocket first (preferred for 8ms latency)
+        // Check feature flag for SSE (API Contract v3.2)
+        let useSSE = await FeatureFlags.shared.enablePhotoScanSSE
+
+        if useSSE {
+            // Try SSE first (API Contract v3.2)
+            do {
+                #if DEBUG
+                print("SSE: Attempting connection for job \(jobId)")
+                #endif
+
+                let result = try await processViaSSE(
+                    image: image,
+                    jobId: jobId,
+                    provider: provider,
+                    progressHandler: progressHandler
+                )
+
+                #if DEBUG
+                print("SSE: Scan completed successfully")
+                print("[Analytics] bookshelf_scan_completed - provider: \(provider.rawValue), books_detected: \(result.0.count), scan_id: \(jobId), success: true, strategy: sse")
+                #endif
+
+                return (image, result.0, result.1)
+
+            } catch {
+                #if DEBUG
+                print("SSE: Failed, falling back to WebSocket: \(error)")
+                print("[Analytics] sse_fallback_triggered - provider: \(provider.rawValue), scan_id: \(jobId), error: \(error), fallback_to: websocket")
+                #endif
+                // Fall through to WebSocket
+            }
+        }
+
+        // WebSocket fallback (or primary if SSE disabled)
         do {
             #if DEBUG
-            print("🔌 Attempting WebSocket connection for job \(jobId)")
+            print("WebSocket: Attempting connection for job \(jobId)")
             #endif
 
             let result = try await processViaWebSocket(
@@ -302,26 +444,30 @@ actor BookshelfAIService {
             )
 
             #if DEBUG
-            print("✅ WebSocket scan completed successfully")
-            #endif
-            #if DEBUG
+            print("WebSocket: Scan completed successfully")
             print("[Analytics] bookshelf_scan_completed - provider: \(provider.rawValue), books_detected: \(result.0.count), scan_id: \(jobId), success: true, strategy: websocket")
             #endif
 
             return (image, result.0, result.1)
 
         } catch {
-            // WebSocket failed - no fallback available (polling removed in monolith refactor)
             #if DEBUG
-            print("❌ WebSocket scan failed: \(error)")
-            #endif
-            #if DEBUG
+            print("Scan failed: \(error)")
             print("[Analytics] bookshelf_scan_failed - provider: \(provider.rawValue), scan_id: \(jobId), error: \(error)")
             #endif
-
-            // Propagate error to caller
             throw error
         }
+    }
+
+    /// Process bookshelf image with WebSocket real-time progress tracking.
+    /// DEPRECATED: Use processBookshelfImageWithProgress for SSE-first strategy.
+    @available(*, deprecated, message: "Use processBookshelfImageWithProgress for SSE-first strategy")
+    func processBookshelfImageWithWebSocket(
+        _ image: UIImage,
+        progressHandler: @MainActor @escaping (Double, String) -> Void
+    ) async throws -> (UIImage, [DetectedBook], [SuggestionViewModel]) {
+        // Delegate to new method for backward compatibility
+        try await processBookshelfImageWithProgress(image, progressHandler: progressHandler)
     }
 
     // MARK: - Private Methods
@@ -735,8 +881,21 @@ actor BookshelfAIService {
     }
 
     public func fetchScanResults(url: String) async throws -> ScanResultPayload {
-        guard let fullURL = URL(string: "\(EnrichmentConfig.apiBaseURL)\(url)") else {
-            throw BookshelfAIError.invalidResponse
+        // Handle both full URL and path-only formats
+        let fullURL: URL
+        if url.hasPrefix("http://") || url.hasPrefix("https://") {
+            // Backend sent full URL
+            guard let parsedUrl = URL(string: url) else {
+                throw BookshelfAIError.invalidResponse
+            }
+            fullURL = parsedUrl
+        } else {
+            // Backend sent path-only, construct relative to base
+            guard let baseUrl = URL(string: EnrichmentConfig.apiBaseURL),
+                  let relativeUrl = URL(string: url, relativeTo: baseUrl) else {
+                throw BookshelfAIError.invalidResponse
+            }
+            fullURL = relativeUrl
         }
 
         let (data, response) = try await URLSession.shared.data(from: fullURL)

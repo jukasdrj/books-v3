@@ -252,6 +252,40 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
                 currentContinuation?.yield(.failed(failed))
                 // For failed events, we assume the stream should end.
                 Task { await disconnect() }
+
+            // MARK: - PhotoScan SSE Events (API Contract v3.2)
+            case "photoscan.progress":
+                let progress = try decoder.decode(PhotoScanSSEProgress.self, from: jsonData)
+                // Convert to EnrichmentEvent for compatibility with existing stream
+                currentContinuation?.yield(.progress(EnrichmentProgress(
+                    isbn: progress.jobId,
+                    status: progress.status,
+                    progress: Int(progress.progress * 100),
+                    provider: "photoscan"
+                )))
+            case "photoscan.completed":
+                let completed = try decoder.decode(PhotoScanSSECompleted.self, from: jsonData)
+                currentContinuation?.yield(.completed(EnrichmentCompleted(
+                    isbn: completed.jobId,
+                    status: completed.status,
+                    data: AnyCodable(["resultsUrl": completed.resultsUrl, "summary": [
+                        "totalDetected": completed.summary.totalDetected,
+                        "approved": completed.summary.approved,
+                        "needsReview": completed.summary.needsReview,
+                        "enrichedCount": completed.summary.enrichedCount,
+                        "duration": completed.summary.duration
+                    ]])
+                )))
+                Task { await disconnect() }
+            case "photoscan.failed":
+                let failed = try decoder.decode(PhotoScanSSEFailed.self, from: jsonData)
+                currentContinuation?.yield(.failed(EnrichmentFailed(
+                    isbn: failed.jobId,
+                    status: failed.status,
+                    error: failed.error
+                )))
+                Task { await disconnect() }
+
             default:
                 print("SSEClient: Received unknown event type: \(eventName). Data: \(combinedData)")
             }

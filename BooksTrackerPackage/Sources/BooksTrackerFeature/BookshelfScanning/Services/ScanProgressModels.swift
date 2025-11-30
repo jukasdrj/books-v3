@@ -19,10 +19,18 @@ public struct BookshelfScanMetadata: Sendable {
 
 public struct ScanJobResponse: Codable, Sendable {
     public let jobId: String
-    public let authToken: String  // Auth token for WebSocket (canonical)
+    public let authToken: String  // Auth token for SSE/WebSocket (canonical)
 
     @available(*, deprecated, message: "Use authToken instead. Removal: March 1, 2026")
     public let token: String?  // Deprecated field, backward compatibility only
+
+    // API Contract v3.2: SSE endpoints
+    public let sseUrl: String?      // SSE stream endpoint (preferred)
+    public let statusUrl: String?   // Polling fallback endpoint
+
+    // Deprecated WebSocket endpoint
+    @available(*, deprecated, message: "WebSocket deprecated. Use SSE (sseUrl). Removal: Q3 2026")
+    public let websocketUrl: String?
 
     public let stages: [StageMetadata]
     public let estimatedRange: [Int]  // [min, max] seconds
@@ -40,6 +48,11 @@ public struct ScanJobResponse: Codable, Sendable {
         jobId = try container.decode(String.self, forKey: .jobId)
         stages = try container.decode([StageMetadata].self, forKey: .stages)
         estimatedRange = try container.decode([Int].self, forKey: .estimatedRange)
+
+        // Decode SSE/WebSocket URLs (API Contract v3.2)
+        sseUrl = try container.decodeIfPresent(String.self, forKey: .sseUrl)
+        statusUrl = try container.decodeIfPresent(String.self, forKey: .statusUrl)
+        websocketUrl = try container.decodeIfPresent(String.self, forKey: .websocketUrl)
 
         // Prefer authToken, fallback to token for legacy responses
         let decodedAuthToken = try? container.decode(String.self, forKey: .authToken)
@@ -65,6 +78,7 @@ public struct ScanJobResponse: Codable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case jobId, authToken, token, stages, estimatedRange
+        case sseUrl, statusUrl, websocketUrl  // API Contract v3.2
     }
 }
 
