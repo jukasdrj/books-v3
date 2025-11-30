@@ -51,7 +51,7 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
             }
             // Start the initial connection attempt.
             // This happens in a Task to avoid blocking the caller of `connect()`.
-            Task { await self.startConnectionAttempt() }
+            Task { self.startConnectionAttempt() }
         }
     }
 
@@ -136,7 +136,7 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
                     return
                 }
                 print("SSEClient: Reconnecting to \(url)...")
-                await self.startConnectionAttempt()
+                self.startConnectionAttempt()
                 currentBackoffDelay = min(currentBackoffDelay * backoffFactor, maxBackoffDelay) // Increase delay for next time
             } catch is CancellationError {
                 print("SSEClient: Reconnect task cancelled during sleep.")
@@ -148,13 +148,31 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
 
     /// Handles connection errors or task completion, triggering a reconnection.
     private func handleConnectionTermination(error: Error?) {
+        // Check if we're already disconnected (due to terminal event) - don't reconnect
+        guard isCurrentlyConnected else {
+            print("SSEClient: Connection already closed (normal termination), not reconnecting")
+            return
+        }
+
         let errorMessage = error?.localizedDescription ?? "Unknown error"
         print("SSEClient: Connection to \(url) terminated with error: \(errorMessage)")
 
-        // Yield a failed event to the stream consumer.
-        // It's important to keep the stream alive for retries,
-        // so we don't call `finish()` here unless it's a permanent disconnect.
-        if let error = error {
+        // Check if this is a normal EOF/stream closure (error code -1005 or nil error)
+        // This happens when server closes stream after terminal event
+        let isNormalClosure = error == nil || (error as NSError?)?.code == -1005
+
+        if isNormalClosure {
+            print("SSEClient: Normal stream closure detected, not reconnecting")
+            isCurrentlyConnected = false
+            dataTask?.cancel()
+            dataTask = nil
+            urlSession?.invalidateAndCancel()
+            urlSession = nil
+            return
+        }
+
+        // Yield a failed event to the stream consumer for actual errors
+        if error != nil {
             currentContinuation?.yield(.failed(EnrichmentFailed(
                 isbn: "unknown",
                 status: "connection_failed",
@@ -241,17 +259,60 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
             case "enrichment.progress":
                 let progress = try decoder.decode(EnrichmentProgress.self, from: jsonData)
                 currentContinuation?.yield(.progress(progress))
+            case "progress":
+                // CSV import progress event - decode as CSVImportProgress
+                let csvProgress = try decoder.decode(CSVImportProgress.self, from: jsonData)
+                // Convert to EnrichmentProgress for compatibility with existing stream
+                currentContinuation?.yield(.progress(EnrichmentProgress(
+                    isbn: csvProgress.jobId,
+                    status: csvProgress.status,
+                    progress: Int(csvProgress.progress * 100),  // Convert 0-1 to 0-100
+                    provider: "csv_import"
+                )))
             case "enrichment.completed":
                 let completed = try decoder.decode(EnrichmentCompleted.self, from: jsonData)
                 currentContinuation?.yield(.completed(completed))
                 // For completion events, we assume the stream should end.
                 // Disconnect to clean up resources and terminate the AsyncStream.
-                Task { await disconnect() }
-            case "enrichment.failed":
+                Task { [weak self] in await self?.disconnect() }
+            case "completed":
+                // CSV import completed event - decode as CSVImportCompleted
+                let csvCompleted = try decoder.decode(CSVImportCompleted.self, from: jsonData)
+                // Convert to EnrichmentCompleted for compatibility with existing stream
+                currentContinuation?.yield(.completed(EnrichmentCompleted(
+                    isbn: csvCompleted.jobId,
+                    status: csvCompleted.status,
+                    data: AnyCodable([
+                        "processedCount": csvCompleted.processedCount,
+                        "totalCount": csvCompleted.totalCount,
+                        "progress": csvCompleted.progress
+                    ])
+                )))
+                Task { [weak self] in await self?.disconnect() }
+            case "enrichment.failed", "failed":
                 let failed = try decoder.decode(EnrichmentFailed.self, from: jsonData)
                 currentContinuation?.yield(.failed(failed))
                 // For failed events, we assume the stream should end.
-                Task { await disconnect() }
+                Task { [weak self] in await self?.disconnect() }
+            case "canceled", "cancelled":
+                // Job was canceled by user or system - treat as failed
+                let failed = EnrichmentFailed(
+                    isbn: "unknown",
+                    status: "canceled",
+                    error: "Job was canceled"
+                )
+                currentContinuation?.yield(.failed(failed))
+                Task { [weak self] in await self?.disconnect() }
+            case "error":
+                // Stream error event - treat as failed
+                let errorMsg = try? decoder.decode([String: String].self, from: jsonData)
+                let failed = EnrichmentFailed(
+                    isbn: "unknown",
+                    status: "error",
+                    error: errorMsg?["message"] ?? "Stream error"
+                )
+                currentContinuation?.yield(.failed(failed))
+                Task { [weak self] in await self?.disconnect() }
 
             // MARK: - PhotoScan SSE Events (API Contract v3.2)
             case "photoscan.progress":
@@ -276,7 +337,7 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
                         "duration": completed.summary.duration
                     ]])
                 )))
-                Task { await disconnect() }
+                Task { [weak self] in await self?.disconnect() }
             case "photoscan.failed":
                 let failed = try decoder.decode(PhotoScanSSEFailed.self, from: jsonData)
                 currentContinuation?.yield(.failed(EnrichmentFailed(
@@ -284,7 +345,7 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
                     status: failed.status,
                     error: failed.error
                 )))
-                Task { await disconnect() }
+                Task { [weak self] in await self?.disconnect() }
 
             // CSV import event parsing
             case "import.progress":

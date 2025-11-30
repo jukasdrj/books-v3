@@ -284,7 +284,7 @@ public struct GeminiCSVImportView: View {
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
 
-                Text("Error Code: \(error.code)")
+                Text("Error Code: \(error.code ?? "UNKNOWN")")
                     .font(.caption)
                     .foregroundColor(.secondary.opacity(0.6))
 
@@ -369,25 +369,38 @@ public struct GeminiCSVImportView: View {
         for await event in stream {
             await handleSSEEvent(event)
         }
+
+        #if DEBUG
+        print("[CSV SSE] Stream ended for job: \(jobId)")
+        #endif
     }
 
     private func handleSSEEvent(_ event: EnrichmentEvent) async {
         await MainActor.run {
             switch event {
             case .csvImportProgress(let progress):
+                #if DEBUG
+                print("[CSV SSE] Progress: \(Int(progress.progress * 100))% - \(progress.status)")
+                #endif
                 let message = "Processing: \(progress.processedCount)/\(progress.totalCount) books"
                 importStatus = .processing(
-                    progress: Double(progress.progress) / 100.0,
+                    progress: progress.progress,  // Already 0.0-1.0
                     message: message
                 )
 
             case .csvImportCompleted(let completion):
+                #if DEBUG
+                print("[CSV SSE] Completed event received, fetching results...")
+                #endif
                 // Fetch full results now that import is complete
                 Task {
                     await fetchResults(jobId: completion.jobId)
                 }
 
             case .csvImportFailed(let failure):
+                #if DEBUG
+                print("[CSV SSE] Failed: \(failure.error.message)")
+                #endif
                 importStatus = .failed(failure.error)
 
             default:
@@ -401,6 +414,12 @@ public struct GeminiCSVImportView: View {
         do {
             let results = try await GeminiCSVImportService.shared.fetchResults(jobId: jobId)
 
+            #if DEBUG
+            print("[CSV SSE] Results: \(results.booksCreated) created, \(results.booksUpdated) updated")
+            print("[CSV SSE] Books in response: \(results.books.count)")
+            print("[CSV SSE] Errors: \(results.errors.count)")
+            #endif
+
             await MainActor.run {
                 // Results already in correct format
                 importStatus = .completed(books: results.books, errors: results.errors)
@@ -410,6 +429,10 @@ public struct GeminiCSVImportView: View {
             await saveBooks(results.books)
 
         } catch {
+            #if DEBUG
+            print("[CSV SSE] ❌ Failed to fetch results: \(error)")
+            #endif
+
             await MainActor.run {
                 importStatus = .failed(makeErrorDetail(message: error.localizedDescription, code: "FETCH_RESULTS_FAILED"))
             }
