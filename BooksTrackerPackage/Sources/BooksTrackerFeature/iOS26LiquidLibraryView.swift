@@ -244,6 +244,27 @@ public struct iOS26LiquidLibraryView: View {
 
             if isLoading {
                 skeletonLoadingView
+            } else if cachedFilteredWorks.isEmpty {
+                if searchText.isEmpty && quickFilter == nil {
+                    SharedEmptyStateView(
+                        title: "Your Library Awaits",
+                        description: "Start building your personal collection of books.",
+                        actions: [
+                            EmptyStateAction(title: "Search for Books", icon: "magnifyingglass", color: .blue) {
+                                tabCoordinator.selectedTab = .search
+                            },
+                            EmptyStateAction(title: "Scan a Shelf", icon: "books.vertical.fill", color: .purple) {
+                                tabCoordinator.selectedTab = .shelf
+                            }
+                        ]
+                    )
+                } else {
+                    SharedEmptyStateView(
+                        icon: "magnifyingglass",
+                        title: "No Books Found",
+                        description: "Try adjusting your search or filters."
+                    )
+                }
             } else {
                 if cachedFilteredWorks.count > 50 {
                     ScrollViewReader { scrollProxy in
@@ -255,6 +276,22 @@ public struct iOS26LiquidLibraryView: View {
                     }
                 } else {
                     scrollContent
+                }
+            }
+
+            // Floating Action Button
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    LiquidFloatingActionButton(items: [
+                        FABItem(label: "Search Online", icon: "magnifyingglass", color: .blue) {
+                            tabCoordinator.selectedTab = .search
+                        },
+                        FABItem(label: "Scan Shelf", icon: "books.vertical.fill", color: .purple) {
+                            tabCoordinator.selectedTab = .shelf
+                        }
+                    ])
                 }
             }
         }

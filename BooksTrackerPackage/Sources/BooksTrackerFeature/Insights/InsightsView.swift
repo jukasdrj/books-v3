@@ -60,56 +60,67 @@ public struct InsightsView: View {
     }
 
     private var contentView: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                // Hero stats card
-                if let diversity = diversityStats {
-                    HeroStatsCard(stats: diversity.heroStats) { stat in
-                        // TODO: Jump to section (Phase 4)
-                        #if DEBUG
-                        print("Tapped: \(stat.title)")
-                        #endif
-                    }
-                }
-
-                // Diversity Completion Widget (Sprint 2)
-                if #available(iOS 26.0, *) {
-                    DiversityCompletionWidget(
-                        onDimensionTapped: { dimension in
-                            #if DEBUG
-                            print("📊 Tapped dimension: \(dimension)")
-                            #endif
-                            // TODO: Navigate to dimension detail (Phase 4)
-                        },
-                        onFillMissingData: {
-                            #if DEBUG
-                            print("📊 Fill missing data tapped")
-                            #endif
-                            // TODO: Navigate to progressive profiling flow (Phase 4)
+        Group {
+            if let diversity = diversityStats, diversity.totalAuthors == 0 {
+                SharedEmptyStateView(
+                    icon: "chart.bar.xaxis",
+                    title: "No Insights Yet",
+                    description: "Add books to your library to see diversity statistics and reading trends.",
+                    actions: []
+                )
+            } else {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Hero stats card
+                        if let diversity = diversityStats {
+                            HeroStatsCard(stats: diversity.heroStats) { stat in
+                                // TODO: Jump to section (Phase 4)
+                                #if DEBUG
+                                print("Tapped: \(stat.title)")
+                                #endif
+                            }
                         }
-                    )
+
+                        // Diversity Completion Widget (Sprint 2)
+                        if #available(iOS 26.0, *) {
+                            DiversityCompletionWidget(
+                                onDimensionTapped: { dimension in
+                                    #if DEBUG
+                                    print("📊 Tapped dimension: \(dimension)")
+                                    #endif
+                                    // TODO: Navigate to dimension detail (Phase 4)
+                                },
+                                onFillMissingData: {
+                                    #if DEBUG
+                                    print("📊 Fill missing data tapped")
+                                    #endif
+                                    // TODO: Navigate to progressive profiling flow (Phase 4)
+                                }
+                            )
+                        }
+
+                        // Representation Radar Chart (Sprint 2)
+                        representationRadarSection
+
+                        // Diversity section (existing charts)
+                        diversitySection
+
+                        // Reading stats section
+                        if let reading = readingStats {
+                            ReadingStatsSection(stats: reading, selectedPeriod: $selectedPeriod)
+                        }
+
+                        // Session analytics section
+                        if let streak = streakData {
+                            sessionAnalyticsSection(streak: streak)
+                        }
+                    }
+                    .padding()
                 }
-
-                // Representation Radar Chart (Sprint 2)
-                representationRadarSection
-
-                // Diversity section (existing charts)
-                diversitySection
-
-                // Reading stats section
-                if let reading = readingStats {
-                    ReadingStatsSection(stats: reading, selectedPeriod: $selectedPeriod)
-                }
-
-                // Session analytics section
-                if let streak = streakData {
-                    sessionAnalyticsSection(streak: streak)
-                }
+                .scrollEdgeEffectStyle(.soft, for: [.top, .bottom])
+                .scrollPosition($scrollPosition)
             }
-            .padding()
         }
-        .scrollEdgeEffectStyle(.soft, for: [.top, .bottom])
-        .scrollPosition($scrollPosition)
     }
 
     private func transformStatsToMetrics(stats: EnhancedDiversityStats) -> [DiversityMetric] {

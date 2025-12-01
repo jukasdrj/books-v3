@@ -101,6 +101,18 @@ struct iOS26NavigationGlassModifier: ViewModifier {
     }
 }
 
+@available(iOS 26.0, *)
+struct ThemedNavigationGlassModifier: ViewModifier {
+    @Environment(\.iOS26ThemeStore) private var themeStore
+
+    func body(content: Content) -> some View {
+        content
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarBackground(.visible, for: .tabBar)
+            .toolbarBackground(.ultraThinMaterial, for: .navigationBar, .tabBar)
+    }
+}
+
 // MARK: - Sheet Glass Presentation
 
 struct iOS26SheetGlassModifier: ViewModifier {
@@ -157,6 +169,12 @@ extension View {
     /// Apply iOS 26 sheet glass
     func iOS26SheetGlass() -> some View {
         modifier(iOS26SheetGlassModifier())
+    }
+
+    /// Apply theme-aware navigation glass
+    @available(iOS 26.0, *)
+    func themedNavigationGlass() -> some View {
+        modifier(ThemedNavigationGlassModifier())
     }
 
     /// Conditional view modifier

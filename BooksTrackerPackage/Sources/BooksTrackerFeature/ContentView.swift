@@ -73,6 +73,7 @@ public struct ContentView: View {
                             iOS26LiquidLibraryView()
                                 .environment(tabCoordinator)
                         }
+                        .themedNavigationGlass()
                         .tabItem {
                             Label("Library", systemImage: selectedTab == .library ? "books.vertical.fill" : "books.vertical")
                         }
@@ -84,6 +85,7 @@ public struct ContentView: View {
                                 .environment(searchCoordinator)
                                 .environment(tabCoordinator)
                         }
+                        .themedNavigationGlass()
                         .tabItem {
                             Label("Search", systemImage: selectedTab == .search ? "magnifyingglass.circle.fill" : "magnifyingglass")
                         }
@@ -94,6 +96,7 @@ public struct ContentView: View {
                             CombinedImportView()
                                  .environment(tabCoordinator)
                         }
+                        .themedNavigationGlass()
                         .tabItem {
                             Label("Scan & Import", systemImage: selectedTab == .shelf ? "barcode.viewfinder" : "barcode.viewfinder")
                         }
@@ -104,6 +107,7 @@ public struct ContentView: View {
                         NavigationStack {
                             InsightsView()
                         }
+                        .themedNavigationGlass()
                         .tabItem {
                             Label("Insights", systemImage: selectedTab == .insights ? "chart.bar.fill" : "chart.bar")
                         }
