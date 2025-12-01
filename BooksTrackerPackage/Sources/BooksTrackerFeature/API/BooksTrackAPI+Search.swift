@@ -4,7 +4,7 @@ extension BooksTrackAPI {
     // MARK: - V2 Unified Search API
 
     /// Unified V2 search endpoint - replaces all V1 search endpoints
-    /// Uses: POST /api/v2/search
+    /// Uses: GET /api/v2/search
     /// - Parameters:
     ///   - query: Search query string (supports prefixes: "isbn:", "similar:")
     ///   - mode: Search mode (text/semantic/hybrid)
@@ -47,7 +47,8 @@ extension BooksTrackAPI {
     /// - Parameter isbn: The ISBN to search for
     /// - Returns: First matching BookDTO, or nil if not found
     func searchByISBN(_ isbn: String) async throws -> BookDTO? {
-        let results = try await self.search(query: "isbn:\(isbn)", mode: .text, limit: 1)
+        let encodedISBN = isbn.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? isbn
+        let results = try await self.search(query: "isbn:\(encodedISBN)", mode: .text, limit: 1)
         return results.results.first
     }
 
@@ -69,8 +70,9 @@ extension BooksTrackAPI {
     ///   - limit: Maximum number of results (default: 10)
     /// - Returns: Array of similar BookDTOs
     func findSimilarBooks(to isbn: String, limit: Int = 10) async throws -> [BookDTO] {
+        let encodedISBN = isbn.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? isbn
         let results = try await self.search(
-            query: "similar:\(isbn)",
+            query: "similar:\(encodedISBN)",
             mode: .semantic,
             limit: limit
         )
@@ -88,13 +90,16 @@ extension BooksTrackAPI {
         var queryParts: [String] = []
 
         if let author = author {
-            queryParts.append("author:\(author)")
+            let encodedAuthor = author.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? author
+            queryParts.append("author:\(encodedAuthor)")
         }
         if let title = title {
-            queryParts.append("title:\(title)")
+            let encodedTitle = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? title
+            queryParts.append("title:\(encodedTitle)")
         }
         if let isbn = isbn {
-            queryParts.append("isbn:\(isbn)")
+            let encodedISBN = isbn.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? isbn
+            queryParts.append("isbn:\(encodedISBN)")
         }
 
         guard !queryParts.isEmpty else {

@@ -10,13 +10,13 @@ public struct SearchResults: Codable, Sendable {
     /// Total number of results available (for pagination)
     public let total: Int
 
-    /// Search mode used: "text", "semantic", or "hybrid"
-    public let mode: String
+    /// Search mode used: text, semantic, or hybrid
+    public let mode: SearchMode
 
     /// Original search query
     public let query: String
 
-    public init(results: [BookDTO], total: Int, mode: String, query: String) {
+    public init(results: [BookDTO], total: Int, mode: SearchMode, query: String) {
         self.results = results
         self.total = total
         self.mode = mode
