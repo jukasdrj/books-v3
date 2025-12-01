@@ -296,6 +296,15 @@ actor GeminiCSVImportService {
 
             // Decode response
             let decoder = JSONDecoder()
+
+            #if DEBUG
+            // 🔍 DEBUG: Print raw backend response to see what's actually being returned
+            if let rawResponse = String(data: data, encoding: .utf8) {
+                print("[CSV Results] 📡 RAW BACKEND RESPONSE (first 1000 chars):")
+                print(rawResponse.prefix(1000))
+            }
+            #endif
+
             let envelope = try decoder.decode(ResponseEnvelope<GeminiCSVImportJob>.self, from: data)
 
             // Check for errors in response
@@ -313,6 +322,18 @@ actor GeminiCSVImportService {
 
             #if DEBUG
             print("[CSV Results] ✅ Results fetched: \(results.books.count) books, \(results.errors.count) errors")
+            print("[CSV Results] ===== DETAILED BOOK DATA =====")
+            for (index, book) in results.books.enumerated() {
+                print("[CSV Results] Book \(index + 1):")
+                print("  Title: \(book.title)")
+                print("  Authors: \(book.authors)")  // 🔑 KEY CHECK
+                print("  ISBN: \(book.isbn ?? "none")")
+                print("  Publisher: \(book.publisher ?? "none")")
+                print("  Year: \(book.year?.description ?? "none")")
+                print("  Cover: \(book.coverUrl ?? "none")")
+                print("  Enrichment Error: \(book.enrichmentError ?? "none")")
+            }
+            print("[CSV Results] ===============================")
             #endif
             return results
 
