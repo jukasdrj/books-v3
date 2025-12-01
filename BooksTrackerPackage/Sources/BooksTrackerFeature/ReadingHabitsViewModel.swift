@@ -31,7 +31,10 @@ class ReadingHabitsViewModel {
         var lastDate = readingSessions.last!.date
 
         for session in readingSessions.reversed().dropFirst() {
-            if let days = Calendar.current.dateComponents([.day], from: session.date, to: lastDate).day, days == 1 {
+            let day1 = Calendar.current.startOfDay(for: session.date)
+            let day2 = Calendar.current.startOfDay(for: lastDate)
+
+            if let days = Calendar.current.dateComponents([.day], from: day1, to: day2).day, days == 1 {
                 streak += 1
                 lastDate = session.date
             } else if !Calendar.current.isDate(session.date, inSameDayAs: lastDate) {
