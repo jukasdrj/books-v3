@@ -131,3 +131,7 @@ test_output.log
 # Build logs
 build-output.log
 build-quick.log
+
+# Device deployment logs
+device-deploy.log
+device-deploy-fixed.log
