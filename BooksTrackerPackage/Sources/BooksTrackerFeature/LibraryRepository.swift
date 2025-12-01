@@ -543,8 +543,9 @@ public class LibraryRepository {
 
         // PERFORMANCE FIX (Issue #122): Fetch entries directly with prefetching
         // This avoids N+1 queries when accessing work.userLibraryEntries and entry.edition
+        let readStatus = ReadingStatus.read
         var descriptor = FetchDescriptor<UserLibraryEntry>(
-            predicate: #Predicate { $0.readingStatus == .read }
+            predicate: #Predicate { $0.readingStatus == readStatus }
         )
         // CRITICAL: Prefetch both work and edition relationships in single query
         descriptor.relationshipKeyPathsForPrefetching = [\.work, \.edition]

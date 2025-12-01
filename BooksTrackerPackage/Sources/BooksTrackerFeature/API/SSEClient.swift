@@ -262,13 +262,8 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
             case "progress":
                 // CSV import progress event - decode as CSVImportProgress
                 let csvProgress = try decoder.decode(CSVImportProgress.self, from: jsonData)
-                // Convert to EnrichmentProgress for compatibility with existing stream
-                currentContinuation?.yield(.progress(EnrichmentProgress(
-                    isbn: csvProgress.jobId,
-                    status: csvProgress.status,
-                    progress: Int(csvProgress.progress * 100),  // Convert 0-1 to 0-100
-                    provider: "csv_import"
-                )))
+                // Yield as csvImportProgress for GeminiCSVImportView handler
+                currentContinuation?.yield(.csvImportProgress(csvProgress))
             case "enrichment.completed":
                 let completed = try decoder.decode(EnrichmentCompleted.self, from: jsonData)
                 currentContinuation?.yield(.completed(completed))
@@ -278,16 +273,8 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
             case "completed":
                 // CSV import completed event - decode as CSVImportCompleted
                 let csvCompleted = try decoder.decode(CSVImportCompleted.self, from: jsonData)
-                // Convert to EnrichmentCompleted for compatibility with existing stream
-                currentContinuation?.yield(.completed(EnrichmentCompleted(
-                    isbn: csvCompleted.jobId,
-                    status: csvCompleted.status,
-                    data: AnyCodable([
-                        "processedCount": csvCompleted.processedCount,
-                        "totalCount": csvCompleted.totalCount,
-                        "progress": csvCompleted.progress
-                    ])
-                )))
+                // Yield as csvImportCompleted for GeminiCSVImportView handler
+                currentContinuation?.yield(.csvImportCompleted(csvCompleted))
                 Task { [weak self] in await self?.disconnect() }
             case "enrichment.failed", "failed":
                 let failed = try decoder.decode(EnrichmentFailed.self, from: jsonData)

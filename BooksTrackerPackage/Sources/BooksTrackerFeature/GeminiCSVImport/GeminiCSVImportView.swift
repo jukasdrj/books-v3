@@ -415,8 +415,8 @@ public struct GeminiCSVImportView: View {
             let results = try await GeminiCSVImportService.shared.fetchResults(jobId: jobId)
 
             #if DEBUG
-            print("[CSV SSE] Results: \(results.booksCreated) created, \(results.booksUpdated) updated")
-            print("[CSV SSE] Books in response: \(results.books.count)")
+            print("[CSV SSE] Results: \(results.books.count) books parsed")
+            print("[CSV SSE] Success rate: \(results.successRate)")
             print("[CSV SSE] Errors: \(results.errors.count)")
             #endif
 
@@ -426,7 +426,7 @@ public struct GeminiCSVImportView: View {
             }
 
             // Save books in background
-            await saveBooks(results.books)
+            _ = await saveBooks(results.books)
 
         } catch {
             #if DEBUG
@@ -434,7 +434,7 @@ public struct GeminiCSVImportView: View {
             #endif
 
             await MainActor.run {
-                importStatus = .failed(makeErrorDetail(message: error.localizedDescription, code: "FETCH_RESULTS_FAILED"))
+                importStatus = .failed(makeErrorDetail(code: "FETCH_RESULTS_FAILED", message: error.localizedDescription))
             }
         }
     }

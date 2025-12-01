@@ -43,6 +43,17 @@ public struct GeminiCSVImportJob: Codable, Sendable {
     public let errors: [ImportError]
     public let successRate: String
 
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        books = try container.decodeIfPresent([ParsedBook].self, forKey: .books) ?? []
+        errors = try container.decodeIfPresent([ImportError].self, forKey: .errors) ?? []
+        successRate = try container.decodeIfPresent(String.self, forKey: .successRate) ?? "100%"
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case books, errors, successRate
+    }
+
     public struct ParsedBook: Codable, Sendable, Equatable {
         public let title: String
         public let authors: [String]
@@ -52,6 +63,22 @@ public struct GeminiCSVImportJob: Codable, Sendable {
         public let year: Int?
         public let pageCount: Int?
         public let enrichmentError: String?
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            title = try container.decode(String.self, forKey: .title)
+            authors = try container.decodeIfPresent([String].self, forKey: .authors) ?? []
+            isbn = try container.decodeIfPresent(String.self, forKey: .isbn)
+            coverUrl = try container.decodeIfPresent(String.self, forKey: .coverUrl)
+            publisher = try container.decodeIfPresent(String.self, forKey: .publisher)
+            year = try container.decodeIfPresent(Int.self, forKey: .year)
+            pageCount = try container.decodeIfPresent(Int.self, forKey: .pageCount)
+            enrichmentError = try container.decodeIfPresent(String.self, forKey: .enrichmentError)
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case title, authors, isbn, coverUrl, publisher, year, pageCount, enrichmentError
+        }
     }
 
     public struct ImportError: Codable, Sendable, Equatable {
@@ -98,20 +125,9 @@ actor GeminiCSVImportService {
         print("[CSV Upload] Starting upload, size: \(csvText.utf8.count) bytes")
         #endif
 
-        // Validate CSV format (fail fast before network call)
-        do {
-            try await MainActor.run {
-                try CSVValidator.validate(csvText: csvText, featureFlags: FeatureFlags.shared)
-            }
-            #if DEBUG
-            print("[CSV Upload] ✅ CSV validation passed")
-            #endif
-        } catch let validationError as CSVValidationError {
-            #if DEBUG
-            print("[CSV Upload] ❌ CSV validation failed: \(validationError.localizedDescription)")
-            #endif
-            throw GeminiCSVImportError.parsingFailed(validationError.localizedDescription)
-        }
+        // NOTE: CSV validation is handled by the backend (Gemini).
+        // Client-side validation was removed to avoid false positives on valid CSVs
+        // that the backend can handle (e.g., different quoting styles, BOM markers, etc.)
 
         // Validate file size
         let dataSize = csvText.utf8.count
