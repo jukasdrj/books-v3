@@ -13,30 +13,61 @@ public enum EnrichmentResultsClient {
     /// - Throws: EnrichmentError if request fails
     public static func fetchResults(jobId: String) async throws -> [EnrichedBookPayload] {
         let url = URL(string: "\(EnrichmentConfig.apiBaseURL)/v1/jobs/\(jobId)/results")!
-        
+
+        #if DEBUG
+        print("🌐 [HTTP] Fetching enrichment results from: \(url.absoluteString)")
+        #endif
+
         let (data, response) = try await URLSession.shared.data(from: url)
-        
+
         guard let httpResponse = response as? HTTPURLResponse else {
             throw EnrichmentError.invalidResponse
         }
-        
+
+        #if DEBUG
+        print("📡 [HTTP] Response status: \(httpResponse.statusCode)")
+        print("📦 [HTTP] Response size: \(data.count) bytes")
+        #endif
+
         switch httpResponse.statusCode {
         case 200:
             // Decode ResponseEnvelope containing enriched books
             struct EnrichmentJobResults: Codable {
                 let enrichedBooks: [EnrichedBookPayload]?
             }
-            
-            let envelope = try JSONDecoder().decode(ResponseEnvelope<EnrichmentJobResults>.self, from: data)
-            
-            guard let results = envelope.data, let books = results.enrichedBooks else {
-                if let error = envelope.error {
-                    throw EnrichmentError.apiError(error.message)
+
+            do {
+                let results = try data.decodeEnvelope(EnrichmentJobResults.self)
+
+                guard let books = results.enrichedBooks else {
+                    throw EnrichmentError.apiError("No enriched books in response")
                 }
-                throw EnrichmentError.apiError("No enriched books in response")
+
+                #if DEBUG
+                print("✅ [HTTP] Decoded \(books.count) enriched books")
+                // Sample first book's cover data
+                if let firstBook = books.first {
+                    print("📚 [HTTP] First book: '\(firstBook.title)'")
+                    print("  - success: \(firstBook.success)")
+                    print("  - enriched: \(firstBook.enriched != nil)")
+                    print("  - work.coverImageURL: \(firstBook.enriched?.work.coverImageURL ?? "nil")")
+                    print("  - edition?.coverImageURL: \(firstBook.enriched?.edition?.coverImageURL ?? "nil")")
+                }
+                #endif
+
+                return books
+
+            } catch let error as ResponseEnvelopeError {
+                // Map ResponseEnvelopeError to EnrichmentError
+                switch error {
+                case .apiError(_, let message, _):
+                    throw EnrichmentError.apiError(message)
+                case .missingData:
+                    throw EnrichmentError.apiError("No enriched books in response")
+                case .decodingFailed(let decodingError):
+                    throw EnrichmentError.apiError("Failed to decode results: \(decodingError.localizedDescription)")
+                }
             }
-            
-            return books
             
         case 404:
             // Results expired (> 24 hours old)

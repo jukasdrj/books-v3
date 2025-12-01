@@ -818,6 +818,15 @@ public final class EnrichmentQueue {
             // Always populate Work-level cover for CoverImageService fallback (Issue #346 + CLAUDE.md)
             // CoverImageService uses Work.coverImageURL as fallback when Edition is missing/has no cover
             // This ensures covers display consistently even when Edition selection changes
+            #if DEBUG
+            print("📚 [COVER DEBUG] Processing '\(work.title)'")
+            print("  - Work.coverImageURL before: \(work.coverImageURL ?? "nil")")
+            print("  - Edition exists: \(edition != nil)")
+            print("  - Edition.coverImageURL: \(edition?.coverImageURL ?? "nil")")
+            print("  - enrichedData.work.coverImageURL: \(enrichedData.work.coverImageURL ?? "nil")")
+            print("  - enrichedData.edition?.coverImageURL: \(enrichedData.edition?.coverImageURL ?? "nil")")
+            #endif
+
             logger.debug("📚 [APPLY] Checking Work-level cover for '\(work.title)'")
             logger.debug("  - Edition exists: \(edition != nil)")
             logger.debug("  - Edition has cover: \(edition?.coverImageURL != nil)")
@@ -827,15 +836,29 @@ public final class EnrichmentQueue {
             if work.coverImageURL == nil {
                 if let workCoverURL = enrichedData.work.coverImageURL {
                     work.coverImageURL = workCoverURL
+                    #if DEBUG
+                    print("✅ [COVER ASSIGNED] Work-level: '\(work.title)' → \(workCoverURL)")
+                    #endif
                     logger.debug("✅ Updated Work-level cover for '\(work.title)': \(workCoverURL)")
                 } else if let editionCoverURL = enrichedData.edition?.coverImageURL {
                     work.coverImageURL = editionCoverURL
+                    #if DEBUG
+                    print("✅ [COVER ASSIGNED] Work-level (from edition): '\(work.title)' → \(editionCoverURL)")
+                    #endif
                     logger.debug("✅ Updated Work-level cover for '\(work.title)' (from edition data): \(editionCoverURL)")
                 } else {
+                    #if DEBUG
+                    print("❌ [COVER MISSING] No cover in enriched data for '\(work.title)'")
+                    print("   - Backend should have provided cover URL but didn't")
+                    #endif
                     logger.warning("⚠️ No cover image available for '\(work.title)' in enriched data (Issue #346)")
                     logger.debug("   - enrichedData.work.coverImageURL: \(String(describing: enrichedData.work.coverImageURL))")
                     logger.debug("   - enrichedData.edition?.coverImageURL: \(String(describing: enrichedData.edition?.coverImageURL))")
                 }
+            } else {
+                #if DEBUG
+                print("ℹ️ [COVER EXISTS] Work '\(work.title)' already has cover: \(work.coverImageURL!)")
+                #endif
             }
 
             work.touch()

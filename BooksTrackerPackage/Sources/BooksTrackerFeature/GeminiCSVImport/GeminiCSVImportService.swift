@@ -193,38 +193,45 @@ actor GeminiCSVImportService {
             // Accept both 200 (OK) and 202 (Accepted) for async job start
             if ![200, 202].contains(httpResponse.statusCode) {
                 // Try to decode error response using new ResponseEnvelope format
-                if let errorResponse = try? JSONDecoder().decode(ResponseEnvelope<GeminiCSVImportResponse>.self, from: data),
-                   let error = errorResponse.error {
-                    let errorMessageWithCode = error.code != nil
-                        ? "\(error.message) (Code: \(error.code!))"
-                        : error.message
-                    throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessageWithCode)
+                do {
+                    _ = try data.decodeEnvelope(GeminiCSVImportResponse.self)
+                    // If successful, we shouldn't be here (should have been 200/202)
+                    throw GeminiCSVImportError.serverError(httpResponse.statusCode, "Unexpected success response")
+                } catch let error as ResponseEnvelopeError {
+                    if case .apiError(let code, let message, _) = error {
+                        let errorMessageWithCode = code != nil
+                            ? "\(message) (Code: \(code!))"
+                            : message
+                        throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessageWithCode)
+                    }
                 }
                 let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
                 throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessage)
             }
 
-            // Decode new ResponseEnvelope<GeminiCSVImportResponse> format
-            let decoder = JSONDecoder()
-            let envelope = try decoder.decode(ResponseEnvelope<GeminiCSVImportResponse>.self, from: data)
+            // Decode ResponseEnvelope and extract data
+            do {
+                let importResponse = try data.decodeEnvelope(GeminiCSVImportResponse.self)
 
-            // Check for errors in response
-            if let error = envelope.error {
-                let errorMessageWithCode = error.code != nil
-                    ? "\(error.message) (Code: \(error.code!))"
-                    : error.message
-                throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessageWithCode)
+                #if DEBUG
+                print("[CSV Upload] ✅ Got jobId: \(importResponse.jobId), authToken: <redacted>")
+                #endif
+                return (jobId: importResponse.jobId, authToken: importResponse.authToken)
+
+            } catch let error as ResponseEnvelopeError {
+                // Map ResponseEnvelopeError to GeminiCSVImportError
+                switch error {
+                case .apiError(let code, let message, _):
+                    let errorMessageWithCode = code != nil
+                        ? "\(message) (Code: \(code!))"
+                        : message
+                    throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessageWithCode)
+                case .missingData:
+                    throw GeminiCSVImportError.serverError(httpResponse.statusCode, "No data in response")
+                case .decodingFailed(let decodingError):
+                    throw GeminiCSVImportError.decodingFailed(decodingError)
+                }
             }
-            
-            // Extract data
-            guard let importResponse = envelope.data else {
-                throw GeminiCSVImportError.serverError(httpResponse.statusCode, "No data in response")
-            }
-            
-            #if DEBUG
-            print("[CSV Upload] ✅ Got jobId: \(importResponse.jobId), authToken: <redacted>")
-            #endif
-            return (jobId: importResponse.jobId, authToken: importResponse.authToken)
 
         } catch let error as GeminiCSVImportError {
             #if DEBUG
@@ -283,19 +290,21 @@ actor GeminiCSVImportService {
 
             if httpResponse.statusCode != 200 {
                 // Try to decode error response
-                if let errorResponse = try? JSONDecoder().decode(ResponseEnvelope<GeminiCSVImportJob>.self, from: data),
-                   let error = errorResponse.error {
-                    let errorMessageWithCode = error.code != nil
-                        ? "\(error.message) (Code: \(error.code!))"
-                        : error.message
-                    throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessageWithCode)
+                do {
+                    _ = try data.decodeEnvelope(GeminiCSVImportJob.self)
+                    // If successful, shouldn't be here with non-200 status
+                    throw GeminiCSVImportError.serverError(httpResponse.statusCode, "Unexpected success response")
+                } catch let error as ResponseEnvelopeError {
+                    if case .apiError(let code, let message, _) = error {
+                        let errorMessageWithCode = code != nil
+                            ? "\(message) (Code: \(code!))"
+                            : message
+                        throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessageWithCode)
+                    }
                 }
                 let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
                 throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessage)
             }
-
-            // Decode response
-            let decoder = JSONDecoder()
 
             #if DEBUG
             // 🔍 DEBUG: Print raw backend response to see what's actually being returned
@@ -305,19 +314,23 @@ actor GeminiCSVImportService {
             }
             #endif
 
-            let envelope = try decoder.decode(ResponseEnvelope<GeminiCSVImportJob>.self, from: data)
-
-            // Check for errors in response
-            if let error = envelope.error {
-                let errorMessageWithCode = error.code != nil
-                    ? "\(error.message) (Code: \(error.code!))"
-                    : error.message
-                throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessageWithCode)
-            }
-
-            // Extract data
-            guard let results = envelope.data else {
-                throw GeminiCSVImportError.serverError(httpResponse.statusCode, "No data in response")
+            // Decode ResponseEnvelope and extract data
+            let results: GeminiCSVImportJob
+            do {
+                results = try data.decodeEnvelope(GeminiCSVImportJob.self)
+            } catch let error as ResponseEnvelopeError {
+                // Map ResponseEnvelopeError to GeminiCSVImportError
+                switch error {
+                case .apiError(let code, let message, _):
+                    let errorMessageWithCode = code != nil
+                        ? "\(message) (Code: \(code!))"
+                        : message
+                    throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessageWithCode)
+                case .missingData:
+                    throw GeminiCSVImportError.serverError(httpResponse.statusCode, "No data in response")
+                case .decodingFailed(let decodingError):
+                    throw GeminiCSVImportError.decodingFailed(decodingError)
+                }
             }
 
             #if DEBUG
@@ -379,32 +392,39 @@ actor GeminiCSVImportService {
 
             if httpResponse.statusCode != 200 {
                 // Try to decode error response
-                if let errorResponse = try? JSONDecoder().decode(ResponseEnvelope<GeminiCSVImportJobStatus>.self, from: data),
-                   let error = errorResponse.error {
-                    let errorMessageWithCode = error.code != nil
-                        ? "\(error.message) (Code: \(error.code!))"
-                        : error.message
-                    throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessageWithCode)
+                do {
+                    _ = try data.decodeEnvelope(GeminiCSVImportJobStatus.self)
+                    // If successful, shouldn't be here with non-200 status
+                    throw GeminiCSVImportError.serverError(httpResponse.statusCode, "Unexpected success response")
+                } catch let error as ResponseEnvelopeError {
+                    if case .apiError(let code, let message, _) = error {
+                        let errorMessageWithCode = code != nil
+                            ? "\(message) (Code: \(code!))"
+                            : message
+                        throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessageWithCode)
+                    }
                 }
                 let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
                 throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessage)
             }
 
-            // Decode response
-            let decoder = JSONDecoder()
-            let envelope = try decoder.decode(ResponseEnvelope<GeminiCSVImportJobStatus>.self, from: data)
-
-            // Check for errors in response
-            if let error = envelope.error {
-                let errorMessageWithCode = error.code != nil
-                    ? "\(error.message) (Code: \(error.code!))"
-                    : error.message
-                throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessageWithCode)
-            }
-
-            // Extract data
-            guard let jobStatus = envelope.data else {
-                throw GeminiCSVImportError.serverError(httpResponse.statusCode, "No data in response")
+            // Decode ResponseEnvelope and extract data
+            let jobStatus: GeminiCSVImportJobStatus
+            do {
+                jobStatus = try data.decodeEnvelope(GeminiCSVImportJobStatus.self)
+            } catch let error as ResponseEnvelopeError {
+                // Map ResponseEnvelopeError to GeminiCSVImportError
+                switch error {
+                case .apiError(let code, let message, _):
+                    let errorMessageWithCode = code != nil
+                        ? "\(message) (Code: \(code!))"
+                        : message
+                    throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessageWithCode)
+                case .missingData:
+                    throw GeminiCSVImportError.serverError(httpResponse.statusCode, "No data in response")
+                case .decodingFailed(let decodingError):
+                    throw GeminiCSVImportError.decodingFailed(decodingError)
+                }
             }
 
             #if DEBUG

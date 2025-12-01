@@ -857,27 +857,21 @@ actor BookshelfAIService {
     /// Generic helper to unwrap ResponseEnvelope and handle common API errors.
     /// This eliminates duplication in `fetchJobResults` and `fetchScanResults`.
     /// (Issue #3 - Eliminate ResponseEnvelope unwrapping duplication)
+    ///
+    /// Delegates to Data.decodeEnvelope() extension and maps errors to BookshelfAIError.
     private func unwrapEnvelope<T: Codable>(_ data: Data) throws -> T {
-        let decoder = JSONDecoder()
         do {
-            let envelope = try decoder.decode(ResponseEnvelope<T>.self, from: data)
-
-            guard let result = envelope.data else {
-                if let error = envelope.error {
-                    // Map API error info to BookshelfAIError for consistency
-                    throw BookshelfAIError.apiError(code: error.code ?? "UNKNOWN", message: error.message)
-                }
-                // If data is nil and no specific error, throw a generic "NO_DATA" error
+            return try data.decodeEnvelope(T.self)
+        } catch let error as ResponseEnvelopeError {
+            // Map ResponseEnvelopeError to BookshelfAIError for consistency
+            switch error {
+            case .apiError(let code, let message, _):
+                throw BookshelfAIError.apiError(code: code ?? "UNKNOWN", message: message)
+            case .missingData:
                 throw BookshelfAIError.apiError(code: "NO_DATA", message: "Missing results data")
+            case .decodingFailed(let decodingError):
+                throw BookshelfAIError.decodingFailed(decodingError)
             }
-
-            return result
-        } catch let error as DecodingError {
-            // Catch decoding errors specifically and wrap them
-            throw BookshelfAIError.decodingFailed(error)
-        } catch let error as BookshelfAIError {
-            // Re-throw BookshelfAIError if it was already thrown by the helper
-            throw error
         } catch {
             // Catch any other unexpected errors
             throw BookshelfAIError.networkError(error)
