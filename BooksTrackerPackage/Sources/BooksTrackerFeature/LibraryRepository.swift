@@ -572,69 +572,68 @@ public class LibraryRepository {
 
     // MARK: - Library Management
 
-    public func resetLibrary() async {
+    public func resetLibrary() async throws {
         // Note: Task wrapper removed - async function already ensures non-blocking execution
-        do {
-            // STEP 1: Cancel enrichment queue operations first
-            await EnrichmentQueue.shared.cancelBackendJob()
-            await EnrichmentQueue.shared.stop()
-            EnrichmentQueue.shared.clearQueue()
+        print("🗑️ [LibraryRepository] resetLibrary() called")
 
-            // STEP 2: Delete all models using modelContext
-            // Use predicate-based deletion for efficiency and clarity
-            try modelContext.delete(
-                model: Work.self,
-                where: #Predicate { _ in true }
-            )
-            try modelContext.delete(
-                model: Author.self,
-                where: #Predicate { _ in true }
-            )
-            try modelContext.delete(
-                model: Edition.self,
-                where: #Predicate { _ in true }
-            )
-            try modelContext.delete(
-                model: UserLibraryEntry.self,
-                where: #Predicate { _ in true }
-            )
+        // STEP 1: Cancel enrichment queue operations first
+        print("🗑️ [LibraryRepository] Canceling enrichment queue...")
+        await EnrichmentQueue.shared.cancelBackendJob()
+        await EnrichmentQueue.shared.stop()
+        EnrichmentQueue.shared.clearQueue()
 
-            // STEP 3: Save to persistent store
-            try modelContext.save()
+        // STEP 2: Delete all models using modelContext
+        // Use predicate-based deletion for efficiency and clarity
+        print("🗑️ [LibraryRepository] Deleting Works...")
+        try modelContext.delete(
+            model: Work.self,
+            where: #Predicate { _ in true }
+        )
+        print("🗑️ [LibraryRepository] Deleting Authors...")
+        try modelContext.delete(
+            model: Author.self,
+            where: #Predicate { _ in true }
+        )
+        print("🗑️ [LibraryRepository] Deleting Editions...")
+        try modelContext.delete(
+            model: Edition.self,
+            where: #Predicate { _ in true }
+        )
+        print("🗑️ [LibraryRepository] Deleting UserLibraryEntries...")
+        try modelContext.delete(
+            model: UserLibraryEntry.self,
+            where: #Predicate { _ in true }
+        )
 
-            // STEP 4: Clear caches
-            dtoMapper?.clearCache()
-            DiversityStats.invalidateCache()
+        // STEP 3: Save to persistent store
+        print("🗑️ [LibraryRepository] Saving modelContext...")
+        try modelContext.save()
 
-            // STEP 5: Invalidate reading stats (async operation)
-            await ReadingStats.invalidateCache()
+        // STEP 4: Clear caches
+        print("🗑️ [LibraryRepository] Clearing caches...")
+        dtoMapper?.clearCache()
+        DiversityStats.invalidateCache()
 
-            // STEP 6: Post notification and cleanup
-            NotificationCenter.default.post(
-                name: .libraryWasReset,
-                object: nil
-            )
+        // STEP 5: Invalidate reading stats (async operation)
+        print("🗑️ [LibraryRepository] Invalidating reading stats...")
+        await ReadingStats.invalidateCache()
 
-            // STEP 7: Cleanup UserDefaults and settings
-            UserDefaults.standard.removeObject(forKey: "RecentBookSearches")
-            featureFlags?.resetToDefaults()
+        // STEP 6: Post notification and cleanup
+        print("🗑️ [LibraryRepository] Posting notification...")
+        NotificationCenter.default.post(
+            name: .libraryWasReset,
+            object: nil
+        )
 
-            // Success haptic feedback
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
+        // STEP 7: Cleanup UserDefaults and settings
+        print("🗑️ [LibraryRepository] Cleaning up UserDefaults...")
+        UserDefaults.standard.removeObject(forKey: "RecentBookSearches")
+        featureFlags?.resetToDefaults()
 
-            #if DEBUG
-            print("✅ Library reset complete - All works, settings, and queue cleared")
-            #endif
+        // Success haptic feedback
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
 
-        } catch {
-            #if DEBUG
-            print("❌ Failed to reset library: \(error)")
-            #endif
-
-            // Error haptic
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.error)
-        }
+        print("✅ [LibraryRepository] Library reset complete - All works, settings, and queue cleared")
     }
 }

@@ -195,7 +195,7 @@ public struct JobProgressPayload: Codable, Sendable {
     public let progress: Double             // 0.0 - 1.0
     public let status: String
     public let processedCount: Int?
-    public let currentItem: String?
+    public let totalCount: Int?             // Total items in job (from API Contract v3.2)
     public let keepAlive: Bool?
 }
 
@@ -625,7 +625,7 @@ extension ReconnectedPayload {
             progress: self.progress,
             status: self.status,
             processedCount: self.processedCount,
-            currentItem: nil,
+            totalCount: self.totalCount,
             keepAlive: true
         )
     }

@@ -85,10 +85,11 @@ final class EnrichmentWebSocketHandler {
 
         switch typedMessage.payload {
         case .jobProgress(let progress):
-            // Extract progress data
+            // Extract progress data (API Contract v3.2 compliant)
             let processedCount = progress.processedCount ?? 0
-            let totalCount = Int(progress.progress * 100) // Approximate if needed
-            let currentTitle = progress.currentItem ?? progress.status
+            let totalCount = progress.totalCount ?? 0  // Use totalCount from payload
+            // Parse book title from status: "Enriching (1/49): The Great Gatsby"
+            let currentTitle = extractBookTitle(from: progress.status)
             progressHandler(processedCount, totalCount, currentTitle)
 
         case .jobComplete(let complete):
@@ -145,6 +146,19 @@ final class EnrichmentWebSocketHandler {
         guard isConnected else { return }
         isConnected = false
         webSocket?.cancel(with: .goingAway, reason: nil)
+    }
+
+    /// Extract book title from WebSocket status string
+    /// Status format: "Enriching (X/Y): Book Title" (API Contract v3.2)
+    /// - Parameter status: Status string from job_progress payload
+    /// - Returns: Extracted book title or "Processing..." if parsing fails
+    private func extractBookTitle(from status: String) -> String {
+        // Match pattern: "Enriching (X/Y): Title"
+        if let range = status.range(of: "): ") {
+            let title = String(status[range.upperBound...])
+            return title.isEmpty ? "Processing..." : title
+        }
+        return "Processing..."
     }
 }
 

@@ -52,6 +52,8 @@ public struct SettingsView: View {
     @State private var showingAboutMaker = false
     @State private var showingDeleteLibraryConfirmation = false
     @State private var libraryBookCount: Int? = nil
+    @State private var deletionError: Error? = nil
+    @State private var showingDeletionError = false
 
     // CloudKit status (simplified for now)
     @State private var cloudKitStatus: CloudKitStatus = .unknown
@@ -318,13 +320,18 @@ public struct SettingsView: View {
             Section {
                 Button(role: .destructive) {
                     do {
-                        let fetchDescriptor = FetchDescriptor<Work>(predicate: #Predicate { !($0.userLibraryEntries?.isEmpty ?? true) })
-                        libraryBookCount = try modelContext.fetchCount(fetchDescriptor)
+                        // Fetch all Works and filter in-memory to avoid KVC aggregate @count crash
+                        // SwiftData cannot handle .isEmpty on relationships in predicates
+                        let fetchDescriptor = FetchDescriptor<Work>()
+                        let allWorks = try modelContext.fetch(fetchDescriptor)
+                        let booksInLibrary = allWorks.filter { !($0.userLibraryEntries?.isEmpty ?? true) }
+                        libraryBookCount = booksInLibrary.count
+                        print("📚 [SettingsView] Library book count: \(libraryBookCount ?? 0)")
+                        print("📚 [SettingsView] Total works: \(allWorks.count)")
+                        print("📚 [SettingsView] Works with library entries: \(booksInLibrary.count)")
                         showingDeleteLibraryConfirmation = true
                     } catch {
-                        #if DEBUG
-                        print("Failed to fetch library count: \(error)")
-                        #endif
+                        print("❌ [SettingsView] Failed to fetch library count: \(error)")
                         libraryBookCount = nil
                         showingDeleteLibraryConfirmation = true
                     }
@@ -411,8 +418,16 @@ public struct SettingsView: View {
         ) {
             Button("Delete Library", role: .destructive) {
                 Task {
-                    // TODO: Rename libraryRepository.resetLibrary() to deleteLibrary() for consistency (PR #91 review comment)
-                    await libraryRepository.resetLibrary()
+                    do {
+                        // TODO: Rename libraryRepository.resetLibrary() to deleteLibrary() for consistency (PR #91 review comment)
+                        print("🗑️ [SettingsView] Starting library deletion...")
+                        try await libraryRepository.resetLibrary()
+                        print("✅ [SettingsView] Library deletion completed")
+                    } catch {
+                        print("❌ [SettingsView] Library deletion failed: \(error)")
+                        deletionError = error
+                        showingDeletionError = true
+                    }
                 }
             }
             Button("Cancel", role: .cancel) {}
@@ -421,6 +436,15 @@ public struct SettingsView: View {
                 Text("This will permanently delete your \(count) books, reading progress, and ratings from your library. This action cannot be undone.")
             } else {
                 Text("This will permanently delete all books, reading progress, and ratings from your library. This action cannot be undone.")
+            }
+        }
+        .alert("Library Deletion Failed", isPresented: $showingDeletionError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            if let error = deletionError {
+                Text("Failed to delete library: \(error.localizedDescription)")
+            } else {
+                Text("An unknown error occurred while deleting your library.")
             }
         }
     }

@@ -341,11 +341,11 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
             case "import.completed":
                 let completed = try decoder.decode(CSVImportCompleted.self, from: jsonData)
                 currentContinuation?.yield(.csvImportCompleted(completed))
-                Task { await disconnect() }
+                Task { disconnect() }
             case "import.failed":
                 let failed = try decoder.decode(CSVImportFailed.self, from: jsonData)
                 currentContinuation?.yield(.csvImportFailed(failed))
-                Task { await disconnect() }
+                Task { disconnect() }
 
             default:
                 print("SSEClient: Received unknown event type: \(eventName). Data: \(combinedData)")

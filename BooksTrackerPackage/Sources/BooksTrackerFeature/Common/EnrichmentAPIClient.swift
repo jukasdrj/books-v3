@@ -61,16 +61,11 @@ actor EnrichmentAPIClient {
             totalCount = try container.decode(Int.self, forKey: .totalCount)
 
             // Prefer authToken, fallback to token for legacy responses
-            let decodedAuthToken = try? container.decode(String.self, forKey: .authToken)
-            let decodedToken = try? container.decode(String.self, forKey: .token)
-
-            if let authTokenValue = decodedAuthToken {
+            if let authTokenValue = try? container.decode(String.self, forKey: .authToken) {
                 authToken = authTokenValue
-                token = decodedToken  // Optional, may be present
-            } else if let tokenValue = decodedToken {
+            } else if let tokenValue = try? container.decode(String.self, forKey: .token) {
                 // Legacy response - only has token field
                 authToken = tokenValue
-                token = tokenValue
             } else {
                 throw DecodingError.keyNotFound(
                     CodingKeys.authToken,
@@ -80,6 +75,9 @@ actor EnrichmentAPIClient {
                     )
                 )
             }
+
+            // token property is deprecated - decode from JSON if present, otherwise nil
+            token = try? container.decode(String.self, forKey: .token)
         }
 
         private enum CodingKeys: String, CodingKey {

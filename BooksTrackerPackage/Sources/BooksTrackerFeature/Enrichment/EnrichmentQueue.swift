@@ -363,7 +363,8 @@ public final class EnrichmentQueue {
                                     self?.resetActivityTimer()
                                     let batchProcessed = progressPayload.processedCount ?? 0
                                     let totalForUI = works.count
-                                    let currentTitle = progressPayload.currentItem ?? "Unknown"
+                                    // Parse book title from status string: "Enriching (1/49): The Great Gatsby"
+                                    let currentTitle = Self.extractBookTitle(from: progressPayload.status)
                                     let overallProcessed = processedCount + batchProcessed
 
                                     let progressTitle = "(\(index + 1)/\(batches.count)) \(currentTitle)"
@@ -581,6 +582,19 @@ public final class EnrichmentQueue {
     /// Delegates to shared EnrichmentResultsClient
     private func fetchEnrichmentResults(jobId: String) async throws -> [EnrichedBookPayload] {
         try await EnrichmentResultsClient.fetchResults(jobId: jobId)
+    }
+
+    /// Extract book title from WebSocket status string
+    /// Status format: "Enriching (X/Y): Book Title" (API Contract v3.2)
+    /// - Parameter status: Status string from job_progress payload
+    /// - Returns: Extracted book title or "Processing..." if parsing fails
+    private static func extractBookTitle(from status: String) -> String {
+        // Match pattern: "Enriching (X/Y): Title"
+        if let range = status.range(of: "): ") {
+            let title = String(status[range.upperBound...])
+            return title.isEmpty ? "Processing..." : title
+        }
+        return "Processing..."
     }
 
     // MARK: - Persistence

@@ -204,7 +204,7 @@ actor BatchWebSocketHandler {
         let progress = progressPayload.progress
         let status = progressPayload.status
         let processedCount = progressPayload.processedCount ?? 0
-        let currentItem = progressPayload.currentItem
+        let totalCount = progressPayload.totalCount
         let jobId = self.jobId
         let totalPhotos = self.totalPhotos
 
@@ -213,8 +213,8 @@ actor BatchWebSocketHandler {
 
         await MainActor.run {
             #if DEBUG
-            if let currentItem = currentItem {
-                print("[BatchWebSocket] Progress: \(Int(progress * 100))% - \(status) (Item: \(currentItem), Processed: \(processedCount))")
+            if let totalCount = totalCount {
+                print("[BatchWebSocket] Progress: \(Int(progress * 100))% - \(status) (Processed: \(processedCount)/\(totalCount))")
             } else {
                 print("[BatchWebSocket] Progress: \(Int(progress * 100))% - \(status)")
             }
@@ -224,8 +224,9 @@ actor BatchWebSocketHandler {
             let batchProgress = BatchProgress(jobId: jobId, totalPhotos: totalPhotos)
             batchProgress.overallStatus = status
 
-            // Update current photo index if provided
-            if let currentItem = currentItem, let photoIndex = Int(currentItem) {
+            // Update current photo index from processedCount if available
+            if processedCount > 0 {
+                let photoIndex = processedCount - 1  // Convert to 0-based index
                 batchProgress.currentPhotoIndex = photoIndex
                 batchProgress.updatePhoto(index: photoIndex, status: .processing)
             }
