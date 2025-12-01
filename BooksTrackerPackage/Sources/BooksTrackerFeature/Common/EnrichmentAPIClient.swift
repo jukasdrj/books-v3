@@ -77,7 +77,12 @@ actor EnrichmentAPIClient {
             }
 
             // token property is deprecated - decode from JSON if present, otherwise nil
-            token = try? container.decode(String.self, forKey: .token)
+            // Intentionally accessing deprecated field for backward compatibility until March 1, 2026
+            if let tokenValue = try? container.decode(String.self, forKey: .token) {
+                token = tokenValue
+            } else {
+                token = nil
+            }
         }
 
         private enum CodingKeys: String, CodingKey {
@@ -272,14 +277,14 @@ actor EnrichmentAPIClient {
         }
     }
 
-    /// Cancel an enrichment job and cleanup R2 images/KV cache (API v3.2)
+    /// Cancel an enrichment job and cleanup R2 images/KV cache (V2 API)
     /// - Parameters:
     ///   - jobId: The unique job identifier to cancel
-    ///   - authToken: Bearer token from job creation (required as of API v3.2)
+    ///   - authToken: Bearer token from job creation (required for authentication)
     /// - Returns: Job cancellation response with cleanup details
     /// - Note: Idempotent - calling DELETE on completed jobs returns success
     func cancelJob(jobId: String, authToken: String) async throws -> JobCancellationResponse {
-        guard let url = URL(string: "\(baseURL)/v1/jobs/\(jobId)") else {
+        guard let url = URL(string: "\(baseURL)/api/v2/jobs/\(jobId)/cancel") else {
             throw URLError(.badURL)
         }
 
@@ -290,7 +295,7 @@ actor EnrichmentAPIClient {
         request.timeoutInterval = 15  // 15 second timeout for DELETE request
 
         #if DEBUG
-        print("[EnrichmentAPIClient] 🗑️ Sending DELETE to /v1/jobs/\(jobId)")
+        print("[EnrichmentAPIClient] 🗑️ Sending DELETE to /api/v2/jobs/\(jobId)/cancel")
         #endif
 
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -299,7 +304,7 @@ actor EnrichmentAPIClient {
             throw URLError(.badServerResponse)
         }
 
-        // Handle authentication errors (API v3.2 requirement)
+        // Handle authentication errors
         if httpResponse.statusCode == 401 {
             #if DEBUG
             print("🚨 Job cancellation unauthorized: Invalid or expired token")
