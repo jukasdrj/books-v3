@@ -522,13 +522,13 @@ class BookshelfScanModel {
         self.lastSavedImagePath = await saveOriginalImage(image)
 
         do {
-            // Use new WebSocket method for real-time progress updates
-            let (capturedImage, detectedBooks, suggestions) = try await BookshelfAIService.shared.processBookshelfImageWithWebSocket(image) { progress, stage in
+            // Use SSE method for real-time progress updates
+            let (capturedImage, detectedBooks, suggestions) = try await BookshelfAIService.shared.processBookshelfImageWithProgress(image) { progress, stage in
                 // Progress handler runs on MainActor - safe for UI updates
                 self.currentProgress = progress
                 self.currentStage = stage
                 #if DEBUG
-                print("📸 WebSocket progress: \(Int(progress * 100))% - \(stage)")
+                print("📸 SSE progress: \(Int(progress * 100))% - \(stage)")
                 #endif
             }
 
