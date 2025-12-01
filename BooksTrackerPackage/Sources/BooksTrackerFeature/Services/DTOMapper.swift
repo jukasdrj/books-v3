@@ -418,35 +418,50 @@ public final class DTOMapper {
 extension DTOMapper {
     /// Parse search response with dual-format support
     ///
-    /// Uses unified Data.decodeEnvelope() extension for consistent error handling.
+    /// Supports both legacy format (success/data) and new ResponseEnvelope format.
+    /// Search API still uses legacy format; enrichment uses ResponseEnvelope.
     /// Transparent to callers - returns BookSearchResponse regardless of format.
     ///
     /// - Parameter data: Raw JSON data from API
     /// - Returns: Parsed BookSearchResponse
     /// - Throws: ParsingError if parsing fails
     public func parseSearchResponse(_ data: Data) throws -> BookSearchResponse {
-        // Use unified decoder extension
+        let decoder = JSONDecoder()
+
+        // Attempt 1: Try unified ResponseEnvelope format (for future migration)
         do {
             let response = try data.decodeEnvelope(BookSearchResponse.self)
             logger.debug("✅ Successfully parsed unified envelope format")
             return response
-        } catch let error as ResponseEnvelopeError {
-            // Map ResponseEnvelopeError to ParsingError
-            switch error {
-            case .apiError(let code, let message, _):
-                logger.error("❌ API error: \(message) [\(code ?? "UNKNOWN")]")
-                throw ParsingError.apiError(message: message, code: code ?? "UNKNOWN")
-            case .missingData:
-                logger.error("❌ Missing data in envelope")
-                throw ParsingError.apiError(message: "Missing data and error in response", code: "INVALID_RESPONSE")
-            case .decodingFailed(let decodingError):
-                logger.error("❌ Decoding failed: \(decodingError.localizedDescription)")
-                throw ParsingError.unknownFormat
-            }
         } catch {
-            // Unexpected error type
-            logger.error("❌ Unexpected parsing error: \(error.localizedDescription)")
+            // Fall through to legacy format attempt
+            logger.debug("Unified envelope failed, trying legacy format...")
+        }
+
+        // Attempt 2: Try legacy format with success/data structure
+        struct LegacySearchResponse: Codable {
+            let success: Bool
+            let data: BookSearchResponse?
+            let error: String?
+        }
+
+        do {
+            let legacyResponse = try decoder.decode(LegacySearchResponse.self, from: data)
+
+            if legacyResponse.success, let responseData = legacyResponse.data {
+                logger.debug("✅ Successfully parsed legacy format")
+                return responseData
+            } else if let error = legacyResponse.error {
+                throw ParsingError.apiError(message: error, code: "LEGACY_ERROR")
+            } else {
+                throw ParsingError.apiError(message: "Missing data in legacy response", code: "INVALID_RESPONSE")
+            }
+        } catch let decodingError as DecodingError {
+            logger.error("❌ Both formats failed. Decoding error: \(decodingError.localizedDescription)")
             throw ParsingError.unknownFormat
+        } catch {
+            // Re-throw ParsingError if already thrown
+            throw error
         }
     }
 }
