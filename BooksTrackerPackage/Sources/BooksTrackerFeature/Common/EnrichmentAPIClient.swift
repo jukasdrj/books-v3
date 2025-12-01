@@ -547,31 +547,48 @@ actor EnrichmentAPIClient {
             do {
                 // Try to decode ResponseEnvelope with error
                 let envelope = try JSONDecoder().decode(ResponseEnvelope<EnrichedBookDTO>.self, from: data)
-                
+
                 if let error = envelope.error {
                     // Check for circuit breaker
                     if error.code == "CIRCUIT_OPEN" {
-                        let provider = (error.details?.value as? [String: Any])?["provider"] as? String ?? "unknown"
-                        let retryAfterMs = (error.details?.value as? [String: Any])?["retryAfterMs"] as? Int ?? 60000
-                        
+                        // Type-safe decoding of circuit breaker details
+                        let (provider, retryAfterMs) = {
+                            struct CircuitOpenDetails: Decodable {
+                                let provider: String
+                                let retryAfterMs: Int
+                            }
+                            guard let details = error.details,
+                                  let data = try? JSONEncoder().encode(details),
+                                  let decoded = try? JSONDecoder().decode(CircuitOpenDetails.self, from: data) else {
+                                return ("unknown", 60000)
+                            }
+                            return (decoded.provider, decoded.retryAfterMs)
+                        }()
+
                         #if DEBUG
                         print("⚠️ Circuit breaker open for provider '\(provider)', retry in \(retryAfterMs)ms: \(error.message)")
                         #endif
-                        
+
                         throw EnrichmentError.circuitOpen(provider: provider, retryAfterMs: retryAfterMs)
                     }
-                    
+
                     // Handle other 503 errors with structured message
                     throw EnrichmentError.apiError(error.message)
                 }
-                
-                // Fallback if no error field in envelope
-                throw URLError(.badServerResponse)
-                
-            } catch let decodingError as DecodingError {
-                // Fallback if error response doesn't match expected format
+
+                // Fallback if no error field in envelope (unexpected for 503!)
                 #if DEBUG
-                print("⚠️ Failed to decode 503 error response: \(decodingError)")
+                print("⚠️ 503 response has success=true with no error - unexpected backend response")
+                #endif
+                throw URLError(.badServerResponse)
+
+            } catch {
+                // Handle both decoding errors and thrown EnrichmentErrors
+                if let enrichmentError = error as? EnrichmentError {
+                    throw enrichmentError  // Re-throw our own errors
+                }
+                #if DEBUG
+                print("⚠️ Failed to decode 503 error response: \(error)")
                 #endif
                 throw URLError(.badServerResponse)
             }

@@ -322,8 +322,8 @@ actor GeminiCSVImportService {
 
             #if DEBUG
             print("[CSV Results] ✅ Results fetched: \(results.books.count) books, \(results.errors.count) errors")
-            print("[CSV Results] ===== DETAILED BOOK DATA =====")
-            for (index, book) in results.books.enumerated() {
+            print("[CSV Results] ===== DETAILED BOOK DATA (showing first 10) =====")
+            for (index, book) in results.books.prefix(10).enumerated() {
                 print("[CSV Results] Book \(index + 1):")
                 print("  Title: \(book.title)")
                 print("  Authors: \(book.authors)")  // 🔑 KEY CHECK
@@ -332,6 +332,9 @@ actor GeminiCSVImportService {
                 print("  Year: \(book.year?.description ?? "none")")
                 print("  Cover: \(book.coverUrl ?? "none")")
                 print("  Enrichment Error: \(book.enrichmentError ?? "none")")
+            }
+            if results.books.count > 10 {
+                print("[CSV Results] ... and \(results.books.count - 10) more books")
             }
             print("[CSV Results] ===============================")
             #endif
