@@ -418,32 +418,35 @@ public final class DTOMapper {
 extension DTOMapper {
     /// Parse search response with dual-format support
     ///
-    /// Tries unified envelope first (Phase 3), falls back to legacy format.
+    /// Uses unified Data.decodeEnvelope() extension for consistent error handling.
     /// Transparent to callers - returns BookSearchResponse regardless of format.
     ///
     /// - Parameter data: Raw JSON data from API
     /// - Returns: Parsed BookSearchResponse
-    /// - Throws: ParsingError if both formats fail
+    /// - Throws: ParsingError if parsing fails
     public func parseSearchResponse(_ data: Data) throws -> BookSearchResponse {
-        let decoder = JSONDecoder()
-
-        // Attempt 1: Unified envelope format (Phase 3)
+        // Use unified decoder extension
         do {
-            let envelope = try decoder.decode(ResponseEnvelope<BookSearchResponse>.self, from: data)
-            if let responseData = envelope.data {
-                logger.debug("✅ Successfully parsed unified envelope format")
-                return responseData
-            } else if let error = envelope.error {
-                throw ParsingError.apiError(message: error.message, code: error.code ?? "UNKNOWN")
-            } else {
+            let response = try data.decodeEnvelope(BookSearchResponse.self)
+            logger.debug("✅ Successfully parsed unified envelope format")
+            return response
+        } catch let error as ResponseEnvelopeError {
+            // Map ResponseEnvelopeError to ParsingError
+            switch error {
+            case .apiError(let code, let message, _):
+                logger.error("❌ API error: \(message) [\(code ?? "UNKNOWN")]")
+                throw ParsingError.apiError(message: message, code: code ?? "UNKNOWN")
+            case .missingData:
+                logger.error("❌ Missing data in envelope")
                 throw ParsingError.apiError(message: "Missing data and error in response", code: "INVALID_RESPONSE")
+            case .decodingFailed(let decodingError):
+                logger.error("❌ Decoding failed: \(decodingError.localizedDescription)")
+                throw ParsingError.unknownFormat
             }
-        } catch let decodingError as DecodingError {
-            logger.error("❌ Unified envelope parsing failed: \(decodingError.localizedDescription)")
-            throw ParsingError.unknownFormat
         } catch {
-            // Re-throw non-decoding errors (e.g., ParsingError.apiError)
-            throw error
+            // Unexpected error type
+            logger.error("❌ Unexpected parsing error: \(error.localizedDescription)")
+            throw ParsingError.unknownFormat
         }
     }
 }
