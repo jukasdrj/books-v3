@@ -18,45 +18,45 @@ public final class LibraryFilterService {
     ///   - modelContext: SwiftData model context for validating object lifecycle
     /// - Returns: Works with non-empty userLibraryEntries, excluding deleted objects
     public func filterLibraryWorks(from works: [Work], modelContext: ModelContext) -> [Work] {
-        #if DEBUG
-        print("📚 [LibraryFilter] Filtering \(works.count) total works")
-        #endif
+        // #if DEBUG
+        // print("📚 [LibraryFilter] Filtering \(works.count) total works")
+        // #endif
 
         let filtered = works.filter { work in
             // CRITICAL: Check if work is still valid in context before accessing relationships
             // During library reset, @Query may not have updated yet and allWorks may contain deleted objects
             // Accessing userLibraryEntries on a deleted object triggers fault resolution and crashes
             guard modelContext.model(for: work.persistentModelID) as? Work != nil else {
-                #if DEBUG
-                print("📚 [LibraryFilter] Skipping deleted work: \(work.title)")
-                #endif
+                // #if DEBUG
+                // print("📚 [LibraryFilter] Skipping deleted work: \(work.title)")
+                // #endif
                 return false
             }
 
             // Now safe to access relationship property
             guard let entries = work.userLibraryEntries else {
-                #if DEBUG
-                print("📚 [LibraryFilter] Work '\(work.title)' has nil userLibraryEntries - FILTERED OUT")
-                #endif
+                // #if DEBUG
+                // print("📚 [LibraryFilter] Work '\(work.title)' has nil userLibraryEntries - FILTERED OUT")
+                // #endif
                 return false
             }
 
             if entries.isEmpty {
-                #if DEBUG
-                print("📚 [LibraryFilter] Work '\(work.title)' has empty userLibraryEntries array - FILTERED OUT")
-                #endif
+                // #if DEBUG
+                // print("📚 [LibraryFilter] Work '\(work.title)' has empty userLibraryEntries array - FILTERED OUT")
+                // #endif
                 return false
             }
 
-            #if DEBUG
-            print("📚 [LibraryFilter] ✅ Work '\(work.title)' has \(entries.count) library entries - INCLUDED")
-            #endif
+            // #if DEBUG
+            // print("📚 [LibraryFilter] ✅ Work '\(work.title)' has \(entries.count) library entries - INCLUDED")
+            // #endif
             return true
         }
 
-        #if DEBUG
-        print("📚 [LibraryFilter] Result: \(filtered.count) works in library (filtered out \(works.count - filtered.count))")
-        #endif
+        // #if DEBUG
+        // print("📚 [LibraryFilter] Result: \(filtered.count) works in library (filtered out \(works.count - filtered.count))")
+        // #endif
 
         return filtered
     }

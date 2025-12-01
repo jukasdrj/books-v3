@@ -501,7 +501,40 @@ actor EnrichmentAPIClient {
 
         switch httpResponse.statusCode {
         case 200:
-            return try JSONDecoder().decode(EnrichedBookDTO.self, from: data)
+            // ✅ FIX: Decode ResponseEnvelope wrapper, not direct payload
+            let envelope = try JSONDecoder().decode(ResponseEnvelope<EnrichedBookDTO>.self, from: data)
+            
+            #if DEBUG
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("📡 V2 Enrich Response: \(responseString.prefix(200))")
+            }
+            #endif
+            
+            // Check for error in envelope (backend may return 200 with error=true)
+            if let error = envelope.error {
+                #if DEBUG
+                print("🚨 V2 Enrich envelope error: \(error.message), code: \(error.code ?? "UNKNOWN")")
+                #endif
+                throw EnrichmentError.apiError(error.message)
+            }
+            
+            // Unwrap data field
+            guard let book = envelope.data else {
+                #if DEBUG
+                print("🚨 V2 Enrich response missing data field")
+                #endif
+                throw EnrichmentError.invalidResponse
+            }
+            
+            #if DEBUG
+            print("✅ V2 Enriched '\(book.title)' from provider: \(book.provider ?? "unknown")")
+            if let categories = book.categories, !categories.isEmpty {
+                print("  📚 Categories: \(categories.joined(separator: ", "))")
+            }
+            #endif
+            
+            return book
+            
         case 404:
             throw EnrichmentError.noMatchFound
         case 429:
@@ -512,25 +545,60 @@ actor EnrichmentAPIClient {
         case 503:
             // Service unavailable - parse structured error response
             do {
-                let errorResponse = try JSONDecoder().decode(ErrorResponseDTO.self, from: data)
-                if errorResponse.error.code == "CIRCUIT_OPEN" {
-                    let provider = errorResponse.error.provider ?? "unknown"
-                    let retryAfterMs = errorResponse.error.retryAfterMs ?? 60000
-                    #if DEBUG
-                    print("⚠️ Circuit breaker open for provider '\(provider)', retry in \(retryAfterMs)ms: \(errorResponse.error.message)")
-                    #endif
-                    throw EnrichmentError.circuitOpen(provider: provider, retryAfterMs: retryAfterMs)
+                // Try to decode ResponseEnvelope with error
+                let envelope = try JSONDecoder().decode(ResponseEnvelope<EnrichedBookDTO>.self, from: data)
+
+                if let error = envelope.error {
+                    // Check for circuit breaker
+                    if error.code == "CIRCUIT_OPEN" {
+                        // Type-safe decoding of circuit breaker details
+                        let (provider, retryAfterMs) = {
+                            struct CircuitOpenDetails: Decodable {
+                                let provider: String
+                                let retryAfterMs: Int
+                            }
+                            guard let details = error.details,
+                                  let data = try? JSONEncoder().encode(details),
+                                  let decoded = try? JSONDecoder().decode(CircuitOpenDetails.self, from: data) else {
+                                return ("unknown", 60000)
+                            }
+                            return (decoded.provider, decoded.retryAfterMs)
+                        }()
+
+                        #if DEBUG
+                        print("⚠️ Circuit breaker open for provider '\(provider)', retry in \(retryAfterMs)ms: \(error.message)")
+                        #endif
+
+                        throw EnrichmentError.circuitOpen(provider: provider, retryAfterMs: retryAfterMs)
+                    }
+
+                    // Handle other 503 errors with structured message
+                    throw EnrichmentError.apiError(error.message)
                 }
-                // Handle other 503 errors with structured message
-                throw EnrichmentError.apiError(errorResponse.error.message)
-            } catch let decodingError as DecodingError {
-                // Fallback if error response doesn't match expected format
+
+                // Fallback if no error field in envelope (unexpected for 503!)
                 #if DEBUG
-                print("⚠️ Failed to decode 503 error response: \(decodingError)")
+                print("⚠️ 503 response has success=true with no error - unexpected backend response")
                 #endif
+                throw URLError(.badServerResponse)
+
+            } catch {
+                // Handle both decoding errors and thrown EnrichmentErrors
+                if let enrichmentError = error as? EnrichmentError {
+                    throw enrichmentError  // Re-throw our own errors
+                }
+                #if DEBUG
+                print("⚠️ Failed to decode 503 error response: \(error)")
+                #endif
+                throw URLError(.badServerResponse)
             }
-            throw URLError(.badServerResponse)
         default:
+            #if DEBUG
+            print("🚨 V2 Enrich unexpected HTTP \(httpResponse.statusCode)")
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("🚨 Response body: \(responseString)")
+            }
+            #endif
             throw URLError(.badServerResponse)
         }
     }
