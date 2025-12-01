@@ -67,13 +67,6 @@ enum EnrichmentConfig {
         URL(string: "\(baseURL)/api/scan-bookshelf/cancel")!
     }
 
-    // MARK: - CSV Import Endpoints
-
-    /// AI-powered CSV import with Gemini
-    static var csvImportURL: URL {
-        URL(string: "\(baseURL)/api/import/csv-gemini")!
-    }
-
     // MARK: - Workflow Import Endpoints
 
     /// Create a new import workflow
