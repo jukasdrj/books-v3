@@ -1,6 +1,6 @@
 # 📚 BooksTrack - Claude Code Guide
 
-**Version 3.7.5 (Build 189+)** | **iOS 26.0+** | **Swift 6.2+** | **Updated: November 18, 2025**
+**Version 3.7.5 (Build 189+)** | **iOS 26.0+** | **Swift 6.2+** | **Updated: December 1, 2025**
 
 > **📋 For universal AI agent instructions, see [`AGENTS.md`](AGENTS.md)**
 > This file contains **Claude Code-specific** setup (MCP, slash commands, skills).
@@ -151,6 +151,8 @@ Sonnet (you): Address findings and final review
 - **code-refactor-master** - Refactoring & code organization
 - **refactor-planner** - Creating refactoring plans
 - **auto-error-resolver** - Fixing compilation errors
+- **security-auditor** - Security scanning and OWASP compliance (NEW)
+- **performance-analyzer** - Performance profiling and optimization (NEW)
 
 **Examples:**
 ```
@@ -267,7 +269,12 @@ mcp__zen__debug(
 - Exactly ONE task `in_progress` at any time
 - Only mark `completed` when FULLY accomplished (not partial)
 
-### AskUserQuestion Tool
+### AskUserQuestion Tool (Enhanced)
+
+**Recent improvements:**
+- Multi-select support for non-exclusive choices
+- Auto-submission for single-select queries
+- Better mobile experience
 
 **Use when you need:**
 - User preferences or requirements
@@ -280,6 +287,41 @@ mcp__zen__debug(
 - `multiSelect: true` for multiple answers
 - 2-4 options per question
 - 1-4 questions max
+
+**Example:**
+```swift
+AskUserQuestion(
+  questions: [{
+    question: "Which testing approach should I use?",
+    header: "Testing",
+    multiSelect: false,
+    options: [
+      {label: "/quick-validate", description: "Safe build validation (recommended)"},
+      {label: "/sim-safe", description: "Simulator with resource limits"},
+      {label: "/device-deploy", description: "Real device (most accurate)"}
+    ]
+  }]
+)
+```
+
+---
+
+## 🔄 Checkpoints & Rewind
+
+**Claude Code auto-saves before each change.**
+
+**Rewind Methods:**
+- Press `Esc` twice in succession
+- Use `/rewind` command
+- Choose what to restore: code, conversation, or both
+
+**Use Cases:**
+- Undo unwanted changes
+- Compare different approaches
+- Recover from errors
+- Restore previous task states
+
+**Note:** Todo list state is preserved across rewinding.
 
 ---
 
@@ -810,18 +852,22 @@ Sonnet (you):
 ```json
 {
   "subagentModels": {
-    "cloudflare-specialist": "claude-sonnet-4-5-20250929",
-    "code-review-grok": "grok-4",
-    "refactor-planner": "claude-opus-4-1-20250805",
-    "Plan": "claude-opus-4-1-20250805",
-    "Explore": "claude-haiku-4-5-20251001"
+    "cloudflare-specialist": "sonnet",
+    "code-review-grok": "grok-code-fast-1",
+    "code-architecture-reviewer": "grok-code-fast-1",
+    "security-auditor": "grok-code-fast-1",
+    "performance-analyzer": "gemini-2.5-pro",
+    "refactor-planner": "opus",
+    "Plan": "opus",
+    "Explore": "haiku"
   }
 }
 ```
 
 **Why these models:**
 - **Sonnet** for Cloudflare specialist (complex architecture decisions)
-- **Grok** (grok-4-1-fast-non-reasoning) for code review (expert validation, security focus)
+- **Grok** (grok-code-fast-1) for code review & security (expert validation, security focus)
+- **Gemini 2.5 Pro** for performance analysis (deep investigation, pattern recognition)
 - **Opus** for planning agents (strategic thinking, comprehensive plans)
 - **Haiku** for exploration (speed, efficiency)
 
@@ -832,20 +878,47 @@ Sonnet (you):
 ```json
 {
   "hooks": {
-    "PostToolUse": {
-      "Write": "Check if Workers file modified → suggest wrangler dev",
-      "Edit": "Check if .sql file modified → suggest migration validation"
-    },
-    "SubagentStart": "Log subagent activation",
-    "SubagentStop": "Prompt PM to review findings"
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [".claude/hooks/pre-commit.sh"]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "*",
+        "hooks": [".claude/hooks/subagent-start.sh"]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [".claude/hooks/subagent-stop.sh"]
+      }
+    ]
   }
 }
 ```
 
+**Hook Scripts (in `.claude/hooks/`):**
+- `pre-commit.sh` - Validates bash commands before execution
+- `subagent-start.sh` - Logs subagent activation
+- `subagent-stop.sh` - Prompts to review subagent findings
+
 **Automatic triggers:**
-- Modify `worker.js` → reminder to test with `wrangler dev`
-- Modify `.sql` file → reminder to validate with `wrangler d1 migrations list`
-- Subagent completes → prompt PM (you) to integrate results
+- Bash command → pre-commit validation
+- Subagent starts → log activation
+- Subagent completes → prompt to integrate results
+
+### Actions & Workflows
+
+**Configured in `.claude/actions.yaml`:**
+
+- **Zero Warnings Check** - Validates build before commit
+- **SwiftData Model Validation** - Checks @Bindable usage on @Model changes
+- **API Contract Check** - Verifies provider orchestration
+- **Swift 6 Concurrency Audit** - Checks actor isolation
+- **Test Coverage Reminder** - Prompts for tests on new services
 
 ---
 
@@ -882,6 +955,6 @@ Sonnet (you):
 
 ---
 
-**Last Updated:** November 27, 2025 (v3.7.5, Build 189)
+**Last Updated:** December 1, 2025 (v3.7.5, Build 189)
 **Maintained by:** oooe (jukasdrj)
 **See Also:** [`AGENTS.md`](AGENTS.md)

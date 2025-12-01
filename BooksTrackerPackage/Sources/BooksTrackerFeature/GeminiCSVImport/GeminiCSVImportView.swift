@@ -441,11 +441,11 @@ public struct GeminiCSVImportView: View {
 
 
     /// Fetch full job results from KV cache via HTTP GET
-    /// v2.0 Migration: SSE sends lightweight summary, full results fetched on demand
+    /// V2 Migration: SSE sends lightweight summary, full results fetched on demand
     /// Results are cached for 24 hours after job completion
     private func fetchJobResults(jobId: String) async throws -> CSVImportJobResults {
         let baseURL = "https://api.oooefam.net"
-        let url = URL(string: "\(baseURL)/v1/jobs/\(jobId)/results")!
+        let url = URL(string: "\(baseURL)/api/v2/imports/\(jobId)/results")!
 
         #if DEBUG
         print("[CSV Import] 🌐 Fetching results from: \(url)")

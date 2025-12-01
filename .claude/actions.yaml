@@ -1,0 +1,67 @@
+# BooksTrack Custom Actions
+# Automated workflows triggered by file changes or events
+
+actions:
+  # Pre-commit validation
+  - name: "Zero Warnings Check"
+    description: "Validate build has zero warnings before committing"
+    trigger: "before_commit"
+    command: "/quick-validate"
+
+  # SwiftData model validation
+  - name: "SwiftData Model Validation"
+    description: "Check @Bindable usage when @Model files change"
+    trigger: "on_file_change"
+    pattern: "**/*.swift"
+    match_content: "@Model"
+    command: |
+      echo "SwiftData model changed - checking @Bindable usage..."
+      grep -r '@Bindable' --include='*.swift' BooksTracker/Views/ || echo "Warning: No @Bindable found in Views"
+
+  # API contract validation
+  - name: "API Contract Check"
+    description: "Verify provider orchestration when API files change"
+    trigger: "on_file_change"
+    pattern: "**/Services/**/*API*.swift"
+    command: |
+      echo "API file changed - checking provider orchestration..."
+      grep -l 'orchestrated:' BooksTracker/Services/ || echo "Warning: Missing orchestration tags"
+
+  # Swift 6 concurrency check
+  - name: "Swift 6 Concurrency Audit"
+    description: "Check actor isolation when concurrency files change"
+    trigger: "on_file_change"
+    pattern: "**/*Actor*.swift"
+    command: |
+      echo "Actor file changed - checking isolation..."
+      grep -E '@MainActor|@globalActor|isolated' "$FILE" || echo "Info: No explicit isolation found"
+
+  # Test coverage reminder
+  - name: "Test Coverage Reminder"
+    description: "Remind to add tests when new features are added"
+    trigger: "on_file_create"
+    pattern: "**/Services/*.swift"
+    command: |
+      echo "New service created - remember to add tests in BooksTrackerTests/"
+
+# Suggested workflows (not auto-triggered)
+workflows:
+  - name: "Full Validation"
+    description: "Complete validation before PR"
+    steps:
+      - "/quick-validate"
+      - "/test"
+      - "Check for zero warnings"
+
+  - name: "Safe UI Testing"
+    description: "UI validation on real device"
+    steps:
+      - "/quick-validate"
+      - "/device-deploy"
+
+  - name: "Emergency Recovery"
+    description: "Recover from frozen state"
+    steps:
+      - "/kill-xcode"
+      - "Wait 10 seconds"
+      - "/quick-validate"

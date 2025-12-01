@@ -1,15 +1,37 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "model": "claude-sonnet-4-5-20250929",
   "customInstructions": "CRITICAL: Safe Testing Policy - ALWAYS use /quick-validate instead of /build. NEVER use /sim (use /sim-safe or /device-deploy). When user requests testing, default to safe validation workflow (see CLAUDE.md Safe Testing section).",
   "subagentModels": {
-    "cloudflare-specialist": "claude-sonnet-4-5-20250929",
+    "cloudflare-specialist": "sonnet",
     "code-review-grok": "grok-code-fast-1",
     "code-architecture-reviewer": "grok-code-fast-1",
-    "refactor-planner": "claude-opus-4-20250514",
-    "Plan": "claude-opus-4-20250514",
-    "Explore": "claude-haiku-4-20250514"
+    "security-auditor": "grok-code-fast-1",
+    "performance-analyzer": "gemini-2.5-pro",
+    "refactor-planner": "opus",
+    "Plan": "opus",
+    "Explore": "haiku"
   },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{"type": "command", "command": ".claude/hooks/pre-commit.sh"}]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "*",
+        "hooks": [{"type": "command", "command": ".claude/hooks/subagent-start.sh"}]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [{"type": "command", "command": ".claude/hooks/subagent-stop.sh"}]
+      }
+    ]
+  },
+  "respectGitIgnore": true,
   "env": {
     "MAX_MCP_OUTPUT_TOKENS": "50000",
     "CLAUDE_CODE_SUBAGENT_PARALLEL": "true"

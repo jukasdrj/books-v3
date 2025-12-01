@@ -392,19 +392,16 @@ public final class SearchModel {
         let startTime = CFAbsoluteTimeGetCurrent()
 
         do {
+            // V2 Unified Search API - all search types now use V2
             let response: SearchResponse
-            if FeatureFlags.shared.enableV2Search {
-                // Use the new V2 Unified Search API
-                response = try await apiService.searchV2(query: query, mode: self.searchMode)
+            if options.isAdvanced {
+                response = try await apiService.advancedSearch(
+                    author: options.authorFilter,
+                    title: options.titleFilter,
+                    isbn: options.isbnFilter
+                )
             } else {
-                // Fallback to the legacy V1 search API
-                if options.isAdvanced, let authorName = options.authorFilter, options.titleFilter == nil, options.isbnFilter == nil {
-                    response = try await apiService.advancedSearch(author: authorName, title: nil, isbn: nil)
-                } else if options.isAdvanced {
-                    response = try await apiService.advancedSearch(author: options.authorFilter, title: options.titleFilter, isbn: options.isbnFilter)
-                } else {
-                    response = try await apiService.search(query: query, maxResults: 20, scope: scope)
-                }
+                response = try await apiService.search(query: query, maxResults: 20, scope: scope)
             }
 
             // Check if task was cancelled

@@ -937,10 +937,10 @@ actor BookshelfAIService {
     }
 
     /// Fetch full job results from KV cache via HTTP GET
-    /// v2.0 Migration: WebSocket sends lightweight summary, full results fetched on demand
+    /// V2 Migration: SSE sends lightweight summary, full results fetched on demand
     /// Results are cached for 24 hours after job completion
     public func fetchJobResults(jobId: String) async throws -> ScanResultPayload {
-        let url = URL(string: "\(EnrichmentConfig.apiBaseURL)/v1/jobs/\(jobId)/results")!
+        let url = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/v2/imports/\(jobId)/results")!
 
         let (data, response) = try await URLSession.shared.data(from: url)
 

@@ -24,101 +24,66 @@ public class BookSearchAPIService {
 
     // MARK: - Search Methods
 
+    /// V2 Unified Search - Primary search method
+    ///
+    /// Routes all search queries through the V2 unified search endpoint (`/api/v2/search`).
+    /// Supports query prefixes for different search types:
+    /// - `isbn:9780439064873` → ISBN lookup
+    /// - `author:rowling` → Author search
+    /// - `title:harry potter` → Explicit title search
+    /// - `harry potter` → Default title search
+    ///
+    /// - Parameters:
+    ///   - query: Search query (supports prefixes)
+    ///   - maxResults: Maximum results to return (default: 20, max: 50)
+    ///   - scope: Search scope for query transformation
+    ///   - persist: Whether to persist results to SwiftData
+    /// - Returns: SearchResponse with results
     func search(query: String, maxResults: Int = 20, scope: SearchScope = .all, persist: Bool = true) async throws -> SearchResponse {
-        guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw SearchError.invalidQuery
         }
 
-        // iOS 26 HIG: Intelligent routing based on query context
-        let endpoint: String
-        let urlString: String
+        // Transform query based on scope using V2 prefix format
+        let v2Query = transformQueryForV2(query: query, scope: scope)
+        let mode = mapScopeToSearchMode(scope)
 
+        // Use V2 unified search endpoint
+        return try await searchV2(query: v2Query, mode: mode, limit: min(maxResults, 50), persist: persist)
+    }
+
+    /// Transform query for V2 API format based on scope
+    private func transformQueryForV2(query: String, scope: SearchScope) -> String {
         switch scope {
-        case .all:
-            // Smart detection: ISBN → Title search, otherwise use title search
-            // Title search handles ISBNs intelligently + provides best coverage
-            endpoint = "/v1/search/title"
-            urlString = "\(EnrichmentConfig.baseURL)\(endpoint)?q=\(encodedQuery)"
-        case .title:
-            endpoint = "/v1/search/title"
-            urlString = "\(EnrichmentConfig.baseURL)\(endpoint)?q=\(encodedQuery)"
+        case .all, .title:
+            // Default text search - no prefix needed
+            return query
         case .author:
-            // Use advanced search with author-only parameter (canonical format)
-            endpoint = "/v1/search/advanced"
-            urlString = "\(EnrichmentConfig.baseURL)\(endpoint)?author=\(encodedQuery)"
+            // Add author: prefix if not already present
+            if query.lowercased().hasPrefix("author:") {
+                return query
+            }
+            return "author:\(query)"
         case .isbn:
-            // Dedicated ISBN endpoint for ISBNdb lookups (7-day cache, most accurate)
-            endpoint = "/v1/search/isbn"
-            urlString = "\(EnrichmentConfig.baseURL)\(endpoint)?isbn=\(encodedQuery)"
+            // Add isbn: prefix if not already present
+            if query.lowercased().hasPrefix("isbn:") {
+                return query
+            }
+            return "isbn:\(query)"
         case .semantic:
-            // Use v2 unified search endpoint for semantic queries
-            endpoint = "/api/v2/search"
-            urlString = "\(EnrichmentConfig.baseURL)\(endpoint)?q=\(encodedQuery)&mode=semantic"
+            // Semantic search uses mode parameter, no prefix needed
+            return query
         }
-        guard let url = URL(string: urlString) else {
-            throw SearchError.invalidURL
+    }
+
+    /// Map SearchScope to V2 SearchMode
+    private func mapScopeToSearchMode(_ scope: SearchScope) -> SearchMode {
+        switch scope {
+        case .semantic:
+            return .semantic
+        case .all, .title, .author, .isbn:
+            return .text
         }
-
-        let startTime = Date()
-        let (data, response): (Data, URLResponse)
-        do {
-            (data, response) = try await urlSession.data(from: url)
-        } catch {
-            throw SearchError.networkError(error)
-        }
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SearchError.invalidResponse
-        }
-
-        // CORS Detection (Issue #428, Issue #10)
-        // NOTE: This detects backend-signaled CORS errors via X-Custom-Error header.
-        // Real CORS errors (browser/OS blocks) result in status 0 or network errors
-        // and cannot be reliably detected client-side. This is primarily for web builds
-        // where backends can explicitly signal CORS policy violations.
-        if let customError = httpResponse.value(forHTTPHeaderField: "X-Custom-Error"),
-           customError == "CORS_BLOCKED" {
-            throw SearchError.corsBlocked
-        }
-
-        // Rate Limit Detection (Issue #9)
-        if httpResponse.statusCode == 429 {
-            let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After").flatMap(Int.init)
-            throw SearchError.rateLimitExceeded(retryAfter: retryAfter)
-        }
-
-        guard httpResponse.statusCode == 200 else {
-            throw SearchError.httpError(httpResponse.statusCode)
-        }
-
-        let responseTime = Date().timeIntervalSince(startTime) * 1000 // Convert to milliseconds
-
-        // Extract performance headers
-        let cacheStatus = httpResponse.value(forHTTPHeaderField: "X-Cache") ?? "MISS"
-        let provider = httpResponse.value(forHTTPHeaderField: "X-Provider") ?? "unknown"
-        let cacheHitRate = calculateCacheHitRate(from: cacheStatus)
-
-        // Update cache health metrics (actor-isolated call)
-        await updateCacheMetrics(headers: httpResponse.allHeaderFields, responseTime: responseTime)
-
-        // Parse response using DTOMapper (supports both unified envelope and legacy formats)
-        let searchResponse: BookSearchResponse
-        do {
-            searchResponse = try dtoMapper.parseSearchResponse(data)
-        } catch {
-            throw SearchError.decodingError(error)
-        }
-
-        // Convert parsed DTO response to SearchResult array
-        let results = try convertToSearchResults(searchResponse, persist: persist)
-
-        return SearchResponse(
-            results: results,
-            cacheHitRate: cacheHitRate,
-            provider: provider,
-            responseTime: 0, // Will be calculated by caller
-            totalItems: results.count
-        )
     }
 
     /// Get trending books based on user activity within a time range
@@ -306,88 +271,48 @@ public class BookSearchAPIService {
     }
 
     /// Advanced search with multiple criteria (author, title, ISBN)
-    /// Backend performs filtering to return clean results
-    /// Optimization: When only author is provided, uses dedicated /search/author endpoint
+    ///
+    /// Uses V2 unified search endpoint with query prefixes.
+    /// Combines criteria into a single query string:
+    /// - Title only: `{title}`
+    /// - Author only: `author:{author}`
+    /// - ISBN only: `isbn:{isbn}`
+    /// - Combined: `{title} author:{author}`
+    ///
+    /// - Parameters:
+    ///   - author: Author name filter
+    ///   - title: Book title filter
+    ///   - isbn: ISBN filter
+    /// - Returns: SearchResponse with results
     func advancedSearch(
         author: String?,
         title: String?,
         isbn: String?
     ) async throws -> SearchResponse {
-        // Detect author-only search for optimization
-        let isAuthorOnlySearch = !(author?.isEmpty ?? true) && (title?.isEmpty ?? true) && (isbn?.isEmpty ?? true)
+        // Build V2-compatible query string with prefixes
+        var queryParts: [String] = []
 
-        var urlComponents: URLComponents
-        var queryItems: [URLQueryItem] = []
-
-        if isAuthorOnlySearch, let authorName = author {
-            // Use v1 advanced search with author-only parameter
-            urlComponents = URLComponents(string: "\(EnrichmentConfig.baseURL)/v1/search/advanced")!
-            queryItems.append(URLQueryItem(name: "author", value: authorName))
-        } else {
-            // Use v1 advanced search endpoint for multi-criteria queries
-            urlComponents = URLComponents(string: "\(EnrichmentConfig.baseURL)/v1/search/advanced")!
-
-            if let author = author, !author.isEmpty {
-                queryItems.append(URLQueryItem(name: "author", value: author))
-            }
-            if let title = title, !title.isEmpty {
-                queryItems.append(URLQueryItem(name: "title", value: title))
-            }
-            if let isbn = isbn, !isbn.isEmpty {
-                queryItems.append(URLQueryItem(name: "isbn", value: isbn))
-            }
+        // ISBN takes priority (most specific)
+        if let isbn = isbn, !isbn.isEmpty {
+            return try await search(query: isbn, scope: .isbn)
         }
 
-        urlComponents.queryItems = queryItems
-
-        guard let url = urlComponents.url else {
-            throw SearchError.invalidURL
+        // Add title (no prefix - default search)
+        if let title = title, !title.isEmpty {
+            queryParts.append(title)
         }
 
-        let startTime = Date()
-        let (data, response): (Data, URLResponse)
-        do {
-            (data, response) = try await urlSession.data(from: url)
-        } catch {
-            throw SearchError.networkError(error)
+        // Add author with prefix
+        if let author = author, !author.isEmpty {
+            queryParts.append("author:\(author)")
         }
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SearchError.invalidResponse
+        guard !queryParts.isEmpty else {
+            throw SearchError.invalidQuery
         }
 
-        guard httpResponse.statusCode == 200 else {
-            throw SearchError.httpError(httpResponse.statusCode)
-        }
-
-        let responseTime = Date().timeIntervalSince(startTime) * 1000 // Convert to milliseconds
-
-        // Extract performance headers
-        let cacheStatus = httpResponse.allHeaderFields["X-Cache"] as? String ?? "MISS"
-        let provider = httpResponse.allHeaderFields["X-Provider"] as? String ?? "advanced-search"
-        let cacheHitRate = calculateCacheHitRate(from: cacheStatus)
-
-        // Update cache health metrics (actor-isolated call)
-        await updateCacheMetrics(headers: httpResponse.allHeaderFields, responseTime: responseTime)
-
-        // Parse response using DTOMapper (supports both unified envelope and legacy formats)
-        let searchResponse: BookSearchResponse
-        do {
-            searchResponse = try dtoMapper.parseSearchResponse(data)
-        } catch {
-            throw SearchError.decodingError(error)
-        }
-
-        // Convert parsed DTO response to SearchResult array
-        let results = try convertToSearchResults(searchResponse, persist: true)
-
-        return SearchResponse(
-            results: results,
-            cacheHitRate: cacheHitRate,
-            provider: provider,
-            responseTime: 0,
-            totalItems: results.count
-        )
+        let query = queryParts.joined(separator: " ")
+        return try await searchV2(query: query, mode: .text, limit: 20, persist: true)
     }
 
     // MARK: - Trending Searches API (Issue #20)
@@ -446,67 +371,6 @@ public class BookSearchAPIService {
 
     // MARK: - Helper Methods
 
-    /// Convert BookSearchResponse to SearchResult array
-    /// Extracts common logic for mapping authors and works from API DTOs
-    private func convertToSearchResults(_ searchData: BookSearchResponse, persist: Bool) throws -> [SearchResult] {
-        logger.debug("📦 Processing search response: \(searchData.works.count) works, \(searchData.editions.count) editions, \(searchData.authors.count) authors")
-
-        // Map authors from API response
-        let mappedAuthors = searchData.authors.compactMap { authorDTO in
-            do {
-                return try dtoMapper.mapToAuthor(authorDTO, persist: persist)
-            } catch {
-                logger.warning("⚠️ Failed to map Author DTO '\(authorDTO.name)': \(String(describing: error))")
-                return nil
-            }
-        }
-
-        logger.debug("✅ Mapped \(mappedAuthors.count) authors successfully")
-
-        // Map editions with DTOMapper
-        let mappedEditions = searchData.editions.compactMap { editionDTO in
-            do {
-                return try dtoMapper.mapToEdition(editionDTO, persist: persist)
-            } catch {
-                logger.warning("⚠️ Failed to map Edition DTO: \(String(describing: error))")
-                return nil
-            }
-        }
-
-        logger.debug("✅ Mapped \(mappedEditions.count) editions successfully")
-
-        // Use DTOMapper to convert DTOs → SwiftData models with deduplication
-        return searchData.works.enumerated().compactMap { (index, workDTO) in
-            do {
-                let work = try dtoMapper.mapToWork(workDTO, persist: persist)
-
-                // Get corresponding edition (1:1 mapping by index)
-                let edition = index < mappedEditions.count ? mappedEditions[index] : nil
-
-                // Link edition to work if available
-                if let edition = edition {
-                    edition.work = work
-                }
-
-                // Link authors to work
-                if !mappedAuthors.isEmpty {
-                    work.authors = mappedAuthors
-                }
-
-                return SearchResult(
-                    work: work,
-                    editions: edition.map { [$0] } ?? [],
-                    authors: mappedAuthors,
-                    relevanceScore: 1.0,
-                    provider: "canonical-api" // Provider tracking moved to meta envelope level
-                )
-            } catch {
-                logger.warning("⚠️ Failed to map Work DTO '\(workDTO.title)': \(String(describing: error))")
-                return nil
-            }
-        }
-    }
-
     private func calculateCacheHitRate(from cacheStatus: String) -> Double {
         if cacheStatus.contains("HIT") {
             return 1.0
@@ -536,34 +400,70 @@ public class BookSearchAPIService {
     // MARK: - V2 Search
 
     /// V2 Unified Search API Response DTOs
-    private struct V2SearchResponse: Codable {
-        let results: [V2SearchResultItem]
-        let total: Int
-        let mode: String
-        let query: String
-        let latencyMs: Int
+    /// Matches the ResponseEnvelope<SearchResponse> format from V2 API
+    private struct V2SearchEnvelope: Codable {
+        let success: Bool
+        let data: V2SearchData?
+        let metadata: V2ResponseMetadata?
+        let error: V2ApiError?
+    }
 
-        enum CodingKeys: String, CodingKey {
-            case results, total, mode, query
-            case latencyMs = "latency_ms"
-        }
+    private struct V2SearchData: Codable {
+        let results: [V2SearchResultItem]
+        let totalCount: Int
+        let query: String
+        let mode: String?
+    }
+
+    private struct V2ResponseMetadata: Codable {
+        let timestamp: String?
+        let cached: Bool?
+        let provider: String?
+    }
+
+    private struct V2ApiError: Codable {
+        let code: String?
+        let message: String
     }
 
     private struct V2SearchResultItem: Codable {
         let isbn: String?
         let title: String
-        let authors: [String]
+        let author: String?  // V2 uses singular "author" field
+        let authors: [String]?  // Fallback for array format
         let coverUrl: String?
-        let relevanceScore: Double
+        let publisher: String?
+        let publishedDate: String?
+        let pageCount: Int?
+        let description: String?
+        let subjects: [String]?
+        let workKey: String?
+        let relevanceScore: Double?
 
-        enum CodingKeys: String, CodingKey {
-            case isbn, title, authors
-            case coverUrl = "cover_url"
-            case relevanceScore = "relevance_score"
+        /// Get authors as array (handles both singular and array formats)
+        var authorList: [String] {
+            if let authors = authors, !authors.isEmpty {
+                return authors
+            }
+            if let author = author, !author.isEmpty {
+                return [author]
+            }
+            return []
         }
     }
 
-    public func searchV2(query: String, mode: SearchMode, limit: Int = 20) async throws -> SearchResponse {
+    /// V2 Unified Search implementation
+    ///
+    /// Uses the `/api/v2/search` endpoint with ResponseEnvelope format.
+    /// Cover URLs are served from Alexandria CDN (`https://alexandria.ooheynerds.com/covers/...`).
+    ///
+    /// - Parameters:
+    ///   - query: Search query (supports prefixes: isbn:, author:, title:)
+    ///   - mode: Search mode (text, semantic, hybrid)
+    ///   - limit: Maximum results (default: 20, max: 50)
+    ///   - persist: Whether to persist results to SwiftData (default: true)
+    /// - Returns: SearchResponse with results
+    public func searchV2(query: String, mode: SearchMode, limit: Int = 20, persist: Bool = true) async throws -> SearchResponse {
         guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
             throw SearchError.invalidQuery
         }
@@ -585,6 +485,13 @@ public class BookSearchAPIService {
             throw SearchError.invalidResponse
         }
 
+        // CORS Detection
+        if let customError = httpResponse.value(forHTTPHeaderField: "X-Custom-Error"),
+           customError == "CORS_BLOCKED" {
+            throw SearchError.corsBlocked
+        }
+
+        // Rate Limit Detection
         if httpResponse.statusCode == 429 {
             let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After").flatMap(Int.init)
             logger.warning("V2 Search rate limited. Retry after: \(retryAfter ?? 0)s")
@@ -598,42 +505,87 @@ public class BookSearchAPIService {
 
         let responseTime = Date().timeIntervalSince(startTime) * 1000
 
-        let v2Response: V2SearchResponse
+        // Extract cache status from headers
+        let cacheStatus = httpResponse.value(forHTTPHeaderField: "X-Cache") ?? "MISS"
+        let cacheHitRate = calculateCacheHitRate(from: cacheStatus)
+
+        // Update cache health metrics
+        await updateCacheMetrics(headers: httpResponse.allHeaderFields, responseTime: responseTime)
+
+        // Decode V2 ResponseEnvelope format
+        let v2Response: V2SearchEnvelope
         do {
-            v2Response = try JSONDecoder().decode(V2SearchResponse.self, from: data)
+            v2Response = try JSONDecoder().decode(V2SearchEnvelope.self, from: data)
         } catch {
             logger.error("V2 Search decoding error: \(error)")
             throw SearchError.decodingError(error)
         }
 
-        let results = convertV2ResultsToSearchResults(v2Response.results, mode: mode)
+        // Check for API-level errors
+        guard v2Response.success, let searchData = v2Response.data else {
+            let errorMessage = v2Response.error?.message ?? "Unknown API error"
+            throw SearchError.apiError(errorMessage)
+        }
+
+        // Extract provider from metadata
+        let provider = v2Response.metadata?.provider ?? "v2-unified"
+
+        let results = convertV2ResultsToSearchResults(searchData.results, mode: mode, persist: persist)
 
         return SearchResponse(
             results: results,
-            cacheHitRate: 0.0, // V2 API doesn't provide cache headers yet
-            provider: "v2-unified-\(mode.rawValue)",
+            cacheHitRate: cacheHitRate,
+            provider: provider,
             responseTime: responseTime,
-            totalItems: v2Response.total
+            totalItems: searchData.totalCount
         )
     }
 
-    /// Converts the flat V2 search results into the SwiftData-based `SearchResult` models.
-    /// This creates non-persisted, in-memory model instances for display in the search results.
-    private func convertV2ResultsToSearchResults(_ v2Results: [V2SearchResultItem], mode: SearchMode) -> [SearchResult] {
+    /// Converts V2 search results into SwiftData-based SearchResult models
+    ///
+    /// Cover URLs from Alexandria CDN are preserved in the coverImageURL field.
+    /// Format: `https://alexandria.ooheynerds.com/covers/{isbn}/{size}`
+    ///
+    /// - Parameters:
+    ///   - v2Results: Raw V2 API results
+    ///   - mode: Search mode used
+    ///   - persist: Whether to persist models to SwiftData
+    /// - Returns: Array of SearchResult models
+    private func convertV2ResultsToSearchResults(_ v2Results: [V2SearchResultItem], mode: SearchMode, persist: Bool = false) -> [SearchResult] {
         return v2Results.map { item in
-            // Create non-persisted SwiftData models for the UI
+            // Create Work model
             let work = Work(title: item.title)
+            work.coverImageURL = item.coverUrl  // Alexandria CDN URL
+            work.subjectTags = item.subjects ?? []
 
-            let authors = item.authors.map { authorName in
-                Author(name: authorName)
+            if persist {
+                modelContext.insert(work)
+            }
+
+            // Create Author models
+            let authors = item.authorList.map { authorName in
+                let author = Author(name: authorName)
+                if persist {
+                    modelContext.insert(author)
+                }
+                return author
             }
             work.authors = authors
 
+            // Create Edition model if ISBN present
             var editions: [Edition] = []
             if let isbn = item.isbn {
                 let edition = Edition(isbn: isbn)
-                edition.coverImageURL = item.coverUrl
+                edition.coverImageURL = item.coverUrl  // Alexandria CDN URL
+                edition.publisher = item.publisher
+                edition.publicationDate = item.publishedDate
+                edition.pageCount = item.pageCount
+                edition.editionDescription = item.description
                 edition.work = work
+
+                if persist {
+                    modelContext.insert(edition)
+                }
                 editions.append(edition)
             }
 
@@ -641,7 +593,7 @@ public class BookSearchAPIService {
                 work: work,
                 editions: editions,
                 authors: authors,
-                relevanceScore: item.relevanceScore,
+                relevanceScore: item.relevanceScore ?? 1.0,
                 provider: "v2-unified-\(mode.rawValue)"
             )
         }
@@ -649,104 +601,24 @@ public class BookSearchAPIService {
 
     // MARK: - Similar Books API
 
-    /// Response structure for the similar books endpoint
-    struct SimilarBooksResponse: Codable {
-        let results: [SimilarBook]
-        let source_isbn: String
-        let total: Int
-    }
-
-    struct SimilarBook: Codable {
-        let isbn: String
-        let title: String
-        let authors: [String]
-        let cover_url: String?
-        let similarity_score: Double
-    }
-
+    /// Find similar books using V2 semantic search
+    ///
+    /// Uses the V2 unified search endpoint with `mode=semantic` for AI-powered
+    /// similarity matching based on book content and metadata.
+    ///
+    /// - Parameters:
+    ///   - isbn: Source book ISBN to find similar books for
+    ///   - limit: Maximum number of similar books to return (default: 10)
+    /// - Returns: SearchResponse with similar books
     func findSimilarBooks(isbn: String, limit: Int = 10) async throws -> SearchResponse {
-        logger.info("📚 Finding similar books for ISBN \(isbn)...")
+        logger.info("📚 Finding similar books for ISBN \(isbn) using V2 semantic search...")
 
-        guard let encodedIsbn = isbn.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
-            throw SearchError.invalidQuery
-        }
-
-        let urlString = "\(EnrichmentConfig.baseURL)/v1/search/similar?isbn=\(encodedIsbn)&limit=\(limit)"
-        guard let url = URL(string: urlString) else {
-            throw SearchError.invalidURL
-        }
-
-        let startTime = Date()
-        let (data, response): (Data, URLResponse)
-        do {
-            (data, response) = try await urlSession.data(from: url)
-        } catch {
-            throw SearchError.networkError(error)
-        }
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SearchError.invalidResponse
-        }
-
-        if httpResponse.statusCode == 429 {
-            let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After").flatMap(Int.init)
-            throw SearchError.rateLimitExceeded(retryAfter: retryAfter)
-        }
-
-        if httpResponse.statusCode == 404 {
-            logger.info("✅ No similar books found for ISBN \(isbn) (404)")
-            return SearchResponse(results: [], cacheHitRate: 0.0, provider: "similar-books", responseTime: 0, totalItems: 0)
-        }
-
-        guard httpResponse.statusCode == 200 else {
-            throw SearchError.httpError(httpResponse.statusCode)
-        }
-
-        let responseTime = Date().timeIntervalSince(startTime) * 1000
-
-        let similarBooksResponse: SimilarBooksResponse
-        do {
-            similarBooksResponse = try JSONDecoder().decode(SimilarBooksResponse.self, from: data)
-        } catch {
-            throw SearchError.decodingError(error)
-        }
-
-        if similarBooksResponse.results.isEmpty {
-            logger.info("✅ No similar books found for ISBN \(isbn)")
-            return SearchResponse(results: [], cacheHitRate: 0.0, provider: "similar-books", responseTime: responseTime, totalItems: 0)
-        }
-
-        // Convert similar books directly to SearchResults (similar to V2 search pattern)
-        let results = similarBooksResponse.results.map { similarBook in
-            // Create non-persisted SwiftData models for the UI
-            let work = Work(title: similarBook.title)
-
-            let authors = similarBook.authors.map { authorName in
-                Author(name: authorName)
-            }
-            work.authors = authors
-
-            let edition = Edition(isbn: similarBook.isbn)
-            edition.coverImageURL = similarBook.cover_url
-            edition.work = work
-
-            return SearchResult(
-                work: work,
-                editions: [edition],
-                authors: authors,
-                relevanceScore: similarBook.similarity_score,
-                provider: "similar-books"
-            )
-        }
-
-        logger.info("✅ Found \(results.count) similar books in \(Int(responseTime))ms")
-
-        return SearchResponse(
-            results: results,
-            cacheHitRate: 0.0,
-            provider: "similar-books",
-            responseTime: responseTime,
-            totalItems: results.count
+        // Use V2 semantic search with isbn: prefix
+        return try await searchV2(
+            query: "isbn:\(isbn)",
+            mode: .semantic,
+            limit: limit,
+            persist: false
         )
     }
 }

@@ -102,17 +102,17 @@ public final class FeatureFlags {
 
     /// Enable V2 Unified Search API (/api/v2/search)
     ///
-    /// When enabled, all search queries (title, advanced) will use the
-    /// new V2 unified search endpoint. This supports both text and
-    /// semantic search modes.
+    /// All search queries now use the V2 unified search endpoint.
+    /// This supports text, semantic, and hybrid search modes.
     ///
-    /// Default: `false` (disabled, uses legacy v1 search)
+    /// Default: `true` (V2 is now the primary search API)
     ///
-    /// Note: This is a P0 feature for Sprint 4 and will be enabled by
-    /// default once stable.
+    /// Note: V1 search endpoints are deprecated and will be removed
+    /// after March 1, 2026. This flag is kept for emergency rollback only.
     public var enableV2Search: Bool {
         get {
-            UserDefaults.standard.bool(forKey: "feature.enableV2Search")
+            // Default to true - V2 is now the primary search API
+            UserDefaults.standard.object(forKey: "feature.enableV2Search") as? Bool ?? true
         }
         set {
             UserDefaults.standard.set(newValue, forKey: "feature.enableV2Search")
@@ -181,11 +181,11 @@ public final class FeatureFlags {
         enableTabBarMinimize = true  // Default enabled
         coverSelectionStrategy = .auto  // Default auto
         disableCanonicalEnrichment = false  // Default canonical endpoint
-        enableV2Search = false // Default v2 search disabled
+        enableV2Search = true // V2 search is now the default
         enableWorkflowImport = false // Default workflow import disabled
         enablePhotoScanSSE = false // Default SSE disabled (WebSocket fallback)
         #if DEBUG
-        print("FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true, v2Search: false, workflowImport: false, photoScanSSE: false)")
+        print("FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true, v2Search: true, workflowImport: false, photoScanSSE: false)")
         #endif
     }
 }

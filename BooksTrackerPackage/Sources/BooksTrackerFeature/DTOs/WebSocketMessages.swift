@@ -301,7 +301,7 @@ public struct CSVImportCompletePayload: Codable, Sendable {
 
 /// Legacy models for full CSV import results (now fetched via HTTP GET)
 /// These are kept for backward compatibility when fetching from KV cache
-/// DEPRECATED: Use GET /v1/jobs/{jobId}/results to fetch full results
+/// DEPRECATED: Use GET /api/v2/imports/{jobId}/results to fetch full results
 
 public struct ParsedBook: Codable, Sendable {
     public let title: String
@@ -348,7 +348,7 @@ public struct AIScanCompletePayload: Codable, Sendable {
 
 /// Legacy models for full AI scan results (now fetched via HTTP GET)
 /// These are kept for backward compatibility when fetching from KV cache
-/// DEPRECATED: Use GET /v1/jobs/{jobId}/results to fetch full results
+/// DEPRECATED: Use GET /api/v2/imports/{jobId}/results to fetch full results
 
 public struct JobMetadata: Codable, Sendable {
     public let modelUsed: String?

@@ -373,7 +373,7 @@ actor GeminiCSVImportService {
         print("[CSV Status] Checking status for job: \(jobId)")
         #endif
 
-        let statusURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/v1/csv/status/\(jobId)")!
+        let statusURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/v2/imports/\(jobId)")!
         var request = URLRequest(url: statusURL)
         request.httpMethod = "GET"
         request.timeoutInterval = 30
@@ -451,9 +451,9 @@ actor GeminiCSVImportService {
         print("[CSV Cancel] Canceling job: \(jobId)")
         #endif
 
-        let cancelURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/v1/csv/cancel/\(jobId)")!
+        let cancelURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/v2/jobs/\(jobId)/cancel")!
         var request = URLRequest(url: cancelURL)
-        request.httpMethod = "POST"
+        request.httpMethod = "DELETE"
         request.timeoutInterval = 30
 
         do {
