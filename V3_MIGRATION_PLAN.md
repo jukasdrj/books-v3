@@ -1,7 +1,7 @@
 # Books-v3 Chanfana V3 Migration Plan
 
 **Status:** Phase 2 In Progress ⚡ (40% Complete)
-**Last Updated:** December 1, 2025, 10:10 PM PST
+**Last Updated:** December 1, 2025, 11:15 PM PST
 **Owner:** books-v3 iOS Team
 **Dependencies:** ~~bendv3 v3 API deployment~~ ✅ UNBLOCKED (OpenAPI spec available), Alexandria ResponseEnvelope alignment
 
@@ -12,7 +12,7 @@
 Migration from bendv3 v2 API to chanfana-based v3 API with auto-generated types, unified endpoints, and D1-backed library sync.
 
 **Phase 1 (COMPLETE):** ✅ UI improvements and infrastructure prep (8 hours actual)
-**Phase 2 (IN PROGRESS):** ⚡ V3 API integration (4/10 hours invested) - **OpenAPI spec discovered, unblocked!**
+**Phase 2 (IN PROGRESS):** ⚡ V3 API integration (5/10 hours invested) - **OpenAPI Codegen Enabled**
 **Phase 3 (FUTURE):** 🔮 Legacy cleanup (1-2 hours)
 
 **MAJOR UPDATE:** `docs/openapi-v3.json` discovered! Phase 2 no longer blocked by backend deployment.
@@ -144,10 +144,10 @@ if let error = apiResponse.error {
 - 🔄 Task 1: OpenAPI Spec Updates (fixing missing response schemas)
 - 🔄 Task 1: OpenAPI Codegen Implementation
 
-### Task 1: OpenAPI Codegen Setup ⚡ IN PROGRESS
+### Task 1: OpenAPI Codegen Setup ✅ COMPLETE
 **Priority:** HIGH
 **Effort:** 2-3 hours
-**Status:** 🔄 Implementation started (spec analysis complete, fixes needed)
+**Status:** ✅ Setup Complete (Package.swift enabled, ready for generation)
 **Dependencies:** ~~bendv3 v3 deployed~~ ✅ UNBLOCKED (`docs/openapi-v3.json` available)
 
 **Steps:**
@@ -636,7 +636,7 @@ Services/ISBNdbClient.swift           → All goes through bendv3
 | | Provider attribution UI | 3h | ✅ COMPLETE |
 | | Deprecation detection | 1h | ✅ COMPLETE |
 | | Enhanced error UI | 2h | ✅ COMPLETE |
-| **Phase 2** | OpenAPI codegen setup | 2-3h | ⏸️ BLOCKED |
+| **Phase 2** | OpenAPI codegen setup | 2-3h | ✅ COMPLETE |
 | | V3 search service | 3-4h | ⏸️ BLOCKED |
 | | Library CRUD service | 4-5h | ⏸️ BLOCKED |
 | | Error view components | 2h | ⏸️ OPTIONAL |
