@@ -66,7 +66,9 @@ public struct iOS26LiquidLibraryView: View {
     @State private var cachedStatusCounts: [ReadingStatus: Int] = [:] // PERFORMANCE: Cache status counts
 
     @Namespace private var layoutTransition
+    #if os(iOS)
     @State private var scrollPosition = ScrollPosition()
+    #endif
     @Environment(\.iOS26ThemeStore) private var themeStore
     @Environment(\.modelContext) private var modelContext
     @Environment(TabCoordinator.self) private var tabCoordinator
@@ -75,6 +77,140 @@ public struct iOS26LiquidLibraryView: View {
     public init() {}
 
     public var body: some View {
+        searchableContent
+            .navigationTitle("My Library")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.large)
+            #endif
+            .toolbar {
+                // Alert/Action items - Leading placement for prominence
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if reviewQueueCount > 0 {
+                        Button {
+                            showingReviewQueue.toggle()
+                        } label: {
+                            Label {
+                                Text("Review Queue")
+                            } icon: {
+                                Image(systemName: "exclamationmark.triangle.badge.\(min(reviewQueueCount, 99))")
+                            }
+                        }
+                        .labelStyle(.iconOnly)
+                        .buttonStyle(.glassProminent)
+                        .tint(.orange)
+                        .foregroundStyle(.white)
+                        .symbolEffect(.bounce, value: reviewQueueCount)
+                        .accessibilityLabel("Review Queue")
+                        .accessibilityValue("\(reviewQueueCount) book\(reviewQueueCount == 1 ? "" : "s") need review")
+                        .accessibilityHint("Opens queue to verify AI-detected book information")
+                    }
+                }
+
+                // Informational/Settings - Trailing placement for secondary actions
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button("Recently Added") {
+                            quickFilter = .recentlyAdded
+                            updateFilteredWorks()
+                        }
+                        Button("Recently Read") {
+                            quickFilter = .recentlyRead
+                            updateFilteredWorks()
+                        }
+                    } label: {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
+                    }
+                    #if os(iOS)
+                    .buttonStyle(.glass)
+                    #endif
+                    .foregroundStyle(.primary)
+
+                    Button {
+                        showingDiversityInsights.toggle()
+                    } label: {
+                        Image(systemName: "chart.bar.xaxis")
+                    }
+                    #if os(iOS)
+                    .buttonStyle(.glass)
+                    #endif
+                    .foregroundStyle(.primary)
+                    .accessibilityLabel("Diversity Insights")
+                    .accessibilityHint("View reading diversity and cultural statistics")
+
+                    Menu {
+                        Picker("Layout", selection: $selectedLayout.animation(.smooth)) {
+                            ForEach(LibraryLayout.allCases, id: \.self) { layout in
+                                Label(layout.displayName, systemImage: layout.icon)
+                                    .tag(layout)
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "square.grid.2x2")
+                    }
+                    #if os(iOS)
+                    .buttonStyle(.glass)
+                    #endif
+                    .foregroundStyle(.primary)
+                    .accessibilityLabel("Change layout")
+                    .accessibilityHint("Switch between grid, cards, and list views")
+
+                    Button {
+                        showingSettings = true
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
+                    #if os(iOS)
+                    .buttonStyle(.glass)
+                    #endif
+                    .foregroundStyle(themeStore.primaryColor)
+                    .accessibilityLabel("Settings")
+                }
+            }
+            // ✅ FIX 4: Navigation with Work objects (SwiftData PersistentIdentifier)
+            .navigationDestination(for: Work.self) { work in
+                WorkDetailView(work: work)
+            }
+            .sheet(isPresented: $showingReviewQueue) {
+                #if canImport(UIKit)
+                ReviewQueueView()
+                    .onDisappear {
+                        // Refresh queue count when returning from review queue
+                        updateReviewQueueCount()
+                    }
+                #else
+                Text("Review Queue is only available on iOS")
+                    .padding()
+                #endif
+            }
+            .sheet(isPresented: $showingDiversityInsights) {
+                CulturalDiversityInsightsView(works: cachedFilteredWorks)
+                    .presentationDetents([.medium, .large])
+                    .iOS26SheetGlass()
+            }
+            .sheet(isPresented: $showingSettings) {
+                NavigationStack {
+                    SettingsView()
+                        #if os(iOS)
+                        .navigationBarTitleDisplayMode(.inline)
+                        #endif
+                        .toolbar {
+                            #if os(iOS)
+                            ToolbarItem(placement: .topBarTrailing) {
+                            #else
+                            ToolbarItem(placement: .primaryAction) {
+                            #endif
+                                Button("Done") {
+                                    showingSettings = false
+                                }
+                            }
+                        }
+                }
+            }
+    }
+
+    // MARK: - Main Content View
+
+    private var searchableContent: some View {
         mainContentView
             .searchable(text: $searchText, prompt: "Search your library")
             .onChange(of: searchText) { _, newValue in
@@ -119,116 +255,7 @@ public struct iOS26LiquidLibraryView: View {
             } message: {
                 Text(errorMessage ?? "An unknown error occurred")
             }
-            .navigationTitle("My Library")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                // Alert/Action items - Leading placement for prominence
-                ToolbarItem(placement: .navigationBarLeading) {
-                    if reviewQueueCount > 0 {
-                        Button {
-                            showingReviewQueue.toggle()
-                        } label: {
-                            Label {
-                                Text("Review Queue")
-                            } icon: {
-                                Image(systemName: "exclamationmark.triangle.badge.\(min(reviewQueueCount, 99))")
-                            }
-                        }
-                        .labelStyle(.iconOnly)
-                        .buttonStyle(.glassProminent)
-                        .tint(.orange)
-                        .foregroundStyle(.white)
-                        .symbolEffect(.bounce, value: reviewQueueCount)
-                        .accessibilityLabel("Review Queue")
-                        .accessibilityValue("\(reviewQueueCount) book\(reviewQueueCount == 1 ? "" : "s") need review")
-                        .accessibilityHint("Opens queue to verify AI-detected book information")
-                    }
-                }
-
-                // Informational/Settings - Trailing placement for secondary actions
-                ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button("Recently Added") {
-                            quickFilter = .recentlyAdded
-                            updateFilteredWorks()
-                        }
-                        Button("Recently Read") {
-                            quickFilter = .recentlyRead
-                            updateFilteredWorks()
-                        }
-                    } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
-                    }
-                    .buttonStyle(.glass)
-                    .foregroundStyle(.primary)
-
-                    Button {
-                        showingDiversityInsights.toggle()
-                    } label: {
-                        Image(systemName: "chart.bar.xaxis")
-                    }
-                    .buttonStyle(.glass)
-                    .foregroundStyle(.primary)
-                    .accessibilityLabel("Diversity Insights")
-                    .accessibilityHint("View reading diversity and cultural statistics")
-
-                    Menu {
-                        Picker("Layout", selection: $selectedLayout.animation(.smooth)) {
-                            ForEach(LibraryLayout.allCases, id: \.self) { layout in
-                                Label(layout.displayName, systemImage: layout.icon)
-                                    .tag(layout)
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "square.grid.2x2")
-                    }
-                    .buttonStyle(.glass)
-                    .foregroundStyle(.primary)
-                    .accessibilityLabel("Change layout")
-                    .accessibilityHint("Switch between grid, cards, and list views")
-
-                    Button {
-                        showingSettings = true
-                    } label: {
-                        Image(systemName: "gearshape")
-                    }
-                    .buttonStyle(.glass)
-                    .foregroundStyle(themeStore.primaryColor)
-                    .accessibilityLabel("Settings")
-                }
-            }
-            // ✅ FIX 4: Navigation with Work objects (SwiftData PersistentIdentifier)
-            .navigationDestination(for: Work.self) { work in
-                WorkDetailView(work: work)
-            }
-            .sheet(isPresented: $showingReviewQueue) {
-                ReviewQueueView()
-                    .onDisappear {
-                        // Refresh queue count when returning from review queue
-                        updateReviewQueueCount()
-                    }
-            }
-            .sheet(isPresented: $showingDiversityInsights) {
-                CulturalDiversityInsightsView(works: cachedFilteredWorks)
-                    .presentationDetents([.medium, .large])
-                    .iOS26SheetGlass()
-            }
-            .sheet(isPresented: $showingSettings) {
-                NavigationStack {
-                    SettingsView()
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                Button("Done") {
-                                    showingSettings = false
-                                }
-                            }
-                        }
-                }
-            }
     }
-
-    // MARK: - Main Content View
 
     private var mainContentView: some View {
         ZStack {
@@ -326,8 +353,10 @@ public struct iOS26LiquidLibraryView: View {
                 .padding(.horizontal)
             }
         }
+        #if os(iOS)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .scrollPosition($scrollPosition)
+        #endif
     }
 
     // MARK: - Skeleton Loading View
@@ -432,7 +461,9 @@ public struct iOS26LiquidLibraryView: View {
             }
             .padding()
         }
+        #if os(iOS)
         .glassEffect(.regular, tint: .blue.opacity(0.3))
+        #endif
     }
 
     private var enrichmentStatusView: some View {
@@ -468,7 +499,9 @@ public struct iOS26LiquidLibraryView: View {
             }
             .padding()
         }
+        #if os(iOS)
         .glassEffect(.regular, tint: .purple.opacity(0.2))
+        #endif
     }
 
     private var culturalDiversityIndicator: some View {
@@ -476,7 +509,9 @@ public struct iOS26LiquidLibraryView: View {
             Circle()
                 .fill(cachedDiversityScore > 0.3 ? .green : cachedDiversityScore > 0.15 ? .orange : .red)
                 .frame(width: 12, height: 12)
+                #if os(iOS)
                 .glassEffect(.regular, interactive: true)
+                #endif
 
             VStack(alignment: .trailing, spacing: 2) {
                 Text("\(Int(cachedDiversityScore * 100))%")
@@ -555,7 +590,9 @@ public struct iOS26LiquidLibraryView: View {
                                 Image(systemName: status.systemImage)
                                     .font(.title3)
                                     .foregroundColor(status.color)
+                                    #if os(iOS)
                                     .glassEffect(.regular, interactive: true)
+                                    #endif
 
                                 Text("\(count)")
                                     .font(.caption.bold())
@@ -763,9 +800,11 @@ public struct UltraOptimizedLibraryView: View {
     @State private var dataSource = OptimizedLibraryDataSource()
     @State private var filteredWorks: [Work] = []
     @State private var diversityScore: Double = 0.0
-    
+
     @Namespace private var layoutTransition
+    #if os(iOS)
     @State private var scrollPosition = ScrollPosition()
+    #endif
     @Environment(\.iOS26ThemeStore) private var themeStore
     @Environment(\.modelContext) private var modelContext
 
@@ -775,6 +814,20 @@ public struct UltraOptimizedLibraryView: View {
     public init() {}
 
     public var body: some View {
+        navigationContent
+            .modifier(SafeWorkNavigation(
+                workID: UUID(), // Will be overridden by individual NavigationLinks
+                allWorks: filteredWorks
+            ))
+            .sheet(isPresented: $showingDiversityInsights) {
+                CulturalDiversityInsightsView(works: filteredWorks)
+                    .presentationDetents([.medium, .large])
+                    .iOS26SheetGlass()
+            }
+            .performanceMonitor("UltraOptimizedLibraryView")
+    }
+
+    private var navigationContent: some View {
         NavigationStack {
             optimizedMainContent
                 .searchable(text: $searchText, prompt: "Search your library")
@@ -789,15 +842,23 @@ public struct UltraOptimizedLibraryView: View {
                 }
         }
         .navigationTitle("My Library")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
+        #endif
         .toolbar {
+            #if os(iOS)
             ToolbarItemGroup(placement: .navigationBarTrailing) {
+            #else
+            ToolbarItemGroup(placement: .primaryAction) {
+            #endif
                 Button {
                     showingDiversityInsights.toggle()
                 } label: {
                     Image(systemName: "chart.bar.xaxis")
                 }
+                #if os(iOS)
                 .buttonStyle(.glass)
+                #endif
                 .foregroundStyle(.primary)
                 .accessibilityLabel("Diversity Insights")
                 .accessibilityHint("View reading diversity and cultural statistics")
@@ -812,22 +873,14 @@ public struct UltraOptimizedLibraryView: View {
                 } label: {
                     Image(systemName: "square.grid.2x2")
                 }
+                #if os(iOS)
                 .buttonStyle(.glass)
+                #endif
                 .foregroundStyle(.primary)
                 .accessibilityLabel("Change layout")
                 .accessibilityHint("Switch between grid, cards, and list views")
             }
         }
-        .modifier(SafeWorkNavigation(
-            workID: UUID(), // Will be overridden by individual NavigationLinks
-            allWorks: filteredWorks
-        ))
-        .sheet(isPresented: $showingDiversityInsights) {
-            CulturalDiversityInsightsView(works: filteredWorks)
-                .presentationDetents([.medium, .large])
-                .iOS26SheetGlass()
-        }
-        .performanceMonitor("UltraOptimizedLibraryView")
     }
 
     // MARK: - Optimized Main Content
@@ -867,7 +920,9 @@ public struct UltraOptimizedLibraryView: View {
                     .performanceMonitor("BooksLayout")
             }
         }
+        #if os(iOS)
         .scrollPosition($scrollPosition)
+        #endif
         .scrollIndicators(.visible, axes: .vertical)
     }
 
@@ -1051,7 +1106,9 @@ public struct UltraOptimizedLibraryView: View {
             }
             .padding()
         }
+        #if os(iOS)
         .glassEffect(.regular, tint: .blue.opacity(0.3))
+        #endif
     }
 
     private var optimizedDiversityIndicator: some View {
@@ -1059,7 +1116,9 @@ public struct UltraOptimizedLibraryView: View {
             Circle()
                 .fill(diversityScore > 0.3 ? .green : diversityScore > 0.15 ? .orange : .red)
                 .frame(width: 12, height: 12)
+                #if os(iOS)
                 .glassEffect(.regular, interactive: true)
+                #endif
 
             VStack(alignment: .trailing, spacing: 2) {
                 Text("\(Int(diversityScore * 100))%")
@@ -1093,7 +1152,9 @@ public struct UltraOptimizedLibraryView: View {
                     Image(systemName: status.systemImage)
                         .font(.title3)
                         .foregroundColor(status.color)
+                        #if os(iOS)
                         .glassEffect(.regular, interactive: true)
+                        #endif
 
                     Text("\(count)")
                         .font(.caption.bold())
@@ -1110,7 +1171,7 @@ public struct UltraOptimizedLibraryView: View {
 
     // MARK: - Performance Optimizations
 
-    private func adaptiveColumns(for size: CGSize) -> [GridItem] {
+    private func calculateAdaptiveColumns(for size: CGSize) -> [GridItem] {
         let screenWidth = size.width
         let columnCount: Int
 
@@ -1129,7 +1190,7 @@ public struct UltraOptimizedLibraryView: View {
 
     private var adaptiveColumns: [GridItem] {
         // Use a reasonable default when no geometry is available
-        adaptiveColumns(for: CGSize(width: 400, height: 800))
+        calculateAdaptiveColumns(for: CGSize(width: 400, height: 800))
     }
 
     @MainActor
@@ -1188,37 +1249,53 @@ struct CulturalDiversityInsightsView: View {
     @Environment(\.modelContext) private var modelContext
 
     var body: some View {
+        navigationContent
+            .presentationDragIndicator(.visible)
+    }
+
+    private var navigationContent: some View {
         NavigationStack {
-            ScrollView {
-                LazyVStack(spacing: 20) {
-                    // Diversity metrics
-                    diversityMetricsSection
-
-                    // Cultural regions breakdown
-                    culturalRegionsSection
-
-                    // Author gender distribution
-                    genderDistributionSection
-
-                    // Reading goals progress
-                    readingGoalsSection
-                }
-                .padding()
-                .scrollTargetLayout()
-            }
-            .scrollEdgeEffectStyle(.soft, for: .top)
-            .navigationTitle("Cultural Insights")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
+            scrollContent
+                .navigationTitle("Cultural Insights")
+                #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+                #endif
+                .toolbar {
+                    #if os(iOS)
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                    #else
+                    ToolbarItem(placement: .primaryAction) {
+                    #endif
+                        Button("Done") {
+                            dismiss()
+                        }
+                        .buttonStyle(.glassProminent)
                     }
-                    .buttonStyle(.glassProminent)
                 }
-            }
         }
-        .presentationDragIndicator(.visible)
+    }
+
+    private var scrollContent: some View {
+        ScrollView {
+            LazyVStack(spacing: 20) {
+                // Diversity metrics
+                diversityMetricsSection
+
+                // Cultural regions breakdown
+                culturalRegionsSection
+
+                // Author gender distribution
+                genderDistributionSection
+
+                // Reading goals progress
+                readingGoalsSection
+            }
+            .padding()
+            .scrollTargetLayout()
+        }
+        #if os(iOS)
+        .scrollEdgeEffectStyle(.soft, for: .top)
+        #endif
     }
 
     private var diversityMetricsSection: some View {
@@ -1251,7 +1328,9 @@ struct CulturalDiversityInsightsView: View {
             }
             .padding()
         }
+        #if os(iOS)
         .glassEffect(.regular, tint: .blue.opacity(0.2))
+        #endif
     }
 
     private var culturalRegionsSection: some View {
@@ -1287,7 +1366,9 @@ struct CulturalDiversityInsightsView: View {
             }
             .padding()
         }
+        #if os(iOS)
         .glassEffect(.regular, tint: .green.opacity(0.2))
+        #endif
     }
 
     private var genderDistributionSection: some View {
@@ -1319,7 +1400,9 @@ struct CulturalDiversityInsightsView: View {
             }
             .padding()
         }
+        #if os(iOS)
         .glassEffect(.regular, tint: .purple.opacity(0.2))
+        #endif
     }
 
     private var readingGoalsSection: some View {
@@ -1345,7 +1428,9 @@ struct CulturalDiversityInsightsView: View {
             }
             .padding()
         }
+        #if os(iOS)
         .glassEffect(.regular, tint: .orange.opacity(0.2))
+        #endif
     }
 
     // MARK: - Helper Methods
