@@ -138,7 +138,7 @@ if let error = apiResponse.error {
 
 **Completed Tasks:**
 - ✅ Task 4: Error & Loading State Components (ErrorView.swift, LoadingStateView.swift)
-- ✅ Task 1: OpenAPI Codegen Setup (748 lines of generated Swift code!)
+- ✅ Task 1: OpenAPI Codegen Setup (2,322 lines of generated Swift code! 3 endpoints: search, enrich, isbn lookup)
 
 **In Progress:**
 - 🔄 Task 2: Unified V3 Search Service (next up!)
@@ -146,7 +146,7 @@ if let error = apiResponse.error {
 ### Task 1: OpenAPI Codegen Setup ✅ COMPLETE
 **Priority:** HIGH
 **Effort:** 2-3 hours (actual: 1.5 hours)
-**Status:** ✅ COMPLETE - Generated 748 lines of type-safe Swift code (December 2, 2025)
+**Status:** ✅ COMPLETE - Generated 2,322 lines of type-safe Swift code (December 2, 2025)
 **Dependencies:** ~~bendv3 v3 deployed~~ ✅ UNBLOCKED (`docs/openapi-v3.json` available)
 
 **Completed Steps:**
@@ -154,31 +154,67 @@ if let error = apiResponse.error {
 2. ✅ Configured Package.swift with OpenAPI Generator plugin (PR #144 merged)
 3. ✅ Fixed spec compatibility (OpenAPI 3.1.0 → 3.0.3, `exclusiveMinimum` boolean → numeric)
 4. ✅ Generated Swift types via `swift-openapi-generator` plugin:
-   - **Types.swift**: 600 lines (request/response types, enums, schemas)
-   - **Client.swift**: 148 lines (API client protocol)
+   - **Types.swift**: 1,908 lines (request/response types, enums, schemas)
+   - **Client.swift**: 414 lines (API client protocol with 3 endpoints)
 5. ✅ Verified generated types follow `ResponseEnvelope<T>` pattern
+6. ✅ Fixed "multiple producers" build error (removed checked-in generated files, added .gitignore)
 
-**Generated Files:**
+**Generated Files (Build-Time Generation):**
 ```
 .build/plugins/outputs/.../OpenAPIGenerator/GeneratedSources/
-├── Types.swift   (600 lines) - Request/response types
-├── Client.swift  (148 lines) - API client protocol
-└── Server.swift  (0 lines)   - Server stubs (not needed)
+├── Types.swift   (1,908 lines) - Request/response types, enums, schemas
+├── Client.swift  (414 lines)   - API client protocol (3 endpoints)
+└── Server.swift  (0 lines)     - Server stubs (not needed)
 ```
 
-**Current API Coverage:**
+**Build Configuration:**
+- Plugin generates files at build time (NOT checked into source control)
+- `.gitignore` added: `BooksTrackerPackage/Sources/BooksTrackerFeature/.gitignore`
+- Generated files live in `.build/plugins/outputs/` directory
+
+**Current API Coverage (3 Endpoints):**
+- ✅ `GET /v3/books/search` - Search books by title with pagination (q, page, limit)
+- ✅ `POST /v3/books/enrich` - Enrich book metadata with optional embedding generation
 - ✅ `GET /v3/books/:isbn` - Book metadata lookup with provider tags
 
+**Response Format (Standardized):**
+```swift
+// Success responses
+{
+  "success": true,
+  "data": { ... },
+  "metadata": {
+    "provider": "alexandria" | "google_books" | "open_library" | "isbndb",
+    "cached": true/false,
+    "timestamp": "2025-12-02T20:00:00Z"
+  }
+}
+
+// Error responses
+{
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Book not found"
+  }
+}
+```
+
+**Key Improvements:**
+- **3x more generated code** (748 → 2,322 lines)
+- **Search endpoint** now available (was missing in v1)
+- **Enrich endpoint** for on-demand metadata updates
+- **Provider metadata** in every response (alexandria, google_books, open_library, isbndb)
+- **Standardized envelopes** (`success`, `data`, `metadata`, `error` structure)
+
 **Limitations:**
-- OpenAPI spec only has 1 endpoint (book lookup by ISBN)
-- Missing search endpoints (`/v3/books/search`) - will be added by backend team
-- Library CRUD endpoints not yet in spec
+- Library CRUD endpoints not yet in spec (future backend work)
 
 **Next Steps:**
-- Wait for backend to add search/library endpoints to OpenAPI spec, OR
-- Manually implement v3 search service using generated types as reference
+- ✅ Regenerate types automatically on next backend deployment (plugin handles this)
+- 🔄 Implement v3 search service using generated types (Task 2)
 
-**Outcome:** ✅ Type-safe API client with 748 lines of auto-generated Swift code
+**Outcome:** ✅ Type-safe API client with 2,322 lines of auto-generated Swift code covering all v3 book operations
 
 ---
 
