@@ -410,16 +410,23 @@ struct QuickActionsSheet: View {
             VStack(spacing: 20) {
                 // Work info header
                 HStack(spacing: 16) {
+                    #if os(iOS)
                     CachedAsyncImage(url: work.primaryEdition?.coverImageURL.flatMap(URL.init)) { image in
                         image
                             .resizable()
                             .aspectRatio(2/3, contentMode: .fill)
                     } placeholder: {
                         Rectangle()
-                            .fill(.quaternary)
+                            .fill(Color.quaternary)
                     }
                     .frame(width: 60, height: 90)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
+                    #else
+                    Rectangle()
+                        .fill(Color.quaternary)
+                        .frame(width: 60, height: 90)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    #endif
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(work.title)

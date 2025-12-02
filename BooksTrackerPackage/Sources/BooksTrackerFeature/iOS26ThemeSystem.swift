@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - iOS 26 Theme System
 
@@ -291,8 +294,10 @@ public class iOS26ThemeStore: @unchecked Sendable {
 
     @MainActor
     private func triggerHapticFeedback() {
+        #if canImport(UIKit)
         let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
         impactFeedback.impactOccurred()
+        #endif
     }
 }
 

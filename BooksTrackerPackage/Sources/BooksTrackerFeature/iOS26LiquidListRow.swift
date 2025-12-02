@@ -88,30 +88,49 @@ struct iOS26LiquidListRow: View {
 
     private var coverThumbnail: some View {
         // ✅ FIXED: Uses CoverImageService with Edition → Work fallback logic
-        CachedAsyncImage(url: CoverImageService.coverURL(for: work)) { image in
+        let coverURL = CoverImageService.coverURL(for: work)
+
+        #if os(iOS) // Wrap CachedAsyncImage and iOS-specific modifiers
+        // Break down CachedAsyncImage expression for type inference
+        let imageContent = { (image: Image) in
             image
                 .resizable()
                 .aspectRatio(2/3, contentMode: .fill)
-        } placeholder: {
-            Rectangle()
-                .fill(LinearGradient(
-                    colors: [
-                        themeStore.primaryColor.opacity(0.3),
-                        themeStore.secondaryColor.opacity(0.2)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ))
-                .overlay {
-                    Image(systemName: "book.closed")
-                        .font(thumbnailIconFont)
-                        .foregroundColor(.white.opacity(0.8))
-                }
         }
-        .frame(width: thumbnailSize.width, height: thumbnailSize.height)
-        .clipShape(RoundedRectangle(cornerRadius: thumbnailCornerRadius))
-        .glassEffect(.subtle, tint: themeStore.primaryColor.opacity(0.1))
-        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+
+        let placeholderContent = {
+            placeholderView
+        }
+
+        return CachedAsyncImage(url: coverURL, content: imageContent, placeholder: placeholderContent)
+            .frame(width: thumbnailSize.width, height: thumbnailSize.height)
+            .clipShape(RoundedRectangle(cornerRadius: thumbnailCornerRadius))
+            .glassEffect(.subtle, tint: themeStore.primaryColor.opacity(0.1))
+            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+        #else
+        // Fallback for macOS or other platforms without CachedAsyncImage or glassEffect
+        return placeholderView
+            .frame(width: thumbnailSize.width, height: thumbnailSize.height)
+            .clipShape(RoundedRectangle(cornerRadius: thumbnailCornerRadius))
+            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+        #endif
+    }
+
+    private var placeholderView: some View {
+        Rectangle()
+            .fill(LinearGradient(
+                colors: [
+                    themeStore.primaryColor.opacity(0.3),
+                    themeStore.secondaryColor.opacity(0.2)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ))
+            .overlay {
+                Image(systemName: "book.closed")
+                    .font(thumbnailIconFont)
+                    .foregroundColor(.white.opacity(0.8))
+            }
     }
 
     // MARK: - Main Content
@@ -290,7 +309,9 @@ struct iOS26LiquidListRow: View {
                         .foregroundColor(.white)
                         .frame(width: 24, height: 24)
                         .background(status.color, in: Circle())
+                    #if os(iOS) // Wrap glassEffect
                         .glassEffect(.subtle, interactive: true)
+                    #endif
 
                     if displayStyle == .standard {
                         Text(status.shortName)
@@ -307,7 +328,9 @@ struct iOS26LiquidListRow: View {
                         .labelStyle(.iconOnly)
                         .frame(width: 28, height: 28)
                         .background(status.color.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                    #if os(iOS) // Wrap glassEffect
                         .glassEffect(.subtle, tint: status.color.opacity(0.2))
+                    #endif
 
                     Text(status.shortName)
                         .font(.caption2.bold())
@@ -326,7 +349,9 @@ struct iOS26LiquidListRow: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 24, height: 24)
                 .background(.quaternary, in: Circle())
+            #if os(iOS) // Wrap glassEffect
                 .glassEffect(.subtle, interactive: true)
+            #endif
         }
         .buttonStyle(.plain) // Native press animation
     }

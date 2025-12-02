@@ -86,11 +86,14 @@ enum GlassVariant {
 
 // MARK: - iOS 26 Navigation Glass
 
+@available(iOS 26.0, *)
 struct iOS26NavigationGlassModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
+            #if os(iOS)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbarBackground(.ultraThinMaterial, for: .tabBar)
+            #endif
             .background {
                 // Extends content under navigation
                 Rectangle()
@@ -107,9 +110,11 @@ struct ThemedNavigationGlassModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            #if os(iOS)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarBackground(.visible, for: .tabBar)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar, .tabBar)
+            #endif
     }
 }
 
