@@ -170,20 +170,21 @@ public final class EnrichmentService {
     // MARK: - Private Methods
 
     private func searchAPI(title: String, author: String?) async throws -> EnrichmentSearchResponseFlat {
-        // Use v1 canonical advanced search endpoint for CSV enrichment
+        // V2 MIGRATION: Use unified search endpoint with query prefixes
+        // Constructs query: "{title} author:{author}" for combined search
         // Returns canonical ResponseEnvelope<BookSearchResponse> with WorkDTO, EditionDTO, AuthorDTO
-        var urlComponents = URLComponents(string: "\(baseURL)/v1/search/advanced")!
-        var queryItems: [URLQueryItem] = []
-
-        queryItems.append(URLQueryItem(name: "title", value: title))
+        var queryParts: [String] = [title]
         if let author = author, !author.isEmpty {
-            queryItems.append(URLQueryItem(name: "author", value: author))
+            queryParts.append("author:\(author)")
         }
-        queryItems.append(URLQueryItem(name: "maxResults", value: "5"))
-
-        urlComponents.queryItems = queryItems
-
-        guard let url = urlComponents.url else {
+        let query = queryParts.joined(separator: " ")
+        
+        guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            throw EnrichmentError.invalidURL
+        }
+        
+        let urlString = "\(baseURL)/api/v2/search?q=\(encodedQuery)&mode=text&limit=5"
+        guard let url = URL(string: urlString) else {
             throw EnrichmentError.invalidURL
         }
 

@@ -1,0 +1,14 @@
+# OpenAPI Generator Configuration for BooksTrack V3 API
+# Phase 2, Task 1: OpenAPI Codegen Setup
+# Last Updated: December 1, 2025
+
+generate:
+  - types
+  - client
+
+# Specify that we want to generate a client (not a server)
+accessModifier: public
+
+# Additional configurations
+additionalImports:
+  - Foundation

@@ -397,33 +397,21 @@ public class BookSearchAPIService {
         }
     }
 
-    // MARK: - V2 Search
+    // MARK: - V2 Search DTOs
 
-    /// V2 Unified Search API Response DTOs
-    /// Matches the ResponseEnvelope<SearchResponse> format from V2 API
-    private struct V2SearchEnvelope: Codable {
-        let success: Bool
-        let data: V2SearchData?
-        let metadata: V2ResponseMetadata?
-        let error: V2ApiError?
-    }
-
-    private struct V2SearchData: Codable {
+    /// Proper DTO matching the V2 API search response data structure
+    /// Uses canonical ResponseEnvelope<T> pattern for consistency
+    private struct BookSearchResponseDTO: Codable, Sendable {
         let results: [V2SearchResultItem]
         let totalCount: Int
-        let query: String
-        let mode: String?
-    }
+        let query: SearchQueryDTO
 
-    private struct V2ResponseMetadata: Codable {
-        let timestamp: String?
-        let cached: Bool?
-        let provider: String?
-    }
-
-    private struct V2ApiError: Codable {
-        let code: String?
-        let message: String
+        struct SearchQueryDTO: Codable, Sendable {
+            let q: String
+            let mode: String?
+            let limit: Int?
+            let offset: Int?
+        }
     }
 
     private struct V2SearchResultItem: Codable {
@@ -512,25 +500,42 @@ public class BookSearchAPIService {
         // Update cache health metrics
         await updateCacheMetrics(headers: httpResponse.allHeaderFields, responseTime: responseTime)
 
-        // Decode V2 ResponseEnvelope format
-        let v2Response: V2SearchEnvelope
+        // Deprecation Detection (after cache metrics update, before decoding)
+        if let deprecation = httpResponse.value(forHTTPHeaderField: "Deprecation"),
+           deprecation.lowercased() == "true" {
+            let sunset = httpResponse.value(forHTTPHeaderField: "Sunset") ?? "unknown"
+
+            #if DEBUG
+            logger.warning("⚠️ API Deprecation Warning: Endpoint /api/v2/search is deprecated. Sunset date: \(sunset)")
+            #endif
+
+            // TODO: Send to analytics when available
+            // Analytics.track("api_deprecation_warning", [
+            //     "endpoint": "/api/v2/search",
+            //     "sunset": sunset,
+            //     "timestamp": Date().ISO8601Format()
+            // ])
+        }
+
+        // Decode ResponseEnvelope<BookSearchResponseDTO> to access metadata
+        let fullEnvelope: ResponseEnvelope<BookSearchResponseDTO>
         do {
-            v2Response = try JSONDecoder().decode(V2SearchEnvelope.self, from: data)
+            fullEnvelope = try JSONDecoder().decode(ResponseEnvelope<BookSearchResponseDTO>.self, from: data)
         } catch {
             logger.error("V2 Search decoding error: \(error)")
             throw SearchError.decodingError(error)
         }
 
-        // Check for API-level errors
-        guard v2Response.success, let searchData = v2Response.data else {
-            let errorMessage = v2Response.error?.message ?? "Unknown API error"
+        guard fullEnvelope.success, let searchData = fullEnvelope.data else {
+            let errorMessage = fullEnvelope.error?.message ?? "Unknown API error"
             throw SearchError.apiError(errorMessage)
         }
 
-        // Extract provider from metadata
-        let provider = v2Response.metadata?.provider ?? "v2-unified"
+        // Extract provider and cached from metadata
+        let provider = fullEnvelope.metadata.provider ?? "v2-unified"
+        let cached = fullEnvelope.metadata.cached ?? false
 
-        let results = convertV2ResultsToSearchResults(searchData.results, mode: mode, persist: persist)
+        let results = convertV2ResultsToSearchResults(searchData.results, mode: mode, provider: provider, cached: cached, persist: persist)
 
         return SearchResponse(
             results: results,
@@ -549,14 +554,18 @@ public class BookSearchAPIService {
     /// - Parameters:
     ///   - v2Results: Raw V2 API results
     ///   - mode: Search mode used
+    ///   - provider: The provider string from the API response metadata
+    ///   - cached: The cached status from the API response metadata
     ///   - persist: Whether to persist models to SwiftData
     /// - Returns: Array of SearchResult models
-    private func convertV2ResultsToSearchResults(_ v2Results: [V2SearchResultItem], mode: SearchMode, persist: Bool = false) -> [SearchResult] {
+    private func convertV2ResultsToSearchResults(_ v2Results: [V2SearchResultItem], mode: SearchMode, provider: String, cached: Bool, persist: Bool = false) -> [SearchResult] {
         return v2Results.map { item in
             // Create Work model
             let work = Work(title: item.title)
             work.coverImageURL = item.coverUrl  // Alexandria CDN URL
             work.subjectTags = item.subjects ?? []
+            work.primaryProvider = provider
+            work.cached = cached
 
             if persist {
                 modelContext.insert(work)
@@ -582,6 +591,8 @@ public class BookSearchAPIService {
                 edition.pageCount = item.pageCount
                 edition.editionDescription = item.description
                 edition.work = work
+                edition.primaryProvider = provider
+                edition.cached = cached
 
                 if persist {
                     modelContext.insert(edition)

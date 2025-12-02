@@ -1,0 +1,279 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "BooksTrack V3 API",
+    "version": "3.0.0",
+    "description": "Type-safe, class-based API for book metadata and library management",
+    "contact": {
+      "email": "nerd@ooheynerds.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.oooefam.net/v3",
+      "description": "Production"
+    }
+  ],
+  "paths": {
+    "/books/{isbn}": {
+      "get": {
+        "summary": "Get book by ISBN",
+        "parameters": [
+          {
+            "name": "isbn",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{10}(\\d{3})?$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/books/search": {
+      "get": {
+        "summary": "Search books by title",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/books/enrich": {
+      "post": {
+        "summary": "Enrich book metadata",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "isbn": {
+                    "type": "string"
+                  },
+                  "force": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                },
+                "required": ["isbn"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrichmentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Book": {
+        "type": "object",
+        "properties": {
+          "isbn": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "authors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "publisher": {
+            "type": "string"
+          },
+          "publishedDate": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "pageCount": {
+            "type": "integer"
+          },
+          "coverUrl": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          }
+        }
+      },
+      "BookResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Book"
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "string"
+              },
+              "traceId": {
+                "type": "string"
+              },
+              "processingTime": {
+                "type": "integer"
+              },
+              "provider": {
+                "type": "string"
+              },
+              "cached": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": ["success", "metadata"]
+      },
+      "SearchResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Book"
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "string"
+              },
+              "traceId": {
+                "type": "string"
+              },
+              "processingTime": {
+                "type": "integer"
+              },
+              "provider": {
+                "type": "string"
+              },
+              "cached": {
+                "type": "boolean"
+              },
+              "page": {
+                "type": "integer"
+              },
+              "limit": {
+                "type": "integer"
+              },
+              "totalResults": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "required": ["success", "data", "metadata"]
+      },
+      "EnrichmentResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "isbn": {
+                "type": "string"
+              },
+              "enriched": {
+                "type": "boolean"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": ["isbn", "enriched"]
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "string"
+              },
+              "traceId": {
+                "type": "string"
+              },
+              "processingTime": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "required": ["success", "data", "metadata"]
+      }
+    }
+  }
+}

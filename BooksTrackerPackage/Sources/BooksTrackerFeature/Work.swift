@@ -105,6 +105,7 @@ public final class Work {
     // Provenance tracking for debugging and observability
     var synthetic: Bool = false     // True if Work was inferred from Edition data
     var primaryProvider: String?    // Which provider contributed this Work
+    var cached: Bool?                // Indicates if the data was served from cache
 
     @Attribute(.externalStorage)
     var contributors: [String] = [] // All providers that enriched this Work

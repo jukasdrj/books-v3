@@ -55,6 +55,97 @@ public struct ResponseEnvelope<T: Codable>: Codable {
     }
 }
 
+// MARK: - Enhanced Error Handling
+
+extension ResponseEnvelope.ApiErrorInfo {
+    /// Convert API error code to user-friendly message
+    /// Maps technical error codes from backend to actionable user guidance
+    public var userMessage: String {
+        guard let code = code else {
+            return message // Fallback to backend message if no code
+        }
+
+        switch code {
+        // Book Search Errors
+        case "NOT_FOUND":
+            return "Book not found. Try searching by a different ISBN or title."
+        case "INVALID_ISBN":
+            return "The ISBN format is invalid. Please check and try again."
+        case "INVALID_QUERY":
+            return "Invalid search query. Please enter a valid book title or ISBN."
+
+        // Rate Limiting & Service Errors
+        case "RATE_LIMITED":
+            return "Too many requests. Please wait a moment and try again."
+        case "CIRCUIT_OPEN":
+            return "Book database temporarily unavailable. We'll retry automatically."
+        case "PROVIDER_ERROR":
+            return "Unable to fetch book data right now. Please try again later."
+        case "SERVICE_UNAVAILABLE":
+            return "Service temporarily unavailable. Please try again in a few minutes."
+
+        // Network & Infrastructure Errors
+        case "TIMEOUT":
+            return "Request timed out. Check your internet connection and try again."
+        case "NETWORK_ERROR":
+            return "Network error. Please check your internet connection."
+        case "CORS_BLOCKED":
+            return "Network security error. Please contact support if this persists."
+
+        // Authentication & Authorization
+        case "UNAUTHORIZED":
+            return "Authentication required. Please sign in and try again."
+        case "FORBIDDEN":
+            return "You don't have permission to access this resource."
+        case "TOKEN_EXPIRED":
+            return "Your session expired. Please sign in again."
+
+        // Server Errors
+        case "INTERNAL_ERROR", "SERVER_ERROR":
+            return "Something went wrong on our end. We've been notified and are working on it."
+        case "DATABASE_ERROR":
+            return "Database error. Please try again in a moment."
+
+        // Validation Errors
+        case "VALIDATION_ERROR":
+            return "Invalid data. Please check your input and try again."
+        case "MISSING_FIELD":
+            return "Required information is missing. Please fill in all required fields."
+
+        // Default fallback
+        default:
+            // For unknown codes, use backend message
+            return message
+        }
+    }
+
+    /// Returns true if this error is retryable (user should try again)
+    public var isRetryable: Bool {
+        guard let code = code else { return false }
+
+        switch code {
+        case "RATE_LIMITED", "CIRCUIT_OPEN", "PROVIDER_ERROR",
+             "SERVICE_UNAVAILABLE", "TIMEOUT", "NETWORK_ERROR":
+            return true
+        default:
+            return retryable ?? false // Use backend's retryable flag if available
+        }
+    }
+
+    /// Returns true if this error requires user action (not automatic retry)
+    public var requiresUserAction: Bool {
+        guard let code = code else { return true }
+
+        switch code {
+        case "INVALID_ISBN", "INVALID_QUERY", "UNAUTHORIZED",
+             "FORBIDDEN", "VALIDATION_ERROR", "MISSING_FIELD":
+            return true
+        default:
+            return false
+        }
+    }
+}
+
 // MARK: - Domain-Specific Response Types
 
 /// Book search response
@@ -152,6 +243,12 @@ public struct BookshelfScanResponse: Codable, Sendable {
 ///
 /// This contract is enforced by the discriminated union pattern in both TypeScript
 /// and Swift, preventing invalid response states at compile time.
+
+// MARK: - Type Alias for Convenience
+
+/// Type alias for ApiErrorInfo to avoid generic parameter requirement
+/// Since ApiErrorInfo doesn't actually depend on T, we can use any concrete type
+public typealias ApiErrorInfo = ResponseEnvelope<String>.ApiErrorInfo
 
 // MARK: - AnyCodable Helper
 

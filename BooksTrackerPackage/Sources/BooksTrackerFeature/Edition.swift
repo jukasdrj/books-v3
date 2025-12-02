@@ -69,6 +69,7 @@ public final class Edition {
 
     // Provenance tracking for debugging and observability
     var primaryProvider: String?    // Which provider contributed this Edition
+    var cached: Bool?                // Indicates if the data was served from cache
 
     @Attribute(.externalStorage)
     var contributors: [String] = [] // All providers that enriched this Edition

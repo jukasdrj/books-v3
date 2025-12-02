@@ -179,6 +179,14 @@ struct WorkDetailView: View {
                         .padding(.horizontal, 20)
                 }
 
+                // MARK: - Provider Attribution
+                if let provider = work.primaryProvider {
+                    ProviderAttributionView(provider: provider, cached: work.cached)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                }
+
                 // Bottom padding
                 Color.clear.frame(height: 40)
             }
