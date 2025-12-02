@@ -1,7 +1,7 @@
 # Books-v3 Chanfana V3 Migration Plan
 
-**Status:** Phase 2 In Progress ⚡ (40% Complete)
-**Last Updated:** December 1, 2025, 11:15 PM PST
+**Status:** Phase 2 In Progress ⚡ (50% Complete)
+**Last Updated:** December 2, 2025, 1:35 PM PST
 **Owner:** books-v3 iOS Team
 **Dependencies:** ~~bendv3 v3 API deployment~~ ✅ UNBLOCKED (OpenAPI spec available), Alexandria ResponseEnvelope alignment
 
@@ -12,7 +12,7 @@
 Migration from bendv3 v2 API to chanfana-based v3 API with auto-generated types, unified endpoints, and D1-backed library sync.
 
 **Phase 1 (COMPLETE):** ✅ UI improvements and infrastructure prep (8 hours actual)
-**Phase 2 (IN PROGRESS):** ⚡ V3 API integration (5/10 hours invested) - **OpenAPI Codegen Enabled**
+**Phase 2 (IN PROGRESS):** ⚡ V3 API integration (6.5/10 hours invested) - **OpenAPI Codegen Complete!**
 **Phase 3 (FUTURE):** 🔮 Legacy cleanup (1-2 hours)
 
 **MAJOR UPDATE:** `docs/openapi-v3.json` discovered! Phase 2 no longer blocked by backend deployment.
@@ -132,54 +132,53 @@ if let error = apiResponse.error {
 
 ---
 
-## ⚡ Phase 2: V3 API Integration (IN PROGRESS - 40% Complete)
+## ⚡ Phase 2: V3 API Integration (IN PROGRESS - 50% Complete)
 
 **BREAKTHROUGH:** ✅ OpenAPI spec found at `docs/openapi-v3.json` - Phase 2 UNBLOCKED!
 
 **Completed Tasks:**
 - ✅ Task 4: Error & Loading State Components (ErrorView.swift, LoadingStateView.swift)
-- ✅ Task 1: OpenAPI Codegen Planning (implementation ready)
+- ✅ Task 1: OpenAPI Codegen Setup (748 lines of generated Swift code!)
 
 **In Progress:**
-- 🔄 Task 1: OpenAPI Spec Updates (fixing missing response schemas)
-- 🔄 Task 1: OpenAPI Codegen Implementation
+- 🔄 Task 2: Unified V3 Search Service (next up!)
 
 ### Task 1: OpenAPI Codegen Setup ✅ COMPLETE
 **Priority:** HIGH
-**Effort:** 2-3 hours
-**Status:** ✅ Setup Complete (Package.swift enabled, ready for generation)
+**Effort:** 2-3 hours (actual: 1.5 hours)
+**Status:** ✅ COMPLETE - Generated 748 lines of type-safe Swift code (December 2, 2025)
 **Dependencies:** ~~bendv3 v3 deployed~~ ✅ UNBLOCKED (`docs/openapi-v3.json` available)
 
-**Steps:**
-1. Install `swift-openapi-generator` (Apple official)
-   ```bash
-   # Add to Package.swift
-   .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
-   .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
-   .package(url: "https://github.com/apple/swift-openapi-urlsession", from: "1.0.0")
-   ```
+**Completed Steps:**
+1. ✅ Fetched OpenAPI spec from `https://api.oooefam.net/v3/openapi.json` → `docs/openapi-v3.json`
+2. ✅ Configured Package.swift with OpenAPI Generator plugin (PR #144 merged)
+3. ✅ Fixed spec compatibility (OpenAPI 3.1.0 → 3.0.3, `exclusiveMinimum` boolean → numeric)
+4. ✅ Generated Swift types via `swift-openapi-generator` plugin:
+   - **Types.swift**: 600 lines (request/response types, enums, schemas)
+   - **Client.swift**: 148 lines (API client protocol)
+5. ✅ Verified generated types follow `ResponseEnvelope<T>` pattern
 
-2. Fetch OpenAPI schema
-   ```bash
-   curl https://api.oooefam.net/v3/openapi.json > openapi.yaml
-   ```
+**Generated Files:**
+```
+.build/plugins/outputs/.../OpenAPIGenerator/GeneratedSources/
+├── Types.swift   (600 lines) - Request/response types
+├── Client.swift  (148 lines) - API client protocol
+└── Server.swift  (0 lines)   - Server stubs (not needed)
+```
 
-3. Generate Swift types
-   ```bash
-   swift-openapi-generator generate openapi.yaml \
-     --output-directory BooksTrackerPackage/Sources/GeneratedAPI
-   ```
+**Current API Coverage:**
+- ✅ `GET /v3/books/:isbn` - Book metadata lookup with provider tags
 
-4. Verify generated types match our DTOs
-   - `BookSearchResponseDTO` should align with generated `SearchResponse`
-   - `UserBook` DTO for library endpoints
-   - Error types match `ResponseEnvelope.ApiErrorInfo`
+**Limitations:**
+- OpenAPI spec only has 1 endpoint (book lookup by ISBN)
+- Missing search endpoints (`/v3/books/search`) - will be added by backend team
+- Library CRUD endpoints not yet in spec
 
-**Files to Create:**
-- `openapi.yaml` (fetched from backend)
-- `BooksTrackerPackage/Sources/GeneratedAPI/*.swift` (auto-generated)
+**Next Steps:**
+- Wait for backend to add search/library endpoints to OpenAPI spec, OR
+- Manually implement v3 search service using generated types as reference
 
-**Outcome:** Type-safe API client auto-generated from backend schema
+**Outcome:** ✅ Type-safe API client with 748 lines of auto-generated Swift code
 
 ---
 
@@ -636,7 +635,7 @@ Services/ISBNdbClient.swift           → All goes through bendv3
 | | Provider attribution UI | 3h | ✅ COMPLETE |
 | | Deprecation detection | 1h | ✅ COMPLETE |
 | | Enhanced error UI | 2h | ✅ COMPLETE |
-| **Phase 2** | OpenAPI codegen setup | 2-3h | ✅ COMPLETE |
+| **Phase 2** | OpenAPI codegen setup | 2-3h | ✅ COMPLETE (1.5h) |
 | | V3 search service | 3-4h | ⏸️ BLOCKED |
 | | Library CRUD service | 4-5h | ⏸️ BLOCKED |
 | | Error view components | 2h | ⏸️ OPTIONAL |
