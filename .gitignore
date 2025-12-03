@@ -128,10 +128,20 @@ jscpd-report.json
 gha-creds-*.json
 test_output.log
 
-# Build logs
+# Build logs (match in any directory)
+**/build-output.log
+**/build-quick.log
 build-output.log
 build-quick.log
 
+# Test output logs (match both naming variants)
+**/test_output.log
+**/test-output.log
+test_output.log
+test-output.log
+
 # Device deployment logs
+**/device-deploy.log
+**/device-deploy-fixed.log
 device-deploy.log
 device-deploy-fixed.log
