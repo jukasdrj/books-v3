@@ -3,7 +3,7 @@ import SwiftUI
 struct EnrichmentCompletionToast: View {
     let event: EnrichmentQueue.EnrichmentCompletionEvent
     @Binding var isPresented: Bool
-    @Environment(TabCoordinator.self) private var tabCoordinator
+    @Environment(\.tabCoordinator) private var tabCoordinator
 
     var body: some View {
         HStack(spacing: 12) {

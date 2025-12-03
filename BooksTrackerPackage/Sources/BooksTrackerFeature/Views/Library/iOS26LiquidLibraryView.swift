@@ -73,7 +73,7 @@ public struct iOS26LiquidLibraryView: View {
     #endif
     @Environment(\.iOS26ThemeStore) private var themeStore
     @Environment(\.modelContext) private var modelContext
-    @Environment(TabCoordinator.self) private var tabCoordinator
+    @Environment(\.tabCoordinator) private var tabCoordinator
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     public init() {}

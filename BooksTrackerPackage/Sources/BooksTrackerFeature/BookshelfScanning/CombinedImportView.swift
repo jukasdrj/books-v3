@@ -5,7 +5,7 @@ import SwiftData
 @MainActor
 public struct CombinedImportView: View {
     @Environment(\.iOS26ThemeStore) private var themeStore
-    @Environment(TabCoordinator.self) private var tabCoordinator
+    @Environment(\.tabCoordinator) private var tabCoordinator
     @Environment(\.modelContext) private var modelContext
 
     @State private var showingCSVImport = false
@@ -80,12 +80,12 @@ public struct CombinedImportView: View {
         .sheet(isPresented: $showingCSVImport) {
             GeminiCSVImportView()
                 .environment(\.modelContext, modelContext)
-                .environment(tabCoordinator)
+                .environment(\.tabCoordinator, tabCoordinator)
         }
         .navigationDestination(for: String.self) { value in
             if value == "scan" {
                 BookshelfScannerView()
-                    .environment(tabCoordinator)
+                    .environment(\.tabCoordinator, tabCoordinator)
             }
         }
     }

@@ -52,7 +52,7 @@ public struct GeminiCSVImportView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.iOS26ThemeStore) private var themeStore
-    @Environment(TabCoordinator.self) private var tabCoordinator
+    @Environment(\.tabCoordinator) private var tabCoordinator
 
     @State private var showingFilePicker = false
     @State private var jobId: String?

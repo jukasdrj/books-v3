@@ -71,7 +71,6 @@ public struct ContentView: View {
                         // Library Tab
                         NavigationStack {
                             iOS26LiquidLibraryView()
-                                .environment(tabCoordinator)
                         }
                         .themedNavigationGlass()
                         .tabItem {
@@ -83,7 +82,6 @@ public struct ContentView: View {
                         NavigationStack {
                             SearchView()
                                 .environment(searchCoordinator)
-                                .environment(tabCoordinator)
                         }
                         .themedNavigationGlass()
                         .tabItem {
@@ -94,7 +92,6 @@ public struct ContentView: View {
                         // Shelf Tab
                         NavigationStack {
                             CombinedImportView()
-                                 .environment(tabCoordinator)
                         }
                         .themedNavigationGlass()
                         .tabItem {
@@ -113,6 +110,7 @@ public struct ContentView: View {
                         }
                         .tag(MainTab.insights)
                 }
+                .environment(\.tabCoordinator, tabCoordinator)  // Inject here for all tabs + overlays
                 .environment(\.dtoMapper, dtoMapper)  // Safely unwrapped above
                 .environment(\.bookSearchAPIService, bookSearchAPIService)
                 .environment(libraryRepository)

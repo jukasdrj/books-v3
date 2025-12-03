@@ -16,7 +16,7 @@ struct EditionComparisonSheet: View {
     let searchResult: Edition
     let ownedEdition: Edition
     @Environment(\.dismiss) private var dismiss
-    @Environment(TabCoordinator.self) private var tabCoordinator
+    @Environment(\.tabCoordinator) private var tabCoordinator
     @Environment(\.modelContext) private var modelContext
 
     var body: some View {

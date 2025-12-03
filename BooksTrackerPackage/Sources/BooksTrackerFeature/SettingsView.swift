@@ -43,7 +43,7 @@ public struct SettingsView: View {
     @Environment(\.dtoMapper) private var dtoMapper
     @Environment(LibraryRepository.self) private var libraryRepository
     @Environment(EnrichmentQueue.self) private var enrichmentQueue
-    @Environment(TabCoordinator.self) private var tabCoordinator
+    @Environment(\.tabCoordinator) private var tabCoordinator
 
     // MARK: - State Management
 

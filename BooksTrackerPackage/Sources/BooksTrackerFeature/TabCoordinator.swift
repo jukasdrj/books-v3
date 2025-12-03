@@ -5,7 +5,7 @@ import SwiftData
 /// Used for cross-tab navigation (e.g., Shelf scan → Library after adding books)
 @MainActor
 @Observable
-public final class TabCoordinator {
+public final class TabCoordinator: @unchecked Sendable {
     /// The currently selected tab
     public var selectedTab: MainTab = .library
 
@@ -14,7 +14,6 @@ public final class TabCoordinator {
 
     /// IDs of books to highlight after enrichment
     public var highlightedBookIDs: Set<PersistentIdentifier> = []
-
 
     public init() {}
 
@@ -38,5 +37,23 @@ public final class TabCoordinator {
         let pending = pendingSwitchToLibrary
         pendingSwitchToLibrary = false
         return pending
+    }
+}
+
+// MARK: - Environment Key
+
+private struct TabCoordinatorKey: EnvironmentKey {
+    static let defaultValue: TabCoordinator = {
+        @MainActor func makeDefault() -> TabCoordinator {
+            TabCoordinator()
+        }
+        return MainActor.assumeIsolated { makeDefault() }
+    }()
+}
+
+extension EnvironmentValues {
+    public var tabCoordinator: TabCoordinator {
+        get { self[TabCoordinatorKey.self] }
+        set { self[TabCoordinatorKey.self] = newValue }
     }
 }
