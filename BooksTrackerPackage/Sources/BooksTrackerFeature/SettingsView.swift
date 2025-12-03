@@ -419,9 +419,8 @@ public struct SettingsView: View {
             Button("Delete Library", role: .destructive) {
                 Task {
                     do {
-                        // TODO: Rename libraryRepository.resetLibrary() to deleteLibrary() for consistency (PR #91 review comment)
                         print("🗑️ [SettingsView] Starting library deletion...")
-                        try await libraryRepository.resetLibrary()
+                        try await libraryRepository.deleteLibrary()
                         print("✅ [SettingsView] Library deletion completed")
                     } catch {
                         print("❌ [SettingsView] Library deletion failed: \(error)")

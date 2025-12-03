@@ -37,57 +37,55 @@ public struct CombinedImportView: View {
     public init() {}
 
     public var body: some View {
-        NavigationStack {
-            ZStack {
-                themeStore.backgroundGradient
-                    .ignoresSafeArea()
+        ZStack {
+            themeStore.backgroundGradient
+                .ignoresSafeArea()
 
-                ScrollView {
-                    VStack(spacing: Layout.cardSpacing) {
-                        topHeader
+            ScrollView {
+                VStack(spacing: Layout.cardSpacing) {
+                    topHeader
 
-                        // Card 1: Scan Bookshelf
-                        NavigationLink(value: "scan") {
-                            largeGlassCard(
-                                icon: "camera.fill",
-                                title: "Scan Bookshelf",
-                                description: "Point at your shelf - AI recognizes books",
-                                accent: themeStore.primaryColor
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        // Card 2: Import CSV
-                        Button {
-                            showingCSVImport = true
-                        } label: {
-                            largeGlassCard(
-                                icon: "doc.text.fill",
-                                title: "Import CSV",
-                                description: "Upload Goodreads export",
-                                accent: themeStore.primaryColor
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        Spacer()
+                    // Card 1: Scan Bookshelf
+                    NavigationLink(value: "scan") {
+                        largeGlassCard(
+                            icon: "camera.fill",
+                            title: "Scan Bookshelf",
+                            description: "Point at your shelf - AI recognizes books",
+                            accent: themeStore.primaryColor
+                        )
                     }
-                    .padding(.top, Layout.contentPaddingTop)
-                    .padding(.horizontal, Layout.contentPaddingHorizontal)
+                    .buttonStyle(.plain)
+
+                    // Card 2: Import CSV
+                    Button {
+                        showingCSVImport = true
+                    } label: {
+                        largeGlassCard(
+                            icon: "doc.text.fill",
+                            title: "Import CSV",
+                            description: "Upload Goodreads export",
+                            accent: themeStore.primaryColor
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer()
                 }
+                .padding(.top, Layout.contentPaddingTop)
+                .padding(.horizontal, Layout.contentPaddingHorizontal)
             }
-            .navigationTitle("Add Books")
-            .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showingCSVImport) {
-                GeminiCSVImportView()
-                    .environment(\.modelContext, modelContext)
+        }
+        .navigationTitle("Add Books")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showingCSVImport) {
+            GeminiCSVImportView()
+                .environment(\.modelContext, modelContext)
+                .environment(tabCoordinator)
+        }
+        .navigationDestination(for: String.self) { value in
+            if value == "scan" {
+                BookshelfScannerView()
                     .environment(tabCoordinator)
-            }
-            .navigationDestination(for: String.self) { value in
-                if value == "scan" {
-                    BookshelfScannerView()
-                        .environment(tabCoordinator)
-                }
             }
         }
     }

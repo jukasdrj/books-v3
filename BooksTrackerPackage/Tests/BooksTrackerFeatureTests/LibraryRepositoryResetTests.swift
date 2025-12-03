@@ -21,8 +21,8 @@ struct LibraryRepositoryResetTests {
         repository = LibraryRepository(modelContext: modelContext, dtoMapper: dtoMapper, featureFlags: featureFlags)
     }
 
-    @Test("resetLibrary clears all data")
-    func testResetLibrary() async throws {
+    @Test("deleteLibrary clears all data")
+    func testDeleteLibrary() async throws {
         // GIVEN: A library with works, authors, editions, and user library entries
         let author = Author(name: "Author")
         let work = Work(title: "Work")
@@ -36,8 +36,8 @@ struct LibraryRepositoryResetTests {
 
         try modelContext.save()
 
-        // WHEN: The library is reset
-        await repository.resetLibrary()
+        // WHEN: The library is deleted
+        await repository.deleteLibrary()
 
         // THEN: All data should be deleted
         let works = try modelContext.fetch(FetchDescriptor<Work>())
@@ -45,9 +45,9 @@ struct LibraryRepositoryResetTests {
         let editions = try modelContext.fetch(FetchDescriptor<Edition>())
         let userLibraryEntries = try modelContext.fetch(FetchDescriptor<UserLibraryEntry>())
 
-        #expect(works.isEmpty, "Works should be empty after reset")
-        #expect(authors.isEmpty, "Authors should be empty after reset")
-        #expect(editions.isEmpty, "Editions should be empty after reset")
-        #expect(userLibraryEntries.isEmpty, "UserLibraryEntries should be empty after reset")
+        #expect(works.isEmpty, "Works should be empty after deletion")
+        #expect(authors.isEmpty, "Authors should be empty after deletion")
+        #expect(editions.isEmpty, "Editions should be empty after deletion")
+        #expect(userLibraryEntries.isEmpty, "UserLibraryEntries should be empty after deletion")
     }
 }

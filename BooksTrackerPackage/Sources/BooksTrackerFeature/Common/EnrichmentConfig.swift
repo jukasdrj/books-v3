@@ -32,9 +32,10 @@ enum EnrichmentConfig {
 
     // MARK: - Enrichment Endpoints
 
-    /// Start batch enrichment job
-    /// ⚠️ DEPRECATED: /api/enrichment/start is scheduled for removal in backend v2.0 (Jan 2026)
-    /// TODO: GitHub Issue - Migrate to canonical /v1/enrichment/batch endpoint
+    /// Start batch enrichment job (Legacy endpoint)
+    /// ⚠️ DEPRECATED: This endpoint is scheduled for removal in backend v2.0 (Jan 2026)
+    /// ✅ Migration complete: EnrichmentAPIClient uses /v1/enrichment/batch as primary endpoint
+    /// This URL is kept for reference but not actively used by EnrichmentAPIClient
     /// See: https://github.com/jukasdrj/bookstrack-backend for deprecation timeline
     static var enrichmentStartURL: URL {
         URL(string: "\(baseURL)/api/enrichment/start")!

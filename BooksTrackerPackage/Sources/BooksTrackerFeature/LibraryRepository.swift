@@ -572,9 +572,9 @@ public class LibraryRepository {
 
     // MARK: - Library Management
 
-    public func resetLibrary() async throws {
+    public func deleteLibrary() async throws {
         // Note: Task wrapper removed - async function already ensures non-blocking execution
-        print("🗑️ [LibraryRepository] resetLibrary() called")
+        print("🗑️ [LibraryRepository] deleteLibrary() called")
 
         // STEP 1: Cancel enrichment queue operations first
         print("🗑️ [LibraryRepository] Canceling enrichment queue...")
