@@ -425,7 +425,7 @@ struct iOS26AdaptiveBookCard: View {
             userEntry: userEntry,
             onMarkReading: { updateReadingStatus(.reading) },
             onMarkRead: { updateReadingStatus(.read) },
-            onRemove: { removeFromLibrary() }
+            onRemove: { } // Removal handled by parent with modelContext
         )
     }
 
@@ -439,11 +439,11 @@ struct iOS26AdaptiveBookCard: View {
         let resolvedMode = resolveDisplayMode(for: cardSize)
 
         switch resolvedMode {
-        case .automatic: return 0.65   // Fallback to standard
-        case .compact: return 0.75     // More vertical
-        case .standard: return 0.65    // Standard book card ratio
-        case .detailed: return 0.6     // More space for details
-        case .hero: return 0.55        // Premium spacing
+        case .automatic: return 0.65
+        case .compact: return 0.75
+        case .standard: return 0.65
+        case .detailed: return 0.6
+        case .hero: return 0.55
         }
     }
 
@@ -455,12 +455,6 @@ struct iOS26AdaptiveBookCard: View {
 
     private func updateReadingStatus(_ status: ReadingStatus) {
         BookCardActions.updateReadingStatus(status, for: userEntry)
-    }
-
-    private func removeFromLibrary() {
-        guard userEntry != nil else { return }
-        // Note: Requires modelContext to delete entry
-        // This functionality should be handled by parent view with modelContext access
     }
 }
 

@@ -259,145 +259,6 @@ struct iOS26FloatingBookCard: View {
 
 // MARK: - Performance Monitoring Tools
 
-/// ✅ PERFORMANCE: Tracks view render times and identifies slow components
-@MainActor
-struct PerformanceMonitor: ViewModifier {
-    let identifier: String
-    @State private var renderStartTime: CFTimeInterval = 0
-    
-    func body(content: Content) -> some View {
-        content
-            .onAppear {
-                renderStartTime = CACurrentMediaTime()
-            }
-            .onDisappear {
-                let renderTime = CACurrentMediaTime() - renderStartTime
-                if renderTime > 0.016 { // Alert if slower than 60fps
-                    #if DEBUG
-                    print("⚠️ PERFORMANCE: \(identifier) took \(renderTime * 1000)ms to render")
-                    #endif
-                }
-            }
-    }
-}
-
-extension View {
-    func performanceMonitor(_ identifier: String) -> some View {
-        modifier(PerformanceMonitor(identifier: identifier))
-    }
-}
-
-// MARK: - SwiftData Performance Optimizations
-
-/// ✅ PERFORMANCE: Optimized library data source with intelligent caching
-@MainActor
-@Observable
-class OptimizedLibraryDataSource {
-    private var cachedWorks: [Work] = []
-    private var lastCacheUpdate: Date = .distantPast
-    private let cacheValidityDuration: TimeInterval = 5.0 // 5 seconds
-    
-    func getFilteredWorks(
-        from works: [Work], 
-        searchText: String,
-        forceRefresh: Bool = false
-    ) -> [Work] {
-        let now = Date()
-        
-        // Use cache if valid and not forced refresh
-        if !forceRefresh && 
-           now.timeIntervalSince(lastCacheUpdate) < cacheValidityDuration &&
-           !cachedWorks.isEmpty {
-            return filterWorks(cachedWorks, searchText: searchText)
-        }
-        
-        // Update cache
-        cachedWorks = works
-        lastCacheUpdate = now
-        
-        return filterWorks(cachedWorks, searchText: searchText)
-    }
-    
-    private func filterWorks(_ works: [Work], searchText: String) -> [Work] {
-        guard !searchText.isEmpty else { return works }
-        
-        return works.filter { work in
-            work.title.localizedCaseInsensitiveContains(searchText) ||
-            work.authorNames.localizedCaseInsensitiveContains(searchText)
-        }
-    }
-    
-    func invalidateCache() {
-        lastCacheUpdate = .distantPast
-    }
-}
-
-// MARK: - Navigation Performance Fixes
-
-/// ✅ NAVIGATION FIX: Prevents memory leaks and crashes with SwiftData navigation
-@available(iOS 26.0, *)
-struct SafeWorkNavigation: ViewModifier {
-    let workID: UUID
-    let allWorks: [Work]
-    
-    func body(content: Content) -> some View {
-        content
-            .navigationDestination(for: Work.self) { work in
-                WorkDetailView(work: work)
-                    .performanceMonitor("WorkDetailView-\(work.title)")
-            }
-    }
-}
-
-extension View {
-    @available(iOS 26.0, *)
-    func safeWorkNavigation(workID: UUID, allWorks: [Work]) -> some View {
-        modifier(SafeWorkNavigation(workID: workID, allWorks: allWorks))
-    }
-}
-
-// MARK: - Memory Management Helpers
-
-/// ✅ MEMORY: Cleans up image cache when memory pressure occurs
-struct MemoryPressureHandler {
-    static let shared = MemoryPressureHandler()
-
-    private init() {
-        // Listen for memory warnings
-        NotificationCenter.default.addObserver(
-            forName: UIApplication.didReceiveMemoryWarningNotification,
-            object: nil,
-            queue: .main
-        ) { _ in
-            Self.cleanupImageCache()
-        }
-    }
-
-    private static func cleanupImageCache() {
-        // Clear NSCache when memory pressure occurs (NSCache is thread-safe)
-        CachedAsyncImageCache.shared.cache.removeAllObjects()
-        #if DEBUG
-        print("🧹 MEMORY: Cleared image cache due to memory pressure")
-        #endif
-    }
-}
-
-// Shared cache for all CachedAsyncImage instances
-// SAFETY: Sendable because NSCache is thread-safe by design and provides
-// its own internal synchronization. Singleton pattern ensures controlled access.
-final class CachedAsyncImageCache: @unchecked Sendable {
-    static let shared = CachedAsyncImageCache()
-
-    let cache: NSCache<NSString, NSData> = {
-        let cache = NSCache<NSString, NSData>()
-        cache.countLimit = 100 // Limit to 100 images
-        cache.totalCostLimit = 50 * 1024 * 1024 // 50MB limit
-        return cache
-    }()
-
-    private init() {}
-}
-
 // MARK: - Quick Actions Sheet
 
 @available(iOS 26.0, *)
@@ -417,13 +278,13 @@ struct QuickActionsSheet: View {
                             .aspectRatio(2/3, contentMode: .fill)
                     } placeholder: {
                         Rectangle()
-                            .fill(Color.quaternary)
+                            .fill(.quaternary)
                     }
                     .frame(width: 60, height: 90)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     #else
                     Rectangle()
-                        .fill(Color.quaternary)
+                        .fill(.quaternary)
                         .frame(width: 60, height: 90)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                     #endif
@@ -449,52 +310,17 @@ struct QuickActionsSheet: View {
                 .padding()
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
 
-                // Quick action buttons
-                LazyVGrid(columns: [
-                    GridItem(.flexible()),
-                    GridItem(.flexible())
-                ], spacing: 16) {
-                    QuickActionButton(
-                        title: "Start Reading",
-                        icon: "book.pages",
-                        color: .blue
-                    ) {
-                        // Action
-                        dismiss()
-                    }
-
-                    QuickActionButton(
-                        title: "Add to Wishlist",
-                        icon: "heart",
-                        color: .pink
-                    ) {
-                        // Action
-                        dismiss()
-                    }
-
-                    QuickActionButton(
-                        title: "View Details",
-                        icon: "info.circle",
-                        color: .purple
-                    ) {
-                        // Action
-                        dismiss()
-                    }
-
-                    QuickActionButton(
-                        title: "Share",
-                        icon: "square.and.arrow.up",
-                        color: .green
-                    ) {
-                        // Action
-                        dismiss()
-                    }
-                }
+                // Info text - actions require full detail view
+                Text("Tap the book to view details and manage your library.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding()
 
                 Spacer()
             }
             .padding()
-            .navigationTitle("Quick Actions")
+            .navigationTitle("Book Info")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -508,39 +334,6 @@ struct QuickActionsSheet: View {
         .presentationDragIndicator(.visible)
     }
 }
-
-@available(iOS 26.0, *)
-struct QuickActionButton: View {
-    let title: String
-    let icon: String
-    let color: Color
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundColor(color)
-
-                Text(title)
-                    .font(.caption.bold())
-                    .foregroundStyle(.primary)
-            }
-            .frame(height: 80)
-            .frame(maxWidth: .infinity)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-            // .glassEffect(.regular.tint(color.opacity(0.1)))
-        }
-        .buttonStyle(.plain) // Native press animation with system timing
-    }
-}
-
-// MARK: - Press Events Modifier (Removed - using simultaneousGesture instead)
-
-// MARK: - Pressed Button Style
-// ✅ REMOVED: PressedButtonStyle migrated to native .buttonStyle(.plain)
-// Native .plain button style provides automatic press animations with system timing
 
 // MARK: - Preview
 
