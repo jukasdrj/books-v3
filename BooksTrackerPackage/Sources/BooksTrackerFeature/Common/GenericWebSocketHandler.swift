@@ -213,8 +213,19 @@ public final class GenericWebSocketHandler {
         guard let data = message.data else { return }
         let decoder = JSONDecoder()
 
+        #if DEBUG
+        // Log raw JSON for job_complete messages
+        if let jsonString = String(data: data, encoding: .utf8), jsonString.contains("job_complete") {
+            print("📦 [WS] Raw job_complete JSON: \(jsonString)")
+        }
+        #endif
+
         do {
             let typedMessage = try decoder.decode(TypedWebSocketMessage.self, from: data)
+
+            #if DEBUG
+            print("📨 [WS] Received message type: \(typedMessage.type.rawValue), pipeline: \(typedMessage.pipeline.rawValue)")
+            #endif
 
             // Verify pipeline matches (safety check)
             guard typedMessage.pipeline == pipeline else {
@@ -228,6 +239,9 @@ public final class GenericWebSocketHandler {
             case .reconnected(let payload):
                 progressHandler(payload.toJobProgressPayload())
             case .jobComplete(let payload):
+                #if DEBUG
+                print("🏁 [WS] Job complete message received, calling completion handler")
+                #endif
                 // CRITICAL: Stop listening BEFORE calling handler and disconnect
                 // This prevents "Socket is not connected" error (POSIX 57)
                 shouldContinueListening = false

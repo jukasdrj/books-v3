@@ -375,12 +375,36 @@ public final class EnrichmentQueue {
                                 completionHandler: { [weak self] completePayload in
                                     guard let self = self else { return }
                                     self.resetActivityTimer()
+
+                                    #if DEBUG
+                                    print("🔔 [ENRICHMENT] Completion handler called")
+                                    print("🔍 [ENRICHMENT] Payload type: \(completePayload)")
+
+                                    // Debug: Check what type we actually received
+                                    switch completePayload {
+                                    case .batchEnrichment(_):
+                                        print("✅ [ENRICHMENT] Got batchEnrichment payload")
+                                    case .csvImport(let payload):
+                                        print("⚠️ [ENRICHMENT] Got csvImport payload instead!")
+                                        print("  - Summary: \(payload.summary)")
+                                    case .aiScan(_):
+                                        print("⚠️ [ENRICHMENT] Got aiScan payload instead!")
+                                    }
+                                    #endif
+
                                     guard case .batchEnrichment(let batchPayload) = completePayload else {
+                                        #if DEBUG
+                                        print("⚠️ [ENRICHMENT] Protocol mismatch - not a batchEnrichment payload")
+                                        #endif
                                         // On protocol mismatch, still clean up this batch from active enrichments
                                         self.activeEnrichments.subtract(batchWorkIDs)
                                         continuation.resume()
                                         return
                                     }
+
+                                    #if DEBUG
+                                    print("📊 [ENRICHMENT] Summary - resourceId: \(batchPayload.summary.resourceId ?? "nil"), successCount: \(batchPayload.summary.successCount), failureCount: \(batchPayload.summary.failureCount)")
+                                    #endif
 
                                     // v2.0 Migration: Fetch full enriched books via HTTP
                                     // WebSocket now only sends lightweight summary
@@ -389,9 +413,15 @@ public final class EnrichmentQueue {
                                             // Fetch full results from KV cache
                                             let enrichedBooks: [EnrichedBookPayload]
                                             if let resourceId = batchPayload.summary.resourceId {
+                                                #if DEBUG
+                                                print("📥 [ENRICHMENT] Fetching results for resourceId: \(resourceId)")
+                                                #endif
                                                 let jobId = resourceId.replacingOccurrences(of: "job-results:", with: "")
                                                 enrichedBooks = try await self.fetchEnrichmentResults(jobId: jobId)
                                             } else {
+                                                #if DEBUG
+                                                print("⚠️ [ENRICHMENT] No resourceId - returning empty results")
+                                                #endif
                                                 // No resourceId - empty results
                                                 enrichedBooks = []
                                             }
@@ -866,24 +896,9 @@ public final class EnrichmentQueue {
             saveCounter += 1
             successCount += 1  // ✅ Track successful enrichment
 
-            // Incremental saves every 10 books to:
-            // 1. Convert temporary IDs to permanent IDs progressively
-            // 2. Reduce memory pressure (don't keep all 98 books dirty)
-            // 3. Allow UI to update incrementally
-            if saveCounter % 10 == 0 {
-                do {
-                    try modelContext.save()
-                    #if DEBUG
-                    print("💾 Incremental save: \(saveCounter)/\(enrichedBooks.count) books processed")
-                    #endif
-                } catch {
-                    // ✅ Track save errors
-                    errors.append("Failed to save batch at \(saveCounter) books: \(error.localizedDescription)")
-                    #if DEBUG
-                    print("❌ Failed incremental save at \(saveCounter) books: \(error)")
-                    #endif
-                }
-            }
+            // Note: Removed incremental saves to prevent SwiftData context merge crashes
+            // during enrichment (TabCoordinator environment loss during view updates)
+            // All changes are now saved in a single batch at the end
         }
 
         // Final save for remaining books (if total wasn't multiple of 10)

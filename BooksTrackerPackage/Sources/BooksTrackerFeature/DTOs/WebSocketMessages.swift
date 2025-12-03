@@ -207,24 +207,32 @@ public enum JobCompletePayload: Codable, Sendable {
     case aiScan(AIScanCompletePayload)
 
     public init(from decoder: Decoder) throws {
-        // Try decoding each pipeline-specific payload type
-        // The payload discriminator (pipeline) is at the MESSAGE level, not in the payload itself
-        // So we use the payload structure to determine which type it is
+        // FIXED: Use the pipeline field as discriminator instead of trying all types
+        // BatchEnrichmentCompletePayload and CSVImportCompletePayload are structurally identical,
+        // so we must use the pipeline field to distinguish them
 
-        if let aiPayload = try? AIScanCompletePayload(from: decoder) {
-            self = .aiScan(aiPayload)
-        } else if let batchPayload = try? BatchEnrichmentCompletePayload(from: decoder) {
-            self = .batchEnrichment(batchPayload)
-        } else if let csvPayload = try? CSVImportCompletePayload(from: decoder) {
-            self = .csvImport(csvPayload)
-        } else {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let pipeline = try container.decode(String.self, forKey: .pipeline)
+
+        switch pipeline {
+        case "ai_scan":
+            self = .aiScan(try AIScanCompletePayload(from: decoder))
+        case "batch_enrichment":
+            self = .batchEnrichment(try BatchEnrichmentCompletePayload(from: decoder))
+        case "csv_import":
+            self = .csvImport(try CSVImportCompletePayload(from: decoder))
+        default:
             throw DecodingError.dataCorrupted(
                 DecodingError.Context(
                     codingPath: decoder.codingPath,
-                    debugDescription: "Could not decode any known JobCompletePayload type"
+                    debugDescription: "Unknown pipeline type in job_complete: \(pipeline)"
                 )
             )
         }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case pipeline
     }
 
     public func encode(to encoder: Encoder) throws {
