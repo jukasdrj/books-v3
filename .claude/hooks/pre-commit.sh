@@ -81,6 +81,24 @@ if git diff --cached --name-only | grep -qE "BooksTrackerFeature/DTOs/.*\.swift"
   echo "  See backend: src/types/canonical.ts"
 fi
 
+# 6. Check OpenAPI spec freshness (Balanced approach)
+echo "📋 Checking OpenAPI spec freshness..."
+SPEC_FILE="BooksTrackerPackage/Sources/BooksTrackerFeature/openapi.json"
+
+if [ -f "$SPEC_FILE" ]; then
+  SPEC_AGE=$(( $(date +%s) - $(stat -f %m "$SPEC_FILE" 2>/dev/null || stat -c %Y "$SPEC_FILE" 2>/dev/null || echo "0") ))
+  DAYS_OLD=$(( SPEC_AGE / 86400 ))
+
+  if [ $SPEC_AGE -gt 604800 ]; then  # 7 days
+    echo -e "${YELLOW}⚠ OpenAPI spec is $DAYS_OLD days old${NC}"
+    echo "  Consider syncing: ./.claude/scripts/sync-openapi.sh"
+  else
+    echo -e "${GREEN}✓ OpenAPI spec is fresh ($DAYS_OLD days old)${NC}"
+  fi
+else
+  echo -e "${YELLOW}⚠ OpenAPI spec not found${NC}"
+fi
+
 # Final result
 echo ""
 if [ $FAILED -eq 1 ]; then

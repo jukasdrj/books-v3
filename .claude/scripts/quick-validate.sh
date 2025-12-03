@@ -15,7 +15,9 @@ pkill -9 "xcodebuild" 2>/dev/null || true
 
 # Build for simulator (but don't launch)
 echo "Building for iOS Simulator..."
-timeout "$TIMEOUT" xcodebuild \
+
+# Use Perl as timeout (macOS compatible)
+perl -e 'alarm shift @ARGV; exec @ARGV' "$TIMEOUT" xcodebuild \
     -workspace BooksTracker.xcworkspace \
     -scheme BooksTracker \
     -configuration Debug \
