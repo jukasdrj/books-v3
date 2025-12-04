@@ -45,13 +45,16 @@ public enum EnrichmentResultsClient {
 
                 #if DEBUG
                 print("✅ [HTTP] Decoded \(books.count) enriched books")
-                // Sample first book's cover data
-                if let firstBook = books.first {
-                    print("📚 [HTTP] First book: '\(firstBook.title)'")
-                    print("  - success: \(firstBook.success)")
-                    print("  - enriched: \(firstBook.enriched != nil)")
-                    print("  - work.coverImageURL: \(firstBook.enriched?.work.coverImageURL ?? "nil")")
-                    print("  - edition?.coverImageURL: \(firstBook.enriched?.edition?.coverImageURL ?? "nil")")
+                // Sample first 3 books' cover data
+                for (index, book) in books.prefix(3).enumerated() {
+                    print("📚 [HTTP] Book \(index + 1): '\(book.title)'")
+                    print("  - success: \(book.success)")
+                    print("  - enriched: \(book.enriched != nil)")
+                    if let enriched = book.enriched {
+                        print("  - work.coverImageURL: \(enriched.work.coverImageURL ?? "nil")")
+                        print("  - edition?.coverImageURL: \(enriched.edition?.coverImageURL ?? "nil")")
+                        print("  - edition?.isbn: \(enriched.edition?.isbn ?? "nil")")
+                    }
                 }
                 #endif
 

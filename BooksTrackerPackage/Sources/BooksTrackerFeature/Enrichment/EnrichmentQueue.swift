@@ -766,6 +766,9 @@ public final class EnrichmentQueue {
 
             #if DEBUG
             print("✅ Matched '\(enrichedBook.title)' via \(matchMethod)")
+            print("  - Current work.coverImageURL: \(work.coverImageURL ?? "nil")")
+            print("  - Incoming work.coverImageURL: \(enrichedData.work.coverImageURL ?? "nil")")
+            print("  - Current edition count: \(work.editions?.count ?? 0)")
             #endif
 
             // Update work metadata
