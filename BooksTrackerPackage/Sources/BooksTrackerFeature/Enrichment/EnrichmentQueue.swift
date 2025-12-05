@@ -341,10 +341,11 @@ public final class EnrichmentQueue {
                                 return
                             }
 
+                            // ⚠️ SECURITY (Issue #163): Token passed separately (not in URL) for Sec-WebSocket-Protocol header
                             var components = URLComponents(string: "\(EnrichmentConfig.webSocketBaseURL)/ws/progress")!
                             components.queryItems = [
-                                URLQueryItem(name: "jobId", value: jobId),
-                                URLQueryItem(name: "token", value: token)
+                                URLQueryItem(name: "jobId", value: jobId)
+                                // ✅ Token removed from URL query params (security fix)
                             ]
 
                             guard let wsURL = components.url else {
@@ -358,6 +359,7 @@ public final class EnrichmentQueue {
 
                             self.webSocketHandler = GenericWebSocketHandler(
                                 url: wsURL,
+                                token: token,  // ✅ Pass token separately for header auth
                                 pipeline: .batchEnrichment,
                                 progressHandler: { [weak self] progressPayload in
                                     self?.resetActivityTimer()

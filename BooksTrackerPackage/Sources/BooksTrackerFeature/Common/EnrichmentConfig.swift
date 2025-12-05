@@ -13,30 +13,53 @@ enum EnrichmentConfig {
     /// ⚠️ DEPRECATED: Used by legacy bookshelf scanning. Will be removed when bookshelf scanning migrates to SSE.
     static let webSocketBaseURL = "wss://api.oooefam.net"
 
-    // MARK: - Search Endpoints
+    // MARK: - Search Endpoints (V3 API)
 
-    /// Search books by title
+    /// Search books by query (V3 unified search)
+    /// Endpoint: GET /v3/books/search?q={query}&limit=20
+    /// Replaces: /v1/search/title
+    static var searchURL: URL {
+        URL(string: "\(baseURL)/v3/books/search")!
+    }
+
+    /// Get book by ISBN (V3 API)
+    /// Endpoint: GET /v3/books/{isbn}
+    /// Replaces: /v1/search/isbn
+    static func bookByISBNURL(isbn: String) -> URL {
+        URL(string: "\(baseURL)/v3/books/\(isbn)")!
+    }
+
+    // MARK: - Legacy Search Endpoints (DEPRECATED - V1 Sunset March 1, 2026)
+
+    /// Search books by title (DEPRECATED)
+    /// ⚠️ Use searchURL with V3 API instead
+    @available(*, deprecated, message: "Use searchURL with V3 API - V1 sunsets March 1, 2026")
     static var searchTitleURL: URL {
-        URL(string: "\(baseURL)/search/title")!
+        URL(string: "\(baseURL)/v1/search/title")!
     }
 
-    /// Search books by ISBN
+    /// Search books by ISBN (DEPRECATED)
+    /// ⚠️ Use bookByISBNURL(isbn:) with V3 API instead
+    @available(*, deprecated, message: "Use bookByISBNURL(isbn:) with V3 API - V1 sunsets March 1, 2026")
     static var searchISBNURL: URL {
-        URL(string: "\(baseURL)/search/isbn")!
+        URL(string: "\(baseURL)/v1/search/isbn")!
     }
 
-    /// Advanced search (title + author)
+    /// Advanced search (title + author) (DEPRECATED)
+    /// ⚠️ Use searchURL with combined query in V3 API instead
+    @available(*, deprecated, message: "Use searchURL with combined query in V3 API - V1 sunsets March 1, 2026")
     static var searchAdvancedURL: URL {
-        URL(string: "\(baseURL)/search/advanced")!
+        URL(string: "\(baseURL)/v1/search/advanced")!
     }
 
     // MARK: - Enrichment Endpoints
 
     /// Start batch enrichment job (Legacy endpoint)
     /// ⚠️ DEPRECATED: This endpoint is scheduled for removal in backend v2.0 (Jan 2026)
-    /// ✅ Migration complete: EnrichmentAPIClient uses /v1/enrichment/batch as primary endpoint
-    /// This URL is kept for reference but not actively used by EnrichmentAPIClient
-    /// See: https://github.com/jukasdrj/bookstrack-backend for deprecation timeline
+    /// ✅ Migration complete: EnrichmentAPIClient now uses /v3/books/enrich as primary endpoint
+    /// This URL is kept for emergency fallback only (controlled via FeatureFlags.disableCanonicalEnrichment)
+    /// V1 endpoints sunset: March 1, 2026
+    /// See: docs/V1_SUNSET_PLAN.md and docs/FRONTEND_INTEGRATION.md
     static var enrichmentStartURL: URL {
         URL(string: "\(baseURL)/api/enrichment/start")!
     }

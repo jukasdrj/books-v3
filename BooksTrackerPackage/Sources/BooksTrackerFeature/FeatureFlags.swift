@@ -82,14 +82,14 @@ public final class FeatureFlags {
         }
     }
 
-    /// Disable canonical /v1/enrichment/batch endpoint (opt-out flag)
+    /// Disable V3 API enrichment endpoint (opt-out flag)
     ///
     /// When enabled, forces use of legacy /api/enrichment/batch endpoint.
-    /// Useful for debugging or if canonical endpoint has issues.
+    /// Useful for debugging or if V3 endpoint has issues.
     ///
-    /// Default: `false` (canonical endpoint enabled)
+    /// Default: `false` (V3 /v3/books/enrich endpoint enabled)
     ///
-    /// Note: Legacy endpoint will be removed in backend v2.0 (January 2026).
+    /// Note: V1 endpoints sunset March 1, 2026. Legacy /api endpoint will be removed in backend v2.0 (January 2026).
     /// This flag provides emergency fallback only.
     public var disableCanonicalEnrichment: Bool {
         get {

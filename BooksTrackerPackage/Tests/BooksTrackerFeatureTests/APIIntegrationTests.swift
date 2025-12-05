@@ -24,7 +24,12 @@ struct APIIntegrationTests {
     private let baseURL = EnrichmentConfig.baseURL
     
     // MARK: - Search API Tests
-    
+
+    // TODO: Migrate these tests to V3 API before March 1, 2026 (V1 sunset)
+    // V1 endpoints (searchISBNURL, searchTitleURL, searchAdvancedURL) are deprecated
+    // Use V3 endpoints: bookByISBNURL(isbn:) and searchURL with query parameters
+    // See: docs/V1_SUNSET_PLAN.md and docs/FRONTEND_INTEGRATION.md
+
     @Test("GET /v1/search/isbn returns valid results for known ISBN")
     func testSearchISBN_Valid() async throws {
         // Harry Potter and the Sorcerer's Stone

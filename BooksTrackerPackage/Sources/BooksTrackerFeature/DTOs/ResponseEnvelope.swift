@@ -75,11 +75,11 @@ extension ResponseEnvelope.ApiErrorInfo {
             return "Invalid search query. Please enter a valid book title or ISBN."
 
         // Rate Limiting & Service Errors
-        case "RATE_LIMITED":
+        case "RATE_LIMITED", "RATE_LIMIT_EXCEEDED":
             return "Too many requests. Please wait a moment and try again."
         case "CIRCUIT_OPEN":
             return "Book database temporarily unavailable. We'll retry automatically."
-        case "PROVIDER_ERROR":
+        case "API_ERROR", "PROVIDER_ERROR":
             return "Unable to fetch book data right now. Please try again later."
         case "SERVICE_UNAVAILABLE":
             return "Service temporarily unavailable. Please try again in a few minutes."

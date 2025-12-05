@@ -97,24 +97,25 @@ actor EnrichmentAPIClient {
     ///   - books: Books to enrich
     ///   - retryConfig: Retry configuration (default: .default)
     /// - Returns: Enrichment result with final counts
-    /// - Note: Supports automatic fallback from /v1/enrichment/batch → /api/enrichment/batch if canonical endpoint unavailable (404/405/426/501)
+    /// - Note: Supports automatic fallback from /v3/books/enrich → /api/enrichment/batch if V3 endpoint unavailable (404/405/426/501)
     func startEnrichment(jobId: String, books: [Book], retryConfig: RetryConfiguration = .default) async throws -> EnrichmentResult {
-        // Use canonical /v1 endpoint by default (Issue #425)
-        // Legacy /api endpoint will be removed in backend v2.0 (January 2026)
-        // Feature flag available to disable canonical endpoint if needed via FeatureFlags.disableCanonicalEnrichment
-        let disableCanonical = await FeatureFlags.shared.disableCanonicalEnrichment
+        // Use V3 API endpoint by default (Frontend Integration Guide)
+        // V1 endpoints sunset March 1, 2026
+        // Legacy /api endpoint available as fallback until backend v2.0 (January 2026)
+        // Feature flag available to disable V3 endpoint if needed via FeatureFlags.disableCanonicalEnrichment
+        let disableV3 = await FeatureFlags.shared.disableCanonicalEnrichment
 
-        let primaryEndpoint = disableCanonical ? "/api/enrichment/batch" : "/v1/enrichment/batch"
+        let primaryEndpoint = disableV3 ? "/api/enrichment/batch" : "/v3/books/enrich"
         let fallbackEndpoint = "/api/enrichment/batch"
 
         // Wrap with retry logic - each retry attempt includes fallback logic
         return try await retryWithBackoff(config: retryConfig) { [self] in
             do {
                 return try await self.performEnrichment(endpoint: primaryEndpoint, jobId: jobId, books: books)
-            } catch let error as NSError where !disableCanonical && Self.shouldFallbackToLegacy(statusCode: error.code) {
+            } catch let error as NSError where !disableV3 && Self.shouldFallbackToLegacy(statusCode: error.code) {
                 // Automatic fallback on endpoint-not-available errors (404, 405, 426, 501)
                 #if DEBUG
-                print("⚠️ [EnrichmentAPIClient] Canonical endpoint failed with \(error.code), falling back to legacy: \(fallbackEndpoint)")
+                print("⚠️ [EnrichmentAPIClient] V3 endpoint failed with \(error.code), falling back to legacy: \(fallbackEndpoint)")
                 #endif
 
                 // Log fallback metric for observability
@@ -143,7 +144,7 @@ actor EnrichmentAPIClient {
 
     /// Performs enrichment request to specified endpoint
     /// - Parameters:
-    ///   - endpoint: API endpoint path (e.g., "/v1/enrichment/batch")
+    ///   - endpoint: API endpoint path (e.g., "/v3/books/enrich")
     ///   - jobId: Unique job identifier for WebSocket tracking
     ///   - books: Books to enrich
     /// - Returns: Enrichment result with job details
