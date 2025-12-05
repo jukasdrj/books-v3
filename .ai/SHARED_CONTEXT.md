@@ -1,6 +1,6 @@
 # BooksTrack - Shared AI Context
 
-**Version:** 3.7.5 | **iOS:** 26.0+ | **Swift:** 6.2+ | **Bundle ID:** Z67H8Y8DW.com.oooefam.booksV3
+**Version:** 3.7.5 (Build 189+) | **iOS:** 26.0+ | **Swift:** 6.2+ | **Bundle ID:** Z67H8Y8DW.com.oooefam.booksV3
 
 Personal book tracking iOS app with cultural diversity insights. SwiftUI, SwiftData, Cloudflare Workers backend.
 
@@ -113,7 +113,7 @@ struct BookDetailView: View {
 }
 ```
 
-### 🚨 Swift 6.1 Concurrency
+### 🚨 Swift 6.2 Concurrency
 - **NEVER** use `Timer.publish` in actors - use `await Task.sleep(for:)` instead
 - **ALWAYS** use `@MainActor` for UI components and SwiftUI views
 - **NEVER** pass non-Sendable types across actor boundaries
@@ -193,7 +193,7 @@ api-worker/
 4. Add tests in `BooksTrackerPackage/Tests/`
 
 ### Error Handling
-- Use typed throws with Swift 6.1
+- Use typed throws with Swift 6.2
 - Structured error types (enum with associated values)
 - User-facing errors with clear messages
 
@@ -233,4 +233,4 @@ CHANGELOG.md            # Historical victories
 
 ---
 
-**Last Updated:** November 5, 2025
+**Last Updated:** December 5, 2025

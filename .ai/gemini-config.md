@@ -4,7 +4,7 @@ This document provides a comprehensive overview of the BooksTracker iOS project,
 
 ## Project Summary
 
-BooksTracker is a modern iOS application for tracking personal book libraries. It's built with Swift 6.1+, SwiftUI, and the "iOS 26 Liquid Glass" design system. The app features a robust set of functionalities including a powerful CSV import wizard, cultural diversity insights, barcode scanning, and data synchronization via SwiftData and CloudKit.
+BooksTracker is a modern iOS application for tracking personal book libraries. It's built with Swift 6.2+, SwiftUI, and the "iOS 26 Liquid Glass" design system. The app features a robust set of functionalities including a powerful CSV import wizard, cultural diversity insights, barcode scanning, and data synchronization via SwiftData and CloudKit.
 
 The project follows a modern, modular architecture, with the core business logic encapsulated in a Swift Package Manager (SPM) module. This separation of concerns makes the codebase clean, scalable, and easy to maintain.
 

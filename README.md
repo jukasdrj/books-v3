@@ -21,58 +21,6 @@ BooksTracker is a native iOS app for managing your personal book library with de
 
 ---
 
-## 🚀 Current Status
-
-### ✅ Sprint 1: Diversity Stats + Reading Sessions (100% Complete)
-
-**Shipped in PR #1 (Nov 21, 2025)**
-
-**Models & Schema:**
-- `EnhancedDiversityStats` - 5-dimension diversity tracking (cultural origin, gender, translation, own voices, accessibility)
-- `ReadingSession` - Timer tracking with progressive profiling hooks
-- `UserLibraryEntry` updated with reading session relationships
-- Schema migration for v2 models
-
-**Services:**
-- `DiversityStatsService` - Calculate/update diversity metrics with completion percentages
-- `ReadingSessionService` - @MainActor session lifecycle management
-- `SessionAnalyticsService` - Cascade metadata aggregation
-
-**UI Components:**
-- `RepresentationRadarChart` - Canvas-based 5-axis visualization with ghost state
-- Timer UI in `EditionMetadataView` - Live MM:SS counter with session tracking
-- `ProgressiveProfilingPrompt` - Post-session questionnaire (3-5 questions)
-- `DiversityCompletionWidget` - Progress ring with dimension breakdown
-
-**Testing:**
-- 15 unit tests (ReadingSession, EnhancedDiversityStats)
-- 11 integration tests (DiversitySessionIntegration)
-- Performance tests for radar chart (<200ms P95)
-
----
-
-## 📋 What's Next
-
-### Sprint 2: Cascade Metadata & Session Analytics (NEXT)
-
-**Focus:** Complete metadata enrichment and session analytics
-
-**Planned Features:**
-- Complete diversity completion widget integration
-- Session analytics aggregation (weekly/monthly trends)
-- Real device testing and keyboard input validation
-- Documentation updates
-
-### Future Sprints
-
-- **Sprint 3:** API Orchestration layer (KV→D1 migration)
-- **Sprint 4:** Intelligence v2 (Gemini-powered recommendations)
-- **Phase 2:** Multi-user support and social features
-
-See `docs/v2-plans/` for detailed sprint planning.
-
----
-
 ## 🏗️ Architecture
 
 **Tech Stack:**
@@ -171,9 +119,9 @@ See `CLAUDE.md` for complete Claude Code workflow documentation.
 - `.github/copilot-instructions.md` - GitHub Copilot configuration
 
 **For Developers:**
-- `docs/prd/` - 17 Product Requirement Documents
-- `docs/v2-plans/` - Sprint planning and technical design
-- `docs/architecture/` - System architecture documentation
+- `docs/prd/` - Product Requirement Documents
+- `docs/v2-plans/` - Design planning and technical specs
+- `docs/FRONTEND_INTEGRATION.md` - API integration guide
 - `CHANGELOG.md` - Complete change history
 
 ---
@@ -238,8 +186,8 @@ Proprietary - © 2025 jukasdrj
 
 - **Documentation:** `docs/`
 - **PRDs:** `docs/prd/`
-- **Sprint Plans:** `docs/v2-plans/sprints/`
-- **API Contract:** `docs/architecture/api-contract-v2.4.1.md`
+- **V2 Design:** `docs/v2-plans/`
+- **Frontend Integration:** `docs/FRONTEND_INTEGRATION.md`
 
 ---
 
