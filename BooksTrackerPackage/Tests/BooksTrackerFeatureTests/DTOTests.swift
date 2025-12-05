@@ -93,7 +93,7 @@ struct DTOTests {
         #expect(work.title == "The Scarlet Letter")
         #expect(work.subjectTags == [])              // Default: empty array
         #expect(work.isbndbQuality == 0)             // Default: 0
-        #expect(work.reviewStatus == .verified)      // Default: verified (for API sources)
+        #expect(work.reviewStatus == .needsReview)   // Default: needsReview (defensive default)
     }
 
     @Test("WorkDTO decodes with coverImageURL from backend normalizers")

@@ -52,6 +52,32 @@ public struct ResponseEnvelope<T: Codable>: Codable {
         public let details: AnyCodable?
         public let statusCode: Int?
         public let retryable: Bool?
+
+        public init(
+            message: String,
+            code: String? = nil,
+            details: AnyCodable? = nil,
+            statusCode: Int? = nil,
+            retryable: Bool? = nil
+        ) {
+            self.message = message
+            self.code = code
+            self.details = details
+            self.statusCode = statusCode
+            self.retryable = retryable
+        }
+    }
+
+    public init(
+        success: Bool,
+        data: T?,
+        metadata: ResponseMetadata,
+        error: ApiErrorInfo?
+    ) {
+        self.success = success
+        self.data = data
+        self.metadata = metadata
+        self.error = error
     }
 }
 
@@ -254,3 +280,98 @@ public typealias ApiErrorInfo = ResponseEnvelope<String>.ApiErrorInfo
 
 // Note: AnyCodable is defined in WebSocketMessages.swift (unified schema)
 // Import that type instead of duplicating here
+
+// MARK: - ApiResponse Enum (Convenience Wrapper)
+
+/// Discriminated union wrapper for ResponseEnvelope
+/// Provides type-safe case matching for success/failure responses
+///
+/// Usage:
+/// ```swift
+/// let response = try decoder.decode(ApiResponse<BookSearchResponse>.self, from: data)
+/// switch response {
+/// case .success(let data, let meta):
+///     print("Found \(data.works.count) works")
+/// case .failure(let error, let meta):
+///     print("Error: \(error.message)")
+/// }
+/// ```
+public enum ApiResponse<T: Codable> {
+    case success(T, ResponseMetadata)
+    case failure(ApiErrorInfo, ResponseMetadata)
+}
+
+// MARK: - Codable Conformance
+
+extension ApiResponse: Codable {
+    public init(from decoder: Decoder) throws {
+        let envelope = try ResponseEnvelope<T>(from: decoder)
+
+        if envelope.success {
+            if let data = envelope.data {
+                self = .success(data, envelope.metadata)
+            } else {
+                // success: true, but data is nil - invalid response
+                let genericError = ApiErrorInfo(
+                    message: "Invalid success response: data is missing.",
+                    code: "INVALID_RESPONSE",
+                    details: nil,
+                    statusCode: nil,
+                    retryable: nil
+                )
+                self = .failure(genericError, envelope.metadata)
+            }
+        } else { // success: false
+            if let error = envelope.error {
+                // Convert ResponseEnvelope<T>.ApiErrorInfo to ApiErrorInfo (typealias)
+                let errorInfo = ApiErrorInfo(
+                    message: error.message,
+                    code: error.code,
+                    details: error.details,
+                    statusCode: error.statusCode,
+                    retryable: error.retryable
+                )
+                self = .failure(errorInfo, envelope.metadata)
+            } else {
+                // success: false, but error is nil - invalid response
+                let genericError = ApiErrorInfo(
+                    message: "Invalid failure response: error details are missing.",
+                    code: "INVALID_RESPONSE",
+                    details: nil,
+                    statusCode: nil,
+                    retryable: nil
+                )
+                self = .failure(genericError, envelope.metadata)
+            }
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        switch self {
+        case .success(let data, let metadata):
+            let envelope = ResponseEnvelope<T>(
+                success: true,
+                data: data,
+                metadata: metadata,
+                error: nil
+            )
+            try envelope.encode(to: encoder)
+        case .failure(let error, let metadata):
+            // Convert ApiErrorInfo (typealias) to ResponseEnvelope<T>.ApiErrorInfo
+            let errorInfo = ResponseEnvelope<T>.ApiErrorInfo(
+                message: error.message,
+                code: error.code,
+                details: error.details,
+                statusCode: error.statusCode,
+                retryable: error.retryable
+            )
+            let envelope = ResponseEnvelope<T>(
+                success: false,
+                data: nil,
+                metadata: metadata,
+                error: errorInfo
+            )
+            try envelope.encode(to: encoder)
+        }
+    }
+}

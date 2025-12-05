@@ -274,12 +274,12 @@ struct CanonicalAPIResponseTests {
 
     @Test("EditionDTO with missing ISBNs decodes successfully")
     func testEditionDTO_missingISBN_decodesSuccessfully() throws {
+        // Note: format defaults to .paperback when missing or invalid (defensive decoding)
         let json = """
         {
           "title": "Unknown Book",
           "publisher": "Unknown",
           "publicationDate": "2020",
-          "format": "unknown",
           "coverImageURL": null,
           "contributors": [],
           "isbns": []
@@ -290,6 +290,7 @@ struct CanonicalAPIResponseTests {
         #expect(edition.isbn == nil)
         #expect(edition.isbns.isEmpty)
         #expect(edition.title == "Unknown Book")
+        #expect(edition.format == .paperback)  // Default format when omitted
     }
 
     @Test("WorkDTO round-trip serialization preserves data")
