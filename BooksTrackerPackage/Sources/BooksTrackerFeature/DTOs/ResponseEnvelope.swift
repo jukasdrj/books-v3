@@ -296,27 +296,53 @@ public typealias ApiErrorInfo = ResponseEnvelope<String>.ApiErrorInfo
 ///     print("Error: \(error.message)")
 /// }
 /// ```
-public enum ApiResponse<T: Codable>: Codable {
+public enum ApiResponse<T: Codable> {
     case success(T, ResponseMetadata)
     case failure(ApiErrorInfo, ResponseMetadata)
+}
 
+// MARK: - Codable Conformance
+
+extension ApiResponse: Codable {
     public init(from decoder: Decoder) throws {
         let envelope = try ResponseEnvelope<T>(from: decoder)
 
-        if let data = envelope.data {
-            self = .success(data, envelope.metadata)
-        } else if let error = envelope.error {
-            self = .failure(error, envelope.metadata)
-        } else {
-            // Fallback: treat as failure with generic error
-            let genericError = ResponseEnvelope<T>.ApiErrorInfo(
-                message: "Invalid response format",
-                code: "INVALID_RESPONSE",
-                details: nil,
-                statusCode: nil,
-                retryable: nil
-            )
-            self = .failure(genericError, envelope.metadata)
+        if envelope.success {
+            if let data = envelope.data {
+                self = .success(data, envelope.metadata)
+            } else {
+                // success: true, but data is nil - invalid response
+                let genericError = ApiErrorInfo(
+                    message: "Invalid success response: data is missing.",
+                    code: "INVALID_RESPONSE",
+                    details: nil,
+                    statusCode: nil,
+                    retryable: nil
+                )
+                self = .failure(genericError, envelope.metadata)
+            }
+        } else { // success: false
+            if let error = envelope.error {
+                // Convert ResponseEnvelope<T>.ApiErrorInfo to ApiErrorInfo (typealias)
+                let errorInfo = ApiErrorInfo(
+                    message: error.message,
+                    code: error.code,
+                    details: error.details,
+                    statusCode: error.statusCode,
+                    retryable: error.retryable
+                )
+                self = .failure(errorInfo, envelope.metadata)
+            } else {
+                // success: false, but error is nil - invalid response
+                let genericError = ApiErrorInfo(
+                    message: "Invalid failure response: error details are missing.",
+                    code: "INVALID_RESPONSE",
+                    details: nil,
+                    statusCode: nil,
+                    retryable: nil
+                )
+                self = .failure(genericError, envelope.metadata)
+            }
         }
     }
 
@@ -331,11 +357,19 @@ public enum ApiResponse<T: Codable>: Codable {
             )
             try envelope.encode(to: encoder)
         case .failure(let error, let metadata):
+            // Convert ApiErrorInfo (typealias) to ResponseEnvelope<T>.ApiErrorInfo
+            let errorInfo = ResponseEnvelope<T>.ApiErrorInfo(
+                message: error.message,
+                code: error.code,
+                details: error.details,
+                statusCode: error.statusCode,
+                retryable: error.retryable
+            )
             let envelope = ResponseEnvelope<T>(
                 success: false,
                 data: nil,
                 metadata: metadata,
-                error: error
+                error: errorInfo
             )
             try envelope.encode(to: encoder)
         }
