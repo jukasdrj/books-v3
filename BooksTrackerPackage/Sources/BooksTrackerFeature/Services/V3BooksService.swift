@@ -55,8 +55,8 @@ public class V3BooksService: BooksServiceProtocol {
     // V2 API service (current implementation)
     private let v2Service: BookSearchAPIService
 
-    // V3 API client (manual implementation, replaces OpenAPI-generated code)
-    private let v3Client: V3APIClient
+    // V3 API client (production V3 implementation)
+    private let v3Client: V3APIClientActual
 
     public init(modelContext: ModelContext, dtoMapper: DTOMapper) {
         self.modelContext = modelContext
@@ -65,8 +65,8 @@ public class V3BooksService: BooksServiceProtocol {
         // Initialize V2 service as primary implementation
         self.v2Service = BookSearchAPIService(modelContext: modelContext, dtoMapper: dtoMapper)
 
-        // Initialize V3 API client
-        self.v3Client = V3APIClient()
+        // Initialize V3 API client (production V3 implementation)
+        self.v3Client = V3APIClientActual()
     }
 
     // MARK: - Search Operations
@@ -107,25 +107,10 @@ public class V3BooksService: BooksServiceProtocol {
     /// Determines whether to use V3 API based on feature flags
     ///
     /// Strategy:
-    /// - Check `enableV3Search` feature flag (default: false)
-    /// - Check API capabilities (does backend support V3?)
-    /// - Fallback to V2 if V3 unavailable
+    /// - Check `enableV3Search` feature flag (default: true)
+    /// - V3 backend is now deployed and production-ready
     private func shouldUseV3API() -> Bool {
-        // Feature flag check
-        guard let enableV3 = UserDefaults.standard.object(forKey: "feature.enableV3Search") as? Bool,
-              enableV3 else {
-            return false
-        }
-
-        // API capabilities check (future)
-        // guard let capabilities = FeatureFlags.shared.apiCapabilities,
-        //       capabilities.supportsV3 else {
-        //     logger.warning("V3 API requested but backend doesn't support it. Falling back to V2.")
-        //     return false
-        // }
-
-        // V3 client is always available (initialized in init)
-        return true
+        return FeatureFlags.shared.enableV3Search
     }
 
     // MARK: - V2 Implementation (Current)
@@ -148,73 +133,138 @@ public class V3BooksService: BooksServiceProtocol {
         throw BooksServiceError.notImplemented("V2 API doesn't support work details lookup")
     }
 
-    // MARK: - V3 Implementation (Manual V3APIClient)
-    // TODO: Fully implement V3 API integration when backend is ready
+    // MARK: - V3 Implementation (Production V3APIClientActual)
 
     private func searchV3(query: String, mode: SearchMode, limit: Int) async throws -> SearchResponse {
-        // V3 API client is available, but backend V3 may not be deployed yet
-        // For now, log and fall back to V2
-        logger.info("📘 V3 API requested but backend not deployed. Falling back to V2.")
-        return try await searchV2(query: query, mode: mode, limit: limit)
+        let maxRetries = 2 // Including the initial attempt, so 2 retries = 3 attempts total
+        var lastError: Error?
 
-        // TODO: When V3 backend is ready, implement this:
-        // let envelope = try await v3Client.search(query: query, mode: mode.rawValue, limit: limit)
-        // guard envelope.success, let searchData = envelope.data else {
-        //     if let error = envelope.error {
-        //         let genericError = ResponseEnvelope<AnyCodable>.ApiErrorInfo(
-        //             message: error.message,
-        //             code: error.code,
-        //             details: error.details,
-        //             statusCode: error.statusCode,
-        //             retryable: error.retryable
-        //         )
-        //         throw V3APIError.apiError(genericError)
-        //     }
-        //     throw BooksServiceError.invalidResponse
-        // }
-        // // Use DTOMapper to convert DTOs to SwiftData models
-        // // Return SearchResponse with proper conversion
+        for attempt in 0...maxRetries {
+            do {
+                let page = 1  // For now, always first page (pagination TODO)
+                let v3Response = try await v3Client.search(query: query, page: page, limit: limit)
+
+                // Convert V3Books to SwiftData models and SearchResults
+                let searchResults = convertV3BooksToSearchResults(v3Response.data.books, persist: true)
+
+                return SearchResponse(
+                    results: searchResults,
+                    cacheHitRate: 0.0,  // V3 doesn't provide cache metrics yet
+                    provider: "v3-alexandria",
+                    responseTime: 0.0,  // TODO: Track response time
+                    totalItems: v3Response.data.total
+                )
+            } catch let error as V3ActualAPIError {
+                lastError = error
+                if error.isRetryable && attempt < maxRetries {
+                    logger.warning("📘 V3BooksService: Retrying searchV3 due to retryable V3ActualAPIError: \(error.localizedDescription) (Attempt \(attempt + 1)/\(maxRetries + 1))")
+                    // Add a small delay before retrying
+                    try await Task.sleep(nanoseconds: UInt64(0.5 * Double(attempt + 1) * 1_000_000_000))
+                    continue
+                } else {
+                    throw mapV3ActualAPIErrorToBooksServiceError(error)
+                }
+            } catch {
+                lastError = error
+                logger.error("📘 V3BooksService: Search V3 failed with unexpected error: \(error.localizedDescription)")
+                throw BooksServiceError.apiError(error)
+            }
+        }
+        throw lastError ?? BooksServiceError.unknownError("Unknown error after retries for searchV3")
+    }
+
+    /// Converts V3 books into SwiftData-based SearchResult models
+    ///
+    /// Similar to BookSearchAPIService.convertV2ResultsToSearchResults but for V3 API.
+    /// Creates Work, Edition, and Author SwiftData models from V3Book DTOs.
+    ///
+    /// - Parameters:
+    ///   - v3Books: Array of V3Book from Alexandria API
+    ///   - persist: Whether to persist models to SwiftData
+    /// - Returns: Array of SearchResult models
+    private func convertV3BooksToSearchResults(_ v3Books: [V3Book], persist: Bool) -> [SearchResult] {
+        return v3Books.map { v3Book in
+            // Create Work model
+            let work = Work(title: v3Book.title)
+            work.coverImageURL = v3Book.coverUrl ?? v3Book.thumbnailUrl
+            work.subjectTags = v3Book.categories ?? []
+            work.primaryProvider = v3Book.provider
+            work.originalLanguage = v3Book.language
+
+            if persist {
+                modelContext.insert(work)
+            }
+
+            // Create Author models
+            let authors = v3Book.authors.map { authorName in
+                let author = Author(name: authorName)
+                if persist {
+                    modelContext.insert(author)
+                }
+                return author
+            }
+            work.authors = authors
+
+            // Create Edition model
+            let edition = Edition(isbn: v3Book.isbn)
+            edition.coverImageURL = v3Book.coverUrl ?? v3Book.thumbnailUrl
+            edition.publisher = v3Book.publisher
+            edition.publicationDate = v3Book.publishedDate
+            edition.pageCount = v3Book.pageCount
+            edition.editionDescription = v3Book.description
+            edition.work = work
+            edition.primaryProvider = v3Book.provider
+
+            if persist {
+                modelContext.insert(edition)
+            }
+
+            // Create SearchResult
+            return SearchResult(
+                work: work,
+                editions: [edition],
+                authors: authors,
+                relevanceScore: 1.0,  // V3 doesn't provide relevance scores yet
+                provider: v3Book.provider
+            )
+        }
     }
 
     private func getBookByISBNV3(_ isbn: String) async throws -> (work: WorkDTO, edition: EditionDTO)? {
-        // V3 backend not deployed yet, fall back to V2
-        logger.info("📘 V3 API requested but backend not deployed. Falling back to V2.")
-        return try await getBookByISBNV2(isbn)
+        let maxRetries = 2
+        var lastError: Error?
 
-        // TODO: When V3 backend is ready, implement this:
-        // let envelope = try await v3Client.getBookByISBN(isbn)
-        // guard envelope.success, let bookData = envelope.data else {
-        //     if let error = envelope.error {
-        //         if error.code == "NOT_FOUND" { return nil }
-        //         let genericError = ResponseEnvelope<AnyCodable>.ApiErrorInfo(
-        //             message: error.message, code: error.code, details: error.details,
-        //             statusCode: error.statusCode, retryable: error.retryable
-        //         )
-        //         throw V3APIError.apiError(genericError)
-        //     }
-        //     throw BooksServiceError.invalidResponse
-        // }
-        // return (work: bookData.work, edition: bookData.edition)
+        for attempt in 0...maxRetries {
+            do {
+                let v3Book = try await v3Client.getBook(isbn: isbn)
+                let (work, edition, _) = V3ToV2Mapper.mapBook(v3Book)
+                return (work: work, edition: edition)
+            } catch let error as V3ActualAPIError {
+                lastError = error
+                if case .httpError(let statusCode) = error, statusCode == 404 {
+                    logger.info("📘 V3BooksService: Book with ISBN \(isbn) not found (404) via V3 API.")
+                    return nil
+                }
+
+                if error.isRetryable && attempt < maxRetries {
+                    logger.warning("📘 V3BooksService: Retrying getBookByISBNV3 due to retryable V3ActualAPIError: \(error.localizedDescription) (Attempt \(attempt + 1)/\(maxRetries + 1))")
+                    try await Task.sleep(nanoseconds: UInt64(0.5 * Double(attempt + 1) * 1_000_000_000))
+                    continue
+                } else {
+                    throw mapV3ActualAPIErrorToBooksServiceError(error)
+                }
+            } catch {
+                lastError = error
+                logger.error("📘 V3BooksService: Get Book by ISBN V3 failed with unexpected error: \(error.localizedDescription)")
+                throw BooksServiceError.apiError(error)
+            }
+        }
+        throw lastError ?? BooksServiceError.unknownError("Unknown error after retries for getBookByISBNV3")
     }
 
     private func getWorkDetailsV3(_ workId: String) async throws -> WorkDTO {
-        // V3 backend not deployed yet, fall back to V2
-        logger.info("📘 V3 API requested but backend not deployed. Falling back to V2.")
-        return try await getWorkDetailsV2(workId)
-
-        // TODO: When V3 backend is ready, implement this:
-        // let envelope = try await v3Client.getWork(workId)
-        // guard envelope.success, let work = envelope.data else {
-        //     if let error = envelope.error {
-        //         let genericError = ResponseEnvelope<AnyCodable>.ApiErrorInfo(
-        //             message: error.message, code: error.code, details: error.details,
-        //             statusCode: error.statusCode, retryable: error.retryable
-        //         )
-        //         throw V3APIError.apiError(genericError)
-        //     }
-        //     throw BooksServiceError.invalidResponse
-        // }
-        // return work
+        logger.info("📘 V3BooksService: getWorkDetailsV3 not implemented for workId: \(workId)")
+        throw BooksServiceError.notImplemented("V3 API doesn't support work details lookup yet")
     }
 }
 
@@ -224,6 +274,8 @@ public enum BooksServiceError: LocalizedError {
     case notImplemented(String)
     case v3ClientUnavailable
     case invalidResponse
+    case apiError(Error)
+    case unknownError(String)
 
     public var errorDescription: String? {
         switch self {
@@ -233,28 +285,29 @@ public enum BooksServiceError: LocalizedError {
             return "V3 API client is not available"
         case .invalidResponse:
             return "Invalid response from API"
+        case .apiError(let error):
+            if let v3Error = error as? V3ActualAPIError {
+                return v3Error.localizedDescription
+            }
+            return "API Error: \(error.localizedDescription)"
+        case .unknownError(let message):
+            return "Unknown error: \(message)"
         }
     }
 }
 
-// MARK: - Feature Flag Extension
+// MARK: - V3 Error Mapping
 
-extension FeatureFlags {
-    /// Enable V3 API for book search operations
-    ///
-    /// When enabled, all book search requests will use the V3 OpenAPI client
-    /// instead of the legacy V2 API. Falls back to V2 if V3 is unavailable.
-    ///
-    /// Default: `false` (disabled, uses V2 API)
-    ///
-    /// Note: This is part of the V3 Migration Plan (Phase 2).
-    /// V3 will become the default in Phase 3 (Q2 2026).
-    public var enableV3Search: Bool {
-        get {
-            UserDefaults.standard.bool(forKey: "feature.enableV3Search")
-        }
-        set {
-            UserDefaults.standard.set(newValue, forKey: "feature.enableV3Search")
+extension V3BooksService {
+    /// Maps a V3ActualAPIError to a BooksServiceError for consistent error handling.
+    private func mapV3ActualAPIErrorToBooksServiceError(_ error: V3ActualAPIError) -> BooksServiceError {
+        switch error {
+        case .invalidURL, .networkError, .apiError, .httpError, .notModified:
+            return .apiError(error)
+        case .invalidResponse:
+            return .invalidResponse
+        case .decodingFailed(let underlyingError):
+            return .apiError(underlyingError)
         }
     }
 }

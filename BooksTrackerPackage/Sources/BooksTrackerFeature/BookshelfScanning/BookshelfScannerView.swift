@@ -24,7 +24,6 @@ public struct BookshelfScannerView: View {
     @State private var showingResults = false
     @State private var showCamera = false
     @State private var photosPickerItem: PhotosPickerItem?
-    @State private var batchModeEnabled = false
     @State private var showingErrorAlert = false
 
     public init() {}
@@ -55,9 +54,6 @@ public struct BookshelfScannerView: View {
 
                         // Photo selection area
                         cameraSection
-
-                        // Batch mode toggle
-                        batchModeToggle
 
                         // Statistics (if scanning or completed)
                         if scanModel.scanState != .idle {
@@ -114,17 +110,11 @@ public struct BookshelfScannerView: View {
                 )
             }
             .fullScreenCover(isPresented: $showCamera) {
-                if batchModeEnabled {
-                    NavigationStack {
-                        BatchCaptureView()
-                    }
-                } else {
-                    BookshelfCameraView { capturedImage in
-                        Task {
-                            await scanModel.processImage(capturedImage)
-                            if scanModel.scanState == .completed {
-                                showingResults = true
-                            }
+                BookshelfCameraView { capturedImage in
+                    Task {
+                        await scanModel.processImage(capturedImage)
+                        if scanModel.scanState == .completed {
+                            showingResults = true
                         }
                     }
                 }
@@ -272,23 +262,6 @@ public struct BookshelfScannerView: View {
         }
     }
 
-    // MARK: - Batch Mode Toggle
-
-    private var batchModeToggle: some View {
-        VStack(spacing: 8) {
-            Toggle("Batch Mode (Beta)", isOn: $batchModeEnabled)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-
-            if batchModeEnabled {
-                Text("Capture up to 5 photos in one session")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
 }
 
 // MARK: - Bookshelf Scan Model

@@ -166,6 +166,24 @@ public final class FeatureFlags {
         }
     }
 
+    /// Enable V3 API for book search operations
+    ///
+    /// When enabled, all book search requests will use the V3 API client
+    /// instead of the legacy V2 API. Falls back to V2 if V3 is disabled.
+    ///
+    /// Default: `true` (enabled, uses V3 API)
+    ///
+    /// Note: This is part of the V3 Migration Plan (Phase 3).
+    /// V3 is now production-ready and default.
+    public var enableV3Search: Bool {
+        get {
+            UserDefaults.standard.object(forKey: "feature.enableV3Search") as? Bool ?? true
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "feature.enableV3Search")
+        }
+    }
+
     /// Stores the API capabilities fetched from the backend.
     /// This property is populated on app launch and is used to conditionally
     /// enable or disable features based on backend support.
@@ -184,8 +202,9 @@ public final class FeatureFlags {
         enableV2Search = true // V2 search is now the default
         enableWorkflowImport = false // Default workflow import disabled
         enablePhotoScanSSE = false // Default SSE disabled (WebSocket fallback)
+        enableV3Search = true // V3 search is now the default
         #if DEBUG
-        print("FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true, v2Search: true, workflowImport: false, photoScanSSE: false)")
+        print("FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true, v2Search: true, v3Search: true, workflowImport: false, photoScanSSE: false)")
         #endif
     }
 }
