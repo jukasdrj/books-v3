@@ -157,6 +157,12 @@ actor BookshelfAIService {
     ///   - progressHandler: Closure for progress updates
     /// - Returns: Tuple of detected books and suggestions
     /// - Throws: BookshelfAIError for failures
+    ///
+    /// - Note: **DEPRECATED** - WebSocket is **V1/V2 legacy only**. V3 uses SSE exclusively.
+    ///   - V3 endpoints: `GET /v3/jobs/scans/{jobId}/stream` (SSE)
+    ///   - V1/V2 legacy: `GET /ws/progress?jobId=xxx` (WebSocket)
+    ///   - This method remains as automatic fallback when V3 SSE connection fails
+    ///   - **Removal: 90 days after V3 GA** (V1/V2 sunset)
     internal func processViaWebSocket(
         image: UIImage,
         jobId: String,
@@ -301,7 +307,7 @@ actor BookshelfAIService {
             throw .networkError(error)
         }
 
-        // STEP 3: Check for SSE URL (V2 endpoint)
+        // STEP 3: Check for SSE URL (V3 returns streamUrl, legacy returns sseUrl)
         guard let sseUrlPath = scanResponse.sseUrl else {
             throw .serverError(501, "SSE URL not provided - backend may not support SSE yet")
         }
@@ -324,7 +330,9 @@ actor BookshelfAIService {
         }
 
         // STEP 4: Connect to SSE stream
-        let sseClient = SSEClient(url: sseUrl, authToken: scanResponse.authToken)
+        // V3: authToken may be empty (authentication via URL), legacy: explicit token
+        let authToken = scanResponse.authToken.isEmpty ? "" : scanResponse.authToken
+        let sseClient = SSEClient(url: sseUrl, authToken: authToken)
         let eventStream = await sseClient.connect()
 
         #if DEBUG

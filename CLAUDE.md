@@ -1,6 +1,6 @@
 # 📚 BooksTrack - Claude Code Guide
 
-**Version 3.7.5 (Build 189+)** | **iOS 26.0+** | **Swift 6.2+** | **Updated: December 1, 2025**
+**Version 3.7.5 (Build 189+)** | **iOS 26.0+** | **Swift 6.2+** | **Updated: December 6, 2025**
 
 > **📋 For universal AI agent instructions, see [`AGENTS.md`](AGENTS.md)**
 > This file contains **Claude Code-specific** setup (MCP, slash commands, skills).
@@ -832,18 +832,31 @@ Sonnet (you):
    - Circuit breakers protect external services
    - Graceful degradation when limits exceeded
 
-5. **WebSocket Connection Limits**
-   - Max 1000 connections per Durable Object
-   - Implement hibernation API for idle connections
-   - Graceful handling when limits reached
+5. **Real-Time Updates: V3 Uses SSE Exclusively**
+   - ✅ **V3 API**: Server-Sent Events (SSE) for all job streaming
+     - `GET /v3/jobs/scans/{jobId}/stream` - Scan progress
+     - `GET /v3/jobs/imports/{jobId}/stream` - CSV import progress
+     - `GET /v3/jobs/enrichment/{jobId}/stream` - Enrichment progress
+   - ⚠️ **V1/V2 DEPRECATED**: WebSocket (`GET /ws/progress?jobId=xxx`)
+     - iOS app uses WebSocket as automatic fallback when SSE fails
+     - Backend sunsets WebSocket 90 days after V3 GA
+
+   **Why V3 Chose SSE Over WebSockets:**
+   - ✅ Browser-native reconnection with Last-Event-ID
+   - ✅ Firewall-friendly (HTTP/1.1, not blocked by corporate proxies)
+   - ✅ Automatic retry on connection loss
+   - ✅ Simpler than WebSocket for one-way streaming
+   - ✅ Can include full data payload in completion events
+   - ⚠️ Trade-off: No bidirectional cancel (use `DELETE /v3/jobs/{type}/{jobId}` instead)
 
 ### Integration with iOS App
 
-**API Contract (v2.4.1):**
+**API Contract (v3.2):**
 - iOS app expects provider metadata in all responses
 - Caching headers inform SwiftData sync strategy
-- WebSocket events for real-time updates (Durable Objects)
-- Error responses follow standard format (see backend API docs)
+- **SSE events for real-time updates** (V3 primary transport)
+- **WebSocket fallback** (V1/V2 legacy, automatic when SSE fails)
+- Error responses follow RFC 9457 Problem Details format
 
 ### Subagent Model Configuration
 

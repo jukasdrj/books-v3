@@ -153,13 +153,13 @@ public final class FeatureFlags {
     /// - Automatic reconnection handling
     /// - Lower server resource usage
     ///
-    /// Default: `false` (disabled, uses WebSocket for backward compatibility)
+    /// Default: `true` (enabled, SSE is now the primary transport)
     ///
-    /// Note: This is a P0 feature for API Contract v3.2 migration.
-    /// Will be enabled by default once SSE backend is stable.
+    /// Note: Phase 1 of WebSocket to SSE migration (Issue #142).
+    /// WebSocket fallback remains available if SSE fails.
     public var enablePhotoScanSSE: Bool {
         get {
-            UserDefaults.standard.bool(forKey: "feature.enablePhotoScanSSE")
+            UserDefaults.standard.object(forKey: "feature.enablePhotoScanSSE") as? Bool ?? true
         }
         set {
             UserDefaults.standard.set(newValue, forKey: "feature.enablePhotoScanSSE")
@@ -201,10 +201,10 @@ public final class FeatureFlags {
         disableCanonicalEnrichment = false  // Default canonical endpoint
         enableV2Search = true // V2 search is now the default
         enableWorkflowImport = false // Default workflow import disabled
-        enablePhotoScanSSE = false // Default SSE disabled (WebSocket fallback)
+        enablePhotoScanSSE = true // Default SSE enabled (Phase 1 migration, Issue #142)
         enableV3Search = true // V3 search is now the default
         #if DEBUG
-        print("FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true, v2Search: true, v3Search: true, workflowImport: false, photoScanSSE: false)")
+        print("FeatureFlags reset to defaults (tabBarMinimize: true, coverSelection: auto, canonicalEnrichment: true, v2Search: true, v3Search: true, workflowImport: false, photoScanSSE: true)")
         #endif
     }
 }

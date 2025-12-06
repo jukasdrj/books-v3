@@ -10,7 +10,12 @@ enum EnrichmentConfig {
     static let apiBaseURL = "https://api.oooefam.net"
 
     /// WebSocket base URL for the Cloudflare Worker (Custom Domain)
-    /// ⚠️ DEPRECATED: Used by legacy bookshelf scanning. Will be removed when bookshelf scanning migrates to SSE.
+    /// ⚠️ DEPRECATED: WebSocket is **V1/V2 legacy only**. V3 uses SSE exclusively.
+    ///   - V3 endpoints: GET /v3/jobs/{type}/{jobId}/stream (SSE)
+    ///   - V1/V2 legacy: GET /ws/progress?jobId=xxx (WebSocket)
+    ///   - Used only as automatic fallback when V3 SSE fails
+    /// - Note: **Removal: 90 days after V3 GA** (V1/V2 sunset)
+    @available(*, deprecated, message: "WebSocket is V1/V2 legacy only. V3 uses SSE exclusively. Removal: 90 days post-V3 GA")
     static let webSocketBaseURL = "wss://api.oooefam.net"
 
     // MARK: - Search Endpoints (V3 API)
@@ -77,17 +82,27 @@ enum EnrichmentConfig {
         URL(string: "\(baseURL)/v3/books/enrich")!
     }
 
-    // MARK: - Bookshelf Scanning Endpoints
+    // MARK: - Bookshelf Scanning Endpoints (V3 API)
 
-    /// AI-powered bookshelf scanning
+    /// AI-powered bookshelf scanning (V3 API)
+    /// Endpoint: POST /v3/jobs/scans
+    /// Returns: {jobId, status, streamUrl}
+    /// Replaces: /api/scan-bookshelf (legacy V1/V2)
     static var scanBookshelfURL: URL {
-        URL(string: "\(baseURL)/api/scan-bookshelf")!
+        URL(string: "\(baseURL)/v3/jobs/scans")!
     }
 
+    /// Cancel bookshelf scan job (V3 API)
+    /// Endpoint: DELETE /v3/jobs/scans/{jobId}
+    static func scanCancelURL(jobId: String) -> URL {
+        URL(string: "\(baseURL)/v3/jobs/scans/\(jobId)")!
+    }
 
-    /// Cancel bookshelf scan job
-    static var scanCancelURL: URL {
-        URL(string: "\(baseURL)/api/scan-bookshelf/cancel")!
+    /// Legacy V1/V2 scan endpoint (DEPRECATED)
+    /// ⚠️ Use scanBookshelfURL with V3 API instead
+    @available(*, deprecated, message: "Use scanBookshelfURL with V3 API - V1/V2 sunsets Q3 2026")
+    static var legacyScanBookshelfURL: URL {
+        URL(string: "\(baseURL)/api/scan-bookshelf")!
     }
 
     // MARK: - Workflow Import Endpoints
@@ -104,13 +119,18 @@ enum EnrichmentConfig {
         URL(string: "\(baseURL)/v2/import/workflow/\(workflowId)")!
     }
 
-    // MARK: - WebSocket Endpoints (Legacy - Bookshelf Scanning Only)
+    // MARK: - WebSocket Endpoints (V1/V2 LEGACY - Automatic Fallback Only)
 
     /// WebSocket progress tracking for background jobs
-    /// ⚠️ DEPRECATED: Only used by bookshelf scanning. CSV import uses SSE.
-    /// TODO: Migrate bookshelf scanning to SSE and remove this method.
+    /// ⚠️ DEPRECATED: WebSocket is **V1/V2 legacy only**. V3 uses SSE exclusively.
+    ///   - V3 endpoints: `GET /v3/jobs/{type}/{jobId}/stream` (SSE)
+    ///   - V1/V2 legacy: `GET /ws/progress?jobId=xxx` (WebSocket)
+    ///   - Used only as automatic fallback when V3 SSE connection fails
+    ///   - All V3 jobs (scans, imports, enrichment) use SSE, not WebSocket
     /// - Parameter jobId: The unique job identifier
     /// - Returns: WebSocket URL for the specified job
+    /// - Note: **Removal: 90 days after V3 GA** (V1/V2 sunset)
+    @available(*, deprecated, message: "WebSocket is V1/V2 legacy only. V3 uses SSE exclusively. Removal: 90 days post-V3 GA")
     static func webSocketURL(jobId: String) -> URL {
         URL(string: "\(webSocketBaseURL)/ws/progress?jobId=\(jobId)")!
     }
