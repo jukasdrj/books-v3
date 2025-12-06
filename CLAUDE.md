@@ -84,23 +84,33 @@
 - Complex planning and task decomposition
 - Code review coordination
 
-**⚡ Haiku (Fast Implementation)** - Via `mcp__zen__chat`
+**🎯 Opus 4.5 (Strategic Thinking)** - Via Plan subagent or manual delegation
+- Complex architectural planning
+- Multi-phase project design
+- Strategic refactoring plans
+- Critical decision-making with deep reasoning
+- Available in Claude Code v2.0.51+
+
+**⚡ Haiku 4.5 (Fast Implementation)** - Via `mcp__zen__chat` or Explore subagent
 - Rapid iteration and implementation
 - Single-file focused changes
 - Simple bug fixes
 - Boilerplate generation
+- Codebase exploration (Explore subagent)
+- Auto-uses Sonnet in plan mode ("SonnetPlan" mode)
 
-**🔍 Grok (Expert Review)** - Via `mcp__zen__codereview` / `mcp__zen__secaudit`
+**🔍 Grok-4 / Grok Code Fast 1 (Expert Review)** - Via `mcp__zen__codereview` / `mcp__zen__secaudit`
 - Security and architecture validation
-- Complex code review
+- Complex code review (70.8% SWE-Bench-Verified)
 - Performance analysis
 - Best practices enforcement
 
-**🧪 Gemini 2.5 (Deep Analysis)** - Via `mcp__zen__debug` / `mcp__zen__thinkdeep`
+**🧪 Gemini 2.5 Pro / 3.0 Pro (Deep Analysis)** - Via `mcp__zen__debug` / `mcp__zen__thinkdeep`
 - Root cause analysis
 - Multi-stage investigation
 - Complex debugging scenarios
 - Pattern recognition
+- 1M+ token context for comprehensive analysis
 
 ---
 
@@ -137,6 +147,32 @@ Haiku: Initial implementation via mcp__zen__chat
 Grok: Security audit via mcp__zen__secaudit
   ↓
 Sonnet (you): Address findings and final review
+```
+
+**Pattern 4: Background Agent Workflow (v2.0.60+)**
+```
+User: "Start a performance analysis in the background"
+Sonnet (you): Launch background agent for long-running analysis
+  ↓
+Background Agent: Runs performance profiling independently
+  ↓
+Sonnet (you): Continue with other tasks (refactoring, features)
+  ↓
+Background Agent: Completes and returns findings
+  ↓
+Sonnet (you): Review findings and integrate recommendations
+```
+
+**When to Use Background Agents:**
+- Long-running analysis (performance profiling, security audits)
+- Parallel work streams (one agent analyzes while you implement)
+- Non-blocking investigations (let agent explore while you code)
+- Resource-intensive tasks (offload to background process)
+
+**Starting a Background Agent:**
+```
+User: "Analyze performance in the background while I fix this bug"
+or prefix message with `&` in Claude Code Web to run in background
 ```
 
 ---
@@ -858,7 +894,34 @@ Sonnet (you):
 - **WebSocket fallback** (V1/V2 legacy, automatic when SSE fails)
 - Error responses follow RFC 9457 Problem Details format
 
-### Subagent Model Configuration
+### Agent & Subagent Configuration
+
+**Main Thread Agent Configuration (v2.0.59+):**
+
+Configure the main conversation thread to use a specific agent's system prompt, tool restrictions, and model:
+
+```json
+{
+  "agent": "cloudflare-specialist"
+}
+```
+
+**This makes the main thread behave like the specified agent.**
+
+**Override agent for a session:**
+```bash
+claude --agent cloudflare-specialist
+```
+
+**When to use:**
+- Working on Cloudflare backend exclusively → `agent: "cloudflare-specialist"`
+- Security-focused development → `agent: "security-auditor"`
+- Performance optimization sprint → `agent: "performance-analyzer"`
+- General development → Omit (use default Sonnet behavior)
+
+---
+
+**Subagent Model Configuration:**
 
 **Configured in `.claude/settings.json`:**
 
@@ -878,11 +941,11 @@ Sonnet (you):
 ```
 
 **Why these models:**
-- **Sonnet** for Cloudflare specialist (complex architecture decisions)
-- **Grok** (grok-code-fast-1) for code review & security (expert validation, security focus)
-- **Gemini 2.5 Pro** for performance analysis (deep investigation, pattern recognition)
-- **Opus** for planning agents (strategic thinking, comprehensive plans)
-- **Haiku** for exploration (speed, efficiency)
+- **Sonnet 4.5** for Cloudflare specialist (complex architecture decisions)
+- **Opus 4.5** for planning agents (strategic thinking, comprehensive plans)
+- **Haiku 4.5** for exploration (speed, efficiency, auto-uses Sonnet in plan mode)
+- **Grok-4 / Grok Code Fast 1** for code review & security (expert validation, 70.8% SWE-Bench)
+- **Gemini 2.5 Pro / 3.0 Pro** for performance analysis (deep investigation, 1M context)
 
 ### Hooks & Automation
 
@@ -891,32 +954,86 @@ Sonnet (you):
 ```json
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [{"type": "command", "command": ".claude/hooks/session-start.sh"}]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [{"type": "command", "command": ".claude/hooks/session-end.sh"}]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [{"type": "command", "command": ".claude/hooks/permission-request.sh"}]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
-        "hooks": [".claude/hooks/pre-commit.sh"]
+        "hooks": [{"type": "command", "command": ".claude/hooks/pre-commit.sh"}]
       }
     ],
     "SubagentStart": [
       {
         "matcher": "*",
-        "hooks": [".claude/hooks/subagent-start.sh"]
+        "hooks": [{"type": "command", "command": ".claude/hooks/subagent-start.sh"}]
       }
     ],
     "SubagentStop": [
       {
         "matcher": "*",
-        "hooks": [".claude/hooks/subagent-stop.sh"]
+        "hooks": [{"type": "command", "command": ".claude/hooks/subagent-stop.sh"}]
       }
     ]
   }
 }
 ```
 
+**Available Hook Events (v2.0.60):**
+
+**Session Lifecycle:**
+- **SessionStart** (v1.0.61+) - Triggered when Claude Code session begins
+  - Use for: Environment checks, initialization, welcome messages
+  - Hook: `.claude/hooks/session-start.sh`
+
+- **SessionEnd** (v1.0.85+) - Triggered when Claude Code session ends
+  - Use for: Cleanup, final checks, session summaries
+  - Hook: `.claude/hooks/session-end.sh`
+
+**Permission Management:**
+- **PermissionRequest** (v2.0.45+) - Triggered when tool permission requested
+  - Use for: Auto-approve/deny based on custom logic
+  - Hook: `.claude/hooks/permission-request.sh`
+  - Can modify tool inputs or update permissions
+
+**Tool Execution:**
+- **PreToolUse** (v1.0.38+) - Triggered before tool execution
+  - Use for: Validation, security checks, pre-flight checks
+  - Hook: `.claude/hooks/pre-commit.sh` (for Bash commands)
+
+**Subagent Lifecycle:**
+- **SubagentStart** (v2.0.43+) - Triggered when subagent starts
+  - Use for: Logging, resource allocation, context preparation
+  - Hook: `.claude/hooks/subagent-start.sh`
+  - Receives: `agent_id`, `CLAUDE_PROJECT_DIR`
+
+- **SubagentStop** (v2.0.42+) - Triggered when subagent completes
+  - Use for: Review findings, archive transcripts, cleanup
+  - Hook: `.claude/hooks/subagent-stop.sh`
+  - Receives: `agent_id`, `agent_transcript_path`
+
 **Hook Scripts (in `.claude/hooks/`):**
-- `pre-commit.sh` - Validates bash commands before execution
+- `session-start.sh` - Environment checks, memory warnings, OpenAPI freshness
+- `session-end.sh` - Cleanup, uncommitted changes check, session logging
+- `permission-request.sh` - Auto-approve safe reads, deny dangerous operations
+- `pre-commit.sh` - Validates bash commands, checks for sensitive files
 - `subagent-start.sh` - Logs subagent activation
-- `subagent-stop.sh` - Prompts to review subagent findings
+- `subagent-stop.sh` - Archives transcripts, prompts to review findings
 
 **Automatic triggers:**
 - Bash command → pre-commit validation
@@ -968,6 +1085,13 @@ Sonnet (you):
 
 ---
 
-**Last Updated:** December 1, 2025 (v3.7.5, Build 189)
+**Last Updated:** December 6, 2025 (Claude Code v2.0.60, BooksTrack v3.7.5, Build 189)
 **Maintained by:** oooe (jukasdrj)
 **See Also:** [`AGENTS.md`](AGENTS.md)
+
+**Recent Updates:**
+- ✨ Added Opus 4.5 and Haiku 4.5 model documentation
+- 🔄 Added background agent workflow patterns (v2.0.60)
+- 🪝 Added PermissionRequest, SessionStart, SessionEnd hooks
+- 📚 Created comprehensive mcp-zen-usage skill guide
+- ⚙️ Documented `agent` setting for main thread configuration (v2.0.59)

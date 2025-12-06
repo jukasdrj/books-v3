@@ -12,6 +12,24 @@
     "Explore": "haiku"
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [{"type": "command", "command": ".claude/hooks/session-start.sh"}]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [{"type": "command", "command": ".claude/hooks/session-end.sh"}]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [{"type": "command", "command": ".claude/hooks/permission-request.sh"}]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
