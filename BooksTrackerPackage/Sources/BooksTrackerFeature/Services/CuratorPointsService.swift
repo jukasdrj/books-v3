@@ -5,6 +5,9 @@ import Foundation
 @MainActor
 public class CuratorPointsService: ObservableObject {
 
+    /// Minimum points required to achieve curator status
+    public static let curatorThreshold = 75
+
     /// UserDefaults key for storing points.
     private let pointsKey = "com.bookstracker.curatorPoints"
     private nonisolated(unsafe) let userDefaults: UserDefaults
