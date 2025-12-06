@@ -44,6 +44,7 @@ public struct SettingsView: View {
     @Environment(LibraryRepository.self) private var libraryRepository
     @Environment(EnrichmentQueue.self) private var enrichmentQueue
     @Environment(\.tabCoordinator) private var tabCoordinator
+    @Environment(\.curatorPointsService) private var curatorPointsService
 
     // MARK: - State Management
 
@@ -119,6 +120,53 @@ public struct SettingsView: View {
                 Text("Appearance")
             } footer: {
                 Text("Customize your reading experience with themes and appearance settings. Cover selection controls which edition is displayed when a book has multiple formats.")
+            }
+
+            // MARK: - Curator Progress Section
+
+            if let curatorPointsService = curatorPointsService, curatorPointsService.totalPoints > 0 {
+                Section {
+                    NavigationLink {
+                        ContributionHistoryView()
+                    } label: {
+                        HStack(spacing: 16) {
+                            // Curator badge icon
+                            Image(systemName: "star.circle.fill")
+                                .font(.title2)
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [
+                                            themeStore.primaryColor,
+                                            themeStore.primaryColor.opacity(0.7)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .symbolEffect(.pulse, options: .repeating)
+                                .frame(width: 28)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: 8) {
+                                    Text("Curator Progress")
+                                        .font(.body)
+
+                                    if curatorPointsService.totalPoints >= 75 {
+                                        CuratorBadge(totalPoints: curatorPointsService.totalPoints, compact: true)
+                                    }
+                                }
+
+                                Text("\(curatorPointsService.totalPoints) contribution points")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Community Contributions")
+                } footer: {
+                    Text("Track your contributions to diversity metadata and earn curator status by helping the community.")
+                }
             }
 
             // MARK: - Data Management Section

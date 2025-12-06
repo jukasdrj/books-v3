@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// Reusable error display component
+/// Reusable error display component with Liquid Glass design system
 ///
 /// Displays user-friendly error messages with appropriate icons and actions.
-/// Part of Phase 2, Task 4 of V3 Migration Plan.
+/// Enhanced with glass morphism and theme-aware styling (Issue #143, Phase 1.1).
 ///
 /// Usage:
 /// ```swift
@@ -11,37 +11,104 @@ import SwiftUI
 ///     // Retry action
 /// }
 /// ```
+@available(iOS 26.0, *)
 struct ErrorView: View {
     let error: ApiErrorInfo
     var retryAction: (() -> Void)?
 
+    @Environment(\.iOS26ThemeStore) private var themeStore
+
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: errorIcon)
-                .font(.system(size: 48))
-                .foregroundColor(.red.opacity(0.8))
+        VStack(spacing: 24) {
+            // Error icon with glass background
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.red.opacity(0.15),
+                                Color.red.opacity(0.05)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 96, height: 96)
 
-            Text(error.userMessage)
-                .font(.body)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-
-            if error.requiresUserAction {
-                Text("Please check your input and try again")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
+                Image(systemName: errorIcon)
+                    .font(.system(size: 48, weight: .medium))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [
+                                Color.red,
+                                Color.red.opacity(0.7)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .symbolEffect(.pulse, options: .repeating)
             }
 
-            if error.isRetryable, let retryAction = retryAction {
-                Button("Try Again") {
-                    retryAction()
+            // Error message
+            VStack(spacing: 8) {
+                Text(error.userMessage)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.center)
+
+                if error.requiresUserAction {
+                    Text("Please check your input and try again")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
                 }
-                .buttonStyle(.borderedProminent)
+            }
+            .padding(.horizontal, 24)
+
+            // Retry action button
+            if error.isRetryable, let retryAction = retryAction {
+                Button(action: retryAction) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.headline)
+
+                        Text("Try Again")
+                            .font(.headline)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background {
+                        Capsule()
+                            .fill(themeStore.primaryColor)
+                    }
+                }
+                .buttonStyle(.plain)
             }
         }
-        .padding()
+        .padding(32)
+        .background {
+            RoundedRectangle(cornerRadius: 20)
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    Color.red.opacity(0.2),
+                                    Color.red.opacity(0.05)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                }
+        }
+        .shadow(color: Color.red.opacity(0.1), radius: 20, x: 0, y: 10)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Error: \(error.userMessage)")
     }
 
     /// Map error code to SF Symbol icon
@@ -74,17 +141,23 @@ struct ErrorView: View {
 // MARK: - Previews
 
 #Preview("Not Found") {
-    ErrorView(error: ApiErrorInfo(
+    let themeStore = BooksTrackerFeature.iOS26ThemeStore()
+
+    return ErrorView(error: ApiErrorInfo(
         message: "Book not found",
         code: "NOT_FOUND",
         details: nil,
         statusCode: 404,
         retryable: false
     ))
+    .environment(\.iOS26ThemeStore, themeStore)
+    .padding()
 }
 
 #Preview("Network Error - Retryable") {
-    ErrorView(
+    let themeStore = BooksTrackerFeature.iOS26ThemeStore()
+
+    return ErrorView(
         error: ApiErrorInfo(
             message: "Network connection failed",
             code: "NETWORK_ERROR",
@@ -96,20 +169,28 @@ struct ErrorView: View {
             print("Retry tapped")
         }
     )
+    .environment(\.iOS26ThemeStore, themeStore)
+    .padding()
 }
 
 #Preview("Validation Error - User Action") {
-    ErrorView(error: ApiErrorInfo(
+    let themeStore = BooksTrackerFeature.iOS26ThemeStore()
+
+    return ErrorView(error: ApiErrorInfo(
         message: "Invalid ISBN format",
         code: "INVALID_ISBN",
         details: nil,
         statusCode: 400,
         retryable: false
     ))
+    .environment(\.iOS26ThemeStore, themeStore)
+    .padding()
 }
 
 #Preview("Rate Limited") {
-    ErrorView(
+    let themeStore = BooksTrackerFeature.iOS26ThemeStore()
+
+    return ErrorView(
         error: ApiErrorInfo(
             message: "Too many requests",
             code: "RATE_LIMITED",
@@ -121,4 +202,6 @@ struct ErrorView: View {
             print("Retry after rate limit")
         }
     )
+    .environment(\.iOS26ThemeStore, themeStore)
+    .padding()
 }

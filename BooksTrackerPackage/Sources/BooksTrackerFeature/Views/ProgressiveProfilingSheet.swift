@@ -30,9 +30,13 @@ public struct ProgressiveProfilingSheet: View {
     @State private var affectedWorksCount = 0
     @State private var pointsAwarded = 0
     @State private var errorMessage: String?
+    @State private var isCuratorUnlocked = false
 
     // Questions to ask (filtered based on missing data)
     @State private var questions: [ProfileQuestion] = []
+
+    // Curator threshold
+    private let curatorThreshold = 75
 
     public init(work: Work, onComplete: @escaping () -> Void) {
         self.work = work
@@ -43,10 +47,11 @@ public struct ProgressiveProfilingSheet: View {
         NavigationStack {
             ZStack {
                 if showCelebration {
-                    CelebrationView(pointsAwarded: pointsAwarded)
+                    CelebrationView(pointsAwarded: pointsAwarded, isCuratorUnlocked: isCuratorUnlocked)
                         .onAppear {
                             Task {
-                                try? await Task.sleep(for: .seconds(2))
+                                // Show for longer if curator unlocked (to see the special message)
+                                try? await Task.sleep(for: .seconds(isCuratorUnlocked ? 3 : 2))
                                 dismiss()
                                 onComplete()
                             }
@@ -371,7 +376,14 @@ public struct ProgressiveProfilingSheet: View {
             totalPoints += affectedWorksCount * ProfilingPoints.cascadeMultiplier
         }
 
+        // Check if this contribution unlocks curator status
+        let previousPoints = curatorPointsService?.totalPoints ?? 0
+        let wasBelowThreshold = previousPoints < curatorThreshold
+        let willBeAboveThreshold = (previousPoints + totalPoints) >= curatorThreshold
+
         self.pointsAwarded = totalPoints
+        self.isCuratorUnlocked = wasBelowThreshold && willBeAboveThreshold
+
         curatorPointsService?.awardPoints(totalPoints, for: "Progressive Profiling Contribution")
     }
 
