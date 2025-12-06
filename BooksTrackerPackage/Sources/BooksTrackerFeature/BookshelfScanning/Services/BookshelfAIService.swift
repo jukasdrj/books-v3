@@ -809,17 +809,6 @@ actor BookshelfAIService {
         return stages.last?.progress ?? 1.0
     }
 
-    /// Poll job status from server (DEPRECATED - WebSocket-only now)
-    /// This method is retained for backward compatibility but should not be used.
-    /// All progress updates come via WebSocket on /ws/progress endpoint.
-    @available(*, deprecated, message: "Polling removed - use WebSocket for all progress updates")
-    func pollJobStatus(jobId: String) async throws -> JobStatusResponse {
-        // Polling endpoints no longer exist on api-worker
-        // This is kept for compilation but will always fail
-        throw BookshelfAIError.serverError(410, "Polling endpoints removed - use WebSocket")
-    }
-
-
     // MARK: - Response Envelope Helper
 
     /// Generic helper to unwrap ResponseEnvelope and handle common API errors.
