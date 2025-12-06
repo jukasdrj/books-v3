@@ -80,16 +80,6 @@ public struct ScanJobResponse: Codable, Sendable {
     }
 }
 
-// MARK: - Job Status Response (from GET /scan/status/:jobId)
-
-public struct JobStatusResponse: Codable, Sendable {
-    public let stage: String
-    public let elapsedTime: Int      // Server time (source of truth)
-    public let booksDetected: Int
-    public let result: BookshelfAIResponse?
-    public let error: String?
-}
-
 // MARK: - Progress State (iOS-side)
 
 @MainActor
