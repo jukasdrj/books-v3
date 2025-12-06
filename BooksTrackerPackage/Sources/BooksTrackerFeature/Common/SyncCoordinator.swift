@@ -3,7 +3,7 @@ import SwiftData
 import SwiftUI
 
 /// Orchestrates multi-step background jobs (CSV import, enrichment)
-/// Uses PollingUtility for backend polling and JobModels for type-safe tracking
+/// Uses SSE for real-time progress updates and JobModels for type-safe tracking
 @MainActor
 @Observable
 public final class SyncCoordinator {
