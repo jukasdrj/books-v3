@@ -81,10 +81,6 @@ enum EnrichmentConfig {
         URL(string: "\(baseURL)/api/scan-bookshelf")!
     }
 
-    /// Batch bookshelf scanning
-    static var scanBookshelfBatchURL: URL {
-        URL(string: "\(baseURL)/api/scan-bookshelf/batch")!
-    }
 
     /// Cancel bookshelf scan job
     static var scanCancelURL: URL {

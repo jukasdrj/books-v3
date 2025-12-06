@@ -1,5 +1,19 @@
 import Foundation
 
+// TODO: [V3 Migration - Phase 4] CSV Import Service Migration
+// Backend is building V3 CSV endpoint: POST /v3/books/import
+// Expected request: multipart/form-data with CSV file
+// Expected response: V3EnrichResponse format with JobResponse wrapper
+// Current implementation uses V2: POST /api/v2/imports
+// Migration blocked until backend V3 CSV endpoint ready
+// See: V3_MIGRATION_PLAN.md Section "Phase 4: CSV Import Workflow"
+//
+// Migration steps when backend ready:
+// 1. Update endpoint URL to /v3/books/import
+// 2. Expect V3EnrichResponse instead of current BatchParseResponse
+// 3. Update error handling for V3ErrorResponse format
+// 4. Test with real CSV files (ensure backward compatibility)
+
 // MARK: - Gemini CSV Import Errors
 
 enum GeminiCSVImportError: Error, LocalizedError {
