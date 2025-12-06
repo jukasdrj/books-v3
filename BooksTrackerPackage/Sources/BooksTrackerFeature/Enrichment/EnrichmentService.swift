@@ -183,7 +183,7 @@ public final class EnrichmentService {
             throw EnrichmentError.invalidURL
         }
         
-        let urlString = "\(baseURL)/api/v2/search?q=\(encodedQuery)&mode=text&limit=5"
+        let urlString = "\(baseURL)/v3/books/search?q=\(encodedQuery)&mode=text&limit=5"
         guard let url = URL(string: urlString) else {
             throw EnrichmentError.invalidURL
         }

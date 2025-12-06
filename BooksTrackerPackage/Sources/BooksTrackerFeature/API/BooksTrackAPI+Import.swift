@@ -14,7 +14,7 @@ extension BooksTrackAPI {
 
     /// Imports a CSV file.
     func importCSV(data csvData: Data) async throws -> (jobId: String, authToken: String) {
-        let url = baseURL.appendingPathComponent("/api/v2/imports")
+        let url = baseURL.appendingPathComponent("/v3/jobs/imports")
 
         let boundary = UUID().uuidString
         let multipartBody = createMultipartFormDataBody(
@@ -35,7 +35,7 @@ extension BooksTrackAPI {
 
     /// Gets the results of an import job.
     func getImportResults(jobId: String) async throws -> ImportResults {
-        let url = baseURL.appendingPathComponent("/api/v2/imports/\(jobId)/results")
+        let url = baseURL.appendingPathComponent("/v3/jobs/imports/\(jobId)/results")
 
         let request = makeRequest(url: url)
         let (data, _) = try await performRequest(request: request)
@@ -44,7 +44,7 @@ extension BooksTrackAPI {
 
     /// Gets the status of an import job.
     func getJobStatus(jobId: String) async throws -> ImportJobStatus {
-        let url = baseURL.appendingPathComponent("/api/v2/imports/\(jobId)")
+        let url = baseURL.appendingPathComponent("/v3/jobs/imports/\(jobId)")
 
         let request = makeRequest(url: url)
         let (data, _) = try await performRequest(request: request)

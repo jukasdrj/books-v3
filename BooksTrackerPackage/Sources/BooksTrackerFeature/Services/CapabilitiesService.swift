@@ -12,7 +12,7 @@ public actor CapabilitiesService {
 
     /// Capabilities API endpoint URL (uses EnrichmentConfig.baseURL)
     private static var capabilitiesURL: URL {
-        URL(string: "\(EnrichmentConfig.baseURL)/api/v2/capabilities")!
+        URL(string: "\(EnrichmentConfig.baseURL)/v3/capabilities")!
     }
 
     /// Initialize with configurable URLSession and cache TTL for testing

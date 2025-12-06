@@ -1,10 +1,10 @@
 import Foundation
 
 extension BooksTrackAPI {
-    // MARK: - V2 Unified Search API
+    // MARK: - V3 Unified Search API
 
-    /// Unified V2 search endpoint - replaces all V1 search endpoints
-    /// Uses: GET /api/v2/search
+    /// Unified V3 search endpoint - replaces all V1 and V2 search endpoints
+    /// Uses: GET /v3/books/search
     /// - Parameters:
     ///   - query: Search query string (supports prefixes: "isbn:", "similar:")
     ///   - mode: Search mode (text/semantic/hybrid)
@@ -18,7 +18,7 @@ extension BooksTrackAPI {
         offset: Int = 0
     ) async throws -> SearchResults {
         guard var urlComponents = URLComponents(
-            url: baseURL.appendingPathComponent("/api/v2/search"),
+            url: baseURL.appendingPathComponent("/v3/books/search"),
             resolvingAgainstBaseURL: true
         ) else {
             throw APIError.invalidURL

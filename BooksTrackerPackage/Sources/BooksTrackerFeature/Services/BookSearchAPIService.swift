@@ -24,9 +24,9 @@ public class BookSearchAPIService {
 
     // MARK: - Search Methods
 
-    /// V2 Unified Search - Primary search method
+    /// V3 Unified Search - Primary search method
     ///
-    /// Routes all search queries through the V2 unified search endpoint (`/api/v2/search`).
+    /// Routes all search queries through the V3 unified search endpoint (`/v3/books/search`).
     /// Supports query prefixes for different search types:
     /// - `isbn:9780439064873` → ISBN lookup
     /// - `author:rowling` → Author search
@@ -331,10 +331,10 @@ public class BookSearchAPIService {
     /// Fetch dynamic trending searches from backend API
     /// Falls back to nil if endpoint unavailable (allows client-side fallback)
     ///
-    /// Backend endpoint: GET /api/v2/trending-searches?limit=12
+    /// Backend endpoint: GET /v3/trending-searches?limit=12
     /// Returns top N search queries by frequency (last 7 days)
     func getTrendingSearches(limit: Int = 12) async throws -> [String] {
-        let urlString = "\(EnrichmentConfig.baseURL)/api/v2/trending-searches?limit=\(limit)"
+        let urlString = "\(EnrichmentConfig.baseURL)/v3/trending-searches?limit=\(limit)"
         guard let url = URL(string: urlString) else {
             throw SearchError.invalidURL
         }
@@ -440,9 +440,9 @@ public class BookSearchAPIService {
         }
     }
 
-    /// V2 Unified Search implementation
+    /// V3 Unified Search implementation
     ///
-    /// Uses the `/api/v2/search` endpoint with ResponseEnvelope format.
+    /// Uses the `/v3/books/search` endpoint with ResponseEnvelope format.
     /// Cover URLs are served from Alexandria CDN (`https://alexandria.ooheynerds.com/covers/...`).
     ///
     /// - Parameters:
@@ -456,7 +456,7 @@ public class BookSearchAPIService {
             throw SearchError.invalidQuery
         }
 
-        let urlString = "\(EnrichmentConfig.baseURL)/api/v2/search?q=\(encodedQuery)&mode=\(mode.rawValue)&limit=\(limit)"
+        let urlString = "\(EnrichmentConfig.baseURL)/v3/books/search?q=\(encodedQuery)&mode=\(mode.rawValue)&limit=\(limit)"
         guard let url = URL(string: urlString) else {
             throw SearchError.invalidURL
         }
@@ -506,12 +506,12 @@ public class BookSearchAPIService {
             let sunset = httpResponse.value(forHTTPHeaderField: "Sunset") ?? "unknown"
 
             #if DEBUG
-            logger.warning("⚠️ API Deprecation Warning: Endpoint /api/v2/search is deprecated. Sunset date: \(sunset)")
+            logger.warning("⚠️ API Deprecation Warning: Endpoint /v3/books/search is deprecated. Sunset date: \(sunset)")
             #endif
 
             // TODO: Send to analytics when available
             // Analytics.track("api_deprecation_warning", [
-            //     "endpoint": "/api/v2/search",
+            //     "endpoint": "/v3/books/search",
             //     "sunset": sunset,
             //     "timestamp": Date().ISO8601Format()
             // ])

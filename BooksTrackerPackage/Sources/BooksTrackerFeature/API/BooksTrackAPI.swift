@@ -231,8 +231,8 @@ actor BooksTrackAPI {
     /// - Returns: JobCancellationResponse indicating the job status.
     /// - Throws: APIError if the request fails, authentication is invalid, or decoding fails.
     public func cancelEnrichmentJob(jobId: String) async throws -> JobCancellationResponse {
-        // Using the endpoint from API Contract v3.3
-        let path = "/api/v2/jobs/\(jobId)/cancel"
+        // Using the endpoint from V3 API
+        let path = "/v3/jobs/enrichment/\(jobId)"
         let url = baseURL.appendingPathComponent(path)
 
         // Define how to build the request. The token will be provided by performAuthenticatedRequest.

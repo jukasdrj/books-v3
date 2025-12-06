@@ -278,14 +278,14 @@ actor EnrichmentAPIClient {
         }
     }
 
-    /// Cancel an enrichment job and cleanup R2 images/KV cache (V2 API)
+    /// Cancel an enrichment job and cleanup R2 images/KV cache (V3 API)
     /// - Parameters:
     ///   - jobId: The unique job identifier to cancel
     ///   - authToken: Bearer token from job creation (required for authentication)
     /// - Returns: Job cancellation response with cleanup details
     /// - Note: Idempotent - calling DELETE on completed jobs returns success
     func cancelJob(jobId: String, authToken: String) async throws -> JobCancellationResponse {
-        guard let url = URL(string: "\(baseURL)/api/v2/jobs/\(jobId)/cancel") else {
+        guard let url = URL(string: "\(baseURL)/v3/jobs/enrichment/\(jobId)") else {
             throw URLError(.badURL)
         }
 
@@ -296,7 +296,7 @@ actor EnrichmentAPIClient {
         request.timeoutInterval = 15  // 15 second timeout for DELETE request
 
         #if DEBUG
-        print("[EnrichmentAPIClient] 🗑️ Sending DELETE to /api/v2/jobs/\(jobId)/cancel")
+        print("[EnrichmentAPIClient] 🗑️ Sending DELETE to /v3/jobs/enrichment/\(jobId)")
         #endif
 
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -476,7 +476,7 @@ actor EnrichmentAPIClient {
         idempotencyKey: String,
         preferProvider: String
     ) async throws -> EnrichedBookDTO {
-        let url = EnrichmentConfig.enrichBookV2URL
+        let url = EnrichmentConfig.enrichBookURL
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

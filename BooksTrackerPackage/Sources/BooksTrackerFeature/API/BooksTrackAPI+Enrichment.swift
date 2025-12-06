@@ -3,7 +3,7 @@ import Foundation
 extension BooksTrackAPI {
     /// Enriches a single book by barcode.
     func enrichBook(barcode: String, idempotencyKey: String? = nil) async throws -> EnrichedBookDTO {
-        let url = baseURL.appendingPathComponent("/api/v2/books/enrich")
+        let url = baseURL.appendingPathComponent("/v3/books/enrich")
 
         // Idempotency key generation: scan_{barcode} default
         let finalIdempotencyKey = idempotencyKey ?? "scan_\(barcode)"

@@ -54,24 +54,27 @@ enum EnrichmentConfig {
 
     // MARK: - Enrichment Endpoints
 
-    /// Start batch enrichment job (Legacy endpoint)
-    /// ⚠️ DEPRECATED: This endpoint is scheduled for removal in backend v2.0 (Jan 2026)
-    /// ✅ Migration complete: EnrichmentAPIClient now uses /v3/books/enrich as primary endpoint
+    /// Start batch enrichment job (Legacy endpoint - DEPRECATED)
+    /// ⚠️ DEPRECATED: V1 endpoints sunset March 1, 2026
+    /// ✅ Use /v3/books/enrich instead
     /// This URL is kept for emergency fallback only (controlled via FeatureFlags.disableCanonicalEnrichment)
-    /// V1 endpoints sunset: March 1, 2026
     /// See: docs/V1_SUNSET_PLAN.md and docs/FRONTEND_INTEGRATION.md
+    @available(*, deprecated, message: "Use V3 enrichment endpoint - V1 sunsets March 1, 2026")
     static var enrichmentStartURL: URL {
         URL(string: "\(baseURL)/api/enrichment/start")!
     }
 
-    /// Cancel enrichment job
+    /// Cancel enrichment job (Legacy endpoint - DEPRECATED)
+    /// ⚠️ DEPRECATED: V1 endpoints sunset March 1, 2026
+    @available(*, deprecated, message: "Use V3 enrichment endpoint - V1 sunsets March 1, 2026")
     static var enrichmentCancelURL: URL {
         URL(string: "\(baseURL)/api/enrichment/cancel")!
     }
 
-    /// Synchronous V2 book enrichment
-    static var enrichBookV2URL: URL {
-        URL(string: "\(baseURL)/api/v2/books/enrich")!
+    /// V3 book enrichment endpoint
+    /// Endpoint: POST /v3/books/enrich
+    static var enrichBookURL: URL {
+        URL(string: "\(baseURL)/v3/books/enrich")!
     }
 
     // MARK: - Bookshelf Scanning Endpoints

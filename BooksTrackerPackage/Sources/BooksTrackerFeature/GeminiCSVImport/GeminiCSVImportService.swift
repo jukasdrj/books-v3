@@ -1,18 +1,11 @@
 import Foundation
 
-// TODO: [V3 Migration - Phase 4] CSV Import Service Migration
-// Backend is building V3 CSV endpoint: POST /v3/books/import
-// Expected request: multipart/form-data with CSV file
-// Expected response: V3EnrichResponse format with JobResponse wrapper
-// Current implementation uses V2: POST /api/v2/imports
-// Migration blocked until backend V3 CSV endpoint ready
-// See: V3_MIGRATION_PLAN.md Section "Phase 4: CSV Import Workflow"
-//
-// Migration steps when backend ready:
-// 1. Update endpoint URL to /v3/books/import
-// 2. Expect V3EnrichResponse instead of current BatchParseResponse
-// 3. Update error handling for V3ErrorResponse format
-// 4. Test with real CSV files (ensure backward compatibility)
+// ✅ V3 Migration Complete - CSV Import Service
+// Backend V3 CSV endpoint: POST /v3/jobs/imports
+// Request: multipart/form-data with CSV file
+// Response: V3 JobResponse format with jobId and authToken
+// Migrated from V2: POST /api/v2/imports → V3: POST /v3/jobs/imports
+// See: V3_MIGRATION_SUMMARY.md for complete migration details
 
 // MARK: - Gemini CSV Import Errors
 
@@ -151,8 +144,8 @@ actor GeminiCSVImportService {
             throw GeminiCSVImportError.fileTooLarge(dataSize)
         }
 
-        // V2 API: Use multipart/form-data (backend expects 'file' field)
-        let url = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/v2/imports")!
+        // V3 API: Use multipart/form-data (backend expects 'file' field)
+        let url = URL(string: "\(EnrichmentConfig.apiBaseURL)/v3/jobs/imports")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.timeoutInterval = 120 // 2 minute timeout for large CSV files
@@ -265,7 +258,7 @@ actor GeminiCSVImportService {
     ///   - authToken: Auth token from uploadCSV
     /// - Returns: Tuple of (SSEClient, AsyncStream<EnrichmentEvent>) for progress events and cancellation
     func streamImportProgress(jobId: String, authToken: String) async -> (client: SSEClient, stream: AsyncStream<EnrichmentEvent>) {
-        guard let sseURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/v2/imports/\(jobId)/stream") else {
+        guard let sseURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/v3/jobs/imports/\(jobId)/stream") else {
             // Return empty stream that finishes immediately if URL is malformed (unlikely but safe)
             return (client: SSEClient(url: URL(string: "https://invalid")!, authToken: ""), stream: AsyncStream { $0.finish() })
         }
@@ -276,7 +269,7 @@ actor GeminiCSVImportService {
 
     // MARK: - Fetch Results
 
-    /// Fetch results from completed import job (V2 API)
+    /// Fetch results from completed import job (V3 API)
     /// - Parameter jobId: The import job ID
     /// - Returns: Results summary with counts and errors
     /// - Throws: GeminiCSVImportError on failure
@@ -285,7 +278,7 @@ actor GeminiCSVImportService {
         print("[CSV Results] Fetching results for job: \(jobId)")
         #endif
 
-        let url = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/v2/imports/\(jobId)/results")!
+        let url = URL(string: "\(EnrichmentConfig.apiBaseURL)/v3/jobs/imports/\(jobId)/results")!
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.timeoutInterval = 30
@@ -387,7 +380,7 @@ actor GeminiCSVImportService {
         print("[CSV Status] Checking status for job: \(jobId)")
         #endif
 
-        let statusURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/v2/imports/\(jobId)")!
+        let statusURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/v3/jobs/imports/\(jobId)")!
         var request = URLRequest(url: statusURL)
         request.httpMethod = "GET"
         request.timeoutInterval = 30
@@ -465,7 +458,7 @@ actor GeminiCSVImportService {
         print("[CSV Cancel] Canceling job: \(jobId)")
         #endif
 
-        let cancelURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/api/v2/jobs/\(jobId)/cancel")!
+        let cancelURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/v3/jobs/imports/\(jobId)")!
         var request = URLRequest(url: cancelURL)
         request.httpMethod = "DELETE"
         request.timeoutInterval = 30

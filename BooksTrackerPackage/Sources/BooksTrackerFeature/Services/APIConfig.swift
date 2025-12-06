@@ -4,7 +4,7 @@ struct APIConfig {
     static let baseURL: URL = {
         // Hardcoded since Swift compiler flags don't support string values
         // xcconfig API_BASE_URL is for documentation only
-        let urlString = "https://api.oooefam.net/api/v2"
+        let urlString = "https://api.oooefam.net"
 
         guard let url = URL(string: urlString) else {
             fatalError("Invalid API_BASE_URL: \(urlString)")
