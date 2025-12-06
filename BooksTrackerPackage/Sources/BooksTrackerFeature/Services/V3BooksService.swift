@@ -135,131 +135,80 @@ public class V3BooksService: BooksServiceProtocol {
 
     // MARK: - V3 Implementation (Production V3APIClientActual)
 
-    private func searchV3(query: String, mode: SearchMode, limit: Int) async throws -> SearchResponse {
-        let maxRetries = 2 // Including the initial attempt, so 2 retries = 3 attempts total
+    /// Generic retry helper for V3 API requests
+    ///
+    /// Handles retryable errors with exponential backoff and proper error mapping.
+    ///
+    /// - Parameters:
+    ///   - maxRetries: Maximum number of retry attempts (default: 2)
+    ///   - operation: Async operation to execute and retry
+    /// - Returns: Result from successful operation
+    private func performV3Request<T>(
+        maxRetries: Int = 2,
+        _ operation: @escaping () async throws -> T
+    ) async throws -> T {
         var lastError: Error?
 
         for attempt in 0...maxRetries {
             do {
-                let page = 1  // For now, always first page (pagination TODO)
-                let v3Response = try await v3Client.search(query: query, page: page, limit: limit)
-
-                // Convert V3Books to SwiftData models and SearchResults
-                let searchResults = convertV3BooksToSearchResults(v3Response.data.books, persist: true)
-
-                return SearchResponse(
-                    results: searchResults,
-                    cacheHitRate: 0.0,  // V3 doesn't provide cache metrics yet
-                    provider: "v3-alexandria",
-                    responseTime: 0.0,  // TODO: Track response time
-                    totalItems: v3Response.data.total
-                )
+                return try await operation()
             } catch let error as V3ActualAPIError {
                 lastError = error
                 if error.isRetryable && attempt < maxRetries {
-                    logger.warning("📘 V3BooksService: Retrying searchV3 due to retryable V3ActualAPIError: \(error.localizedDescription) (Attempt \(attempt + 1)/\(maxRetries + 1))")
-                    // Add a small delay before retrying
-                    try await Task.sleep(nanoseconds: UInt64(0.5 * Double(attempt + 1) * 1_000_000_000))
+                    logger.warning("📘 V3BooksService: Retrying V3 request due to retryable error: \(error.localizedDescription) (Attempt \(attempt + 1)/\(maxRetries + 1))")
+                    try await Task.sleep(for: .milliseconds(500 * (attempt + 1)))
                     continue
                 } else {
                     throw mapV3ActualAPIErrorToBooksServiceError(error)
                 }
             } catch {
                 lastError = error
-                logger.error("📘 V3BooksService: Search V3 failed with unexpected error: \(error.localizedDescription)")
+                logger.error("📘 V3BooksService: V3 request failed with unexpected error: \(error.localizedDescription)")
                 throw BooksServiceError.apiError(error)
             }
         }
-        throw lastError ?? BooksServiceError.unknownError("Unknown error after retries for searchV3")
+        throw lastError ?? BooksServiceError.unknownError("Unknown error after retries for V3 request")
     }
 
-    /// Converts V3 books into SwiftData-based SearchResult models
-    ///
-    /// Similar to BookSearchAPIService.convertV2ResultsToSearchResults but for V3 API.
-    /// Creates Work, Edition, and Author SwiftData models from V3Book DTOs.
-    ///
-    /// - Parameters:
-    ///   - v3Books: Array of V3Book from Alexandria API
-    ///   - persist: Whether to persist models to SwiftData
-    /// - Returns: Array of SearchResult models
-    private func convertV3BooksToSearchResults(_ v3Books: [V3Book], persist: Bool) -> [SearchResult] {
-        return v3Books.map { v3Book in
-            // Create Work model
-            let work = Work(title: v3Book.title)
-            work.coverImageURL = v3Book.coverUrl ?? v3Book.thumbnailUrl
-            work.subjectTags = v3Book.categories ?? []
-            work.primaryProvider = v3Book.provider
-            work.originalLanguage = v3Book.language
+    private func searchV3(query: String, mode: SearchMode, limit: Int) async throws -> SearchResponse {
+        return try await performV3Request {
+            let page = 1  // For now, always first page (pagination TODO)
+            let v3Response = try await self.v3Client.search(query: query, page: page, limit: limit)
 
-            if persist {
-                modelContext.insert(work)
-            }
+            // Use V3ToV2Mapper to convert V3 response to V2 DTOs
+            let v2Response = V3ToV2Mapper.mapSearchResponse(v3Response)
 
-            // Create Author models
-            let authors = v3Book.authors.map { authorName in
-                let author = Author(name: authorName)
-                if persist {
-                    modelContext.insert(author)
-                }
-                return author
-            }
-            work.authors = authors
+            // Use DTOMapper to convert V2 DTOs to SwiftData models
+            let searchResults = self.dtoMapper.convertV2ResultsToSearchResults(v2Response, persist: true)
 
-            // Create Edition model
-            let edition = Edition(isbn: v3Book.isbn)
-            edition.coverImageURL = v3Book.coverUrl ?? v3Book.thumbnailUrl
-            edition.publisher = v3Book.publisher
-            edition.publicationDate = v3Book.publishedDate
-            edition.pageCount = v3Book.pageCount
-            edition.editionDescription = v3Book.description
-            edition.work = work
-            edition.primaryProvider = v3Book.provider
-
-            if persist {
-                modelContext.insert(edition)
-            }
-
-            // Create SearchResult
-            return SearchResult(
-                work: work,
-                editions: [edition],
-                authors: authors,
-                relevanceScore: 1.0,  // V3 doesn't provide relevance scores yet
-                provider: v3Book.provider
+            return SearchResponse(
+                results: searchResults,
+                cacheHitRate: 0.0,  // V3 doesn't provide cache metrics yet
+                provider: "v3-alexandria",
+                responseTime: 0.0,  // TODO: Track response time
+                totalItems: v3Response.data.total
             )
         }
     }
 
     private func getBookByISBNV3(_ isbn: String) async throws -> (work: WorkDTO, edition: EditionDTO)? {
-        let maxRetries = 2
-        var lastError: Error?
-
-        for attempt in 0...maxRetries {
-            do {
-                let v3Book = try await v3Client.getBook(isbn: isbn)
+        do {
+            return try await performV3Request {
+                let v3Book = try await self.v3Client.getBook(isbn: isbn)
                 let (work, edition, _) = V3ToV2Mapper.mapBook(v3Book)
                 return (work: work, edition: edition)
-            } catch let error as V3ActualAPIError {
-                lastError = error
-                if case .httpError(let statusCode) = error, statusCode == 404 {
-                    logger.info("📘 V3BooksService: Book with ISBN \(isbn) not found (404) via V3 API.")
-                    return nil
-                }
-
-                if error.isRetryable && attempt < maxRetries {
-                    logger.warning("📘 V3BooksService: Retrying getBookByISBNV3 due to retryable V3ActualAPIError: \(error.localizedDescription) (Attempt \(attempt + 1)/\(maxRetries + 1))")
-                    try await Task.sleep(nanoseconds: UInt64(0.5 * Double(attempt + 1) * 1_000_000_000))
-                    continue
-                } else {
-                    throw mapV3ActualAPIErrorToBooksServiceError(error)
-                }
-            } catch {
-                lastError = error
-                logger.error("📘 V3BooksService: Get Book by ISBN V3 failed with unexpected error: \(error.localizedDescription)")
-                throw BooksServiceError.apiError(error)
             }
+        } catch let error as BooksServiceError {
+            // Handle 404 specially - book not found is not an error, return nil
+            if case .apiError(let underlyingError) = error,
+               let v3Error = underlyingError as? V3ActualAPIError,
+               case .httpError(let statusCode) = v3Error,
+               statusCode == 404 {
+                logger.info("📘 V3BooksService: Book with ISBN \(isbn) not found (404) via V3 API.")
+                return nil
+            }
+            throw error
         }
-        throw lastError ?? BooksServiceError.unknownError("Unknown error after retries for getBookByISBNV3")
     }
 
     private func getWorkDetailsV3(_ workId: String) async throws -> WorkDTO {

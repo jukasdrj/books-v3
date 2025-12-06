@@ -152,7 +152,8 @@ public struct V3ToV2Mapper: Sendable {
             isbndbQuality: 0, // V3 doesn't provide quality metrics yet
             reviewStatus: .verified, // V3 books are pre-verified
             originalImagePath: nil,
-            boundingBox: nil
+            boundingBox: nil,
+            authorIDs: authors.map { $0.openLibraryID } // Link to authors
         )
 
         // Determine Edition ID (prefer editionKey, fallback to synthetic)
@@ -194,7 +195,8 @@ public struct V3ToV2Mapper: Sendable {
             googleBooksVolumeIDs: [],
             librarythingIDs: [],
             lastISBNDBSync: nil,
-            isbndbQuality: 0
+            isbndbQuality: 0,
+            workID: workOpenLibraryID // Link to work
         )
 
         return (work: work, edition: edition, authors: authors)
@@ -241,14 +243,20 @@ public struct V3ToV2Mapper: Sendable {
     /// CRITICAL: Uses SHA256 for deterministic hashing.
     /// String.hashValue is NOT stable across app runs or Swift versions.
     ///
+    /// Platform-independent implementation using fixed byte order (big-endian)
+    /// to ensure consistent hashes across all platforms.
+    ///
     /// - Parameter input: String to hash
     /// - Returns: Positive integer hash (truncated SHA256)
     private static func stableHash(_ input: String) -> UInt64 {
         let hash = SHA256.hash(data: Data(input.utf8))
-        let truncatedHash = hash.withUnsafeBytes { bytes in
-            bytes.load(as: UInt64.self)
+        // Use the first 8 bytes of the hash to create a UInt64.
+        // This approach is endian-agnostic, ensuring the hash is stable across all platforms.
+        let truncatedData = hash.prefix(8)
+        let value = truncatedData.reduce(0) { soFar, byte in
+            (soFar << 8) | UInt64(byte)
         }
-        return truncatedHash
+        return value
     }
 
     /// Deduplicate authors by name
