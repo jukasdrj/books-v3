@@ -152,8 +152,7 @@ public struct V3ToV2Mapper: Sendable {
             isbndbQuality: 0, // V3 doesn't provide quality metrics yet
             reviewStatus: .verified, // V3 books are pre-verified
             originalImagePath: nil,
-            boundingBox: nil,
-            authorIDs: authors.map { $0.openLibraryID } // Link to authors
+            boundingBox: nil
         )
 
         // Determine Edition ID (prefer editionKey, fallback to synthetic)
@@ -195,8 +194,7 @@ public struct V3ToV2Mapper: Sendable {
             googleBooksVolumeIDs: [],
             librarythingIDs: [],
             lastISBNDBSync: nil,
-            isbndbQuality: 0,
-            workID: workOpenLibraryID // Link to work
+            isbndbQuality: 0
         )
 
         return (work: work, edition: edition, authors: authors)

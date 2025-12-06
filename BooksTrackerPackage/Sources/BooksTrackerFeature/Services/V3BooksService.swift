@@ -178,8 +178,8 @@ public class V3BooksService: BooksServiceProtocol {
             // Use V3ToV2Mapper to convert V3 response to V2 DTOs
             let v2Response = V3ToV2Mapper.mapSearchResponse(v3Response)
 
-            // Use DTOMapper to convert V2 DTOs to SwiftData models
-            let searchResults = self.dtoMapper.convertV2ResultsToSearchResults(v2Response, persist: true)
+            // Convert V2 DTOs to SearchResult models
+            let searchResults = try self.convertBookSearchResponseToSearchResults(v2Response, provider: "v3-alexandria", persist: true)
 
             return SearchResponse(
                 results: searchResults,
@@ -242,6 +242,58 @@ public enum BooksServiceError: LocalizedError {
         case .unknownError(let message):
             return "Unknown error: \(message)"
         }
+    }
+}
+
+// MARK: - DTO Conversion Helpers
+
+extension V3BooksService {
+    /// Converts BookSearchResponse (separate works/editions/authors arrays) to SearchResult models
+    ///
+    /// BookSearchResponse from V2 DTOs contains:
+    /// - works: Array of WorkDTO
+    /// - editions: Array of EditionDTO
+    /// - authors: Array of AuthorDTO
+    ///
+    /// This method uses DTOMapper to convert each DTO to SwiftData models and groups them into SearchResults.
+    ///
+    /// - Parameters:
+    ///   - response: BookSearchResponse with separated DTOs
+    ///   - provider: Provider string for metadata
+    ///   - persist: Whether to persist models to SwiftData
+    /// - Returns: Array of SearchResult models
+    private func convertBookSearchResponseToSearchResults(_ response: BookSearchResponse, provider: String, persist: Bool) throws -> [SearchResult] {
+        // Convert all DTOs to SwiftData models using DTOMapper
+        let works = try response.works.map { try self.dtoMapper.mapToWork($0, persist: persist) }
+        let editions = try response.editions.map { try self.dtoMapper.mapToEdition($0, persist: persist) }
+        let authors = try response.authors.map { try self.dtoMapper.mapToAuthor($0, persist: persist) }
+
+        // Group editions by work (using openLibraryID as the linking key)
+        // Note: This is a simplified grouping - in production, we'd need more sophisticated relationship mapping
+        var results: [SearchResult] = []
+
+        for work in works {
+            // Find editions that belong to this work
+            let workEditions = editions.filter { edition in
+                // Match editions to works via openLibraryID
+                edition.openLibraryID == work.openLibraryID
+            }
+
+            // Find authors for this work (simplified - assumes first author)
+            // In production, we'd need proper relationship mapping
+            let workAuthors = authors.isEmpty ? [] : [authors[0]]
+
+            let searchResult = SearchResult(
+                work: work,
+                editions: workEditions.isEmpty ? [] : workEditions,
+                authors: workAuthors,
+                relevanceScore: 1.0, // V3 doesn't provide relevance scores yet
+                provider: provider
+            )
+            results.append(searchResult)
+        }
+
+        return results
     }
 }
 
