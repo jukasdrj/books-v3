@@ -7,10 +7,13 @@ struct EditionMetadataView: View {
     let edition: Edition?
 
     @Environment(\.iOS26ThemeStore) private var themeStore
+    @State private var showTechnicalDetails = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             if let edition = edition {
+                // MARK: - Essential Metadata (Always Visible)
+
                 // Publisher Information
                 if let publisher = edition.publisher {
                     metadataRow(
@@ -38,29 +41,62 @@ struct EditionMetadataView: View {
                     )
                 }
 
-                // ISBN
-                if let isbn = edition.primaryISBN {
-                    metadataRow(
-                        icon: "barcode",
-                        label: "ISBN",
-                        value: isbn
-                    )
+                // MARK: - Technical Details (Expandable)
+
+                Button(action: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        showTechnicalDetails.toggle()
+                    }
+                }) {
+                    HStack(spacing: 8) {
+                        Text("Technical Details")
+                            .font(.caption.bold())
+                            .foregroundStyle(.secondary)
+
+                        Spacer()
+
+                        Image(systemName: showTechnicalDetails ? "chevron.up" : "chevron.down")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 8)
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel(showTechnicalDetails ? "Hide technical details" : "Show technical details")
+                .accessibilityHint("Double tap to \(showTechnicalDetails ? "collapse" : "expand")")
 
-                // Format
-                metadataRow(
-                    icon: "book",
-                    label: "Format",
-                    value: edition.format.displayName
-                )
+                if showTechnicalDetails {
+                    VStack(alignment: .leading, spacing: 12) {
+                        // ISBN
+                        if let isbn = edition.primaryISBN {
+                            metadataRow(
+                                icon: "barcode",
+                                label: "ISBN",
+                                value: isbn,
+                                fontSize: .caption
+                            )
+                        }
 
-                // Original Language
-                if let language = edition.originalLanguage {
-                    metadataRow(
-                        icon: "globe",
-                        label: "Language",
-                        value: language
-                    )
+                        // Format
+                        metadataRow(
+                            icon: "book",
+                            label: "Format",
+                            value: edition.format.displayName,
+                            fontSize: .caption
+                        )
+
+                        // Original Language
+                        if let language = edition.originalLanguage {
+                            metadataRow(
+                                icon: "globe",
+                                label: "Language",
+                                value: language,
+                                fontSize: .caption
+                            )
+                        }
+                    }
+                    .padding(.top, 4)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             } else {
                 // No edition available
@@ -74,20 +110,20 @@ struct EditionMetadataView: View {
         .padding()
     }
 
-    private func metadataRow(icon: String, label: String, value: String) -> some View {
+    private func metadataRow(icon: String, label: String, value: String, fontSize: Font = .subheadline) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.body)
+                .font(fontSize == .caption ? .caption : .body)
                 .foregroundStyle(themeStore.primaryColor)
                 .frame(width: 24)
 
             Text(label)
-                .font(.subheadline)
+                .font(fontSize)
                 .foregroundStyle(.secondary)
                 .frame(width: 80, alignment: .leading)
 
             Text(value)
-                .font(.subheadline)
+                .font(fontSize)
                 .foregroundStyle(.primary)
 
             Spacer()

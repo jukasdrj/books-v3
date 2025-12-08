@@ -97,12 +97,12 @@ public struct EnrichmentBanner: View {
             .background {
                 GlassEffectContainer {
                     Rectangle()
-                        .fill(.clear)
+                        .fill(Color.clear)
                 }
             }
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
-        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: -4)
+        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: -4)
     }
 }

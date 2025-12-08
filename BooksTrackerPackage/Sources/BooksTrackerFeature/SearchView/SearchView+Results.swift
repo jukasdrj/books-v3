@@ -136,10 +136,10 @@ extension SearchView {
             } label: {
                 Image(systemName: "arrow.up")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(Color.white)
                     .frame(width: 44, height: 44)
                     .background(.ultraThinMaterial, in: Circle())
-                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                    .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
             }
             .padding(.trailing, 20)
             .padding(.bottom, 20)

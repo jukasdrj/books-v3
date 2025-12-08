@@ -82,6 +82,7 @@ public struct WorkDiscoveryView: View {
                     .foregroundColor(themeStore.primaryColor)
                 }
             }
+            .themedNavigationGlass()
             .alert("Success!", isPresented: $showingSuccessAlert) {
                 Button("View Library") {
                     // Dismiss this view first
@@ -129,7 +130,7 @@ public struct WorkDiscoveryView: View {
             }
             .frame(width: 120, height: 180)
             .clipShape(RoundedRectangle(cornerRadius: 12))
-            .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+            .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
 
             // Book info
             VStack(alignment: .leading, spacing: 12) {
@@ -311,7 +312,7 @@ public struct WorkDiscoveryView: View {
         if selectedAction == action {
             Image(systemName: "checkmark.circle.fill")
                 .font(.title3)
-                .foregroundColor(.white)
+                .foregroundColor(Color.white)
         }
     }
     
@@ -332,7 +333,7 @@ public struct WorkDiscoveryView: View {
                 Text(isAddingToLibrary ? "Adding..." : selectedAction.title)
                     .fontWeight(.semibold)
             }
-            .foregroundColor(.white)
+            .foregroundColor(Color.white)
             .frame(maxWidth: .infinity)
             .padding()
             .background {

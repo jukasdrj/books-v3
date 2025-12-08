@@ -15,16 +15,16 @@ struct ImmersiveHeaderView: View {
             VStack(spacing: 8) {
                 Text(work.title)
                     .font(.largeTitle.bold())
-                    .foregroundColor(.white)
+                    .foregroundColor(Color.white)
                     .multilineTextAlignment(.center)
-                    .shadow(color: .black.opacity(0.7), radius: 5, x: 0, y: 2)
+                    .shadow(color: Color.black.opacity(0.7), radius: 5, x: 0, y: 2)
 
                 if let authors = work.authors {
                     Text(authors.map { $0.name }.joined(separator: ", "))
                         .font(.title3)
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(Color.white.opacity(0.9))
                         .multilineTextAlignment(.center)
-                        .shadow(color: .black.opacity(0.7), radius: 3, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.7), radius: 3, x: 0, y: 1)
                 }
             }
             .padding(.horizontal, 20)

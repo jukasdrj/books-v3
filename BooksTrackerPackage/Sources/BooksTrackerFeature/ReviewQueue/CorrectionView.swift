@@ -85,7 +85,7 @@ public struct CorrectionView: View {
                     .scaledToFit()
                     .frame(maxHeight: 300)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                    .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
             } else {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(.ultraThinMaterial)

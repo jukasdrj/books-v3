@@ -38,7 +38,7 @@ public struct LiquidFloatingActionButton: View {
                                 .background {
                                     Capsule()
                                         .fill(.ultraThinMaterial)
-                                        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
                                 }
 
                             Circle()
@@ -49,7 +49,7 @@ public struct LiquidFloatingActionButton: View {
                                         .font(.title3)
                                         .foregroundStyle(item.color ?? themeStore.primaryColor)
                                 }
-                                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                                .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
                         }
                     }
                     .transition(.move(edge: .bottom).combined(with: .opacity).combined(with: .scale(scale: 0.8)))

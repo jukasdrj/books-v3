@@ -27,7 +27,7 @@ struct EnrichmentIndicator: View {
             .padding(.vertical, 4)
             .background(.ultraThinMaterial)
             .cornerRadius(8)
-            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+            .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
             .transition(.opacity.combined(with: .scale))
             .accessibilityLabel("Enriching book metadata")
             .accessibilityHint("Book data is being updated in the background")

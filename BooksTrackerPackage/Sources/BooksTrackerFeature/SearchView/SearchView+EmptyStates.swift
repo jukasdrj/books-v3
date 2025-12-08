@@ -9,30 +9,61 @@ extension SearchView {
         let scope: SearchScope
         @Environment(\.iOS26ThemeStore) private var themeStore
         @Bindable var searchModel: SearchModel
-        
-        var body: some View {
-            VStack(spacing: 24) {
-                Spacer()
 
-                ContentUnavailableView {
-                    Label("No Results Found", systemImage: "magnifyingglass")
-                } description: {
-                    Text(noResultsMessage(for: scope, query: query))
-                } actions: {
-                    VStack(spacing: 12) {
-                        Button("Clear Search") {
+        var body: some View {
+            SharedEmptyStateView(
+                icon: iconForScope(scope),
+                title: "No Results Found",
+                description: noResultsMessage(for: scope, query: query),
+                actions: [
+                    EmptyStateAction(
+                        title: "Clear Search",
+                        subtitle: "Start a new search",
+                        icon: "xmark.circle",
+                        color: themeStore.primaryColor,
+                        handler: {
                             searchModel.clearSearch()
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(themeStore.primaryColor)
-                    }
-                }
-
-                Spacer()
-            }
+                    ),
+                    EmptyStateAction(
+                        title: "Browse Trending Books",
+                        subtitle: "Discover popular titles",
+                        icon: "flame.fill",
+                        color: .orange,
+                        handler: {
+                            // TODO: Navigate to trending view
+                        }
+                    ),
+                    EmptyStateAction(
+                        title: "Scan ISBN Barcode",
+                        subtitle: "Use your camera to search",
+                        icon: "barcode.viewfinder",
+                        color: .purple,
+                        handler: {
+                            // TODO: Launch scanner
+                        }
+                    )
+                ]
+            )
             .transition(.opacity.combined(with: .scale(scale: 0.9)))
         }
-        
+
+        // Icon selection based on search scope
+        private func iconForScope(_ scope: SearchScope) -> String {
+            switch scope {
+            case .all:
+                return "magnifyingglass"
+            case .title:
+                return "book"
+            case .author:
+                return "person.fill"
+            case .isbn:
+                return "barcode"
+            case .semantic:
+                return "brain"
+            }
+        }
+
         // HIG: Contextual no results messages
         private func noResultsMessage(for scope: SearchScope, query: String) -> String {
             switch scope {
@@ -57,50 +88,81 @@ extension SearchView {
         let recoverySuggestion: String?
         @Environment(\.iOS26ThemeStore) private var themeStore
         @Bindable var searchModel: SearchModel
-        
+
         var body: some View {
-            VStack(spacing: 24) {
-                Spacer()
-
-                ContentUnavailableView {
-                    Label("Search Error", systemImage: "exclamationmark.triangle")
-                } description: {
-                    VStack(spacing: 8) {
-                        Text(message)
-
-                        if let suggestion = recoverySuggestion {
-                            Text(suggestion)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                    }
-                } actions: {
-                    VStack(spacing: 12) {
-                        if let query = lastQuery, let scope = lastScope {
-                            Button("Retry Search") {
-                                searchModel.search(query: query, scope: scope)
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .tint(themeStore.primaryColor)
-                        } else {
-                            Button("Try Again") {
-                                searchModel.retryLastSearch()
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .tint(themeStore.primaryColor)
-                        }
-
-                        Button("Clear Search") {
-                            searchModel.clearSearch()
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                }
-
-                Spacer()
-            }
+            SharedEmptyStateView(
+                icon: "exclamationmark.triangle",
+                title: "Search Error",
+                description: buildErrorDescription(),
+                actions: buildActions()
+            )
             .transition(.opacity.combined(with: .scale(scale: 0.9)))
+        }
+
+        private func buildErrorDescription() -> String {
+            if let suggestion = recoverySuggestion {
+                return "\(message)\n\n\(suggestion)"
+            }
+            return message
+        }
+
+        private func buildActions() -> [EmptyStateAction] {
+            var actions: [EmptyStateAction] = []
+
+            // Retry action
+            if let query = lastQuery, let scope = lastScope {
+                actions.append(
+                    EmptyStateAction(
+                        title: "Retry Search",
+                        subtitle: "Try searching again",
+                        icon: "arrow.clockwise",
+                        color: themeStore.primaryColor,
+                        handler: {
+                            searchModel.search(query: query, scope: scope)
+                        }
+                    )
+                )
+            } else {
+                actions.append(
+                    EmptyStateAction(
+                        title: "Try Again",
+                        subtitle: "Retry your last search",
+                        icon: "arrow.clockwise",
+                        color: themeStore.primaryColor,
+                        handler: {
+                            searchModel.retryLastSearch()
+                        }
+                    )
+                )
+            }
+
+            // Clear search action
+            actions.append(
+                EmptyStateAction(
+                    title: "Clear Search",
+                    subtitle: "Start fresh",
+                    icon: "xmark.circle",
+                    color: .secondary,
+                    handler: {
+                        searchModel.clearSearch()
+                    }
+                )
+            )
+
+            // View recent searches
+            actions.append(
+                EmptyStateAction(
+                    title: "View Recent Searches",
+                    subtitle: "Browse your search history",
+                    icon: "clock.arrow.circlepath",
+                    color: .blue,
+                    handler: {
+                        // TODO: Navigate to recent searches
+                    }
+                )
+            )
+
+            return actions
         }
     }
 }

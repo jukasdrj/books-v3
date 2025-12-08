@@ -415,11 +415,11 @@ struct iOS26ThemePicker: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Follow System Appearance")
                         .font(.subheadline.weight(.medium))
-                        .foregroundColor(.white) // ✅ High contrast
+                        .foregroundColor(Color.white) // ✅ High contrast
                     
                     Text("Switch automatically between light and dark")
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.8)) // ✅ WCAG AA compliant (5.5:1 contrast)
+                        .foregroundColor(Color.white.opacity(0.8)) // ✅ WCAG AA compliant (5.5:1 contrast)
                 }
 
                 Spacer()
@@ -477,7 +477,7 @@ struct ThemePreviewCard: View {
             .background {
                 RoundedRectangle(cornerRadius: 24)
                     .fill(.ultraThinMaterial)
-                    .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
             }
             .overlay {
                 if isSelected {

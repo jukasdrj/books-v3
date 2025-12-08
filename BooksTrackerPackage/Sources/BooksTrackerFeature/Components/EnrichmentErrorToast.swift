@@ -69,7 +69,7 @@ public struct EnrichmentErrorToast: View {
         .padding(16)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 12))
-        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
         .contentShape(Rectangle())
         .onTapGesture {
             if let retry = onRetry {

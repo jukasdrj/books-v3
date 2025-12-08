@@ -189,7 +189,7 @@ public struct BookshelfCameraView: View {
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
                     .background(.ultraThinMaterial, in: Capsule())
-                    .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 2)
+                    .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 2)
             }
             .padding()
 

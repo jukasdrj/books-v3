@@ -164,7 +164,7 @@ struct iOS26AdaptiveBookCard: View {
                 coverImage
                     .frame(height: 220)
                     .glassEffect(.prominent, tint: themeStore.primaryColor.opacity(0.15))
-                    .shadow(color: .black.opacity(0.2), radius: 16, x: 0, y: 8)
+                    .shadow(color: Color.black.opacity(0.2), radius: 16, x: 0, y: 8)
 
                 cardOverlays
             }
@@ -291,11 +291,11 @@ struct iOS26AdaptiveBookCard: View {
                     VStack(spacing: 8) {
                         Image(systemName: "book.closed")
                             .font(.title2)
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(Color.white.opacity(0.8))
 
                         Text(work.title)
                             .font(.caption.bold())
-                            .foregroundColor(.white.opacity(0.9))
+                            .foregroundColor(Color.white.opacity(0.9))
                             .lineLimit(2)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 8)
@@ -399,7 +399,7 @@ struct iOS26AdaptiveBookCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: status.systemImage)
                         .font(.caption)
-                        .foregroundColor(.white)
+                        .foregroundColor(Color.white)
                         .frame(width: 20, height: 20)
                         .background(status.color, in: Circle())
 

@@ -49,7 +49,7 @@ struct WorkDetailView: View {
                 Button(action: { dismiss() }) {
                     Image(systemName: "chevron.left")
                         .font(.title3.bold())
-                        .foregroundColor(.white)
+                        .foregroundColor(Color.white)
                         .frame(width: 44, height: 44)
                         .background {
                             Circle()
@@ -65,7 +65,7 @@ struct WorkDetailView: View {
                     Button("Editions") {
                         showingEditionPicker.toggle()
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(Color.white)
                     .background {
                         Capsule()
                             .fill(.ultraThinMaterial)
@@ -202,7 +202,7 @@ struct WorkDetailView: View {
                     .aspectRatio(2/3, contentMode: .fill)
                     .frame(width: 200, height: 300)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
+                    .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
             } placeholder: {
                 RoundedRectangle(cornerRadius: 16)
                     .fill(LinearGradient(
@@ -218,26 +218,26 @@ struct WorkDetailView: View {
                         VStack(spacing: 12) {
                             Image(systemName: "book.closed")
                                 .font(.system(size: 48))
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(Color.white.opacity(0.8))
 
                             Text(work.title)
                                 .font(.headline.bold())
-                                .foregroundColor(.white.opacity(0.9))
+                                .foregroundColor(Color.white.opacity(0.9))
                                 .multilineTextAlignment(.center)
                                 .lineLimit(3)
                                 .padding(.horizontal)
                         }
                     }
-                    .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
+                    .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
             }
 
             // Work title and author (large, readable)
             VStack(spacing: 8) {
                 Text(work.title)
                     .font(.title.bold())
-                    .foregroundColor(.white)
+                    .foregroundColor(Color.white)
                     .multilineTextAlignment(.center)
-                    .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
+                    .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
 
                 // Clickable author names
                 if let authors = work.authors {
@@ -249,13 +249,13 @@ struct WorkDetailView: View {
                                 HStack(spacing: 4) {
                                     Text(author.name)
                                         .font(.title2)
-                                        .foregroundColor(.white)
+                                        .foregroundColor(Color.white)
                                     Image(systemName: "magnifyingglass")
                                         .font(.footnote)
-                                        .foregroundColor(.white.opacity(0.9))
+                                        .foregroundColor(Color.white.opacity(0.9))
                                 }
-                                .shadow(color: .black.opacity(0.95), radius: 6, x: 0, y: 2)  // Primary shadow for depth
-                                .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)   // Secondary shadow for WCAG AA contrast
+                                .shadow(color: Color.black.opacity(0.95), radius: 6, x: 0, y: 2)  // Primary shadow for depth
+                                .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)   // Secondary shadow for WCAG AA contrast
                             }
                             .buttonStyle(.plain)
                         }
@@ -527,6 +527,7 @@ struct AuthorSearchResultsView: View {
                     .foregroundColor(themeStore.primaryColor)
                 }
             }
+            .themedNavigationGlass()
             .navigationDestination(item: $selectedBook) { result in
                 WorkDiscoveryView(searchResult: result)
             }

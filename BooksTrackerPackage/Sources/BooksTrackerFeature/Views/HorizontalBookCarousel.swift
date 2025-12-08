@@ -40,10 +40,10 @@ struct RemoteBookCover: View {
                 .aspectRatio(2/3, contentMode: .fill)
                 .frame(width: 120, height: 180)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
-                .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
         } placeholder: {
             RoundedRectangle(cornerRadius: 8)
-                .fill(.gray.opacity(0.2))
+                .fill(Color.gray.opacity(0.2))
                 .frame(width: 120, height: 180)
                 .overlay {
                     Image(systemName: "book.closed")
@@ -60,7 +60,7 @@ struct HorizontalBookCarouselSkeleton: View {
         VStack(alignment: .leading, spacing: 12) {
             // Title skeleton
             RoundedRectangle(cornerRadius: 4)
-                .fill(.gray.opacity(0.2))
+                .fill(Color.gray.opacity(0.2))
                 .frame(width: 200, height: 24)
                 .padding(.horizontal, 20)
 
@@ -68,7 +68,7 @@ struct HorizontalBookCarouselSkeleton: View {
                 HStack(spacing: 16) {
                     ForEach(0..<5) { _ in
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(.gray.opacity(0.2))
+                            .fill(Color.gray.opacity(0.2))
                             .frame(width: 120, height: 180)
                     }
                 }
