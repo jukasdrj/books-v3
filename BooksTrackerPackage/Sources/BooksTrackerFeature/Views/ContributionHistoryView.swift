@@ -7,10 +7,11 @@ public struct ContributionHistoryView: View {
     @Environment(\.iOS26ThemeStore) private var themeStore
     @Environment(\.curatorPointsService) private var curatorPointsService
 
+    /// Initialize the contribution history view
     public init() {}
 
     /// Curator status threshold
-    private let curatorThreshold = 75  // 5 cultural origins contributions
+    private let curatorThreshold = CuratorPointsService.curatorThreshold
 
     /// Whether the user has achieved curator status
     private var isCurator: Bool {

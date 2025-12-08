@@ -7,7 +7,6 @@ public struct CelebrationView: View {
     let isCuratorUnlocked: Bool
 
     @Environment(\.iOS26ThemeStore) private var themeStore
-    @Environment(\.curatorPointsService) private var curatorPointsService
     @State private var animateCheckmark = false
     @State private var animatePoints = false
     @State private var showConfetti = false

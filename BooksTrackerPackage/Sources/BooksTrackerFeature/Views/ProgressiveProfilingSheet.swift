@@ -36,7 +36,7 @@ public struct ProgressiveProfilingSheet: View {
     @State private var questions: [ProfileQuestion] = []
 
     // Curator threshold
-    private let curatorThreshold = 75
+    private let curatorThreshold = CuratorPointsService.curatorThreshold
 
     public init(work: Work, onComplete: @escaping () -> Void) {
         self.work = work
@@ -116,9 +116,17 @@ public struct ProgressiveProfilingSheet: View {
                     Spacer()
                         .frame(height: 8)
 
-                    // Answer options
-                    ForEach(question.options, id: \.self) { option in
-                        optionButton(for: option, question: question)
+                    // Answer options (pills for multiple choice)
+                    FlowLayout(spacing: 8) {
+                        ForEach(question.options, id: \.self) { option in
+                            SelectablePill(
+                                text: option,
+                                isSelected: answers[question.dimension] == option,
+                                action: {
+                                    selectAnswer(option, for: question)
+                                }
+                            )
+                        }
                     }
                 }
                 .padding()
@@ -143,30 +151,6 @@ public struct ProgressiveProfilingSheet: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-    }
-
-    private func optionButton(for option: String, question: ProfileQuestion) -> some View {
-        Button(action: {
-            selectAnswer(option, for: question)
-        }) {
-            HStack {
-                Text(option)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding()
-            .background {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(uiColor: .systemBackground).opacity(0.7))
-            }
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: - Cascade Confirmation View

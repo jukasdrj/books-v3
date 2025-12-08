@@ -20,7 +20,7 @@ public struct CuratorBadge: View {
 
     /// Whether the user has achieved curator status
     private var isCurator: Bool {
-        totalPoints >= 75  // Minimum: 5 cultural origins contributions (5 × 15 = 75 points)
+        totalPoints >= CuratorPointsService.curatorThreshold
     }
 
     public var body: some View {
