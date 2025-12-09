@@ -30,6 +30,7 @@ playground.xcworkspace
 # .swiftpm
 
 .build/
+build/
 
 # CocoaPods
 #
@@ -145,3 +146,13 @@ test-output.log
 **/device-deploy-fixed.log
 device-deploy.log
 device-deploy-fixed.log
+
+# Simulator and build verification logs
+build-sim.log
+build-verify.log
+**/build-sim.log
+**/build-verify.log
+
+# Test logs in packages
+BooksTrackerPackage/test-output-new.log
+BooksTrackerPackage/test-results.log
