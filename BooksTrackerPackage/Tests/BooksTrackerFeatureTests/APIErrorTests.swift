@@ -4,307 +4,436 @@ import Foundation
 
 @Suite("APIError Tests")
 struct APIErrorTests {
-    
-    // MARK: - Basic Functionality Tests
-    
-    @Test("APIError initializes with code and message")
-    func testAPIErrorInitialization() {
+
+    // MARK: - Enum Cases Tests
+
+    @Test("APIError circuitOpen case")
+    func testCircuitOpenCase() {
         // Given
-        let code = "AUTH_FAILED"
-        let message = "Authentication failed"
-        
-        // When
-        let error = APIError(code: code, message: message)
-        
+        let error = APIError.circuitOpen(provider: "google", retryAfterMs: 5000)
+
         // Then
-        #expect(error.code == code)
-        #expect(error.message == message)
+        #expect(error.isRetryable == true)
+        #expect(error.retryDelay == 5.0)
+        #expect(error.errorDescription?.contains("google") == true)
+        #expect(error.errorDescription?.contains("5 seconds") == true)
     }
-    
-    @Test("APIError provides correct error description")
-    func testErrorDescription() {
+
+    @Test("APIError rateLimitExceeded case with retry")
+    func testRateLimitExceededWithRetry() {
         // Given
-        let code = "NETWORK_ERROR"
-        let message = "Unable to connect to server"
-        let error = APIError(code: code, message: message)
-        
-        // When
-        let description = error.errorDescription
-        
+        let error = APIError.rateLimitExceeded(retryAfter: 30.0)
+
         // Then
-        let expectedDescription = "\(message) (Code: \(code))"
-        #expect(description == expectedDescription)
+        #expect(error.isRetryable == true)
+        #expect(error.retryDelay == 30.0)
+        #expect(error.errorDescription?.contains("30 seconds") == true)
     }
-    
+
+    @Test("APIError rateLimitExceeded case without retry")
+    func testRateLimitExceededWithoutRetry() {
+        // Given
+        let error = APIError.rateLimitExceeded(retryAfter: nil)
+
+        // Then
+        #expect(error.isRetryable == true)
+        #expect(error.retryDelay == nil)
+        #expect(error.errorDescription?.contains("try again later") == true)
+    }
+
+    @Test("APIError notFound case")
+    func testNotFoundCase() {
+        // Given
+        let message = "Book not found"
+        let error = APIError.notFound(message: message)
+
+        // Then
+        #expect(error.isRetryable == false)
+        #expect(error.errorDescription?.contains(message) == true)
+    }
+
+    @Test("APIError serverError case")
+    func testServerErrorCase() {
+        // Given
+        let message = "Internal server error"
+        let error = APIError.serverError(message: message)
+
+        // Then
+        #expect(error.isRetryable == false)
+        #expect(error.errorDescription?.contains(message) == true)
+    }
+
+    @Test("APIError decodingError case")
+    func testDecodingErrorCase() {
+        // Given
+        let message = "Failed to decode response"
+        let error = APIError.decodingError(message: message)
+
+        // Then
+        #expect(error.isRetryable == false)
+        #expect(error.errorDescription?.contains(message) == true)
+    }
+
+    @Test("APIError networkError case")
+    func testNetworkErrorCase() {
+        // Given
+        struct TestError: Error {}
+        let error = APIError.networkError(TestError())
+
+        // Then
+        #expect(error.isRetryable == true)
+        #expect(error.retryDelay == 5.0)
+        #expect(error.errorDescription?.contains("Network Error") == true)
+    }
+
+    @Test("APIError invalidURL case")
+    func testInvalidURLCase() {
+        // Given
+        let error = APIError.invalidURL
+
+        // Then
+        #expect(error.isRetryable == false)
+        #expect(error.errorDescription == "Invalid URL")
+    }
+
+    @Test("APIError invalidResponse case")
+    func testInvalidResponseCase() {
+        // Given
+        let error = APIError.invalidResponse
+
+        // Then
+        #expect(error.isRetryable == false)
+        #expect(error.errorDescription == "Invalid Response")
+    }
+
+    @Test("APIError httpError case with retryable status")
+    func testHTTPErrorRetryable() {
+        // Given
+        let error = APIError.httpError(503)
+
+        // Then
+        #expect(error.isRetryable == true)
+        #expect(error.errorDescription?.contains("503") == true)
+    }
+
+    @Test("APIError httpError case with non-retryable status")
+    func testHTTPErrorNonRetryable() {
+        // Given
+        let error = APIError.httpError(404)
+
+        // Then
+        #expect(error.isRetryable == false)
+        #expect(error.errorDescription?.contains("404") == true)
+    }
+
+    @Test("APIError corsBlocked case")
+    func testCORSBlockedCase() {
+        // Given
+        let error = APIError.corsBlocked
+
+        // Then
+        #expect(error.isRetryable == false)
+        #expect(error.errorDescription?.contains("CORS") == true)
+    }
+
+    @Test("APIError unauthorized case")
+    func testUnauthorizedCase() {
+        // Given
+        let message = "API key is invalid"
+        let error = APIError.unauthorized(message: message)
+
+        // Then
+        #expect(error.isRetryable == false)
+        #expect(error.errorDescription?.contains(message) == true)
+    }
+
+    @Test("APIError unknownError case")
+    func testUnknownErrorCase() {
+        // Given
+        let message = "Something went wrong"
+        let error = APIError.unknownError(message: message)
+
+        // Then
+        #expect(error.isRetryable == false)
+        #expect(error.errorDescription?.contains(message) == true)
+    }
+
     // MARK: - Error Protocol Conformance Tests
-    
+
     @Test("APIError conforms to Error protocol")
     func testErrorProtocolConformance() {
         // Given
-        let error = APIError(code: "TEST_ERROR", message: "Test message")
-        
+        let error = APIError.invalidURL
+
         // When/Then
         let errorAsError: Error = error
         #expect(errorAsError is APIError)
     }
-    
+
     @Test("APIError conforms to LocalizedError protocol")
     func testLocalizedErrorConformance() {
         // Given
-        let error = APIError(code: "LOCALIZED_ERROR", message: "Localized test message")
-        
+        let error = APIError.notFound(message: "Resource not found")
+
         // When/Then
         let localizedError: LocalizedError = error
         #expect(localizedError.errorDescription != nil)
     }
-    
-    // MARK: - Edge Cases and Special Characters
-    
-    @Test("APIError with empty code and message")
-    func testEmptyCodeAndMessage() {
+
+    // MARK: - Decoding Tests
+
+    @Test("Decode CIRCUIT_OPEN error")
+    func testDecodeCircuitOpen() throws {
         // Given
-        let error = APIError(code: "", message: "")
-        
+        let json = """
+        {
+            "code": "CIRCUIT_OPEN",
+            "provider": "google",
+            "retryAfterMs": 5000
+        }
+        """
+        let data = json.data(using: .utf8)!
+
         // When
-        let description = error.errorDescription
-        
+        let error = try JSONDecoder().decode(APIError.self, from: data)
+
         // Then
-        #expect(error.code == "")
-        #expect(error.message == "")
-        #expect(description == " (Code: )")
+        if case .circuitOpen(let provider, let retryAfterMs) = error {
+            #expect(provider == "google")
+            #expect(retryAfterMs == 5000)
+        } else {
+            Issue.record("Expected circuitOpen case")
+        }
     }
-    
-    @Test("APIError with special characters in code")
-    func testSpecialCharactersInCode() {
+
+    @Test("Decode RATE_LIMIT_EXCEEDED error")
+    func testDecodeRateLimitExceeded() throws {
         // Given
-        let code = "ERROR_CODE_WITH_SPECIAL!@#$%^&*()_+-=[]{}|;':\",./<>?"
-        let message = "Error with special characters in code"
-        let error = APIError(code: code, message: message)
-        
+        let json = """
+        {
+            "code": "RATE_LIMIT_EXCEEDED",
+            "retryAfterMs": 60000
+        }
+        """
+        let data = json.data(using: .utf8)!
+
         // When
-        let description = error.errorDescription
-        
+        let error = try JSONDecoder().decode(APIError.self, from: data)
+
         // Then
-        #expect(error.code == code)
-        #expect(description == "\(message) (Code: \(code))")
+        if case .rateLimitExceeded(let retryAfter) = error {
+            #expect(retryAfter == 60.0)
+        } else {
+            Issue.record("Expected rateLimitExceeded case")
+        }
     }
-    
-    @Test("APIError with special characters in message")
-    func testSpecialCharactersInMessage() {
+
+    @Test("Decode NOT_FOUND error")
+    func testDecodeNotFound() throws {
         // Given
-        let code = "SPECIAL_CHARS"
-        let message = "Error message with special chars: !@#$%^&*()_+-=[]{}|;':\",./<>?"
-        let error = APIError(code: code, message: message)
-        
+        let json = """
+        {
+            "code": "NOT_FOUND",
+            "message": "Book with ISBN 1234567890 not found"
+        }
+        """
+        let data = json.data(using: .utf8)!
+
         // When
-        let description = error.errorDescription
-        
+        let error = try JSONDecoder().decode(APIError.self, from: data)
+
         // Then
-        #expect(error.message == message)
-        #expect(description == "\(message) (Code: \(code))")
+        if case .notFound(let message) = error {
+            #expect(message.contains("1234567890"))
+        } else {
+            Issue.record("Expected notFound case")
+        }
     }
-    
-    @Test("APIError with unicode characters")
-    func testUnicodeCharacters() {
+
+    @Test("Decode UNAUTHORIZED error")
+    func testDecodeUnauthorized() throws {
         // Given
-        let code = "UNICODE_ERROR_🚨"
-        let message = "Unicode error message: 测试错误 🔥💥⚠️"
-        let error = APIError(code: code, message: message)
-        
+        let json = """
+        {
+            "code": "UNAUTHORIZED",
+            "message": "Invalid API key"
+        }
+        """
+        let data = json.data(using: .utf8)!
+
         // When
-        let description = error.errorDescription
-        
+        let error = try JSONDecoder().decode(APIError.self, from: data)
+
         // Then
-        #expect(error.code == code)
-        #expect(error.message == message)
-        #expect(description == "\(message) (Code: \(code))")
+        if case .unauthorized(let message) = error {
+            #expect(message == "Invalid API key")
+        } else {
+            Issue.record("Expected unauthorized case")
+        }
     }
-    
-    @Test("APIError with newlines and tabs")
-    func testNewlinesAndTabs() {
+
+    @Test("Decode SERVER_ERROR error")
+    func testDecodeServerError() throws {
         // Given
-        let code = "MULTILINE_ERROR"
-        let message = "Error message\nwith newlines\tand tabs\r\nand carriage returns"
-        let error = APIError(code: code, message: message)
-        
+        let json = """
+        {
+            "code": "SERVER_ERROR",
+            "message": "Database connection failed"
+        }
+        """
+        let data = json.data(using: .utf8)!
+
         // When
-        let description = error.errorDescription
-        
+        let error = try JSONDecoder().decode(APIError.self, from: data)
+
         // Then
-        #expect(error.message == message)
-        #expect(description == "\(message) (Code: \(code))")
+        if case .serverError(let message) = error {
+            #expect(message == "Database connection failed")
+        } else {
+            Issue.record("Expected serverError case")
+        }
     }
-    
-    // MARK: - Real-world Error Scenarios
-    
-    @Test("Authentication error scenario")
-    func testAuthenticationError() {
+
+    @Test("Decode unknown error code")
+    func testDecodeUnknownErrorCode() throws {
         // Given
-        let error = APIError(
-            code: "AUTH_TOKEN_EXPIRED",
-            message: "Your authentication token has expired. Please log in again."
-        )
-        
+        let json = """
+        {
+            "code": "UNKNOWN_CODE",
+            "message": "Something unexpected happened"
+        }
+        """
+        let data = json.data(using: .utf8)!
+
         // When
-        let description = error.errorDescription
-        
+        let error = try JSONDecoder().decode(APIError.self, from: data)
+
         // Then
-        #expect(error.code == "AUTH_TOKEN_EXPIRED")
-        #expect(error.message == "Your authentication token has expired. Please log in again.")
-        #expect(description == "Your authentication token has expired. Please log in again. (Code: AUTH_TOKEN_EXPIRED)")
+        if case .unknownError(let message) = error {
+            #expect(message.contains("UNKNOWN_CODE"))
+        } else {
+            Issue.record("Expected unknownError case")
+        }
     }
-    
-    @Test("Network error scenario")
-    func testNetworkError() {
+
+    // MARK: - Custom Initializer Tests
+
+    @Test("Init with APIError wraps correctly")
+    func testInitWithAPIError() {
         // Given
-        let error = APIError(
-            code: "NETWORK_TIMEOUT",
-            message: "The request timed out. Please check your internet connection and try again."
-        )
-        
+        let originalError = APIError.notFound(message: "Test")
+
         // When
-        let description = error.errorDescription
-        
+        let wrappedError = APIError(originalError)
+
         // Then
-        #expect(error.code == "NETWORK_TIMEOUT")
-        #expect(description?.contains("timed out") == true)
-        #expect(description?.contains("NETWORK_TIMEOUT") == true)
+        if case .notFound = wrappedError {
+            // Success
+        } else {
+            Issue.record("Expected notFound case to be preserved")
+        }
     }
-    
-    @Test("Validation error scenario")
-    func testValidationError() {
+
+    @Test("Init with other Error wraps as networkError")
+    func testInitWithOtherError() {
         // Given
-        let error = APIError(
-            code: "VALIDATION_FAILED",
-            message: "The provided data is invalid. Please check the required fields."
-        )
-        
+        struct CustomError: Error {}
+        let customError = CustomError()
+
         // When
-        let description = error.errorDescription
-        
+        let wrappedError = APIError(customError)
+
         // Then
-        #expect(error.code == "VALIDATION_FAILED")
-        #expect(description?.contains("invalid") == true)
-        #expect(description?.contains("VALIDATION_FAILED") == true)
+        if case .networkError = wrappedError {
+            // Success
+        } else {
+            Issue.record("Expected networkError case for custom error")
+        }
     }
-    
-    @Test("Server error scenario")
-    func testServerError() {
-        // Given
-        let error = APIError(
-            code: "INTERNAL_SERVER_ERROR",
-            message: "An unexpected error occurred on the server. Please try again later."
-        )
-        
-        // When
-        let description = error.errorDescription
-        
-        // Then
-        #expect(error.code == "INTERNAL_SERVER_ERROR")
-        #expect(description?.contains("server") == true)
-        #expect(description?.contains("INTERNAL_SERVER_ERROR") == true)
-    }
-    
-    // MARK: - Equality and Comparison Tests
-    
-    @Test("APIError equality comparison")
-    func testAPIErrorEquality() {
-        // Given
-        let error1 = APIError(code: "SAME_ERROR", message: "Same message")
-        let error2 = APIError(code: "SAME_ERROR", message: "Same message")
-        let error3 = APIError(code: "DIFFERENT_ERROR", message: "Same message")
-        let error4 = APIError(code: "SAME_ERROR", message: "Different message")
-        
-        // When/Then
-        // Note: APIError doesn't implement Equatable, so we test individual properties
-        #expect(error1.code == error2.code)
-        #expect(error1.message == error2.message)
-        #expect(error1.code != error3.code)
-        #expect(error1.message != error4.message)
-    }
-    
+
     // MARK: - Error Handling Integration Tests
-    
+
     @Test("APIError can be thrown and caught")
     func testThrowAndCatch() throws {
         // Given
-        let expectedError = APIError(code: "TEST_THROW", message: "Test throwing error")
-        
+        let expectedError = APIError.notFound(message: "Test resource")
+
         // When/Then
         do {
             throw expectedError
-        } catch let caughtError as APIError {
-            #expect(caughtError.code == expectedError.code)
-            #expect(caughtError.message == expectedError.message)
+        } catch let error as APIError {
+            if case .notFound(let message) = error {
+                #expect(message == "Test resource")
+            } else {
+                Issue.record("Expected notFound case")
+            }
         } catch {
             Issue.record("Expected APIError but caught different error type")
         }
     }
-    
+
     @Test("APIError in Result type")
     func testAPIErrorInResult() {
         // Given
-        let error = APIError(code: "RESULT_ERROR", message: "Error in Result type")
+        let error = APIError.invalidURL
         let failureResult: Result<String, APIError> = .failure(error)
-        
+
         // When/Then
         switch failureResult {
         case .success:
             Issue.record("Expected failure but got success")
         case .failure(let apiError):
-            #expect(apiError.code == "RESULT_ERROR")
-            #expect(apiError.message == "Error in Result type")
+            if case .invalidURL = apiError {
+                // Success
+            } else {
+                Issue.record("Expected invalidURL case")
+            }
         }
     }
-    
-    // MARK: - Performance Tests
-    
-    @Test("APIError creation performance")
-    func testAPIErrorCreationPerformance() {
+
+    // MARK: - Retry Logic Tests
+
+    @Test("Retry delay for circuit open")
+    func testRetryDelayCircuitOpen() {
         // Given
-        let code = "PERFORMANCE_TEST"
-        let message = "Performance test message"
-        
-        // When - Create many APIError instances
-        let errors = (0..<1000).map { index in
-            APIError(code: "\(code)_\(index)", message: "\(message) \(index)")
+        let error = APIError.circuitOpen(provider: "google", retryAfterMs: 10000)
+
+        // Then
+        #expect(error.retryDelay == 10.0)
+    }
+
+    @Test("Retry delay for rate limit")
+    func testRetryDelayRateLimit() {
+        // Given
+        let error = APIError.rateLimitExceeded(retryAfter: 15.5)
+
+        // Then
+        #expect(error.retryDelay == 15.5)
+    }
+
+    @Test("Retry delay for network error")
+    func testRetryDelayNetworkError() {
+        // Given
+        struct TestError: Error {}
+        let error = APIError.networkError(TestError())
+
+        // Then
+        #expect(error.retryDelay == 5.0)
+    }
+
+    @Test("No retry delay for non-retryable errors")
+    func testNoRetryDelayForNonRetryable() {
+        // Given
+        let errors: [APIError] = [
+            .invalidURL,
+            .notFound(message: "Test"),
+            .unauthorized(message: "Test"),
+            .corsBlocked
+        ]
+
+        // Then
+        for error in errors {
+            #expect(error.retryDelay == nil)
         }
-        
-        // Then
-        #expect(errors.count == 1000)
-        #expect(errors.first?.code == "PERFORMANCE_TEST_0")
-        #expect(errors.last?.code == "PERFORMANCE_TEST_999")
-    }
-    
-    // MARK: - String Interpolation Tests
-    
-    @Test("APIError in string interpolation")
-    func testStringInterpolation() {
-        // Given
-        let error = APIError(code: "INTERPOLATION_TEST", message: "Test message for interpolation")
-        
-        // When
-        let interpolatedString = "An error occurred: \(error.errorDescription ?? "Unknown error")"
-        
-        // Then
-        #expect(interpolatedString.contains("Test message for interpolation"))
-        #expect(interpolatedString.contains("INTERPOLATION_TEST"))
-    }
-    
-    // MARK: - Memory and Resource Tests
-    
-    @Test("APIError with very long strings")
-    func testVeryLongStrings() {
-        // Given
-        let longCode = String(repeating: "A", count: 10000)
-        let longMessage = String(repeating: "B", count: 10000)
-        
-        // When
-        let error = APIError(code: longCode, message: longMessage)
-        
-        // Then
-        #expect(error.code.count == 10000)
-        #expect(error.message.count == 10000)
-        #expect(error.errorDescription?.count == 20013) // message + " (Code: " + code + ")"
     }
 }

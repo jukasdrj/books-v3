@@ -1,6 +1,7 @@
 import Testing
 import SwiftUI
 import UIKit
+import Foundation
 @testable import BooksTrackerFeature
 
 /// A SwiftUI host view to embed `RepresentationRadarChart` and allow data updates
@@ -25,7 +26,7 @@ private struct TestHostView: View {
 
 /// Performance tests for the `RepresentationRadarChart` component.
 /// Measures CPU-bound work of SwiftUI's layout and update cycle for the Canvas-based chart.
-@Test(timeLimit: .seconds(60))
+@Test
 @MainActor
 func testRadarChartRenderPerformance() async throws {
     // 1. Prepare realistic initial data

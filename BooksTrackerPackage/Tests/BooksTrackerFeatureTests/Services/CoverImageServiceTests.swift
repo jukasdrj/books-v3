@@ -60,8 +60,7 @@ struct CoverImageServiceTests {
         edition.work = work
         try modelContext.save()
 
-        // Manually set primary edition (AutoStrategy would normally do this)
-        work.manuallySelectedEdition = edition
+        // Note: primaryEdition is automatically computed via AutoStrategy
 
         // Test
         let coverURL = CoverImageService.coverURL(for: work)
@@ -85,7 +84,6 @@ struct CoverImageServiceTests {
         edition.work = work
         try modelContext.save()
 
-        work.manuallySelectedEdition = edition
 
         // Test - should fall back to work-level cover
         let coverURL = CoverImageService.coverURL(for: work)
@@ -106,7 +104,6 @@ struct CoverImageServiceTests {
         edition.work = work
         try modelContext.save()
 
-        work.manuallySelectedEdition = edition
 
         // Test
         let coverURL = CoverImageService.coverURL(for: work)
@@ -141,7 +138,6 @@ struct CoverImageServiceTests {
         edition.work = work
         try modelContext.save()
 
-        work.manuallySelectedEdition = edition
 
         // Test
         let coverURL = CoverImageService.coverURL(for: work)
@@ -249,7 +245,6 @@ struct CoverImageServiceTests {
         edition.work = work
         try modelContext.save()
 
-        work.manuallySelectedEdition = edition
 
         // Test
         let source = CoverImageService.coverSource(for: work)
@@ -271,7 +266,6 @@ struct CoverImageServiceTests {
         edition.work = work
         try modelContext.save()
 
-        work.manuallySelectedEdition = edition
 
         // Test
         let source = CoverImageService.coverSource(for: work)
@@ -291,7 +285,6 @@ struct CoverImageServiceTests {
         edition.work = work
         try modelContext.save()
 
-        work.manuallySelectedEdition = edition
 
         // Test
         let source = CoverImageService.coverSource(for: work)
@@ -325,7 +318,6 @@ struct CoverImageServiceTests {
         edition.work = work
         try modelContext.save()
 
-        work.manuallySelectedEdition = edition
 
         // Test
         let result = CoverImageService.hasCover(work)
@@ -352,7 +344,6 @@ struct CoverImageServiceTests {
         edition.work = work
         try modelContext.save()
 
-        work.manuallySelectedEdition = edition
 
         // Test - should prioritize edition cover
         let coverURL = CoverImageService.coverURL(for: work)

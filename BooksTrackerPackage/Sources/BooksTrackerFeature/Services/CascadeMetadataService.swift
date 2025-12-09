@@ -3,7 +3,7 @@ import Foundation
 import OSLog
 
 /// Errors specific to the CascadeMetadataService.
-public enum CascadeMetadataServiceError: Error, LocalizedError {
+public enum CascadeMetadataServiceError: Error, LocalizedError, Equatable {
     case authorMetadataNotFound
     case workNotFound
     case bookEnrichmentNotFound
