@@ -1,4 +1,0 @@
-module BooksTrackerFeature {
-header "BooksTrackerFeature-Swift.h"
-export *
-}
