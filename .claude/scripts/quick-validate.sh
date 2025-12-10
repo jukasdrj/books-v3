@@ -21,7 +21,7 @@ perl -e 'alarm shift @ARGV; exec @ARGV' "$TIMEOUT" xcodebuild \
     -workspace BooksTracker.xcworkspace \
     -scheme BooksTracker \
     -configuration Debug \
-    -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+    -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' \
     -jobs "$PARALLEL_JOBS" \
     clean build \
     COMPILER_INDEX_STORE_ENABLE=NO \

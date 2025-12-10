@@ -19,7 +19,7 @@ enum APIEndpoint {
     var path: String {
         switch self {
         case .weeklyRecommendations:
-            return "/recommendations/weekly"
+            return "/v3/recommendations/weekly"
         }
     }
 

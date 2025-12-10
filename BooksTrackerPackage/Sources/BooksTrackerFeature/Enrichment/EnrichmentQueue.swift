@@ -4,6 +4,7 @@ import SwiftData
 import os.log
 
 // MARK: - Timeout Error
+// Build: Force Xcode Cloud clean checkout - 2025-12-09
 
 /// Error thrown when enrichment activity timeout is reached
 struct EnrichmentTimeoutError: Error, LocalizedError {
