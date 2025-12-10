@@ -156,3 +156,4 @@ build-verify.log
 # Test logs in packages
 BooksTrackerPackage/test-output-new.log
 BooksTrackerPackage/test-results.log
+BooksTrackerPackage/test-results-*.log
