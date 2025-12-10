@@ -35,12 +35,15 @@ public struct iOS26LiquidLibraryView: View {
     
     // MARK: - Data
     
-    @Query(sort: \Work.lastModified, order: .reverse)
-    private var allWorks: [Work]
-
-    private var libraryWorks: [Work] {
-        filterService.filterLibraryWorks(from: allWorks, modelContext: modelContext)
-    }
+    @Query(
+        filter: #Predicate<Work> { work in
+            // Only fetch works that have at least one library entry
+            !(work.userLibraryEntries?.isEmpty ?? true)
+        },
+        sort: \Work.lastModified,
+        order: .reverse
+    )
+    private var libraryWorks: [Work]
     
     // MARK: - State
     

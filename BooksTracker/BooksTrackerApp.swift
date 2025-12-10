@@ -246,6 +246,13 @@ struct BooksTrackerApp: App {
                     showDatabaseResetAlert = true
                 }
             )
+            let dtoMapper = DTOMapperFactory.shared.mapper(for: container.mainContext)
+            let libraryRepository = LibraryRepository(
+                modelContext: container.mainContext,
+                dtoMapper: dtoMapper,
+                featureFlags: featureFlags
+            )
+
             ContentView()
                 .onAppear {
                     LaunchMetrics.shared.recordMilestone("ContentView appeared")
@@ -261,8 +268,8 @@ struct BooksTrackerApp: App {
                 .iOS26ThemeStore(themeStore)
                 .modelContainer(container)
                 .environment(featureFlags)
-                .environment(\.dtoMapper, DTOMapperFactory.shared.mapper(for: container.mainContext))
-                .environment(ModelContainerFactory.shared.libraryRepository)
+                .environment(\.dtoMapper, dtoMapper)
+                .environment(libraryRepository)
                 .environment(EnrichmentQueue.shared)
                 .environment(\.curatorPointsService, curatorPointsService)
                 .alert("Database Reset Required", isPresented: $showDatabaseResetAlert) {
