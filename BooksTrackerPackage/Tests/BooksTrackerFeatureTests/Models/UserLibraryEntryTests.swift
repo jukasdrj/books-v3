@@ -22,6 +22,7 @@ import Foundation
 /// - Rating validation
 /// - Factory methods (createWishlistEntry, createOwnedEntry)
 /// - Relationships with Work and Edition
+/// - Reading Session aggregation (totalReadingMinutes)
 ///
 /// **Architecture:**
 /// - Uses in-memory SwiftData container (no persistence)
@@ -39,7 +40,7 @@ struct UserLibraryEntryTests {
     init() throws {
         // Create in-memory container for testing
         modelContainer = try ModelContainer(
-            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self,
+            for: Work.self, Edition.self, Author.self, UserLibraryEntry.self, ReadingSession.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         modelContext = ModelContext(modelContainer)
@@ -324,6 +325,27 @@ struct UserLibraryEntryTests {
         entry.updateReadingProgress()
 
         #expect(entry.readingProgress == 1.0, "Progress should cap at 100%")
+    }
+
+    // MARK: - Reading Session Aggregation Tests (New)
+
+    @Test("totalReadingMinutes aggregates session durations")
+    func totalReadingMinutes() throws {
+        let work = Work(title: "Test Book")
+        modelContext.insert(work)
+
+        let entry = UserLibraryEntry.createWishlistEntry(for: work, context: modelContext)
+        try modelContext.save()
+
+        let s1 = ReadingSession(durationMinutes: 30)
+        let s2 = ReadingSession(durationMinutes: 45)
+
+        modelContext.insert(s1)
+        modelContext.insert(s2)
+
+        entry.readingSessions = [s1, s2]
+
+        #expect(entry.totalReadingMinutes == 75)
     }
 
     // MARK: - Reading Status Transition Tests
