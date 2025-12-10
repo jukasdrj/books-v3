@@ -34,16 +34,16 @@ enum LibraryLayout: String, CaseIterable, Identifiable {
 public struct iOS26LiquidLibraryView: View {
     
     // MARK: - Data
-    
-    @Query(
-        filter: #Predicate<Work> { work in
-            // Only fetch works that have at least one library entry
-            !(work.userLibraryEntries?.isEmpty ?? true)
-        },
-        sort: \Work.lastModified,
-        order: .reverse
-    )
-    private var libraryWorks: [Work]
+
+    // NOTE: Cannot use #Predicate for relationship aggregates (isEmpty, count, etc.)
+    // CoreData throws: "Keypath containing KVC aggregate where there shouldn't be one"
+    // Must fetch all and filter in-memory via LibraryFilterService
+    @Query(sort: \Work.lastModified, order: .reverse)
+    private var allWorks: [Work]
+
+    private var libraryWorks: [Work] {
+        filterService.filterLibraryWorks(from: allWorks, modelContext: modelContext)
+    }
     
     // MARK: - State
     
@@ -216,7 +216,7 @@ public struct iOS26LiquidLibraryView: View {
                 if newValue.isEmpty { quickFilter = nil }
                 updateFilteredWorks()
             }
-            .onChange(of: libraryWorks) { _, _ in updateFilteredWorks() }
+            .onChange(of: allWorks) { _, _ in updateFilteredWorks() }
             .onChange(of: quickFilter) { _, _ in updateFilteredWorks() }
             .onChange(of: tabCoordinator.highlightedBookIDs) { _, newIDs in
                 if !newIDs.isEmpty {
