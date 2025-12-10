@@ -36,10 +36,7 @@ public struct V3ErrorResponse: Codable, Sendable {
     /// Error metadata
     public let metadata: V3ErrorMetadata
 
-    enum CodingKeys: String, CodingKey {
-        case success, type, title, status, detail, instance, code, retryable, errors, metadata
-        case retryAfterMs = "retry_after_ms"
-    }
+    // No CodingKeys needed - all properties match the API's camelCase format
 }
 
 /// Machine-readable error codes
@@ -81,9 +78,7 @@ public struct V3FieldError: Codable, Sendable {
     /// Validation error code
     public let code: String?
 
-    enum CodingKeys: String, CodingKey {
-        case field, message, code
-    }
+    // No CodingKeys needed - all properties match the API's camelCase format
 }
 
 /// Error metadata
@@ -94,8 +89,5 @@ public struct V3ErrorMetadata: Codable, Sendable {
     /// Request correlation ID
     public let requestId: String?
 
-    enum CodingKeys: String, CodingKey {
-        case timestamp
-        case requestId = "request_id"
-    }
+    // No CodingKeys needed - all properties match the API's camelCase format
 }

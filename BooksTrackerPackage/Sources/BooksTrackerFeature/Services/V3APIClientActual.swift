@@ -101,7 +101,6 @@ public class V3APIClientActual {
 
         // Decode success response
         let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
 
         do {
             let searchResponse = try decoder.decode(V3SearchResponse.self, from: data)
@@ -170,7 +169,6 @@ public class V3APIClientActual {
 
         // Decode success response
         let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
 
         do {
             let bookResponse = try decoder.decode(V3BookResponse.self, from: data)
@@ -217,7 +215,6 @@ public class V3APIClientActual {
         let enrichRequest = V3EnrichRequest(isbns: isbns, includeEmbedding: includeEmbedding)
 
         let encoder = JSONEncoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
         request.httpBody = try encoder.encode(enrichRequest)
 
         let (data, response) = try await performRequestWithRetry(request)
@@ -235,7 +232,6 @@ public class V3APIClientActual {
 
         // Decode success response
         let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
 
         do {
             let enrichResponse = try decoder.decode(V3EnrichResponse.self, from: data)
@@ -293,7 +289,6 @@ public class V3APIClientActual {
     /// Handle RFC 9457 error responses
     private func handleErrorResponse<T>(data: Data, statusCode: Int) throws -> T {
         let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
 
         do {
             let errorResponse = try decoder.decode(V3ErrorResponse.self, from: data)

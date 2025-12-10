@@ -9,10 +9,7 @@ public struct V3EnrichRequest: Codable, Sendable {
     /// Generate semantic embeddings for vector search
     public let includeEmbedding: Bool
 
-    enum CodingKeys: String, CodingKey {
-        case isbns
-        case includeEmbedding = "include_embedding"
-    }
+    // No CodingKeys needed - all properties match the API's camelCase format
 
     public init(isbns: [String], includeEmbedding: Bool = false) {
         self.isbns = isbns

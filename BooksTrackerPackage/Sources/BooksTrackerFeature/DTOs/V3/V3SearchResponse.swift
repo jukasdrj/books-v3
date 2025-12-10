@@ -35,9 +35,7 @@ public struct V3SearchData: Codable, Sendable {
     /// Pagination information
     public let pagination: V3Pagination
 
-    enum CodingKeys: String, CodingKey {
-        case books, total, query, pagination
-    }
+    // No CodingKeys needed - all properties match the API's camelCase format
 }
 
 /// Search query parameters
@@ -48,9 +46,7 @@ public struct V3SearchQuery: Codable, Sendable {
     /// Search mode (currently only "text" supported)
     public let mode: String
 
-    enum CodingKeys: String, CodingKey {
-        case q, mode
-    }
+    // No CodingKeys needed - all properties match the API's camelCase format
 }
 
 /// Pagination information
@@ -73,10 +69,5 @@ public struct V3Pagination: Codable, Sendable {
     /// Whether there are previous pages
     public let hasPrev: Bool
 
-    enum CodingKeys: String, CodingKey {
-        case type, page, limit
-        case totalPages = "total_pages"
-        case hasNext = "has_next"
-        case hasPrev = "has_prev"
-    }
+    // No CodingKeys needed - all properties match the API's camelCase format
 }

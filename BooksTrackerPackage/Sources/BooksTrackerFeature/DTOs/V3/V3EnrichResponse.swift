@@ -12,9 +12,7 @@ public struct V3EnrichResponse: Codable, Sendable {
     /// Response metadata
     public let metadata: V3ResponseMetadata
 
-    enum CodingKeys: String, CodingKey {
-        case success, data, metadata
-    }
+    // No CodingKeys needed - all properties match the API's camelCase format
 }
 
 /// Enrichment result data
@@ -31,8 +29,5 @@ public struct V3EnrichData: Codable, Sendable {
     /// ISBNs that were not found
     public let notFound: [String]?
 
-    enum CodingKeys: String, CodingKey {
-        case books, requested, found
-        case notFound = "not_found"
-    }
+    // No CodingKeys needed - all properties match the API's camelCase format
 }

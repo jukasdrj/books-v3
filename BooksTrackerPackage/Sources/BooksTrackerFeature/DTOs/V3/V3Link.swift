@@ -12,7 +12,5 @@ public struct V3Link: Codable, Sendable {
     /// HTTP method for this link
     public let method: String?
 
-    enum CodingKeys: String, CodingKey {
-        case href, rel, method
-    }
+    // No CodingKeys needed - all properties match the API's format
 }

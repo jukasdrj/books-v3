@@ -22,17 +22,7 @@ public struct V3Book: Codable, Sendable {
     public let provider: String
     public let quality: Double
 
-    enum CodingKeys: String, CodingKey {
-        case isbn, isbn10, title, subtitle, authors
-        case publisher, description, language, provider, quality
-        case publishedDate = "published_date"
-        case pageCount = "page_count"
-        case categories
-        case coverUrl = "cover_url"
-        case thumbnailUrl = "thumbnail_url"
-        case workKey = "work_key"
-        case editionKey = "edition_key"
-    }
+    // No CodingKeys needed - all properties match the API's camelCase format
 }
 
 /// Enriched book with vectorization status
@@ -60,15 +50,5 @@ public struct V3EnrichedBook: Codable, Sendable {
     // Enrichment-specific field
     public let vectorized: Bool
 
-    enum CodingKeys: String, CodingKey {
-        case isbn, isbn10, title, subtitle, authors
-        case publisher, description, language, provider, quality, vectorized
-        case publishedDate = "published_date"
-        case pageCount = "page_count"
-        case categories
-        case coverUrl = "cover_url"
-        case thumbnailUrl = "thumbnail_url"
-        case workKey = "work_key"
-        case editionKey = "edition_key"
-    }
+    // No CodingKeys needed - all properties match the API's camelCase format
 }

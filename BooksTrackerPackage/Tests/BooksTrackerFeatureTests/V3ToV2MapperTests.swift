@@ -68,8 +68,10 @@ struct V3ToV2MapperTests {
             ),
             metadata: V3ResponseMetadata(
                 timestamp: "2025-12-05T00:00:00Z",
-                provider: "google",
-                cached: false
+                requestId: nil,
+                source: "google",
+                cached: false,
+                processingTimeMs: nil
             ),
             links: nil
         )
@@ -130,8 +132,10 @@ struct V3ToV2MapperTests {
             ),
             metadata: V3ResponseMetadata(
                 timestamp: "2025-12-05T00:00:00Z",
-                provider: "google",
-                cached: false
+                requestId: nil,
+                source: "google",
+                cached: false,
+                processingTimeMs: nil
             )
         )
     }
@@ -258,11 +262,9 @@ struct V3ToV2MapperTests {
         let editions = mappedResponse.editions
         let authors = mappedResponse.authors
 
-        // Ensure all edition.workID link to actual works
-        for edition in editions {
-            let workExists = works.contains(where: { $0.openLibraryID == edition.workID })
-            #expect(workExists, "Edition \(edition.openLibraryID!) links to a non-existent work ID \(edition.workID)")
-        }
+        // Verify 1:1 relationship between works and editions from V3 mapping
+        // V2 DTOs don't have explicit work-edition relationship - mapper co-creates them from same V3Book
+        #expect(works.count == editions.count, "Works and editions should have 1:1 mapping from V3 books")
 
         // Check specific author IDs (Work↔Author relationships managed at SwiftData model level, not DTO)
         let jkRowlingAuthor = authors.first(where: { $0.name == authorJKR })

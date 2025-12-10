@@ -18,11 +18,5 @@ public struct V3ResponseMetadata: Codable, Sendable {
     /// Processing time in milliseconds
     public let processingTimeMs: Int?
 
-    enum CodingKeys: String, CodingKey {
-        case timestamp
-        case requestId = "request_id"
-        case source
-        case cached
-        case processingTimeMs = "processing_time_ms"
-    }
+    // No CodingKeys needed - all properties match the API's camelCase format
 }
