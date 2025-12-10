@@ -35,11 +35,10 @@ public struct ContentView: View {
     @State private var searchCoordinator = SearchCoordinator()
     @State private var tabCoordinator = TabCoordinator()
     @State private var notificationCoordinator = NotificationCoordinator()
-    @State private var libraryRepository: LibraryRepository?
+    @Environment(LibraryRepository.self) private var libraryRepository
     
     // Review queue count (computed from LibraryRepository)
     private var reviewQueueCount: Int {
-        guard let libraryRepository = libraryRepository else { return 0 }
         return (try? libraryRepository.reviewQueueCount()) ?? 0
     }
 
@@ -113,7 +112,6 @@ public struct ContentView: View {
                 .environment(\.tabCoordinator, tabCoordinator)  // Inject here for all tabs + overlays
                 .environment(\.dtoMapper, dtoMapper)  // Safely unwrapped above
                 .environment(\.bookSearchAPIService, bookSearchAPIService)
-                .environment(libraryRepository)
                 .tint(themeStore.primaryColor)
                 #if os(iOS)
                 .tabBarMinimizeBehavior(
@@ -127,9 +125,6 @@ public struct ContentView: View {
             })
             .themedBackground()
             .onAppear {
-                if libraryRepository == nil {
-                    libraryRepository = LibraryRepository(modelContext: modelContext, dtoMapper: dtoMapper, featureFlags: featureFlags)
-                }
                 if bookSearchAPIService == nil {
                     bookSearchAPIService = BookSearchAPIService(modelContext: modelContext, dtoMapper: dtoMapper)
                 }
