@@ -74,7 +74,7 @@ extension ResponseEnvelope {
 extension BookSearchResponse {
     /// Create a mock empty search response
     static func mockEmpty() -> BookSearchResponse {
-        BookSearchResponse(works: [], editions: [], authors: [], totalResults: 0)
+        BookSearchResponse(works: [], editions: [], authors: [], resultCount: 0, expiresAt: nil, totalResults: 0)
     }
 
     /// Create a mock search response with sample data
@@ -118,7 +118,7 @@ extension BookSearchResponse {
             bookCount: nil
         )
 
-        return BookSearchResponse(works: [work], editions: [], authors: [author], totalResults: 1)
+        return BookSearchResponse(works: [work], editions: [], authors: [author], resultCount: 1, expiresAt: nil, totalResults: 1)
     }
 }
 

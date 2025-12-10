@@ -832,10 +832,165 @@ struct V3LiveAPIIntegrationTests {
             print("✅ V3 Provider: book=\(provider)")
         }
     }
+
+    // MARK: - 10. BookSearchAPIService DTO Contract Tests (Critical)
+
+    /// Tests that the V3 API response matches the format expected by BookSearchAPIService.
+    /// This is CRITICAL because BookSearchAPIService uses a different DTO than V3SearchResponse.
+    @Test("BookSearchAPIService DTO: V3 search response decodes with ResponseEnvelope<BookSearchResponseDTO>")
+    func testBookSearchAPIService_DTOContract() async throws {
+        // Arrange - Hit the same endpoint BookSearchAPIService uses
+        var components = URLComponents(url: baseURL.appendingPathComponent("/v3/books/search"), resolvingAgainstBaseURL: true)!
+        components.queryItems = [
+            URLQueryItem(name: "q", value: "Harry Potter"),
+            URLQueryItem(name: "mode", value: "text"),
+            URLQueryItem(name: "limit", value: "10")
+        ]
+        let url = try #require(components.url)
+
+        // Act
+        let (data, response) = try await session.data(from: url)
+
+        // Assert - HTTP 200
+        let httpResponse = try #require(response as? HTTPURLResponse)
+        #expect(httpResponse.statusCode == 200)
+
+        // Assert - Decode using the EXACT same pattern as BookSearchAPIService
+        let envelope = try decoder.decode(ResponseEnvelope<BookSearchResponseDTO>.self, from: data)
+
+        // Validate envelope structure (same checks as BookSearchAPIService)
+        #expect(envelope.success == true, "ResponseEnvelope.success should be true")
+        #expect(envelope.data != nil, "ResponseEnvelope.data should not be nil")
+
+        guard let searchData = envelope.data else {
+            Issue.record("ResponseEnvelope.data is nil - API contract mismatch!")
+            return
+        }
+
+        // Validate BookSearchResponseDTO fields
+        #expect(searchData.results.count > 0, "data.results should have items")
+        #expect(searchData.totalCount >= searchData.results.count, "data.totalCount should be >= results count")
+        #expect(searchData.query.q == "Harry Potter", "data.query.q should echo the search query")
+
+        // Validate V2SearchResultItem fields
+        let firstResult = try #require(searchData.results.first, "Should have at least one result")
+        #expect(!firstResult.title.isEmpty, "result.title should not be empty")
+        // isbn may be nil for some results
+        // author/authors may be empty for some results
+
+        // Validate metadata
+        #expect(!envelope.metadata.timestamp.isEmpty, "metadata.timestamp should be present")
+
+        print("✅ BookSearchAPIService DTO Contract: \(searchData.results.count) results, totalCount=\(searchData.totalCount)")
+    }
+
+    @Test("BookSearchAPIService DTO: Empty search returns valid structure")
+    func testBookSearchAPIService_EmptyResults() async throws {
+        // Arrange - Search for something that won't exist
+        var components = URLComponents(url: baseURL.appendingPathComponent("/v3/books/search"), resolvingAgainstBaseURL: true)!
+        components.queryItems = [
+            URLQueryItem(name: "q", value: "xyznonexistent123456789qwerty"),
+            URLQueryItem(name: "mode", value: "text")
+        ]
+        let url = try #require(components.url)
+
+        // Act
+        let (data, response) = try await session.data(from: url)
+
+        // Assert - HTTP 200 (empty results is not an error)
+        let httpResponse = try #require(response as? HTTPURLResponse)
+        #expect(httpResponse.statusCode == 200)
+
+        // Assert - Decode using BookSearchAPIService pattern
+        let envelope = try decoder.decode(ResponseEnvelope<BookSearchResponseDTO>.self, from: data)
+
+        #expect(envelope.success == true)
+        #expect(envelope.data != nil)
+
+        guard let searchData = envelope.data else {
+            Issue.record("ResponseEnvelope.data is nil for empty search")
+            return
+        }
+
+        #expect(searchData.results.isEmpty, "Empty search should return empty results array")
+        #expect(searchData.totalCount == 0, "Empty search should have totalCount=0")
+
+        print("✅ BookSearchAPIService DTO Contract (Empty): results=[], totalCount=0")
+    }
+
+    @Test("CapabilitiesService DTO: V3 capabilities response decodes correctly")
+    func testCapabilitiesService_DTOContract() async throws {
+        // Arrange
+        let url = baseURL.appendingPathComponent("/v3/capabilities")
+
+        // Act
+        let (data, response) = try await session.data(from: url)
+
+        // Assert - HTTP 200
+        let httpResponse = try #require(response as? HTTPURLResponse)
+        #expect(httpResponse.statusCode == 200)
+
+        // Assert - Decode using the EXACT same type as CapabilitiesService
+        let capabilities = try decoder.decode(APICapabilities.self, from: data)
+
+        // Validate required fields
+        #expect(!capabilities.version.isEmpty, "version should not be empty")
+
+        // Validate features
+        // These are all Bool, so they decode or fail - just verify they exist
+        _ = capabilities.features.semanticSearch
+        _ = capabilities.features.similarBooks
+        _ = capabilities.features.weeklyRecommendations
+        _ = capabilities.features.sseStreaming
+        _ = capabilities.features.batchEnrichment
+        _ = capabilities.features.csvImport
+
+        // Validate limits
+        #expect(capabilities.limits.semanticSearchRpm > 0, "semanticSearchRpm should be > 0")
+        #expect(capabilities.limits.textSearchRpm > 0, "textSearchRpm should be > 0")
+        #expect(capabilities.limits.csvMaxRows > 0, "csvMaxRows should be > 0")
+        #expect(capabilities.limits.batchMaxPhotos > 0, "batchMaxPhotos should be > 0")
+
+        print("✅ CapabilitiesService DTO Contract: version=\(capabilities.version), limits.textSearchRpm=\(capabilities.limits.textSearchRpm)")
+    }
 }
 
 // MARK: - Test Tags
 
 extension Tag {
     @Tag static var v3Performance: Self
+}
+
+// MARK: - BookSearchAPIService DTOs (Duplicated for Testing)
+
+/// These DTOs mirror the private types in BookSearchAPIService.
+/// They MUST stay in sync with the actual service implementation.
+/// If these tests fail, it means the API contract has changed.
+
+private struct BookSearchResponseDTO: Codable, Sendable {
+    let results: [V2SearchResultItem]
+    let totalCount: Int
+    let query: SearchQueryDTO
+
+    struct SearchQueryDTO: Codable, Sendable {
+        let q: String
+        let mode: String?
+        let limit: Int?
+        let offset: Int?
+    }
+}
+
+private struct V2SearchResultItem: Codable {
+    let isbn: String?
+    let title: String
+    let author: String?
+    let authors: [String]?
+    let coverUrl: String?
+    let publisher: String?
+    let publishedDate: String?
+    let pageCount: Int?
+    let description: String?
+    let subjects: [String]?
+    let workKey: String?
+    let relevanceScore: Double?
 }
