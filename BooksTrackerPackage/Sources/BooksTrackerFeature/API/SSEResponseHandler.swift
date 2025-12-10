@@ -9,6 +9,7 @@ import Foundation
 /// - Last-Event-ID support for stream resumption
 /// - Exponential backoff reconnection
 /// - Content-Type validation
+/// - Thread-safe state management via serial queue
 public final class SSEResponseHandler: NSObject, URLSessionDataDelegate, @unchecked Sendable {
     private let url: URL
     private let session: URLSession
@@ -23,6 +24,10 @@ public final class SSEResponseHandler: NSObject, URLSessionDataDelegate, @unchec
     private var reconnectAttempts = 0
     private let maxReconnectAttempts = 5
     private let baseReconnectDelay: TimeInterval = 1.0 // 1 second base delay
+
+    /// Serial queue for thread-safe access to mutable state
+    /// All access to currentBuffer, continuation, reconnectAttempts, etc. must go through this queue
+    private let stateQueue = DispatchQueue(label: "net.bookstrack.sse-state-queue")
 
     public init(url: URL, lastEventID: String? = nil) {
         self.url = url
@@ -45,7 +50,9 @@ public final class SSEResponseHandler: NSObject, URLSessionDataDelegate, @unchec
                 continuation.finish(throwing: SSEError.streamCancelled)
                 return
             }
-            self.continuation = continuation
+            self.stateQueue.sync {
+                self.continuation = continuation
+            }
             self.connect()
 
             // Handle cancellation
@@ -60,89 +67,103 @@ public final class SSEResponseHandler: NSObject, URLSessionDataDelegate, @unchec
         request.httpMethod = "GET"
         request.cachePolicy = .reloadIgnoringLocalCacheData // Always get fresh data
 
-        if let lastEventID = lastEventID {
-            request.setValue(lastEventID, forHTTPHeaderField: "Last-Event-ID")
+        let eventID = stateQueue.sync { lastEventID }
+        if let eventID = eventID {
+            request.setValue(eventID, forHTTPHeaderField: "Last-Event-ID")
         }
 
-        dataTask?.cancel() // Cancel any previous task before starting a new one
-        dataTask = session.dataTask(with: request)
-        dataTask?.resume()
+        stateQueue.sync {
+            dataTask?.cancel() // Cancel any previous task before starting a new one
+            dataTask = session.dataTask(with: request)
+            dataTask?.resume()
+        }
     }
 
     public func cancel() {
-        dataTask?.cancel()
-        dataTask = nil
-        continuation?.finish() // Explicitly finish the stream
-        continuation = nil
+        stateQueue.sync {
+            dataTask?.cancel()
+            dataTask = nil
+            continuation?.finish() // Explicitly finish the stream
+            continuation = nil
+        }
     }
 
     // MARK: - URLSessionDataDelegate
 
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         guard let httpResponse = response as? HTTPURLResponse else {
-            continuation?.finish(throwing: SSEError.connectionFailed("Invalid response type"))
+            stateQueue.sync { continuation?.finish(throwing: SSEError.connectionFailed("Invalid response type")) }
             completionHandler(.cancel)
             return
         }
 
         guard (200...299).contains(httpResponse.statusCode) else {
-            continuation?.finish(throwing: SSEError.httpError(statusCode: httpResponse.statusCode))
+            stateQueue.sync { continuation?.finish(throwing: SSEError.httpError(statusCode: httpResponse.statusCode)) }
             completionHandler(.cancel)
             return
         }
 
         guard let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type"),
               contentType.lowercased().hasPrefix("text/event-stream") else {
-            continuation?.finish(throwing: SSEError.invalidContentType)
+            stateQueue.sync { continuation?.finish(throwing: SSEError.invalidContentType) }
             completionHandler(.cancel)
             return
         }
 
-        reconnectAttempts = 0 // Reset reconnect attempts on successful connection
+        stateQueue.sync { reconnectAttempts = 0 } // Reset reconnect attempts on successful connection
         completionHandler(.allow)
     }
 
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         guard let chunk = String(data: data, encoding: .utf8) else { return }
-        currentBuffer.append(chunk)
+        stateQueue.sync {
+            currentBuffer.append(chunk)
+        }
         processBuffer()
     }
 
     public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         if let error = error as NSError?, error.domain == NSURLErrorDomain, error.code == NSURLErrorCancelled {
             // Task was cancelled, either by us or the system. No need to reconnect.
-            continuation?.finish()
+            stateQueue.sync { continuation?.finish() }
             return
         }
 
+        let (currentReconnectAttempts, maxAttempts) = stateQueue.sync { (reconnectAttempts, maxReconnectAttempts) }
+
         if let error = error {
-            continuation?.finish(throwing: SSEError.connectionFailed(error.localizedDescription))
+            stateQueue.sync { continuation?.finish(throwing: SSEError.connectionFailed(error.localizedDescription)) }
         } else {
             // Stream completed normally (server closed connection without error),
             // if host exists, it implies an unexpected close which might warrant reconnect.
             // If the server explicitly completes the stream without error, we finish.
             // Standard SSE behavior means client should reconnect unless `retry: 0` is sent.
             // For now, if no error and URL is present, attempt reconnect.
-            if url.host != nil && reconnectAttempts < maxReconnectAttempts { // Reconnect if server closes without explicit completion
+            if url.host != nil && currentReconnectAttempts < maxAttempts { // Reconnect if server closes without explicit completion
                 attemptReconnect()
                 return
             }
-            continuation?.finish()
+            stateQueue.sync { continuation?.finish() }
         }
 
-        if reconnectAttempts >= maxReconnectAttempts {
-            continuation?.finish(throwing: SSEError.connectionFailed("Max reconnection attempts reached"))
+        if currentReconnectAttempts >= maxAttempts {
+            stateQueue.sync { continuation?.finish(throwing: SSEError.connectionFailed("Max reconnection attempts reached")) }
         }
     }
 
     private func attemptReconnect() {
-        guard reconnectAttempts < maxReconnectAttempts else {
-            continuation?.finish(throwing: SSEError.connectionFailed("Max reconnection attempts reached"))
+        let (currentAttempts, maxAttempts, delay) = stateQueue.sync { () -> (Int, Int, TimeInterval) in
+            let current = reconnectAttempts
+            let delay = baseReconnectDelay * pow(2.0, Double(current))
+            reconnectAttempts += 1
+            return (current, maxReconnectAttempts, delay)
+        }
+
+        guard currentAttempts < maxAttempts else {
+            stateQueue.sync { continuation?.finish(throwing: SSEError.connectionFailed("Max reconnection attempts reached")) }
             return
         }
 
-        let delay = baseReconnectDelay * pow(2.0, Double(reconnectAttempts))
-        reconnectAttempts += 1
         Task {
             try? await Task.sleep(for: .seconds(delay))
             self.connect()
@@ -154,27 +175,30 @@ public final class SSEResponseHandler: NSObject, URLSessionDataDelegate, @unchec
     private var eventLineBuffer = [String: String]() // To build up event fields for the current event
 
     private func processBuffer() {
-        let lines = currentBuffer.components(separatedBy: .newlines)
-        currentBuffer = lines.last ?? "" // Keep the last partial line
+        stateQueue.sync {
+            let lines = currentBuffer.components(separatedBy: .newlines)
+            currentBuffer = lines.last ?? "" // Keep the last partial line
 
-        for i in 0..<lines.count - 1 { // Process all but the last (potentially partial) line
-            let line = lines[i]
-            if line.isEmpty { // An empty line signifies the end of an event
-                if let event = parseEventFromLineBuffer() {
-                    continuation?.yield(event)
-                    lastEventID = event.id ?? lastEventID // Update last event ID
-                    retryInterval = event.retry ?? retryInterval // Update retry interval if provided
+            for i in 0..<lines.count - 1 { // Process all but the last (potentially partial) line
+                let line = lines[i]
+                if line.isEmpty { // An empty line signifies the end of an event
+                    if let event = parseEventFromLineBuffer() {
+                        continuation?.yield(event)
+                        lastEventID = event.id ?? lastEventID // Update last event ID
+                        retryInterval = event.retry ?? retryInterval // Update retry interval if provided
+                    }
+                    clearLineBuffer()
+                } else if line.starts(with: ":") {
+                    // Ignore comment lines
+                    continue
+                } else {
+                    appendLineToBuffer(line)
                 }
-                clearLineBuffer()
-            } else if line.starts(with: ":") {
-                // Ignore comment lines
-                continue
-            } else {
-                appendLineToBuffer(line)
             }
         }
     }
 
+    /// Must be called from within stateQueue.sync
     private func appendLineToBuffer(_ line: String) {
         if let colonIndex = line.firstIndex(of: ":") {
             let field = String(line[..<colonIndex])
@@ -201,6 +225,7 @@ public final class SSEResponseHandler: NSObject, URLSessionDataDelegate, @unchec
         }
     }
 
+    /// Must be called from within stateQueue.sync
     private func parseEventFromLineBuffer() -> SSEEvent? {
         guard !eventLineBuffer.isEmpty else { return nil }
 
@@ -212,6 +237,7 @@ public final class SSEResponseHandler: NSObject, URLSessionDataDelegate, @unchec
         return SSEEvent(id: id, event: event, data: data, retry: retry)
     }
 
+    /// Must be called from within stateQueue.sync
     private func clearLineBuffer() {
         eventLineBuffer.removeAll()
     }
