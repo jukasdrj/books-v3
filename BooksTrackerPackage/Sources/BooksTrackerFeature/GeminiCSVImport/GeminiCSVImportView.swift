@@ -365,14 +365,129 @@ public struct GeminiCSVImportView: View {
         let (client, stream) = await GeminiCSVImportService.shared.streamImportProgress(jobId: jobId, authToken: authToken)
         sseClient = client
 
+        // Track if SSE connection was successful (received at least one progress event)
+        var sseSucceeded = false
+        var connectionFailed = false
+
         // Process events (AsyncStream doesn't throw - errors come via .failed events)
         for await event in stream {
+            switch event {
+            case .csvImportProgress, .csvImportCompleted:
+                sseSucceeded = true
+            case .failed(let failure):
+                // Check if this is a connection failure (not a job failure)
+                if failure.status == "connection_failed" {
+                    connectionFailed = true
+                    #if DEBUG
+                    print("[CSV SSE] ⚠️ Connection failed: \(failure.error)")
+                    #endif
+                }
+            default:
+                break
+            }
             await handleSSEEvent(event)
         }
 
         #if DEBUG
-        print("[CSV SSE] Stream ended for job: \(jobId)")
+        print("[CSV SSE] Stream ended for job: \(jobId), sseSucceeded: \(sseSucceeded), connectionFailed: \(connectionFailed)")
         #endif
+
+        // If SSE failed to connect and we haven't completed, fall back to polling
+        if connectionFailed && !sseSucceeded {
+            #if DEBUG
+            print("[CSV SSE] 🔄 SSE failed, falling back to polling for job: \(jobId)")
+            #endif
+            await startPollingFallback(jobId: jobId)
+        }
+    }
+
+    /// Polling fallback when SSE connection fails
+    /// Polls job status every 2 seconds until completed or failed
+    private func startPollingFallback(jobId: String) async {
+        #if DEBUG
+        print("[CSV Polling] Starting polling fallback for job: \(jobId)")
+        #endif
+
+        let maxAttempts = 60 // 2 minutes max (60 * 2 seconds)
+        var attempts = 0
+
+        while attempts < maxAttempts, !Task.isCancelled {
+            attempts += 1
+
+            do {
+                let status = try await GeminiCSVImportService.shared.checkJobStatus(jobId: jobId)
+
+                #if DEBUG
+                print("[CSV Polling] Attempt \(attempts): status=\(status.status), progress=\(status.progress ?? 0)")
+                #endif
+
+                switch status.status {
+                case "processing", "queued":
+                    // Update progress UI
+                    let progressValue = status.progress ?? 0
+                    await MainActor.run {
+                        importStatus = .processing(
+                            progress: progressValue,
+                            message: status.message ?? "Processing..."
+                        )
+                    }
+
+                case "completed":
+                    #if DEBUG
+                    print("[CSV Polling] ✅ Job completed, fetching results")
+                    #endif
+                    await fetchResults(jobId: jobId)
+                    return
+
+                case "failed":
+                    #if DEBUG
+                    print("[CSV Polling] ❌ Job failed: \(status.error ?? "Unknown error")")
+                    #endif
+                    await MainActor.run {
+                        importStatus = .failed(makeErrorDetail(
+                            code: "JOB_FAILED",
+                            message: status.error ?? "Import failed"
+                        ))
+                    }
+                    return
+
+                default:
+                    #if DEBUG
+                    print("[CSV Polling] Unknown status: \(status.status)")
+                    #endif
+                }
+
+                // Wait 2 seconds before next poll
+                try await Task.sleep(for: .seconds(2))
+
+            } catch {
+                #if DEBUG
+                print("[CSV Polling] ❌ Polling error: \(error.localizedDescription)")
+                #endif
+                // Don't fail immediately on polling error - retry a few times
+                if attempts >= 3 {
+                    await MainActor.run {
+                        importStatus = .failed(makeErrorDetail(
+                            code: "POLLING_FAILED",
+                            message: "Failed to check import status: \(error.localizedDescription)"
+                        ))
+                    }
+                    return
+                }
+                try? await Task.sleep(for: .seconds(2))
+            }
+        }
+
+        // Timeout after max attempts
+        #if DEBUG
+        print("[CSV Polling] ⏰ Polling timed out after \(maxAttempts) attempts")
+        #endif
+        await MainActor.run {
+            importStatus = .failed(makeErrorDetail(
+                code: "POLLING_TIMEOUT",
+                message: "Import timed out. Please check your imports later."
+            ))
+        }
     }
 
     private func handleSSEEvent(_ event: EnrichmentEvent) async {

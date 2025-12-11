@@ -24,6 +24,13 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
     private let jitterFactor: Double = 0.2              // Add random jitter to avoid thundering herd
     private var isCurrentlyConnected: Bool = false      // Tracks logical connection state
 
+    // Connection validation state - tracks whether we received a valid HTTP 200 response
+    // This is critical for distinguishing between:
+    // - Server rejection (401/403/500) before any data → should reconnect or fail
+    // - Normal closure after receiving events → don't reconnect
+    private var hasReceivedValidResponse: Bool = false
+    private var lastHTTPStatusCode: Int?
+
     // Parsing state
     private var buffer = ""
     private var currentEventName: String?
@@ -59,6 +66,8 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
     private func startConnectionAttempt() {
         guard !isCurrentlyConnected else { return } // Prevent multiple simultaneous connections
         isCurrentlyConnected = true
+        hasReceivedValidResponse = false // Reset for new connection attempt
+        lastHTTPStatusCode = nil
 
         reconnectionTask?.cancel() // Cancel any pending reconnection task
         reconnectionTask = nil
@@ -93,19 +102,30 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
     /// Prepares the `URLSessionDataTask` with required headers.
     private func setupDataTask() {
         var request = URLRequest(url: url)
+        // Standard SSE headers
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        // Required for Cloudflare Workers SSE compatibility - prevents connection drops
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        request.setValue("keep-alive", forHTTPHeaderField: "Connection")
         dataTask = urlSession?.dataTask(with: request)
     }
 
     /// Disconnects the SSE client and cleans up resources.
+    /// Guard against multiple simultaneous disconnect calls (can happen from multiple Task completions)
     public func disconnect() {
+        // Guard against multiple disconnect calls racing
+        guard isCurrentlyConnected || currentContinuation != nil else {
+            return
+        }
         print("SSEClient: Disconnecting from \(url)")
         dataTask?.cancel()
         dataTask = nil
         urlSession?.invalidateAndCancel() // Invalidate and release session resources
         urlSession = nil
         isCurrentlyConnected = false
+        hasReceivedValidResponse = false
+        lastHTTPStatusCode = nil
         reconnectionTask?.cancel() // Ensure no pending reconnection attempts
         reconnectionTask = nil
         currentContinuation?.finish() // Signal to the consumer that the stream has ended
@@ -154,16 +174,31 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
             return
         }
 
-        let errorMessage = error?.localizedDescription ?? "Unknown error"
-        print("SSEClient: Connection to \(url) terminated with error: \(errorMessage)")
+        // Enhanced error logging with NSError details for debugging
+        let nsError = error as NSError?
+        let errorCode = nsError?.code ?? 0
+        let errorDomain = nsError?.domain ?? "none"
+        let errorMessage = error?.localizedDescription ?? "No error (nil)"
 
-        // Check if this is a normal EOF/stream closure (error code -1005 or nil error)
-        // This happens when server closes stream after terminal event
-        let isNormalClosure = error == nil || (error as NSError?)?.code == -1005
+        print("SSEClient: Connection to \(url) terminated")
+        print("SSEClient: Error details - code: \(errorCode), domain: \(errorDomain), message: \(errorMessage)")
+        print("SSEClient: State - hasReceivedValidResponse: \(hasReceivedValidResponse), lastHTTPStatusCode: \(lastHTTPStatusCode ?? -1)")
+
+        // Determine if this is a normal closure vs an error requiring reconnection
+        // CRITICAL FIX: Only treat as "normal closure" if:
+        // 1. We already received a valid HTTP 200 response (hasReceivedValidResponse == true)
+        // 2. AND the error is nil or -1005 (connection lost after streaming)
+        //
+        // Previously, nil error during INITIAL connection (before any response) was incorrectly
+        // treated as "normal closure", hiding server rejections (401/403/500).
+        let isStreamingPhaseError = error == nil || errorCode == -1005
+        let isNormalClosure = hasReceivedValidResponse && isStreamingPhaseError
 
         if isNormalClosure {
-            print("SSEClient: Normal stream closure detected, not reconnecting")
+            print("SSEClient: Normal stream closure detected (received valid response + clean EOF), not reconnecting")
             isCurrentlyConnected = false
+            hasReceivedValidResponse = false
+            lastHTTPStatusCode = nil
             dataTask?.cancel()
             dataTask = nil
             urlSession?.invalidateAndCancel()
@@ -171,16 +206,29 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
             return
         }
 
-        // Yield a failed event to the stream consumer for actual errors
-        if error != nil {
-            currentContinuation?.yield(.failed(EnrichmentFailed(
-                isbn: "unknown",
-                status: "connection_failed",
-                error: errorMessage
-            )))
+        // Connection failed before receiving valid response OR real error occurred
+        // Build detailed error message for consumer
+        var detailedError = errorMessage
+        if !hasReceivedValidResponse {
+            if let statusCode = lastHTTPStatusCode {
+                detailedError = "Server returned HTTP \(statusCode)"
+            } else {
+                detailedError = "Connection failed before receiving server response. \(errorMessage)"
+            }
         }
 
+        print("SSEClient: Connection error - \(detailedError)")
+
+        // Yield a failed event to the stream consumer
+        currentContinuation?.yield(.failed(EnrichmentFailed(
+            isbn: "unknown",
+            status: "connection_failed",
+            error: detailedError
+        )))
+
         isCurrentlyConnected = false // Mark as disconnected
+        hasReceivedValidResponse = false
+        lastHTTPStatusCode = nil
         dataTask?.cancel() // Ensure task is cancelled
         dataTask = nil
         urlSession?.invalidateAndCancel() // Invalidate and recreate session for next attempt
@@ -214,9 +262,10 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
         }
 
         // Add any remaining text as the last line (if not newline-terminated)
-        let remainingRange = NSRange(location: lastRange.upperBound, length: buffer.utf8.count - lastRange.upperBound)
-        if let range = Range(remainingRange, in: buffer), !range.isEmpty {
-            buffer = String(buffer[range])
+        // Use proper String index conversion to handle multi-byte UTF-8 characters correctly
+        if let remainingStart = Range(NSRange(location: lastRange.upperBound, length: 0), in: buffer)?.lowerBound,
+           remainingStart < buffer.endIndex {
+            buffer = String(buffer[remainingStart...])
         } else {
             buffer = "" // Buffer was fully processed
         }
@@ -341,11 +390,11 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
             case "import.completed":
                 let completed = try decoder.decode(CSVImportCompleted.self, from: jsonData)
                 currentContinuation?.yield(.csvImportCompleted(completed))
-                Task { disconnect() }
+                Task { [weak self] in await self?.disconnect() }
             case "import.failed":
                 let failed = try decoder.decode(CSVImportFailed.self, from: jsonData)
                 currentContinuation?.yield(.csvImportFailed(failed))
-                Task { disconnect() }
+                Task { [weak self] in await self?.disconnect() }
 
             default:
                 print("SSEClient: Received unknown event type: \(eventName). Data: \(combinedData)")
@@ -368,6 +417,74 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
 // MARK: - URLSessionDataDelegate Extension
 
 extension SSEClient: URLSessionDataDelegate {
+    /// Called when the initial HTTP response is received - CRITICAL for validating SSE connection.
+    /// This method allows us to inspect the HTTP status code BEFORE any data arrives.
+    /// Without this, server rejections (401/403/500) would silently close the connection
+    /// and be misinterpreted as "normal closure".
+    nonisolated public func urlSession(
+        _ session: URLSession,
+        dataTask: URLSessionDataTask,
+        didReceive response: URLResponse,
+        completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
+    ) {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            print("SSEClient: Received non-HTTP response, cancelling")
+            completionHandler(.cancel)
+            return
+        }
+
+        let statusCode = httpResponse.statusCode
+        let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type") ?? "unknown"
+
+        print("SSEClient: Received HTTP response - status: \(statusCode), content-type: \(contentType)")
+
+        // Update actor state with response info
+        Task {
+            await self.handleInitialResponse(statusCode: statusCode, contentType: contentType)
+        }
+
+        // Validate HTTP 200 OK for SSE streams
+        // Accept 200 (standard) or 201/202 (some backends return these for created streams)
+        if (200...202).contains(statusCode) {
+            // Validate Content-Type is text/event-stream (allow charset suffix)
+            if contentType.hasPrefix("text/event-stream") {
+                print("SSEClient: ✅ Valid SSE response, proceeding with stream")
+                completionHandler(.allow)
+            } else {
+                // Some backends may not set correct content-type but still stream SSE
+                // Log warning but allow - we'll fail on parsing if it's not SSE
+                print("SSEClient: ⚠️ Unexpected content-type '\(contentType)', allowing but may fail on parse")
+                completionHandler(.allow)
+            }
+        } else {
+            // Server rejected the request - log details and cancel
+            print("SSEClient: ❌ Server returned HTTP \(statusCode) - rejecting connection")
+
+            // Common status codes:
+            // 401 - Unauthorized (auth token invalid/expired)
+            // 403 - Forbidden (token valid but not authorized for this resource)
+            // 404 - Not Found (job doesn't exist or expired)
+            // 500/502/503 - Server error
+
+            completionHandler(.cancel)
+        }
+    }
+
+    /// Actor-isolated method to update state from response delegate
+    private func handleInitialResponse(statusCode: Int, contentType: String) {
+        lastHTTPStatusCode = statusCode
+        // Only mark as valid if we got 200-202 with event-stream content type
+        if (200...202).contains(statusCode) && contentType.hasPrefix("text/event-stream") {
+            hasReceivedValidResponse = true
+            print("SSEClient: Connection validated - ready for events")
+        } else if (200...202).contains(statusCode) {
+            // Allow non-standard content-type but log warning
+            hasReceivedValidResponse = true
+            print("SSEClient: Connection allowed with non-standard content-type")
+        }
+        // For non-2xx status, hasReceivedValidResponse remains false
+    }
+
     /// Called when data is received for the data task.
     /// This method is `nonisolated` because `URLSession` calls its delegate on the specified delegate queue,
     /// which is outside the actor's isolation. We immediately hop back to the actor's isolation.
