@@ -189,16 +189,18 @@ actor BookshelfAIService {
         }
 
         // STEP 3: Connect WebSocket with authentication token
+        // CRITICAL: Use server-returned jobId, not client-side jobId
+        let serverJobId = scanResponse.jobId
         let wsManager = await WebSocketProgressManager()
         do {
-            _ = try await wsManager.establishConnection(jobId: jobId, token: scanResponse.authToken)
-            try await wsManager.configureForJob(jobId: jobId)
+            _ = try await wsManager.establishConnection(jobId: serverJobId, token: scanResponse.authToken)
+            try await wsManager.configureForJob(jobId: serverJobId)
 
             // NEW: Send ready signal to server
             try await wsManager.sendReadySignal()
 
             #if DEBUG
-            print("✅ WebSocket connected with authentication and ready signal sent for job \(jobId)")
+            print("✅ WebSocket connected with authentication and ready signal sent for job \(serverJobId)")
             #endif
         } catch {
             throw .networkError(error)
@@ -301,11 +303,15 @@ actor BookshelfAIService {
         do {
             scanResponse = try await startScanJob(imageData, provider: provider, jobId: jobId)
             #if DEBUG
-            print("SSE: Image uploaded with jobId: \(jobId)")
+            // Note: scanResponse.jobId is the server-assigned ID; jobId is client-side tracking ID
+            print("SSE: Image uploaded with serverJobId: \(scanResponse.jobId)")
             #endif
         } catch {
             throw .networkError(error)
         }
+
+        // CRITICAL: Use server-returned jobId for SSE connection
+        let serverJobId = scanResponse.jobId
 
         // STEP 3: Check for SSE URL (V3 returns streamUrl, legacy returns sseUrl)
         guard let sseUrlPath = scanResponse.sseUrl else {
@@ -329,32 +335,61 @@ actor BookshelfAIService {
             sseUrl = relativeUrl
         }
 
-        // STEP 4: Connect to SSE stream
+        // STEP 4: Connect to SSE stream with bookshelfScan job type
         // V3: authToken may be empty (authentication via URL), legacy: explicit token
         let authToken = scanResponse.authToken.isEmpty ? "" : scanResponse.authToken
-        let sseClient = SSEClient(url: sseUrl, authToken: authToken)
+        let sseClient = SSEClient(url: sseUrl, authToken: authToken, jobType: .bookshelfScan)
         let eventStream = await sseClient.connect()
 
         #if DEBUG
-        print("SSE: Connected for job \(jobId)")
+        print("SSE: Connected for job \(serverJobId)")
         #endif
 
         // STEP 5: Process SSE events
-        var resultsUrl: String?
+        // V3 backend sends inline results in 'completed' event, no separate fetch needed
+        var v3Results: [V3ScanBookResult]?
+        var legacyResultsUrl: String?
 
         for await event in eventStream {
             switch event {
+            // MARK: - V3 Scan Events (unprefixed from backend)
+            case .v3ScanInitialized(let initialized):
+                #if DEBUG
+                print("SSE: Job \(initialized.jobId) initialized, totalCount: \(initialized.totalCount)")
+                #endif
+                await progressHandler(0.0, "Initializing scan...")
+
+            case .v3ScanProgress(let progress):
+                // Use message if available, otherwise fall back to status
+                let displayMessage = progress.message ?? progress.status
+                await progressHandler(progress.progress ?? 0.0, displayMessage)
+
+            case .v3ScanCompleted(let completed):
+                #if DEBUG
+                print("SSE: Job completed with \(completed.results.count) books")
+                #endif
+                v3Results = completed.results
+                break
+
+            case .v3ScanFailed(let failed):
+                throw .serverError(500, "SSE job failed: \(failed.error.message) (\(failed.error.code))")
+
+            case .v3Ping:
+                // Keep-alive ping, no action needed
+                continue
+
+            // MARK: - Legacy Prefixed Events (photoscan.* or enrichment.*)
             case .progress(let progress):
+                // Legacy photoscan.progress or enrichment.progress
                 let fraction = Double(progress.progress) / 100.0
                 await progressHandler(fraction, progress.status)
 
             case .completed(let completed):
-                // Extract results URL from data
+                // Legacy photoscan.completed - extract resultsUrl for separate fetch
                 if let data = completed.data.value as? [String: Any],
                    let url = data["resultsUrl"] as? String {
-                    resultsUrl = url
+                    legacyResultsUrl = url
                 }
-                // Break out of the stream loop
                 break
 
             case .failed(let failed):
@@ -366,28 +401,89 @@ actor BookshelfAIService {
             }
         }
 
-        // STEP 6: Fetch full results from resultsUrl
-        guard let url = resultsUrl else {
+        // STEP 6: Process results (V3 inline vs legacy fetch)
+        let finalBooks: [DetectedBook]
+        let finalSuggestions: [SuggestionViewModel]
+
+        if let results = v3Results {
+            // V3 path: Convert inline results directly
+            finalBooks = results.compactMap { result in
+                convertV3ResultToDetectedBook(result)
+            }
+            finalSuggestions = generateSuggestionsFromV3Results(results)
+        } else if let url = legacyResultsUrl {
+            // Legacy path: Fetch results from URL
+            let scanResult: ScanResultPayload
+            do {
+                scanResult = try await fetchScanResults(url: url)
+            } catch let error as BookshelfAIError {
+                throw error
+            } catch {
+                throw .networkError(error)
+            }
+
+            finalBooks = scanResult.books.compactMap { bookPayload in
+                convertPayloadToDetectedBook(bookPayload)
+            }
+            finalSuggestions = generateSuggestionsFromPayload(scanResult)
+        } else {
             throw .invalidResponse
         }
 
-        let scanResult: ScanResultPayload
-        do {
-            scanResult = try await fetchScanResults(url: url)
-        } catch let error as BookshelfAIError {
-            throw error
-        } catch {
-            throw .networkError(error)
-        }
-
-        // Convert to DetectedBooks
-        let finalBooks = scanResult.books.compactMap { bookPayload in
-            convertPayloadToDetectedBook(bookPayload)
-        }
-
-        let finalSuggestions = generateSuggestionsFromPayload(scanResult)
-
         return (finalBooks, finalSuggestions)
+    }
+
+    /// Convert V3 scan result to DetectedBook
+    private func convertV3ResultToDetectedBook(_ result: V3ScanBookResult) -> DetectedBook? {
+        // Basic validation - need at least a title
+        guard !result.title.isEmpty else { return nil }
+
+        // Determine detection status based on enrichment result
+        let status: DetectionStatus = switch result.enrichmentStatus {
+        case "success": .confirmed
+        case "partial": .uncertain
+        case "failed": .detected
+        default: .detected
+        }
+
+        return DetectedBook(
+            isbn: result.isbn,
+            title: result.title,
+            author: result.author,
+            format: nil,
+            confidence: result.confidence,
+            boundingBox: .zero,  // V3 doesn't include bounding box info
+            rawText: result.title,  // Use title as raw text since we don't have OCR text
+            status: status,
+            originalImagePath: nil  // Image path handled separately
+        )
+    }
+
+    /// Generate suggestions from V3 scan results
+    private func generateSuggestionsFromV3Results(_ results: [V3ScanBookResult]) -> [SuggestionViewModel] {
+        var suggestions: [SuggestionViewModel] = []
+
+        // Check for low confidence books
+        let lowConfidenceCount = results.filter { $0.confidence < 0.7 }.count
+        if lowConfidenceCount > 0 {
+            suggestions.append(SuggestionViewModel(
+                type: "low_confidence",
+                severity: lowConfidenceCount > 3 ? "high" : "medium",
+                affectedCount: lowConfidenceCount
+            ))
+        }
+
+        // Check for books with failed enrichment
+        let failedEnrichmentCount = results.filter { $0.enrichmentStatus == "failed" }.count
+        if failedEnrichmentCount > 0 {
+            suggestions.append(SuggestionViewModel(
+                type: "unreadable_books",
+                severity: "medium",
+                affectedCount: failedEnrichmentCount
+            ))
+        }
+
+        return suggestions
     }
 
     /// Process bookshelf image with real-time progress tracking.
@@ -752,51 +848,64 @@ actor BookshelfAIService {
     // MARK: - Progress Tracking Methods (Swift 6.2 Task Pattern)
 
     private func startScanJob(_ imageData: Data, provider: AIProvider, jobId: String) async throws -> ScanJobResponse {
-        // Construct URL with jobId query parameter (provider always Gemini)
-        var components = URLComponents(url: endpoint, resolvingAgainstBaseURL: false)!
-        components.queryItems = [
-            URLQueryItem(name: "jobId", value: jobId)
-            // Provider param removed - backend defaults to gemini-flash
-        ]
-
-        guard let urlWithParams = components.url else {
-            throw BookshelfAIError.invalidResponse
-        }
-
-        var request = URLRequest(url: urlWithParams)
+        // V3 API: POST to /v3/jobs/scans with multipart/form-data
+        // Backend generates jobId, ignores client-provided jobId in query params
+        var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
-        request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
-        request.httpBody = imageData
-        request.timeoutInterval = timeout // Use same timeout as uploadImage (70s for AI + enrichment)
+        request.timeoutInterval = timeout // 70s for AI + enrichment
+
+        // Build multipart/form-data body with photos[] field (V3 contract)
+        let boundary = "Boundary-\(UUID().uuidString)"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.httpBody = createMultipartBody(imageData: imageData, boundary: boundary)
 
         // DIAGNOSTIC: Log outgoing request details
         #if DEBUG
-        print("[Diagnostic iOS Layer] === Outgoing Request for job \(jobId) ===")
-        #endif
-        #if DEBUG
+        print("[Diagnostic iOS Layer] === Outgoing Request (V3 multipart) ===")
         print("[Diagnostic iOS Layer] Provider: Gemini 2.0 Flash (optimized)")
-        #endif
-        #if DEBUG
-        print("[Diagnostic iOS Layer] Full URL: \(urlWithParams.absoluteString)")
-        #endif
-        #if DEBUG
-        print("[Diagnostic iOS Layer] Query items: \(components.queryItems ?? [])")
+        print("[Diagnostic iOS Layer] Full URL: \(endpoint.absoluteString)")
+        print("[Diagnostic iOS Layer] Content-Type: multipart/form-data")
+        print("[Diagnostic iOS Layer] Image size: \(imageData.count) bytes")
         #endif
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 202 else {
+        guard let httpResponse = response as? HTTPURLResponse else {
             throw BookshelfAIError.invalidResponse
         }
 
-        return try JSONDecoder().decode(ScanJobResponse.self, from: data)
+        #if DEBUG
+        if let body = String(data: data, encoding: .utf8) {
+            print("[Diagnostic iOS Layer] HTTP \(httpResponse.statusCode)")
+            print("[Diagnostic iOS Layer] Response: \(body.prefix(500))")
+        }
+        #endif
+
+        // V3 API returns 202 Accepted for async jobs
+        guard httpResponse.statusCode == 202 else {
+            throw BookshelfAIError.invalidResponse
+        }
+
+        // Use V3 ResponseEnvelope decoder with field mapping
+        return try ScanJobResponse.decode(from: data)
+    }
+
+    /// Build multipart/form-data body for V3 scan endpoint
+    /// Field name: photos[] (per V3 API contract)
+    private func createMultipartBody(imageData: Data, boundary: String) -> Data {
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"photos[]\"; filename=\"bookshelf.jpg\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
+        body.append(imageData)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        return body
     }
 
     /// Calculate expected progress based on elapsed time and stages
     nonisolated func calculateExpectedProgress(
         elapsed: Int,
-        stages: [ScanJobResponse.StageMetadata]
+        stages: [ScanJobData.StageMetadata]
     ) -> Double {
         var cumulativeTime = 0
 

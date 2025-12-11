@@ -109,6 +109,12 @@ public enum EnrichmentEvent: Equatable, Sendable {
     case csvImportProgress(CSVImportProgress)
     case csvImportCompleted(CSVImportCompleted)
     case csvImportFailed(CSVImportFailed)
+    // V3 scan event types (unprefixed events from backend)
+    case v3ScanInitialized(V3ScanInitialized)
+    case v3ScanProgress(V3ScanProgress)
+    case v3ScanCompleted(V3ScanCompleted)
+    case v3ScanFailed(V3ScanFailed)
+    case v3Ping(V3Ping)
 }
 
 // MARK: - CSV Import Progress (SSE Payloads)
@@ -281,6 +287,153 @@ public enum PhotoScanSSEEvent: Equatable, Sendable {
     case progress(PhotoScanSSEProgress)
     case completed(PhotoScanSSECompleted)
     case failed(PhotoScanSSEFailed)
+}
+
+// MARK: - V3 Scan SSE Events (Actual Backend Format)
+
+/// V3 scan initialized event (event: "initialized")
+/// Sent immediately when SSE connection is established
+public struct V3ScanInitialized: Codable, Equatable, Sendable {
+    public let jobId: String
+    public let status: String           // "initialized"
+    public let progress: Double         // 0
+    public let processedCount: Int      // 0
+    public let totalCount: Int          // Number of photos
+    public let timestamp: String
+
+    public init(
+        jobId: String,
+        status: String,
+        progress: Double,
+        processedCount: Int,
+        totalCount: Int,
+        timestamp: String
+    ) {
+        self.jobId = jobId
+        self.status = status
+        self.progress = progress
+        self.processedCount = processedCount
+        self.totalCount = totalCount
+        self.timestamp = timestamp
+    }
+}
+
+/// V3 scan progress event (event: "progress")
+/// Sent during photo processing (10-50%) and enrichment (50-95%)
+/// Note: Backend may send varying fields - all numeric fields made optional for resilience
+public struct V3ScanProgress: Codable, Equatable, Sendable {
+    public let jobId: String
+    public let status: String           // "processing"
+    public let progress: Double?        // 0.0 - 1.0 (optional - backend may omit)
+    public let processedCount: Int?     // Optional - backend may omit
+    public let totalCount: Int?         // Optional - backend may omit
+    public let timestamp: String?       // Optional - backend may omit
+    public let message: String?         // Human-readable progress message from backend
+
+    public init(
+        jobId: String,
+        status: String,
+        progress: Double? = nil,
+        processedCount: Int? = nil,
+        totalCount: Int? = nil,
+        timestamp: String? = nil,
+        message: String? = nil
+    ) {
+        self.jobId = jobId
+        self.status = status
+        self.progress = progress
+        self.processedCount = processedCount
+        self.totalCount = totalCount
+        self.timestamp = timestamp
+        self.message = message
+    }
+}
+
+/// V3 scan completed event (event: "completed")
+/// Sent when job finishes with inline results
+public struct V3ScanCompleted: Codable, Equatable, Sendable {
+    public let jobId: String
+    public let status: String           // "completed"
+    public let results: [V3ScanBookResult]
+    public let timestamp: String
+
+    public init(
+        jobId: String,
+        status: String,
+        results: [V3ScanBookResult],
+        timestamp: String
+    ) {
+        self.jobId = jobId
+        self.status = status
+        self.results = results
+        self.timestamp = timestamp
+    }
+}
+
+/// Individual book result from V3 scan
+public struct V3ScanBookResult: Codable, Equatable, Sendable {
+    public let title: String
+    public let author: String?
+    public let isbn: String?
+    public let confidence: Double       // 0.0 - 1.0
+    public let enrichmentStatus: String // "success", "partial", "failed"
+    public let coverUrl: String?
+    public let publisher: String?
+    public let publicationYear: Int?
+
+    public init(
+        title: String,
+        author: String? = nil,
+        isbn: String? = nil,
+        confidence: Double,
+        enrichmentStatus: String,
+        coverUrl: String? = nil,
+        publisher: String? = nil,
+        publicationYear: Int? = nil
+    ) {
+        self.title = title
+        self.author = author
+        self.isbn = isbn
+        self.confidence = confidence
+        self.enrichmentStatus = enrichmentStatus
+        self.coverUrl = coverUrl
+        self.publisher = publisher
+        self.publicationYear = publicationYear
+    }
+}
+
+/// V3 scan failed event (event: "failed")
+public struct V3ScanFailed: Codable, Equatable, Sendable {
+    public let jobId: String
+    public let error: V3ScanError
+    public let timestamp: String
+
+    public init(jobId: String, error: V3ScanError, timestamp: String) {
+        self.jobId = jobId
+        self.error = error
+        self.timestamp = timestamp
+    }
+}
+
+/// V3 scan error details
+public struct V3ScanError: Codable, Equatable, Sendable {
+    public let code: String             // "E_ALARM_PROCESSING_FAILED"
+    public let message: String
+
+    public init(code: String, message: String) {
+        self.code = code
+        self.message = message
+    }
+}
+
+/// V3 ping event (event: "ping")
+/// Heartbeat sent every 30s to keep connection alive
+public struct V3Ping: Codable, Equatable, Sendable {
+    public let timestamp: String
+
+    public init(timestamp: String) {
+        self.timestamp = timestamp
+    }
 }
 
 // MARK: - Legacy Support for GeminiCSVImport
