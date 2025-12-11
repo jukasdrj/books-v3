@@ -403,13 +403,16 @@ public struct V3ScanBookResult: Codable, Equatable, Sendable {
 }
 
 /// V3 scan failed event (event: "failed")
+/// Note: Backend may omit timestamp field - made optional for resilience
 public struct V3ScanFailed: Codable, Equatable, Sendable {
     public let jobId: String
+    public let status: String?          // "failed" - optional for backward compat
     public let error: V3ScanError
-    public let timestamp: String
+    public let timestamp: String?       // Optional - backend may omit
 
-    public init(jobId: String, error: V3ScanError, timestamp: String) {
+    public init(jobId: String, status: String? = "failed", error: V3ScanError, timestamp: String? = nil) {
         self.jobId = jobId
+        self.status = status
         self.error = error
         self.timestamp = timestamp
     }
