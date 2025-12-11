@@ -351,22 +351,35 @@ public struct V3ScanProgress: Codable, Equatable, Sendable {
 
 /// V3 scan completed event (event: "completed")
 /// Sent when job finishes with inline results
+/// Backend format: { jobId, status, progress, processedCount, totalCount, completedAt, books[] }
 public struct V3ScanCompleted: Codable, Equatable, Sendable {
     public let jobId: String
     public let status: String           // "completed"
-    public let results: [V3ScanBookResult]
-    public let timestamp: String
+    public let progress: Int?           // 100 when complete
+    public let processedCount: Int?
+    public let totalCount: Int?
+    public let completedAt: String?     // ISO8601 timestamp
+    public let books: [V3ScanBookResult]
+
+    /// Convenience accessor for backward compatibility
+    public var results: [V3ScanBookResult] { books }
 
     public init(
         jobId: String,
         status: String,
-        results: [V3ScanBookResult],
-        timestamp: String
+        progress: Int? = 100,
+        processedCount: Int? = nil,
+        totalCount: Int? = nil,
+        completedAt: String? = nil,
+        books: [V3ScanBookResult]
     ) {
         self.jobId = jobId
         self.status = status
-        self.results = results
-        self.timestamp = timestamp
+        self.progress = progress
+        self.processedCount = processedCount
+        self.totalCount = totalCount
+        self.completedAt = completedAt
+        self.books = books
     }
 }
 
@@ -376,6 +389,7 @@ public struct V3ScanBookResult: Codable, Equatable, Sendable {
     public let author: String?
     public let isbn: String?
     public let confidence: Double       // 0.0 - 1.0
+    public let boundingBox: V3BoundingBox?  // Position in image
     public let enrichmentStatus: String // "success", "partial", "failed"
     public let coverUrl: String?
     public let publisher: String?
@@ -386,6 +400,7 @@ public struct V3ScanBookResult: Codable, Equatable, Sendable {
         author: String? = nil,
         isbn: String? = nil,
         confidence: Double,
+        boundingBox: V3BoundingBox? = nil,
         enrichmentStatus: String,
         coverUrl: String? = nil,
         publisher: String? = nil,
@@ -395,10 +410,26 @@ public struct V3ScanBookResult: Codable, Equatable, Sendable {
         self.author = author
         self.isbn = isbn
         self.confidence = confidence
+        self.boundingBox = boundingBox
         self.enrichmentStatus = enrichmentStatus
         self.coverUrl = coverUrl
         self.publisher = publisher
         self.publicationYear = publicationYear
+    }
+}
+
+/// Bounding box for book location in scanned image
+public struct V3BoundingBox: Codable, Equatable, Sendable {
+    public let x: Double
+    public let y: Double
+    public let width: Double
+    public let height: Double
+
+    public init(x: Double, y: Double, width: Double, height: Double) {
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
     }
 }
 

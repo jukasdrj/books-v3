@@ -446,13 +446,21 @@ actor BookshelfAIService {
         default: .detected
         }
 
+        // Convert V3 bounding box to CGRect if available
+        let boundingBox: CGRect
+        if let box = result.boundingBox {
+            boundingBox = CGRect(x: box.x, y: box.y, width: box.width, height: box.height)
+        } else {
+            boundingBox = .zero
+        }
+
         return DetectedBook(
             isbn: result.isbn,
             title: result.title,
             author: result.author,
             format: nil,
             confidence: result.confidence,
-            boundingBox: .zero,  // V3 doesn't include bounding box info
+            boundingBox: boundingBox,
             rawText: result.title,  // Use title as raw text since we don't have OCR text
             status: status,
             originalImagePath: nil  // Image path handled separately
