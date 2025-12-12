@@ -112,13 +112,33 @@ public final class EnrichmentService {
 
         do {
             let result = try await apiClient.startEnrichment(jobId: jobId, books: books)
-            
-            #if DEBUG
-            print("✅ Batch enrichment job accepted: \(result.totalCount) books queued for background processing")
-            #endif
-            
-            // HTTP 202 response indicates job acceptance, not completion
+
+            // Check if sync mode returned embedded books (batch ≤50 ISBNs)
+            if result.hasSyncResults, let embeddedBooks = result.embeddedBooks {
+                #if DEBUG
+                print("✅ Sync enrichment completed: \(result.processedCount)/\(result.totalCount) books enriched")
+                #endif
+
+                // Convert SyncEnrichedBook to EnrichedBookPayload for downstream processing
+                let enrichedPayloads = embeddedBooks.map { $0.toEnrichedBookPayload() }
+                let successCount = enrichedPayloads.filter { $0.success }.count
+                let failureCount = enrichedPayloads.filter { !$0.success }.count
+
+                return BatchEnrichmentResult(
+                    successCount: successCount,
+                    failureCount: failureCount,
+                    errors: [],
+                    token: nil,  // No WebSocket needed for sync mode
+                    embeddedBooks: enrichedPayloads
+                )
+            }
+
+            // Async mode: HTTP 202 response indicates job acceptance, not completion
             // Actual enrichment happens asynchronously via WebSocket
+            #if DEBUG
+            print("✅ Async enrichment job accepted: \(result.totalCount) books queued for background processing")
+            #endif
+
             // Return 0/0 to avoid confusing "Success: 0, Failed: 48" logs
             return BatchEnrichmentResult(
                 successCount: 0,  // Job accepted, enrichment pending (not complete)
@@ -170,19 +190,19 @@ public final class EnrichmentService {
     // MARK: - Private Methods
 
     private func searchAPI(title: String, author: String?) async throws -> EnrichmentSearchResponseFlat {
-        // V2 MIGRATION: Use unified search endpoint with query prefixes
+        // V3 API: Use unified search endpoint with query prefixes
         // Constructs query: "{title} author:{author}" for combined search
-        // Returns canonical ResponseEnvelope<BookSearchResponse> with WorkDTO, EditionDTO, AuthorDTO
+        // Returns V3SearchResponse with unified Book model (not separate works/editions/authors)
         var queryParts: [String] = [title]
         if let author = author, !author.isEmpty {
             queryParts.append("author:\(author)")
         }
         let query = queryParts.joined(separator: " ")
-        
+
         guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
             throw EnrichmentError.invalidURL
         }
-        
+
         let urlString = "\(baseURL)/v3/books/search?q=\(encodedQuery)&mode=text&limit=5"
         guard let url = URL(string: urlString) else {
             throw EnrichmentError.invalidURL
@@ -204,30 +224,20 @@ public final class EnrichmentService {
         }
         #endif
 
+        // V3 Search Response is already the full envelope
         let decoder = JSONDecoder()
-        let envelope = try decoder.decode(ResponseEnvelope<BookSearchResponse>.self, from: data)
+        let v3Response = try decoder.decode(V3SearchResponse.self, from: data)
 
-        // Parse canonical ResponseEnvelope
-        let transformedResults: [EnrichmentSearchResult]
-        let totalItems: Int
-
-        if let searchData = envelope.data {
-            // Create a map of work index to editions for correlation (1:1 mapping)
-            let editionsByIndex = Dictionary(uniqueKeysWithValues:
-                searchData.editions.enumerated().map { ($0, $1) }
-            )
-
-            // Transform canonical DTOs to EnrichmentSearchResults
-            transformedResults = searchData.works.enumerated().map { (index, workDTO) in
-                let edition = editionsByIndex[index]
-                return EnrichmentSearchResult(from: workDTO, edition: edition, authors: searchData.authors)
-            }
-            totalItems = searchData.totalResults ?? transformedResults.count
-        } else if let error = envelope.error {
-            throw EnrichmentError.apiError(error.message)
-        } else {
-            throw EnrichmentError.apiError("Invalid response: missing both data and error")
+        // Check for API error in V3 response
+        guard v3Response.success else {
+            throw EnrichmentError.apiError("V3 search returned failure")
         }
+
+        // Transform V3Book to EnrichmentSearchResult
+        let transformedResults: [EnrichmentSearchResult] = v3Response.data.books.map { v3Book in
+            EnrichmentSearchResult(from: v3Book)
+        }
+        let totalItems = v3Response.data.total
 
         return EnrichmentSearchResponseFlat(
             items: transformedResults,
@@ -508,7 +518,30 @@ public struct BatchEnrichmentResult: Sendable {
     public let successCount: Int
     public let failureCount: Int
     public let errors: [EnrichmentError]
-    public let token: String?  // WebSocket authentication token (nil on error)
+    public let token: String?  // WebSocket authentication token (nil on error, empty for sync mode)
+
+    /// Embedded enriched books from sync mode (batch ≤50 ISBNs)
+    /// When present, results are already available - no WebSocket needed
+    public let embeddedBooks: [EnrichedBookPayload]?
+
+    /// True if this result contains embedded books (sync mode completed)
+    public var hasSyncResults: Bool {
+        embeddedBooks != nil && !embeddedBooks!.isEmpty
+    }
+
+    public init(
+        successCount: Int,
+        failureCount: Int,
+        errors: [EnrichmentError],
+        token: String?,
+        embeddedBooks: [EnrichedBookPayload]? = nil
+    ) {
+        self.successCount = successCount
+        self.failureCount = failureCount
+        self.errors = errors
+        self.token = token
+        self.embeddedBooks = embeddedBooks
+    }
 }
 
 public struct EnrichmentStatistics: Sendable {
@@ -536,7 +569,21 @@ private struct EnrichmentSearchResult {
     let openLibraryWorkID: String?
     let googleBooksVolumeID: String?
 
-    /// Create from canonical WorkDTO + EditionDTO (v1 API response)
+    /// Create from V3Book (unified V3 API response)
+    init(from v3Book: V3Book) {
+        self.title = v3Book.title
+        self.author = v3Book.authors.first ?? "Unknown Author"
+        self.isbn = v3Book.isbn
+        self.coverImage = v3Book.coverUrl
+        self.publicationYear = Self.extractYear(from: v3Book.publishedDate)
+        self.publicationDate = v3Book.publishedDate
+        self.publisher = v3Book.publisher
+        self.pageCount = v3Book.pageCount
+        self.openLibraryWorkID = v3Book.workKey
+        self.googleBooksVolumeID = nil  // V3 doesn't expose Google Books ID directly
+    }
+
+    /// Create from canonical WorkDTO + EditionDTO (legacy V1/V2 API response)
     init(from workDTO: WorkDTO, edition: EditionDTO?, authors: [AuthorDTO]) {
         self.title = workDTO.title
         self.author = authors.first?.name ?? "Unknown Author"
@@ -548,6 +595,17 @@ private struct EnrichmentSearchResult {
         self.pageCount = edition?.pageCount
         self.openLibraryWorkID = workDTO.openLibraryWorkID
         self.googleBooksVolumeID = workDTO.googleBooksVolumeIDs.first ?? workDTO.googleBooksVolumeID
+    }
+
+    /// Extract year from publishedDate string (e.g., "2023-05-15" → 2023)
+    private static func extractYear(from publishedDate: String?) -> Int? {
+        guard let dateStr = publishedDate else { return nil }
+        let yearRegex = try? NSRegularExpression(pattern: #"(19|20)\d{2}"#)
+        if let match = yearRegex?.firstMatch(in: dateStr, range: NSRange(dateStr.startIndex..., in: dateStr)),
+           let range = Range(match.range, in: dateStr) {
+            return Int(dateStr[range])
+        }
+        return nil
     }
 }
 

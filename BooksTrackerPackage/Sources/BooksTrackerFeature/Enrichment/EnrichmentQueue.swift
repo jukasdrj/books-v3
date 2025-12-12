@@ -334,11 +334,83 @@ public final class EnrichmentQueue {
 
                             let enrichmentResult = await EnrichmentService.shared.batchEnrichWorks(batch, jobId: jobId, in: modelContext)
 
+                            // Handle V3 sync mode (batch ≤50 ISBNs) - results embedded directly
+                            if enrichmentResult.hasSyncResults, let embeddedBooks = enrichmentResult.embeddedBooks {
+                                #if DEBUG
+                                print("📖 [ENRICHMENT] Sync mode detected - applying \(embeddedBooks.count) embedded results directly")
+                                #endif
+
+                                // Apply enrichment data directly (same logic as WebSocket/title-search)
+                                let result = self.applyEnrichedData(embeddedBooks, in: modelContext)
+
+                                // Mark as complete
+                                self.activeEnrichments.subtract(batchWorkIDs)
+
+                                // Publish completion event for UI
+                                self.completionEvents.send(EnrichmentCompletionEvent(
+                                    bookIds: batchWorkIDs,
+                                    successCount: result.successCount,
+                                    failureCount: result.failureCount,
+                                    errors: result.errors,
+                                    timestamp: Date()
+                                ))
+
+                                #if DEBUG
+                                print("✅ [ENRICHMENT] Sync enrichment complete: \(result.successCount) succeeded, \(result.failureCount) failed")
+                                #endif
+
+                                continuation.resume()
+                                return
+                            }
+
                             guard let token = enrichmentResult.token, !token.isEmpty else {
                                 #if DEBUG
                                 print("⚠️ No authentication token available, skipping WebSocket connection")
                                 #endif
                                 continuation.resume(throwing: EnrichmentError.apiError("Failed to get enrichment token for batch \(index + 1). The backend may have rejected the request."))
+                                return
+                            }
+
+                            // Handle title-based search results (no WebSocket needed)
+                            // Token format: "title-search:{jobId}"
+                            if token.hasPrefix("title-search:") {
+                                let titleSearchJobId = String(token.dropFirst("title-search:".count))
+                                #if DEBUG
+                                print("📖 [ENRICHMENT] Title-based search detected, retrieving results from cache")
+                                #endif
+
+                                // Retrieve enrichment results from cache
+                                let enrichedBooks = await TitleSearchResultsCache.shared.retrieve(jobId: titleSearchJobId)
+
+                                if enrichedBooks.isEmpty {
+                                    #if DEBUG
+                                    print("⚠️ [ENRICHMENT] No cached results for title-search job: \(titleSearchJobId)")
+                                    #endif
+                                    self.activeEnrichments.subtract(batchWorkIDs)
+                                    continuation.resume(throwing: EnrichmentError.apiError("No results found for title-based search"))
+                                    return
+                                }
+
+                                // Apply enrichment data directly (same logic as WebSocket completion handler)
+                                let result = self.applyEnrichedData(enrichedBooks, in: modelContext)
+
+                                // Mark as complete
+                                self.activeEnrichments.subtract(batchWorkIDs)
+
+                                // Publish completion event for UI
+                                self.completionEvents.send(EnrichmentCompletionEvent(
+                                    bookIds: batchWorkIDs,
+                                    successCount: result.successCount,
+                                    failureCount: result.failureCount,
+                                    errors: result.errors,
+                                    timestamp: Date()
+                                ))
+
+                                #if DEBUG
+                                print("✅ [ENRICHMENT] Title-based enrichment complete: \(result.successCount) succeeded, \(result.failureCount) failed")
+                                #endif
+
+                                continuation.resume()
                                 return
                             }
 

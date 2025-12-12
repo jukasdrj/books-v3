@@ -52,13 +52,23 @@ actor EnrichmentAPIClient {
         @available(*, deprecated, message: "Use authToken instead. Removal: March 1, 2026")
         let token: String?  // Deprecated field, backward compatibility only
 
+        /// Embedded enriched books for sync mode (batch ≤50 ISBNs)
+        /// When present, bypass WebSocket and use these results directly
+        let embeddedBooks: [SyncEnrichedBook]?
+
+        /// True if this result contains embedded books (sync mode)
+        var hasSyncResults: Bool {
+            embeddedBooks != nil && !embeddedBooks!.isEmpty
+        }
+
         /// Memberwise initializer for programmatic construction (e.g., title-based search results)
-        init(success: Bool, processedCount: Int, totalCount: Int, authToken: String) {
+        init(success: Bool, processedCount: Int, totalCount: Int, authToken: String, embeddedBooks: [SyncEnrichedBook]? = nil) {
             self.success = success
             self.processedCount = processedCount
             self.totalCount = totalCount
             self.authToken = authToken
             self.token = nil  // Deprecated, not used for new instances
+            self.embeddedBooks = embeddedBooks
         }
 
         // Custom decoding to handle both authToken and token fields
@@ -92,6 +102,9 @@ actor EnrichmentAPIClient {
             } else {
                 token = nil
             }
+
+            // embeddedBooks is only present in programmatic construction, not from JSON
+            embeddedBooks = nil
         }
 
         private enum CodingKeys: String, CodingKey {
@@ -113,7 +126,169 @@ actor EnrichmentAPIClient {
                 success: true,
                 processedCount: 0,  // Job queued, not processed yet
                 totalCount: totalCount,
-                authToken: token
+                authToken: token,
+                embeddedBooks: nil
+            )
+        }
+    }
+
+    // MARK: - V3 Sync Enrichment Response (for batches ≤50 ISBNs)
+
+    /// Response structure for sync enrichment (HTTP 200, immediate results)
+    /// V3 API returns enriched books directly when batch ≤50 ISBNs
+    struct SyncEnrichmentResponse: Codable, Sendable {
+        let books: [SyncEnrichedBook]
+        let requested: Int
+        let found: Int
+        let notFound: [String]
+
+        /// Convert to standard EnrichmentResult with embedded books
+        func toEnrichmentResult() -> EnrichmentResult {
+            EnrichmentResult(
+                success: true,
+                processedCount: found,
+                totalCount: requested,
+                authToken: "",  // No WebSocket needed for sync mode
+                embeddedBooks: books
+            )
+        }
+    }
+
+    /// Enriched book from V3 sync response
+    /// Flattened structure matching backend's Book schema
+    struct SyncEnrichedBook: Codable, Sendable {
+        let isbn: String
+        let isbn10: String?
+        let title: String
+        let subtitle: String?
+        let authors: [String]
+        let publisher: PublisherValue?  // Can be string or array
+        let publishedDate: String?
+        let description: String?
+        let pageCount: Int?
+        let categories: [String]?
+        let language: String?
+        let coverUrl: String?
+        let thumbnailUrl: String?
+        let workKey: String?
+        let editionKey: String?
+        let provider: String
+        let quality: Double
+        let vectorized: Bool?
+
+        /// Publisher can be returned as either a String or [String] from backend
+        enum PublisherValue: Codable, Sendable {
+            case string(String)
+            case array([String])
+
+            init(from decoder: Decoder) throws {
+                let container = try decoder.singleValueContainer()
+                if let stringValue = try? container.decode(String.self) {
+                    self = .string(stringValue)
+                } else if let arrayValue = try? container.decode([String].self) {
+                    self = .array(arrayValue)
+                } else {
+                    self = .string("")  // Default to empty string if null
+                }
+            }
+
+            func encode(to encoder: Encoder) throws {
+                var container = encoder.singleValueContainer()
+                switch self {
+                case .string(let value):
+                    try container.encode(value)
+                case .array(let value):
+                    try container.encode(value)
+                }
+            }
+
+            /// Get first publisher value as String
+            var firstPublisher: String? {
+                switch self {
+                case .string(let value):
+                    return value.isEmpty ? nil : value
+                case .array(let values):
+                    return values.first
+                }
+            }
+        }
+
+        /// Convert to EnrichedBookPayload for downstream processing
+        func toEnrichedBookPayload() -> EnrichedBookPayload {
+            // Create EnrichedDataPayload from flat fields
+            let workDTO = WorkDTO(
+                title: title,
+                subjectTags: categories ?? [],
+                originalLanguage: language,
+                firstPublicationYear: nil,
+                description: description,
+                coverImageURL: coverUrl,
+                searchLinks: nil,
+                synthetic: nil,
+                primaryProvider: provider,
+                contributors: nil,
+                openLibraryID: nil,
+                openLibraryWorkID: workKey?.hasPrefix("OL") == true ? workKey : nil,
+                isbndbID: workKey?.hasPrefix("isbndb-") == true ? workKey?.replacingOccurrences(of: "isbndb-", with: "") : nil,
+                googleBooksVolumeID: nil,
+                goodreadsID: nil,
+                goodreadsWorkIDs: [],
+                amazonASINs: [],
+                librarythingIDs: [],
+                googleBooksVolumeIDs: [],
+                isbndbQuality: Int(quality),
+                reviewStatus: .verified
+            )
+
+            // Build ISBN array for EditionDTO
+            var isbnsArray: [String] = [isbn]
+            if let isbn10Value = isbn10 {
+                isbnsArray.append(isbn10Value)
+            }
+
+            let editionDTO = EditionDTO(
+                isbn: isbn,
+                isbns: isbnsArray,
+                title: title,
+                publisher: publisher?.firstPublisher,
+                publicationDate: publishedDate,
+                pageCount: pageCount,
+                format: .paperback,  // Default format
+                coverImageURL: coverUrl ?? thumbnailUrl,
+                editionTitle: subtitle,
+                language: language,
+                primaryProvider: provider,
+                openLibraryID: nil,
+                openLibraryEditionID: editionKey?.hasPrefix("OL") == true ? editionKey : nil,
+                isbndbID: editionKey?.hasPrefix("isbndb-") == true ? editionKey : nil,
+                googleBooksVolumeID: nil,
+                amazonASINs: [],
+                googleBooksVolumeIDs: [],
+                librarythingIDs: [],
+                isbndbQuality: Int(quality)
+            )
+
+            // Create author DTOs from string array
+            let authorDTOs = authors.map { authorName in
+                AuthorDTO(
+                    name: authorName,
+                    gender: .unknown
+                )
+            }
+
+            let enrichedData = EnrichedDataPayload(
+                work: workDTO,
+                edition: editionDTO,
+                authors: authorDTOs
+            )
+
+            return EnrichedBookPayload(
+                title: title,
+                author: authors.first,
+                isbn: isbn,
+                success: true,
+                error: nil,
+                enriched: enrichedData
             )
         }
     }
@@ -435,8 +610,12 @@ actor EnrichmentAPIClient {
             }
         }
 
+        // V3 API returns:
+        // - HTTP 200: Sync mode success (batch ≤50 ISBNs, async: false/nil)
+        // - HTTP 202: Async mode accepted (batch >50 ISBNs, async: true)
+        let expectedStatus = useAsyncMode ? 202 : 200
         guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 202 else {
+              httpResponse.statusCode == expectedStatus else {
             // Enhanced error logging for debugging enrichment failures
             let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
             #if DEBUG
@@ -480,7 +659,8 @@ actor EnrichmentAPIClient {
         }
 
         // Decode ResponseEnvelope and unwrap data
-        // Async mode returns different response structure (jobId + token instead of success/processedCount/totalCount)
+        // Async mode: { jobId, status, streamUrl, token } - requires WebSocket for results
+        // Sync mode: { books, requested, found, notFound } - results are embedded
         let result: EnrichmentResult
         do {
             if useAsyncMode {
@@ -492,11 +672,15 @@ actor EnrichmentAPIClient {
                 print("✅ Async enrichment job queued: jobId=\(asyncResult.jobId), token=\(asyncResult.token.prefix(8))..., streamUrl=\(asyncResult.streamUrl ?? "none")")
                 #endif
             } else {
-                // Sync mode: { success, processedCount, totalCount, authToken }
-                result = try data.decodeEnvelope(EnrichmentResult.self)
+                // V3 Sync: { books, requested, found, notFound } - results embedded directly
+                let syncResult = try data.decodeEnvelope(SyncEnrichmentResponse.self)
+                result = syncResult.toEnrichmentResult()
 
                 #if DEBUG
-                print("✅ Enrichment job accepted by backend: \(result.totalCount) books queued for async processing")
+                print("✅ Sync enrichment completed: \(syncResult.found)/\(syncResult.requested) books found, \(syncResult.notFound.count) not found")
+                if !syncResult.notFound.isEmpty {
+                    print("⚠️ ISBNs not found: \(syncResult.notFound.joined(separator: ", "))")
+                }
                 #endif
             }
         } catch let error as ResponseEnvelopeError {
