@@ -52,6 +52,15 @@ actor EnrichmentAPIClient {
         @available(*, deprecated, message: "Use authToken instead. Removal: March 1, 2026")
         let token: String?  // Deprecated field, backward compatibility only
 
+        /// Memberwise initializer for programmatic construction (e.g., title-based search results)
+        init(success: Bool, processedCount: Int, totalCount: Int, authToken: String) {
+            self.success = success
+            self.processedCount = processedCount
+            self.totalCount = totalCount
+            self.authToken = authToken
+            self.token = nil  // Deprecated, not used for new instances
+        }
+
         // Custom decoding to handle both authToken and token fields
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -90,6 +99,25 @@ actor EnrichmentAPIClient {
         }
     }
 
+    /// V3 Async Enrichment Response (for batches >50 ISBNs)
+    /// Returns jobId + token for SSE progress tracking instead of immediate results
+    struct AsyncEnrichmentResult: Codable, Sendable {
+        let jobId: String
+        let status: String  // "queued"
+        let streamUrl: String?
+        let token: String  // Auth token for SSE/WebSocket connection
+
+        /// Convert to standard EnrichmentResult for API compatibility
+        func toEnrichmentResult(totalCount: Int) -> EnrichmentResult {
+            EnrichmentResult(
+                success: true,
+                processedCount: 0,  // Job queued, not processed yet
+                totalCount: totalCount,
+                authToken: token
+            )
+        }
+    }
+
     /// Start enrichment job on backend with automatic retry for retryable errors
     /// Backend will push progress updates via WebSocket
     /// - Parameters:
@@ -97,40 +125,206 @@ actor EnrichmentAPIClient {
     ///   - books: Books to enrich
     ///   - retryConfig: Retry configuration (default: .default)
     /// - Returns: Enrichment result with final counts
-    /// - Note: Supports automatic fallback from /v3/books/enrich → /api/enrichment/batch if V3 endpoint unavailable (404/405/426/501)
+    /// - Note: Books with ISBNs use POST /v3/books/enrich; books without ISBNs use title-based search
     func startEnrichment(jobId: String, books: [Book], retryConfig: RetryConfiguration = .default) async throws -> EnrichmentResult {
-        // Use V3 API endpoint by default (Frontend Integration Guide)
-        // V1 endpoints sunset March 1, 2026
-        // Legacy /api endpoint available as fallback until backend v2.0 (January 2026)
-        // Feature flag available to disable V3 endpoint if needed via FeatureFlags.disableCanonicalEnrichment
-        let disableV3 = await FeatureFlags.shared.disableCanonicalEnrichment
+        // Split books into those with and without ISBNs
+        let booksWithISBN = books.filter { $0.isbn != nil && !$0.isbn!.isEmpty }
+        let booksWithoutISBN = books.filter { $0.isbn == nil || $0.isbn!.isEmpty }
 
-        let primaryEndpoint = disableV3 ? "/api/enrichment/batch" : "/v3/books/enrich"
-        let fallbackEndpoint = "/api/enrichment/batch"
+        #if DEBUG
+        print("[EnrichmentAPIClient] 📊 Books split: \(booksWithISBN.count) with ISBN, \(booksWithoutISBN.count) without ISBN")
+        #endif
 
-        // Wrap with retry logic - each retry attempt includes fallback logic
-        return try await retryWithBackoff(config: retryConfig) { [self] in
-            do {
-                return try await self.performEnrichment(endpoint: primaryEndpoint, jobId: jobId, books: books)
-            } catch let error as NSError where !disableV3 && Self.shouldFallbackToLegacy(statusCode: error.code) {
-                // Automatic fallback on endpoint-not-available errors (404, 405, 426, 501)
-                #if DEBUG
-                print("⚠️ [EnrichmentAPIClient] V3 endpoint failed with \(error.code), falling back to legacy: \(fallbackEndpoint)")
-                #endif
-
-                // Log fallback metric for observability
-                Self.logFallbackMetric(fromEndpoint: primaryEndpoint, toEndpoint: fallbackEndpoint, reason: "\(error.code)")
-
-                return try await self.performEnrichment(endpoint: fallbackEndpoint, jobId: jobId, books: books)
+        // If we have books with ISBNs, use the batch endpoint
+        if !booksWithISBN.isEmpty {
+            return try await retryWithBackoff(config: retryConfig) { [self] in
+                try await self.performEnrichment(endpoint: "/v3/books/enrich", jobId: jobId, books: booksWithISBN)
             }
         }
+
+        // If we only have books without ISBNs, use title-based search enrichment
+        if !booksWithoutISBN.isEmpty {
+            return try await enrichByTitleSearch(jobId: jobId, books: booksWithoutISBN, retryConfig: retryConfig)
+        }
+
+        // No books to enrich
+        throw NSError(
+            domain: "com.bookstrack.api",
+            code: 400,
+            userInfo: [NSLocalizedDescriptionKey: "No books provided for enrichment"]
+        )
     }
 
-    /// Determines if error warrants fallback to legacy endpoint
-    /// Fallback on: 404 (Not Found), 405 (Method Not Allowed), 426 (Upgrade Required), 501 (Not Implemented)
-    /// Do NOT fallback on: 4xx client errors (400, 401, 403, 422) or 5xx server errors (to avoid duplicate jobs)
-    private static func shouldFallbackToLegacy(statusCode: Int) -> Bool {
-        [404, 405, 426, 501].contains(statusCode)
+    /// Enrich books without ISBNs using title-based search via V3 search endpoint
+    /// - Parameters:
+    ///   - jobId: Unique job identifier for tracking
+    ///   - books: Books without ISBNs to enrich via title search
+    ///   - retryConfig: Retry configuration
+    /// - Returns: Enrichment result with counts and embedded enrichment data
+    private func enrichByTitleSearch(jobId: String, books: [Book], retryConfig: RetryConfiguration) async throws -> EnrichmentResult {
+        #if DEBUG
+        print("[EnrichmentAPIClient] 📖 Starting title-based enrichment for \(books.count) books without ISBNs")
+        #endif
+
+        var enrichedBooks: [EnrichedBookPayload] = []
+
+        for book in books {
+            do {
+                // Build search query: "title author:authorname"
+                var queryParts: [String] = [book.title]
+                if !book.author.isEmpty && book.author != "Unknown Author" {
+                    queryParts.append("author:\(book.author)")
+                }
+                let query = queryParts.joined(separator: " ")
+
+                guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+                      let url = URL(string: "\(baseURL)/v3/books/search?q=\(encodedQuery)&mode=text&limit=1") else {
+                    #if DEBUG
+                    print("[EnrichmentAPIClient] ⚠️ Invalid URL for title search: \(book.title)")
+                    #endif
+                    enrichedBooks.append(EnrichedBookPayload(
+                        title: book.title, author: book.author, isbn: nil,
+                        success: false, error: "Invalid search URL", enriched: nil
+                    ))
+                    continue
+                }
+
+                var request = URLRequest(url: url)
+                request.setValue("application/json", forHTTPHeaderField: "Accept")
+                request.setValue("ios-v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown")", forHTTPHeaderField: "X-Client-Version")
+                request.timeoutInterval = 15
+
+                let (data, response) = try await URLSession.shared.data(for: request)
+
+                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                    let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+                    #if DEBUG
+                    print("[EnrichmentAPIClient] ⚠️ Search failed for '\(book.title)': HTTP \(statusCode)")
+                    #endif
+                    enrichedBooks.append(EnrichedBookPayload(
+                        title: book.title, author: book.author, isbn: nil,
+                        success: false, error: "HTTP \(statusCode)", enriched: nil
+                    ))
+                    continue
+                }
+
+                // V3 Search Response is already the full envelope (not wrapped)
+                let searchResponse = try JSONDecoder().decode(V3SearchResponse.self, from: data)
+
+                // Check for API error in V3 response
+                guard searchResponse.success else {
+                    #if DEBUG
+                    print("[EnrichmentAPIClient] ⚠️ V3 search failed for '\(book.title)'")
+                    #endif
+                    enrichedBooks.append(EnrichedBookPayload(
+                        title: book.title, author: book.author, isbn: nil,
+                        success: false, error: "Search returned failure", enriched: nil
+                    ))
+                    continue
+                }
+
+                if let v3Book = searchResponse.data.books.first {
+                    // Found a match - convert V3Book to canonical DTOs for EnrichedDataPayload
+                    // This maintains compatibility with existing enrichment pipeline
+                    let workDTO = WorkDTO(
+                        title: v3Book.title,
+                        subjectTags: v3Book.categories ?? [],
+                        originalLanguage: v3Book.language,
+                        firstPublicationYear: Self.extractYear(from: v3Book.publishedDate),
+                        description: v3Book.description,
+                        coverImageURL: v3Book.coverUrl,
+                        openLibraryWorkID: v3Book.workKey,
+                        goodreadsWorkIDs: [],
+                        amazonASINs: [],
+                        librarythingIDs: [],
+                        googleBooksVolumeIDs: [],
+                        isbndbQuality: Int(v3Book.quality),
+                        reviewStatus: .verified
+                    )
+
+                    let editionDTO = EditionDTO(
+                        isbn: v3Book.isbn,
+                        isbns: [v3Book.isbn],
+                        title: v3Book.title,
+                        publisher: v3Book.publisher,
+                        publicationDate: v3Book.publishedDate,
+                        pageCount: v3Book.pageCount,
+                        format: .paperback,  // Default - V3 doesn't expose format
+                        coverImageURL: v3Book.coverUrl,
+                        editionDescription: v3Book.description,
+                        language: v3Book.language,
+                        openLibraryEditionID: v3Book.editionKey,
+                        amazonASINs: [],
+                        googleBooksVolumeIDs: [],
+                        librarythingIDs: [],
+                        isbndbQuality: Int(v3Book.quality)
+                    )
+
+                    let authorDTOs = v3Book.authors.map { name in
+                        AuthorDTO(name: name, gender: .unknown)
+                    }
+
+                    let enrichedData = EnrichedDataPayload(
+                        work: workDTO,
+                        edition: editionDTO,
+                        authors: authorDTOs
+                    )
+
+                    enrichedBooks.append(EnrichedBookPayload(
+                        title: book.title,
+                        author: book.author,
+                        isbn: v3Book.isbn,
+                        success: true,
+                        error: nil,
+                        enriched: enrichedData
+                    ))
+
+                    #if DEBUG
+                    print("[EnrichmentAPIClient] ✅ Found match for '\(book.title)': \(v3Book.title)")
+                    #endif
+                } else {
+                    #if DEBUG
+                    print("[EnrichmentAPIClient] ⚠️ No match found for '\(book.title)'")
+                    #endif
+                    enrichedBooks.append(EnrichedBookPayload(
+                        title: book.title, author: book.author, isbn: nil,
+                        success: false, error: "No match found", enriched: nil
+                    ))
+                }
+
+                // Small delay between requests to avoid rate limiting
+                if enrichedBooks.count < books.count {
+                    try await Task.sleep(for: .milliseconds(100))
+                }
+
+            } catch {
+                #if DEBUG
+                print("[EnrichmentAPIClient] ⚠️ Error searching for '\(book.title)': \(error.localizedDescription)")
+                #endif
+                enrichedBooks.append(EnrichedBookPayload(
+                    title: book.title, author: book.author, isbn: nil,
+                    success: false, error: error.localizedDescription, enriched: nil
+                ))
+            }
+        }
+
+        let successCount = enrichedBooks.filter { $0.success }.count
+
+        #if DEBUG
+        print("[EnrichmentAPIClient] 📊 Title-based enrichment complete: \(successCount)/\(books.count) matched")
+        #endif
+
+        // Store enriched data in TitleSearchResultsCache for retrieval by EnrichmentQueue
+        await TitleSearchResultsCache.shared.store(jobId: jobId, results: enrichedBooks)
+
+        // Return result with marker token indicating title-based search was used
+        // EnrichmentQueue will detect this and retrieve data from TitleSearchResultsCache
+        return EnrichmentResult(
+            success: successCount > 0,
+            processedCount: enrichedBooks.count,
+            totalCount: books.count,
+            authToken: "title-search:\(jobId)"  // Marker token with job ID for cache retrieval
+        )
     }
 
     /// Log fallback event for observability (sends to console in DEBUG, ready for analytics integration)
@@ -159,12 +353,68 @@ actor EnrichmentAPIClient {
         request.setValue("ios-v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown")", forHTTPHeaderField: "X-Client-Version")
         request.timeoutInterval = 30  // 30 second timeout for POST request
 
-        let payload = BatchEnrichmentPayload(books: books, jobId: jobId)
-        request.httpBody = try JSONEncoder().encode(payload)
+        // Track async mode for response decoding
+        var useAsyncMode = false
+        var isbnCount = 0
 
-        #if DEBUG
-        print("[EnrichmentAPIClient] 📤 Sending POST to \(endpoint) (jobId: \(jobId), books: \(books.count))")
-        #endif
+        // V3 API requires isbns array format; legacy API uses books array format
+        if endpoint.hasPrefix("/v3/") {
+            // V3 format: extract and clean ISBNs from books
+            // - Removes hyphens/spaces
+            // - Converts ISBN-10 with 'X' suffix to ISBN-13
+            // - Filters out invalid formats (must be 10 or 13 digits)
+            // Backend regex: /^\d{10}(\d{3})?$/ - only accepts digits
+            let allIsbns = books.compactMap { $0.isbn }.filter { !$0.isEmpty }
+            let cleanedIsbns = allIsbns.compactMap { ISBNValidator.cleanForAPI($0) }
+
+            #if DEBUG
+            let skippedCount = allIsbns.count - cleanedIsbns.count
+            if skippedCount > 0 {
+                let invalidIsbns = allIsbns.filter { ISBNValidator.cleanForAPI($0) == nil }
+                print("[EnrichmentAPIClient] ⚠️ Skipping \(skippedCount) invalid ISBNs: \(invalidIsbns)")
+            }
+            // Log any ISBN-10→13 conversions
+            let convertedIsbns = zip(allIsbns, cleanedIsbns).filter { original, cleaned in
+                let originalClean = original.filter { $0.isNumber || $0.uppercased() == "X" }
+                return originalClean.count == 10 && cleaned.count == 13
+            }
+            if !convertedIsbns.isEmpty {
+                print("[EnrichmentAPIClient] 🔄 Converted \(convertedIsbns.count) ISBN-10 to ISBN-13")
+            }
+            #endif
+
+            let validIsbns = cleanedIsbns
+            isbnCount = validIsbns.count
+
+            guard !validIsbns.isEmpty else {
+                // No valid ISBNs - cannot use V3 enrichment
+                // Fall back to title-based search instead
+                throw NSError(
+                    domain: "com.bookstrack.api",
+                    code: 400,
+                    userInfo: [NSLocalizedDescriptionKey: "No valid ISBNs available for V3 enrichment. Books without ISBNs require title-based search."]
+                )
+            }
+
+            // V3 format: isbns array + jobId in header
+            // Use async mode for batches >50 ISBNs (V3 API limit for sync mode)
+            useAsyncMode = validIsbns.count > 50
+            let v3Payload = V3EnrichRequest(isbns: validIsbns, includeEmbedding: false, async: useAsyncMode ? true : nil)
+            request.httpBody = try JSONEncoder().encode(v3Payload)
+            request.setValue(jobId, forHTTPHeaderField: "X-Job-ID")
+
+            #if DEBUG
+            print("[EnrichmentAPIClient] 📤 Sending V3 POST to \(endpoint) (jobId: \(jobId), isbns: \(validIsbns.count), async: \(useAsyncMode))")
+            #endif
+        } else {
+            // Legacy format: books array with title/author/isbn
+            let payload = BatchEnrichmentPayload(books: books, jobId: jobId)
+            request.httpBody = try JSONEncoder().encode(payload)
+
+            #if DEBUG
+            print("[EnrichmentAPIClient] 📤 Sending legacy POST to \(endpoint) (jobId: \(jobId), books: \(books.count))")
+            #endif
+        }
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -230,9 +480,25 @@ actor EnrichmentAPIClient {
         }
 
         // Decode ResponseEnvelope and unwrap data
+        // Async mode returns different response structure (jobId + token instead of success/processedCount/totalCount)
         let result: EnrichmentResult
         do {
-            result = try data.decodeEnvelope(EnrichmentResult.self)
+            if useAsyncMode {
+                // V3 Async: { jobId, status: "queued", streamUrl, token }
+                let asyncResult = try data.decodeEnvelope(AsyncEnrichmentResult.self)
+                result = asyncResult.toEnrichmentResult(totalCount: isbnCount)
+
+                #if DEBUG
+                print("✅ Async enrichment job queued: jobId=\(asyncResult.jobId), token=\(asyncResult.token.prefix(8))..., streamUrl=\(asyncResult.streamUrl ?? "none")")
+                #endif
+            } else {
+                // Sync mode: { success, processedCount, totalCount, authToken }
+                result = try data.decodeEnvelope(EnrichmentResult.self)
+
+                #if DEBUG
+                print("✅ Enrichment job accepted by backend: \(result.totalCount) books queued for async processing")
+                #endif
+            }
         } catch let error as ResponseEnvelopeError {
             if case .apiError(let code, let message, let details) = error {
                 #if DEBUG
@@ -256,10 +522,6 @@ actor EnrichmentAPIClient {
                 throw error
             }
         }
-
-        #if DEBUG
-        print("✅ Enrichment job accepted by backend: \(result.totalCount) books queued for async processing")
-        #endif
 
         return result
     }
@@ -331,6 +593,20 @@ actor EnrichmentAPIClient {
         #endif
 
         return result
+    }
+
+    // MARK: - Helper Methods
+
+    /// Extract year from V3 publishedDate string (e.g., "2023-05-15" → 2023)
+    private static func extractYear(from publishedDate: String?) -> Int? {
+        guard let dateStr = publishedDate else { return nil }
+        // Try to extract year from various formats: "2023", "2023-05-15", "May 2023"
+        let yearRegex = try? NSRegularExpression(pattern: #"(19|20)\d{2}"#)
+        if let match = yearRegex?.firstMatch(in: dateStr, range: NSRange(dateStr.startIndex..., in: dateStr)),
+           let range = Range(match.range, in: dateStr) {
+            return Int(dateStr[range])
+        }
+        return nil
     }
 
     // MARK: - Retry Logic with Exponential Backoff

@@ -529,23 +529,26 @@ class ScanResultsModel {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         
         // Pre-filter Works by title at database level (performance optimization)
+        // NOTE: Cannot use .isEmpty on relationships in predicates - causes KVC @count crash
         let predicate = #Predicate<Work> { work in
-            work.title.localizedStandardContains(title) && 
-            (work.userLibraryEntries?.isEmpty == false)
+            work.title.localizedStandardContains(title)
         }
         let descriptor = FetchDescriptor<Work>(predicate: predicate)
-        
+
         guard let candidates = try? modelContext.fetch(descriptor) else {
             return false
         }
-        
+
+        // Filter to only works with library entries (must be in-memory to avoid KVC crash)
+        let libraryWorks = candidates.filter { !($0.userLibraryEntries?.isEmpty ?? true) }
+
         // Perform precise in-memory matching on reduced candidate set
         let detectedAuthor = author
             .folding(options: .diacriticInsensitive, locale: Locale.current)
             .lowercased()
             .trimmingCharacters(in: .whitespacesAndNewlines)
         
-        return candidates.contains { work in
+        return libraryWorks.contains { work in
             let workTitle = work.title
                 .folding(options: .diacriticInsensitive, locale: Locale.current)
                 .lowercased()

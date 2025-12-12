@@ -105,8 +105,9 @@ public final class DuplicateDetectionService {
 
         // Pre-filter Works by title at the database level to reduce candidates.
         // This is a significant performance optimization over fetching all library entries.
+        // NOTE: Cannot use .isEmpty on relationships in predicates - causes KVC @count crash
         let predicate = #Predicate<Work> { work in
-            work.title.localizedStandardContains(normalizedTitle) && (work.userLibraryEntries?.isEmpty == false)
+            work.title.localizedStandardContains(normalizedTitle)
         }
         let descriptor = FetchDescriptor<Work>(predicate: predicate)
 
@@ -114,8 +115,11 @@ public final class DuplicateDetectionService {
             return nil
         }
 
+        // Filter to only works with library entries (must be in-memory to avoid KVC crash)
+        let libraryWorks = candidates.filter { !($0.userLibraryEntries?.isEmpty ?? true) }
+
         // Perform final, more precise filtering in-memory on the smaller candidate set.
-        let matchedWork = candidates.first { entryWork in
+        let matchedWork = libraryWorks.first { entryWork in
             guard let entryFirstAuthor = entryWork.authors?.first else {
                 return false
             }

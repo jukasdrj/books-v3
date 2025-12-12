@@ -248,23 +248,23 @@ public class LibraryRepository {
         }
 
         // PERFORMANCE: Database-level predicate filtering (single query)
+        // NOTE: Cannot use .isEmpty on relationships in predicates - causes KVC @count crash
+        // Filter for library membership in-memory instead
         let descriptor = FetchDescriptor<Work>(
             predicate: #Predicate { work in
-                // Condition 1: Work must be in user's library
-                (work.userLibraryEntries?.isEmpty == false) &&
-                (
-                    // Condition 2: Search title (case-insensitive)
-                    work.title.localizedStandardContains(query) ||
-                    // Condition 3: Search author names (case-insensitive)
-                    (work.authors?.contains(where: { author in
-                        author.name.localizedStandardContains(query)
-                    }) ?? false)
-                )
+                // Search title (case-insensitive)
+                work.title.localizedStandardContains(query) ||
+                // Search author names (case-insensitive)
+                (work.authors?.contains(where: { author in
+                    author.name.localizedStandardContains(query)
+                }) ?? false)
             },
             sortBy: [SortDescriptor(\.title)]
         )
 
-        return try modelContext.fetch(descriptor)
+        let results = try modelContext.fetch(descriptor)
+        // Filter to only works in user's library (must be in-memory to avoid KVC crash)
+        return results.filter { !($0.userLibraryEntries?.isEmpty ?? true) }
     }
 
     // MARK: - Quick Filters
@@ -304,14 +304,12 @@ public class LibraryRepository {
     public func fetchUserLibraryForList() throws -> [Work] {
         // PERFORMANCE: Fetch Work objects directly with database-level sorting
         // to avoid N+1 query problem from in-memory sorting on faulted properties.
+        // NOTE: Cannot use .isEmpty on relationships in predicates - causes KVC @count crash
+        // Fetch all works and filter in-memory instead
         var descriptor = FetchDescriptor<Work>(
-            predicate: #Predicate { work in
-                // Filter for works that are part of the user's library
-                work.userLibraryEntries?.isEmpty == false
-            },
             sortBy: [SortDescriptor(\.lastModified, order: .reverse)]
         )
-        
+
         // SELECTIVE LOADING: Only fetch properties needed for list cards
         // This reduces memory by ~70% compared to full object loading
         // Relationships (work.authors, work.editions) will fault on access
@@ -323,7 +321,9 @@ public class LibraryRepository {
         ]
         
         // Fetching Work directly handles deduplication automatically
-        return try modelContext.fetch(descriptor)
+        let allWorks = try modelContext.fetch(descriptor)
+        // Filter to only works in user's library (must be in-memory to avoid KVC crash)
+        return allWorks.filter { !($0.userLibraryEntries?.isEmpty ?? true) }
     }
 
     /// Fetches single work for detail view (full data).
@@ -368,10 +368,8 @@ public class LibraryRepository {
     /// - Throws: `SwiftDataError` if query fails
     public func fetchUserLibraryForListDTO() throws -> [ListWorkDTO] {
         // PERFORMANCE: Use efficient fetch strategy with database-level sorting
+        // NOTE: Cannot use .isEmpty on relationships in predicates - causes KVC @count crash
         var descriptor = FetchDescriptor<Work>(
-            predicate: #Predicate { work in
-                work.userLibraryEntries?.isEmpty == false
-            },
             sortBy: [SortDescriptor(\.lastModified, order: .reverse)]
         )
 
@@ -384,7 +382,9 @@ public class LibraryRepository {
         ]
 
         let works = try modelContext.fetch(descriptor)
-        return works.map { ListWorkDTO.from($0) }
+        // Filter to only works in user's library (must be in-memory to avoid KVC crash)
+        let libraryWorks = works.filter { !($0.userLibraryEntries?.isEmpty ?? true) }
+        return libraryWorks.map { ListWorkDTO.from($0) }
     }
 
     // MARK: - Statistics
@@ -399,12 +399,12 @@ public class LibraryRepository {
     /// - Throws: `SwiftDataError` if query fails
     public func totalBooksCount() throws -> Int {
         // Count unique Works (not entries - user may own hardcover + ebook of same book)
-        // PERFORMANCE: Uses fetchCount() - no object materialization, still very fast
-        let descriptor = FetchDescriptor<Work>(predicate: #Predicate {
-            // Only count works that have at least one library entry
-            !($0.userLibraryEntries?.isEmpty ?? true)
-        })
-        return try modelContext.fetchCount(descriptor)
+        // NOTE: Cannot use .isEmpty on relationships in predicates - causes KVC @count crash
+        // Must fetch all works and filter in-memory
+        let descriptor = FetchDescriptor<Work>()
+        let allWorks = try modelContext.fetch(descriptor)
+        // Filter to only works in user's library (must be in-memory to avoid KVC crash)
+        return allWorks.filter { !($0.userLibraryEntries?.isEmpty ?? true) }.count
     }
 
     /// Calculates completion rate (read books / total books).
@@ -487,16 +487,14 @@ public class LibraryRepository {
             worksWithAuthors = providedWorks
         } else {
             // Fetch with relationship prefetching to avoid N+1 query
-            var descriptor = FetchDescriptor<Work>(
-                predicate: #Predicate { work in
-                    // Only works in user's library
-                    work.userLibraryEntries?.isEmpty == false
-                }
-            )
+            // NOTE: Cannot use .isEmpty on relationships in predicates - causes KVC @count crash
+            var descriptor = FetchDescriptor<Work>()
             // CRITICAL: Prefetch authors relationship in single query
             descriptor.relationshipKeyPathsForPrefetching = [\.authors]
 
-            worksWithAuthors = try modelContext.fetch(descriptor)
+            let allWorks = try modelContext.fetch(descriptor)
+            // Filter to only works in user's library (must be in-memory to avoid KVC crash)
+            worksWithAuthors = allWorks.filter { !($0.userLibraryEntries?.isEmpty ?? true) }
         }
 
         // Extract all authors (now prefetched, no additional queries)

@@ -18,6 +18,74 @@ public struct ISBNValidator {
         case invalid(String)
     }
 
+    /// Quick format check for ISBN (10 or 13 digits only, no checksum validation).
+    /// Use this for filtering before API calls to avoid batch failures.
+    /// Backend regex: /^\d{10}(\d{3})?$/
+    /// - Note: ISBN-10 can end with 'X' (represents 10), which is handled by cleanForAPI()
+    public static func isValidFormat(_ rawValue: String) -> Bool {
+        let cleanValue = rawValue.uppercased().filter { $0.isNumber || $0 == "X" }
+        // ISBN-10: 10 chars (last can be X), ISBN-13: 13 digits
+        if cleanValue.count == 10 {
+            // ISBN-10: first 9 must be digits, last can be digit or X
+            let first9 = cleanValue.prefix(9)
+            return first9.allSatisfy { $0.isNumber }
+        } else if cleanValue.count == 13 {
+            // ISBN-13: all 13 must be digits
+            return cleanValue.allSatisfy { $0.isNumber }
+        }
+        return false
+    }
+
+    /// Cleans ISBN for API submission (removes hyphens/spaces, converts ISBN-10 with X to ISBN-13).
+    /// Backend only accepts digits: /^\d{10}(\d{3})?$/
+    /// - Returns: Cleaned ISBN string ready for API, or nil if invalid format
+    public static func cleanForAPI(_ rawValue: String) -> String? {
+        let cleanValue = rawValue.uppercased().filter { $0.isNumber || $0 == "X" }
+
+        if cleanValue.count == 13 && cleanValue.allSatisfy({ $0.isNumber }) {
+            // Valid ISBN-13: return as-is
+            return cleanValue
+        } else if cleanValue.count == 10 {
+            let first9 = cleanValue.prefix(9)
+            guard first9.allSatisfy({ $0.isNumber }) else { return nil }
+
+            let lastChar = cleanValue.last!
+            if lastChar == "X" {
+                // ISBN-10 ending in X: convert to ISBN-13
+                // Formula: prepend 978, recalculate check digit
+                return convertISBN10ToISBN13(String(cleanValue))
+            } else if lastChar.isNumber {
+                // Valid ISBN-10 with digit ending: return as-is
+                return cleanValue
+            }
+        }
+        return nil
+    }
+
+    /// Converts ISBN-10 to ISBN-13 format.
+    /// Prepends "978" and recalculates the check digit.
+    private static func convertISBN10ToISBN13(_ isbn10: String) -> String? {
+        guard isbn10.count == 10 else { return nil }
+
+        // Take first 9 digits of ISBN-10, prepend 978
+        let first9 = isbn10.prefix(9)
+        guard first9.allSatisfy({ $0.isNumber }) else { return nil }
+
+        let isbn13Base = "978" + first9
+
+        // Calculate ISBN-13 check digit
+        let digits = isbn13Base.compactMap { Int(String($0)) }
+        guard digits.count == 12 else { return nil }
+
+        var sum = 0
+        for i in 0..<12 {
+            sum += digits[i] * (i % 2 == 0 ? 1 : 3)
+        }
+        let checkDigit = (10 - (sum % 10)) % 10
+
+        return isbn13Base + String(checkDigit)
+    }
+
     /// Cleans and validates an ISBN-10 or ISBN-13 string.
     public static func validate(_ rawValue: String) -> ValidationResult {
         // 1. Clean the input
