@@ -4,10 +4,8 @@ struct WeeklyPicksView: View {
     @State private var recommendationsResponse: WeeklyRecommendationsResponse?
     @State private var isLoading = true
     @State private var errorMessage: String?
-    @State private var selectedBook: SearchResult?
 
     private let recommendationsService: WeeklyRecommendationsService
-    @Environment(SearchModel.self) private var searchModel: SearchModel
 
     private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -20,54 +18,45 @@ struct WeeklyPicksView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(alignment: .leading) {
-                Text("Weekly Picks")
-                    .font(.headline)
-                    .padding(.horizontal)
+        VStack(alignment: .leading) {
+            Text("Weekly Picks")
+                .font(.headline)
+                .padding(.horizontal)
 
-                if isLoading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, minHeight: 200)
-                } else if let errorMessage = errorMessage {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
-                        .padding()
-                        .frame(maxWidth: .infinity, minHeight: 200)
-                } else if let recommendationsResponse = recommendationsResponse {
-                    VStack(alignment: .leading, spacing: 4) {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 16) {
-                                ForEach(recommendationsResponse.books) { book in
-                                    Button(action: {
-                                        Task {
-                                            selectedBook = await searchModel.searchByISBNForNavigation(book.isbn)
-                                        }
-                                    }) {
-                                        BookRecommendationCard(book: book)
-                                    }
-                                    .buttonStyle(.plain)
+            if isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, minHeight: 200)
+            } else if let errorMessage = errorMessage {
+                Text(errorMessage)
+                    .foregroundColor(.red)
+                    .padding()
+                    .frame(maxWidth: .infinity, minHeight: 200)
+            } else if let recommendationsResponse = recommendationsResponse {
+                VStack(alignment: .leading, spacing: 4) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 16) {
+                            ForEach(recommendationsResponse.books) { book in
+                                NavigationLink(value: book) {
+                                    BookRecommendationCard(book: book)
                                 }
+                                .buttonStyle(.plain)
                             }
-                            .padding(.horizontal)
                         }
-
-                        Text("Next refresh on \(recommendationsResponse.nextRefresh, formatter: Self.dateFormatter)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal)
+                        .padding(.horizontal)
                     }
+
+                    Text("Next refresh on \(recommendationsResponse.nextRefresh, formatter: Self.dateFormatter)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal)
                 }
             }
-            .task {
-                await loadRecommendations()
-            }
-            .navigationDestination(item: $selectedBook) { book in
-                WorkDiscoveryView(searchResult: book)
-                    .navigationTitle(book.displayTitle)
-                    .navigationBarTitleDisplayMode(.large)
-            }
         }
+        .task {
+            await loadRecommendations()
+        }
+        // NOTE: navigationDestination for WeeklyRecommendation is in SearchView.swift
+        // because this view is inside a LazyVStack which ignores nested navigationDestination
     }
 
     private func loadRecommendations() async {

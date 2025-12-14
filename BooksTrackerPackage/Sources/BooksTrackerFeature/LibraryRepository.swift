@@ -64,11 +64,18 @@ public class LibraryRepository {
     private let modelContext: ModelContext
     private var dtoMapper: DTOMapper?
     private var featureFlags: FeatureFlags?
+    private var enrichmentQueue: EnrichmentQueueProtocol?
 
-    public init(modelContext: ModelContext, dtoMapper: DTOMapper?, featureFlags: FeatureFlags?) {
+    public init(
+        modelContext: ModelContext,
+        dtoMapper: DTOMapper?,
+        featureFlags: FeatureFlags?,
+        enrichmentQueue: EnrichmentQueueProtocol? = nil
+    ) {
         self.modelContext = modelContext
         self.dtoMapper = dtoMapper
         self.featureFlags = featureFlags
+        self.enrichmentQueue = enrichmentQueue
     }
 
     // MARK: - Library Queries
@@ -576,9 +583,11 @@ public class LibraryRepository {
 
         // STEP 1: Cancel enrichment queue operations first
         print("🗑️ [LibraryRepository] Canceling enrichment queue...")
-        await EnrichmentQueue.shared.cancelBackendJob()
-        await EnrichmentQueue.shared.stop()
-        EnrichmentQueue.shared.clearQueue()
+        if let queue = enrichmentQueue {
+            await queue.cancelBackendJob()
+            await queue.stop()
+            queue.clearQueue()
+        }
 
         // STEP 2: Delete all models using modelContext
         // Use predicate-based deletion for efficiency and clarity

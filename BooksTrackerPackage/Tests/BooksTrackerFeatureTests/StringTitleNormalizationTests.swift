@@ -12,7 +12,7 @@ struct StringTitleNormalizationTests {
             (input: "Devil's Knot: The True Story of the West Memphis Three (Justice Knot, #1)", expected: "Devil's Knot"),
             (input: "1984 [Special Edition]", expected: "1984"),
             (input: "Dept. of Speculation", expected: "Dept of Speculation"),
-            (input: "It: A Novel", expected: "It: A Novel"),
+            (input: "It: A Novel", expected: "It"),  // Subtitles stripped for better search matching
             (input: "The Girl with the Dragon Tattoo - A Thriller", expected: "The Girl with the Dragon Tattoo"),
             (input: "The Hobbit (The Lord of the Rings #0) (Collector's Edition)", expected: "The Hobbit"),
             (input: "  The Great Gatsby  ", expected: "The Great Gatsby"),

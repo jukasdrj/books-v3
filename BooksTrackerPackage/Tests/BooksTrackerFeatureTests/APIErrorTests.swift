@@ -308,9 +308,9 @@ struct APIErrorTests {
         // When
         let error = try JSONDecoder().decode(APIError.self, from: data)
 
-        // Then
+        // Then - Unknown codes decode to unknownError case with the provided message
         if case .unknownError(let message) = error {
-            #expect(message.contains("UNKNOWN_CODE"))
+            #expect(message == "Something unexpected happened")
         } else {
             Issue.record("Expected unknownError case")
         }

@@ -88,8 +88,8 @@ public struct ISBNValidator {
 
     /// Cleans and validates an ISBN-10 or ISBN-13 string.
     public static func validate(_ rawValue: String) -> ValidationResult {
-        // 1. Clean the input
-        let cleanValue = rawValue.filter { $0.isNumber || $0.uppercased() == "X" }
+        // 1. Clean the input and normalize X to uppercase
+        let cleanValue = rawValue.filter { $0.isNumber || $0.uppercased() == "X" }.uppercased()
 
         switch cleanValue.count {
         case 10:

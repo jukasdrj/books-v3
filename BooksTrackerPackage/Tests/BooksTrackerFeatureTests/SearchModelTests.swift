@@ -327,6 +327,8 @@ struct SearchModelScopeTests {
             #expect(searchScope == scope)
         case SearchViewState.initial:
             Issue.record("Search should have started, got initial state")
+        case SearchViewState.loadingTrending:
+            Issue.record("Search should have started, got loadingTrending state")
         }
     }
 
@@ -415,7 +417,7 @@ struct SearchModelErrorTests {
 
         // Should complete without crashing (any valid state is fine)
         switch model.viewState {
-        case SearchViewState.initial, SearchViewState.searching, SearchViewState.results, SearchViewState.noResults, SearchViewState.error:
+        case SearchViewState.initial, SearchViewState.searching, SearchViewState.results, SearchViewState.noResults, SearchViewState.error, SearchViewState.loadingTrending:
             // All valid outcomes
             break
         }
@@ -549,6 +551,9 @@ struct SearchModelDebounceTests {
             #expect(lastQuery == "Swift")
         case SearchViewState.initial:
             // If still initial, text might have been too short to trigger search
+            break
+        case SearchViewState.loadingTrending:
+            // Loading trending state is valid during debounce
             break
         }
     }

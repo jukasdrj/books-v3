@@ -731,4 +731,19 @@ public struct SearchResult: Identifiable, Hashable, @unchecked Sendable {
         self.relevanceScore = 1.0 // Scanned books are always relevant
         self.provider = "local"
     }
+
+    /// Convenience initializer for weekly recommendations (creates transient SwiftData models)
+    @MainActor
+    init(from recommendation: WeeklyRecommendation) {
+        let work = Work(title: recommendation.title)
+        let edition = Edition(isbn: recommendation.isbn, format: .paperback)
+        edition.coverImageURL = recommendation.coverURLString
+        let authors = recommendation.authors.map { Author(name: $0) }
+
+        self.work = work
+        self.editions = [edition]
+        self.authors = authors
+        self.relevanceScore = 1.0
+        self.provider = "recommendations"
+    }
 }

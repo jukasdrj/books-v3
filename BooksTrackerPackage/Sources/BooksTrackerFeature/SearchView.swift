@@ -157,6 +157,12 @@ public struct SearchView: View {
                                 .navigationTitle(book.displayTitle)
                                 .navigationBarTitleDisplayMode(.large)
                         }
+                        // Navigation destination for Weekly Picks recommendations
+                        .navigationDestination(for: WeeklyRecommendation.self) { recommendation in
+                            WorkDiscoveryView(searchResult: SearchResult(from: recommendation))
+                                .navigationTitle(recommendation.title)
+                                .navigationBarTitleDisplayMode(.large)
+                        }
                         .navigationTitle("Search")
                         .navigationBarTitleDisplayMode(.inline)
                         .toolbar {

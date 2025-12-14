@@ -43,12 +43,12 @@ public final class SyncCoordinator {
     /// Start enrichment job for queued works
     /// - Parameters:
     ///   - modelContext: SwiftData model context for persistence
-    ///   - enrichmentQueue: EnrichmentQueue instance (defaults to .shared)
+    ///   - enrichmentQueue: EnrichmentQueue instance (injected via environment)
     /// - Returns: Job identifier for tracking
     @discardableResult
     public func startEnrichment(
         modelContext: ModelContext,
-        enrichmentQueue: EnrichmentQueue = .shared
+        enrichmentQueue: any EnrichmentQueueProtocol
     ) async -> JobIdentifier {
 
         let jobId = JobIdentifier(jobType: "enrichment")
@@ -67,14 +67,18 @@ public final class SyncCoordinator {
         jobStatus[jobId] = .active(progress: progress)
 
         // Start enrichment with progress tracking
-        enrichmentQueue.startProcessing(in: modelContext) { [weak self] processedCount, totalCount, currentTitle in
-            guard let self = self else { return }
+        enrichmentQueue.startProcessing(
+            in: modelContext,
+            progressHandler: { [weak self] processedCount, totalCount, currentTitle in
+                guard let self = self else { return }
 
-            // Update progress
-            progress.processedItems = processedCount
-            progress.currentStatus = "Enriching: \(currentTitle)"
-            self.jobStatus[jobId] = .active(progress: progress)
-        }
+                // Update progress
+                progress.processedItems = processedCount
+                progress.currentStatus = "Enriching: \(currentTitle)"
+                self.jobStatus[jobId] = .active(progress: progress)
+            },
+            timeoutDuration: 300
+        )
 
         // Wait for enrichment to complete
         // EnrichmentQueue runs in background Task, so we poll for completion
@@ -114,13 +118,13 @@ public final class SyncCoordinator {
     /// Replaces polling with real-time server push updates
     /// - Parameters:
     ///   - modelContext: SwiftData model context for persistence
-    ///   - enrichmentQueue: EnrichmentQueue instance (defaults to .shared)
+    ///   - enrichmentQueue: EnrichmentQueue instance (injected via environment)
     ///   - webSocketManager: WebSocket manager (defaults to new instance)
     /// - Returns: Job identifier for tracking
     @discardableResult
     public func startEnrichmentWithWebSocket(
         modelContext: ModelContext,
-        enrichmentQueue: EnrichmentQueue = .shared,
+        enrichmentQueue: any EnrichmentQueueProtocol,
         webSocketManager: WebSocketProgressManager? = nil
     ) async -> JobIdentifier {
 
@@ -168,7 +172,7 @@ public final class SyncCoordinator {
             )
 
             // Track the job ID for potential cancellation
-            EnrichmentQueue.shared.setCurrentJobId(jobId.id.uuidString)
+            enrichmentQueue.setCurrentJobId(jobId.id.uuidString)
 
             // Wait for WebSocket to receive all updates
             // Connection will close automatically when backend finishes
@@ -182,13 +186,13 @@ public final class SyncCoordinator {
             jobStatus[jobId] = .completed(log: log)
 
             // Clear job ID when complete
-            EnrichmentQueue.shared.clearCurrentJobId()
+            enrichmentQueue.clearCurrentJobId()
 
         } catch {
             jobStatus[jobId] = .failed(error: error.localizedDescription)
 
             // Clear job ID on error
-            EnrichmentQueue.shared.clearCurrentJobId()
+            enrichmentQueue.clearCurrentJobId()
         }
 
         // Cleanup

@@ -1,32 +1,34 @@
 import SwiftUI
 
-struct BentoGridView<C1: View, C2: View, C3: View, C4: View>: View {
-    let readingProgress: C1
-    let readingHabits: C2
-    let diversity: C3
-    let annotations: C4
-
-    init(
-        @ViewBuilder readingProgress: () -> C1,
-        @ViewBuilder readingHabits: () -> C2,
-        @ViewBuilder diversity: () -> C3,
-        @ViewBuilder annotations: () -> C4
-    ) {
-        self.readingProgress = readingProgress()
-        self.readingHabits = readingHabits()
-        self.diversity = diversity()
-        self.annotations = annotations()
-    }
+/// Bento Box Grid Layout (Rigid)
+/// Fixed 2-column layout for strict alignment.
+struct BentoDashboardLayout<C1: View, C2: View, C3: View, C4: View>: View {
+    @ViewBuilder let dnaBlock: () -> C1
+    @ViewBuilder let diversityBlock: () -> C2
+    @ViewBuilder let interactionBlock: () -> C3
+    @ViewBuilder let readingProgressBlock: () -> C4
 
     var body: some View {
-        Grid(alignment: .top, horizontalSpacing: 16, verticalSpacing: 16) {
-            GridRow {
-                readingProgress
-                readingHabits
+        Grid(horizontalSpacing: 16, verticalSpacing: 16) {
+            // Row 1: DNA (Top Left) | Diversity (Top Right)
+            GridRow(alignment: .top) {
+                dnaBlock()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                
+                diversityBlock()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
+            
+            // Row 2: Interaction/Stats (Full Width)
             GridRow {
-                diversity
-                annotations
+                interactionBlock()
+                    .gridCellColumns(2)
+            }
+            
+            // Row 3: Reading Progress (Full Width)
+            GridRow {
+                readingProgressBlock()
+                    .gridCellColumns(2)
             }
         }
         .padding(.horizontal, 20)

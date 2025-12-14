@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 // ✅ V3 Migration Complete - CSV Import Service
 // Backend V3 CSV endpoint: POST /v3/jobs/imports
@@ -43,55 +44,108 @@ enum GeminiCSVImportError: Error, LocalizedError {
 public struct GeminiCSVImportResponse: Codable, Sendable {
     public let jobId: String
     public let authToken: String // Job-specific auth token for SSE stream
+
+    private enum CodingKeys: String, CodingKey {
+        case jobId
+        case authToken = "token" // V3 API returns "token", not "authToken"
+    }
 }
 
+/// V3 API response for GET /v3/jobs/imports/{jobId}/results
+/// Structure: { success, data: { jobId, status, results: { books, errors, ... } } }
+public struct GeminiCSVImportResultsResponse: Codable, Sendable {
+    public let jobId: String
+    public let status: String
+    public let results: ResultsPayload
+
+    public struct ResultsPayload: Codable, Sendable {
+        public let booksCreated: Int
+        public let booksUpdated: Int
+        public let duplicatesSkipped: Int
+        public let enrichmentSucceeded: Int
+        public let enrichmentFailed: Int
+        public let errors: [CSVImportError]
+        public let books: [CSVParsedBook]
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            booksCreated = try container.decodeIfPresent(Int.self, forKey: .booksCreated) ?? 0
+            booksUpdated = try container.decodeIfPresent(Int.self, forKey: .booksUpdated) ?? 0
+            duplicatesSkipped = try container.decodeIfPresent(Int.self, forKey: .duplicatesSkipped) ?? 0
+            enrichmentSucceeded = try container.decodeIfPresent(Int.self, forKey: .enrichmentSucceeded) ?? 0
+            enrichmentFailed = try container.decodeIfPresent(Int.self, forKey: .enrichmentFailed) ?? 0
+            errors = try container.decodeIfPresent([CSVImportError].self, forKey: .errors) ?? []
+            books = try container.decodeIfPresent([CSVParsedBook].self, forKey: .books) ?? []
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case booksCreated, booksUpdated, duplicatesSkipped
+            case enrichmentSucceeded, enrichmentFailed, errors, books
+        }
+    }
+}
+
+/// Legacy wrapper for backward compatibility with existing code
 public struct GeminiCSVImportJob: Codable, Sendable {
-    public let books: [ParsedBook]
-    public let errors: [ImportError]
+    public let books: [CSVParsedBook]
+    public let errors: [CSVImportError]
     public let successRate: String
+
+    /// Initialize from V3 results response
+    public init(from resultsResponse: GeminiCSVImportResultsResponse) {
+        self.books = resultsResponse.results.books
+        self.errors = resultsResponse.results.errors
+        let total = resultsResponse.results.booksCreated + resultsResponse.results.errors.count
+        let success = total > 0 ? Double(resultsResponse.results.booksCreated) / Double(total) * 100 : 100
+        self.successRate = "\(Int(success))%"
+    }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        books = try container.decodeIfPresent([ParsedBook].self, forKey: .books) ?? []
-        errors = try container.decodeIfPresent([ImportError].self, forKey: .errors) ?? []
+        books = try container.decodeIfPresent([CSVParsedBook].self, forKey: .books) ?? []
+        errors = try container.decodeIfPresent([CSVImportError].self, forKey: .errors) ?? []
         successRate = try container.decodeIfPresent(String.self, forKey: .successRate) ?? "100%"
     }
 
     private enum CodingKeys: String, CodingKey {
         case books, errors, successRate
     }
+}
 
-    public struct ParsedBook: Codable, Sendable, Equatable {
-        public let title: String
-        public let authors: [String]
-        public let isbn: String?
-        public let coverUrl: String?
-        public let publisher: String?
-        public let year: Int?
-        public let pageCount: Int?
-        public let enrichmentError: String?
+/// Parsed book from V3 CSV import (distinct from legacy WebSocket ParsedBook)
+public struct CSVParsedBook: Codable, Sendable, Equatable {
+    public let title: String
+    public let authors: [String]
+    public let isbn: String?
+    public let coverUrl: String?
+    public let publisher: String?
+    public let year: Int?
+    public let pageCount: Int?
+    public let language: String?
+    public let enrichmentError: String?
 
-        public init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            title = try container.decode(String.self, forKey: .title)
-            authors = try container.decodeIfPresent([String].self, forKey: .authors) ?? []
-            isbn = try container.decodeIfPresent(String.self, forKey: .isbn)
-            coverUrl = try container.decodeIfPresent(String.self, forKey: .coverUrl)
-            publisher = try container.decodeIfPresent(String.self, forKey: .publisher)
-            year = try container.decodeIfPresent(Int.self, forKey: .year)
-            pageCount = try container.decodeIfPresent(Int.self, forKey: .pageCount)
-            enrichmentError = try container.decodeIfPresent(String.self, forKey: .enrichmentError)
-        }
-
-        private enum CodingKeys: String, CodingKey {
-            case title, authors, isbn, coverUrl, publisher, year, pageCount, enrichmentError
-        }
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        title = try container.decode(String.self, forKey: .title)
+        authors = try container.decodeIfPresent([String].self, forKey: .authors) ?? []
+        isbn = try container.decodeIfPresent(String.self, forKey: .isbn)
+        coverUrl = try container.decodeIfPresent(String.self, forKey: .coverUrl)
+        publisher = try container.decodeIfPresent(String.self, forKey: .publisher)
+        year = try container.decodeIfPresent(Int.self, forKey: .year)
+        pageCount = try container.decodeIfPresent(Int.self, forKey: .pageCount)
+        language = try container.decodeIfPresent(String.self, forKey: .language)
+        enrichmentError = try container.decodeIfPresent(String.self, forKey: .enrichmentError)
     }
 
-    public struct ImportError: Codable, Sendable, Equatable {
-        public let title: String
-        public let error: String
+    private enum CodingKeys: String, CodingKey {
+        case title, authors, isbn, coverUrl, publisher, year, pageCount, language, enrichmentError
     }
+}
+
+/// Import error from V3 CSV import (distinct from legacy WebSocket ImportError)
+public struct CSVImportError: Codable, Sendable, Equatable {
+    public let title: String
+    public let error: String
 }
 
 // MARK: - Job Status Response
@@ -100,8 +154,8 @@ public struct GeminiCSVImportJobStatus: Codable, Sendable {
     public let status: String  // "processing", "completed", "failed"
     public let progress: Double?
     public let message: String?
-    public let books: [GeminiCSVImportJob.ParsedBook]?
-    public let errors: [GeminiCSVImportJob.ImportError]?
+    public let books: [CSVParsedBook]?
+    public let errors: [CSVImportError]?
     public let error: String?
 }
 
@@ -113,6 +167,7 @@ actor GeminiCSVImportService {
     // MARK: - Configuration
 
     private let maxFileSize: Int = 10_000_000 // 10MB max
+    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "Import")
 
     // MARK: - Singleton
 
@@ -127,9 +182,7 @@ actor GeminiCSVImportService {
     /// - Returns: Tuple of (jobId, authToken) for SSE stream connection
     /// - Throws: GeminiCSVImportError on failure
     func uploadCSV(csvText: String) async throws -> (jobId: String, authToken: String) {
-        #if DEBUG
-        print("[CSV Upload] Starting upload, size: \(csvText.utf8.count) bytes")
-        #endif
+        logger.info("CSV upload starting, size: \(csvText.utf8.count) bytes")
 
         // NOTE: CSV validation is handled by the backend (Gemini).
         // Client-side validation was removed to avoid false positives on valid CSVs
@@ -138,9 +191,7 @@ actor GeminiCSVImportService {
         // Validate file size
         let dataSize = csvText.utf8.count
         guard dataSize <= maxFileSize else {
-            #if DEBUG
-            print("[CSV Upload] ❌ File too large: \(dataSize) bytes")
-            #endif
+            logger.error("CSV file too large: \(dataSize) bytes")
             throw GeminiCSVImportError.fileTooLarge(dataSize)
         }
 
@@ -154,9 +205,7 @@ actor GeminiCSVImportService {
         let boundary = "Boundary-\(UUID().uuidString)"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
-        #if DEBUG
-        print("[CSV Upload] Request configured, endpoint: \(url)")
-        #endif
+        logger.debug("CSV upload request configured, endpoint: \(url, privacy: .private)")
 
         // Build multipart/form-data body
         var body = Data()
@@ -173,10 +222,8 @@ actor GeminiCSVImportService {
 
         request.httpBody = body
 
-        #if DEBUG
-        print("[CSV Upload] Multipart/form-data constructed, size: \(body.count) bytes")
-        print("[CSV Upload] Sending request to V2 API...")
-        #endif
+        logger.debug("CSV multipart/form-data constructed, size: \(body.count) bytes")
+        logger.debug("Sending CSV upload request to V3 API...")
 
         // Execute request
         do {
@@ -185,16 +232,12 @@ actor GeminiCSVImportService {
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw GeminiCSVImportError.invalidResponse
             }
-            
-            #if DEBUG
-            print("[CSV Upload] ✅ Received response from backend")
-            print("[CSV Upload] Status code: \(httpResponse.statusCode)")
-            print("[CSV Upload] Response headers: \(httpResponse.allHeaderFields)")
-            print("[CSV Upload] Response body size: \(data.count) bytes")
+
+            logger.info("CSV upload response received, status code: \(httpResponse.statusCode)")
+            logger.debug("CSV response body size: \(data.count) bytes")
             if let bodyString = String(data: data, encoding: .utf8) {
-                print("[CSV Upload] Response body preview: \(bodyString.prefix(500))")
+                logger.debug("CSV response body preview: \(bodyString.prefix(500))")
             }
-            #endif
 
             // Accept both 200 (OK) and 202 (Accepted) for async job start
             if ![200, 202].contains(httpResponse.statusCode) {
@@ -219,9 +262,7 @@ actor GeminiCSVImportService {
             do {
                 let importResponse = try data.decodeEnvelope(GeminiCSVImportResponse.self)
 
-                #if DEBUG
-                print("[CSV Upload] ✅ Got jobId: \(importResponse.jobId), authToken: <redacted>")
-                #endif
+                logger.info("CSV upload successful, jobId: \(importResponse.jobId, privacy: .private)")
                 return (jobId: importResponse.jobId, authToken: importResponse.authToken)
 
             } catch let error as ResponseEnvelopeError {
@@ -240,14 +281,10 @@ actor GeminiCSVImportService {
             }
 
         } catch let error as GeminiCSVImportError {
-            #if DEBUG
-            print("[CSV Upload] ❌ CSV Import Error: \(error.localizedDescription)")
-            #endif
+            logger.error("CSV import error: \(error.localizedDescription)")
             throw error
         } catch {
-            #if DEBUG
-            print("[CSV Upload] ❌ Network Error: \(error.localizedDescription)")
-            #endif
+            logger.error("CSV upload network error: \(error.localizedDescription)")
             throw GeminiCSVImportError.networkError(error)
         }
     }
@@ -274,9 +311,7 @@ actor GeminiCSVImportService {
     /// - Returns: Results summary with counts and errors
     /// - Throws: GeminiCSVImportError on failure
     func fetchResults(jobId: String) async throws -> GeminiCSVImportJob {
-        #if DEBUG
-        print("[CSV Results] Fetching results for job: \(jobId)")
-        #endif
+        logger.info("Fetching CSV import results for job: \(jobId, privacy: .private)")
 
         let url = URL(string: "\(EnrichmentConfig.apiBaseURL)/v3/jobs/imports/\(jobId)/results")!
         var request = URLRequest(url: url)
@@ -290,9 +325,7 @@ actor GeminiCSVImportService {
                 throw GeminiCSVImportError.invalidResponse
             }
 
-            #if DEBUG
-            print("[CSV Results] Status code: \(httpResponse.statusCode)")
-            #endif
+            logger.debug("CSV results response status: \(httpResponse.statusCode)")
 
             if httpResponse.statusCode != 200 {
                 // Try to decode error response
@@ -312,18 +345,17 @@ actor GeminiCSVImportService {
                 throw GeminiCSVImportError.serverError(httpResponse.statusCode, errorMessage)
             }
 
-            #if DEBUG
-            // 🔍 DEBUG: Print raw backend response to see what's actually being returned
+            // DEBUG: Log raw backend response for troubleshooting
             if let rawResponse = String(data: data, encoding: .utf8) {
-                print("[CSV Results] 📡 RAW BACKEND RESPONSE (first 1000 chars):")
-                print(rawResponse.prefix(1000))
+                logger.debug("CSV backend response (first 1000 chars): \(rawResponse.prefix(1000))")
             }
-            #endif
 
-            // Decode ResponseEnvelope and extract data
+            // Decode ResponseEnvelope with V3 results structure
+            // V3 API: { success, data: { jobId, status, results: { books, ... } } }
             let results: GeminiCSVImportJob
             do {
-                results = try data.decodeEnvelope(GeminiCSVImportJob.self)
+                let resultsResponse = try data.decodeEnvelope(GeminiCSVImportResultsResponse.self)
+                results = GeminiCSVImportJob(from: resultsResponse)
             } catch let error as ResponseEnvelopeError {
                 // Map ResponseEnvelopeError to GeminiCSVImportError
                 switch error {
@@ -339,32 +371,20 @@ actor GeminiCSVImportService {
                 }
             }
 
-            #if DEBUG
-            print("[CSV Results] ✅ Results fetched: \(results.books.count) books, \(results.errors.count) errors")
-            print("[CSV Results] ===== DETAILED BOOK DATA (showing first 10) =====")
+            logger.info("CSV import results fetched: \(results.books.count) books, \(results.errors.count) errors")
+            logger.debug("CSV detailed book data (first 10):")
             for (index, book) in results.books.prefix(10).enumerated() {
-                print("[CSV Results] Book \(index + 1):")
-                print("  Title: \(book.title)")
-                print("  Authors: \(book.authors)")  // 🔑 KEY CHECK
-                print("  ISBN: \(book.isbn ?? "none")")
-                print("  Publisher: \(book.publisher ?? "none")")
-                print("  Year: \(book.year?.description ?? "none")")
-                print("  Cover: \(book.coverUrl ?? "none")")
-                print("  Enrichment Error: \(book.enrichmentError ?? "none")")
+                logger.debug("  Book \(index + 1): \(book.title, privacy: .private), authors: \(book.authors), isbn: \(book.isbn ?? "none", privacy: .private), publisher: \(book.publisher ?? "none", privacy: .private), year: \(book.year?.description ?? "none"), enrichmentError: \(book.enrichmentError ?? "none")")
             }
             if results.books.count > 10 {
-                print("[CSV Results] ... and \(results.books.count - 10) more books")
+                logger.debug("CSV import: ... and \(results.books.count - 10) more books")
             }
-            print("[CSV Results] ===============================")
-            #endif
             return results
 
         } catch let error as GeminiCSVImportError {
             throw error
         } catch {
-            #if DEBUG
-            print("[CSV Results] ❌ Network Error: \(error.localizedDescription)")
-            #endif
+            logger.error("CSV results network error: \(error.localizedDescription)")
             throw GeminiCSVImportError.networkError(error)
         }
     }
@@ -376,9 +396,7 @@ actor GeminiCSVImportService {
     /// - Returns: Job status including progress and results
     /// - Throws: GeminiCSVImportError on failure
     func checkJobStatus(jobId: String) async throws -> GeminiCSVImportJobStatus {
-        #if DEBUG
-        print("[CSV Status] Checking status for job: \(jobId)")
-        #endif
+        logger.info("Checking CSV import job status: \(jobId, privacy: .private)")
 
         let statusURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/v3/jobs/imports/\(jobId)")!
         var request = URLRequest(url: statusURL)
@@ -392,9 +410,7 @@ actor GeminiCSVImportService {
                 throw GeminiCSVImportError.invalidResponse
             }
 
-            #if DEBUG
-            print("[CSV Status] Status code: \(httpResponse.statusCode)")
-            #endif
+            logger.debug("CSV job status response code: \(httpResponse.statusCode)")
 
             if httpResponse.statusCode != 200 {
                 // Try to decode error response
@@ -433,17 +449,13 @@ actor GeminiCSVImportService {
                 }
             }
 
-            #if DEBUG
-            print("[CSV Status] ✅ Status: \(jobStatus.status)")
-            #endif
+            logger.info("CSV import job status: \(jobStatus.status)")
             return jobStatus
 
         } catch let error as GeminiCSVImportError {
             throw error
         } catch {
-            #if DEBUG
-            print("[CSV Status] ❌ Network Error: \(error.localizedDescription)")
-            #endif
+            logger.error("CSV job status network error: \(error.localizedDescription)")
             throw GeminiCSVImportError.networkError(error)
         }
     }
@@ -454,9 +466,7 @@ actor GeminiCSVImportService {
     /// - Parameter jobId: The job ID to cancel
     /// - Throws: GeminiCSVImportError on failure
     func cancelJob(jobId: String) async throws {
-        #if DEBUG
-        print("[CSV Cancel] Canceling job: \(jobId)")
-        #endif
+        logger.info("Canceling CSV import job: \(jobId, privacy: .private)")
 
         let cancelURL = URL(string: "\(EnrichmentConfig.apiBaseURL)/v3/jobs/imports/\(jobId)")!
         var request = URLRequest(url: cancelURL)
@@ -465,25 +475,21 @@ actor GeminiCSVImportService {
 
         do {
             let (_, response) = try await URLSession.shared.data(for: request)
-            
+
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw GeminiCSVImportError.invalidResponse
             }
-            
+
             // Accept 200 (OK), 202 (Accepted), or 404 (already completed/not found)
             if ![200, 202, 404].contains(httpResponse.statusCode) {
                 throw GeminiCSVImportError.serverError(httpResponse.statusCode, "Failed to cancel job")
             }
-            
-            #if DEBUG
-            print("[CSV Cancel] ✅ Job canceled successfully")
-            #endif
+
+            logger.info("CSV import job canceled successfully")
         } catch let error as GeminiCSVImportError {
             throw error
         } catch {
-            #if DEBUG
-            print("[CSV Cancel] ❌ Network Error: \(error.localizedDescription)")
-            #endif
+            logger.error("CSV cancel job network error: \(error.localizedDescription)")
             throw GeminiCSVImportError.networkError(error)
         }
     }

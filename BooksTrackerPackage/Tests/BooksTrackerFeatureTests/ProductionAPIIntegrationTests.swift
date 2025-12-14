@@ -71,17 +71,17 @@ struct ProductionAPIIntegrationTests {
         let book = try await api.search(isbn: testISBN)
 
         // Assert - Book data present
-        #expect(book.title != nil)
+        #expect(!book.title.isEmpty)
         #expect(book.title == "Harry Potter and the Sorcerer's Stone" ||
-                book.title?.contains("Harry Potter") == true)
+                book.title.contains("Harry Potter"))
         #expect(book.authors?.contains("J.K. Rowling") == true ||
                 book.authors?.contains("Rowling") == true)
-        #expect(book.isbn == testISBN || book.isbn13 == testISBN)
+        #expect(book.isbn == testISBN)
 
         // Assert - Metadata present
-        #expect(book.publisher != nil || book.publishedDate != nil)
+        #expect(book.publisher != nil)
 
-        print("✅ ISBN search succeeded: title=\(book.title ?? "unknown")")
+        print("✅ ISBN search succeeded: title=\(book.title)")
         print("   Authors: \(book.authors?.joined(separator: ", ") ?? "none")")
         print("   Publisher: \(book.publisher ?? "unknown")")
     }
@@ -125,7 +125,7 @@ struct ProductionAPIIntegrationTests {
 
         // Assert - Books have required fields
         for book in books {
-            #expect(book.title != nil)
+            #expect(!book.title.isEmpty)
             #expect(book.authors != nil && !book.authors!.isEmpty)
         }
 

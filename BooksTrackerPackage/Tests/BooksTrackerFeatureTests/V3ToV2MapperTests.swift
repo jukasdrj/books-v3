@@ -141,12 +141,15 @@ struct V3ToV2MapperTests {
     }
 
     /// Helper to generate SHA256 hash for direct comparison in tests
+    /// Must match V3ToV2Mapper.stableHash implementation (big-endian, platform-independent)
     private func stableHash(_ input: String) -> UInt64 {
         let hash = SHA256.hash(data: Data(input.utf8))
-        let truncatedHash = hash.withUnsafeBytes { bytes in
-            bytes.load(as: UInt64.self)
+        // Use big-endian byte assembly to match production implementation
+        let truncatedData = hash.prefix(8)
+        let value = truncatedData.reduce(0) { soFar, byte in
+            (soFar << 8) | UInt64(byte)
         }
-        return truncatedHash
+        return value
     }
 
     // MARK: - Synthetic ID Stability Tests

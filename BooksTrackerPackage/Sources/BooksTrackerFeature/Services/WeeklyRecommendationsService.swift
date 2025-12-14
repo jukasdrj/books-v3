@@ -47,10 +47,10 @@ actor WeeklyRecommendationsService {
         }
 
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
 
         do {
-            let recommendationsResponse = try decoder.decode(WeeklyRecommendationsResponse.self, from: data)
+            let apiResponse = try decoder.decode(WeeklyRecommendationsAPIResponse.self, from: data)
+            let recommendationsResponse = WeeklyRecommendationsResponse(from: apiResponse)
             cache.save(recommendationsResponse)
             return recommendationsResponse
         } catch {

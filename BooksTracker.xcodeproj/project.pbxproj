@@ -10,7 +10,6 @@
 		07A08D102E917C03009FD1E1 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 07A08D0F2E917C03009FD1E1 /* WidgetKit.framework */; };
 		07A08D122E917C03009FD1E1 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 07A08D112E917C03009FD1E1 /* SwiftUI.framework */; };
 		07A08D232E917C04009FD1E1 /* BooksTrackerWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 07A08D0E2E917C03009FD1E1 /* BooksTrackerWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		07A08D2A2E917D00009FD1E1 /* BooksTrackerFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 07A08D292E917D00009FD1E1 /* BooksTrackerFeature */; };
 		07C9A7E42E934E7C006DB571 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 07C9A7E32E934E7C006DB571 /* ActivityKit.framework */; };
 		07C9A7E72E9350C0006DB571 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 07C9A7E32E934E7C006DB571 /* ActivityKit.framework */; };
 		07C9A7E82E9350CA006DB571 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 07A08D112E917C03009FD1E1 /* SwiftUI.framework */; };
@@ -121,7 +120,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				07A08D2A2E917D00009FD1E1 /* BooksTrackerFeature in Frameworks */,
 				07A08D122E917C03009FD1E1 /* SwiftUI.framework in Frameworks */,
 				07C9A7E42E934E7C006DB571 /* ActivityKit.framework in Frameworks */,
 				07A08D102E917C03009FD1E1 /* WidgetKit.framework in Frameworks */,
@@ -203,7 +201,6 @@
 			);
 			name = BooksTrackerWidgetsExtension;
 			packageProductDependencies = (
-				07A08D292E917D00009FD1E1 /* BooksTrackerFeature */,
 			);
 			productName = BooksTrackerWidgetsExtension;
 			productReference = 07A08D0E2E917C03009FD1E1 /* BooksTrackerWidgetsExtension.appex */;
@@ -710,10 +707,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		07A08D292E917D00009FD1E1 /* BooksTrackerFeature */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = BooksTrackerFeature;
-		};
 		8B41F6822DEDD23B001A66F9 /* BooksTrackerFeature */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = BooksTrackerFeature;

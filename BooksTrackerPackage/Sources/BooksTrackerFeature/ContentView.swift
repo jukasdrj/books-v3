@@ -29,7 +29,7 @@ public struct ContentView: View {
     @Environment(\.accessibilityVoiceOverEnabled) var voiceOverEnabled
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Environment(\.dtoMapper) private var dtoMapper
-    @Environment(EnrichmentQueue.self) private var enrichmentQueue
+    @Environment(\.enrichmentQueue) private var enrichmentQueue
     @State private var bookSearchAPIService: BookSearchAPIService?
     @State private var selectedTab: MainTab = .library
     @State private var searchCoordinator = SearchCoordinator()
@@ -149,7 +149,7 @@ public struct ContentView: View {
                 // Defer non-critical background tasks until app is interactive
                 BackgroundTaskScheduler.shared.schedule(priority: .low) {
                     LaunchMetrics.shared.recordMilestone("EnrichmentQueue validation start")
-                    EnrichmentQueue.shared.validateQueue(in: modelContext)
+                    enrichmentQueue.validateQueue(in: modelContext)
                     LaunchMetrics.shared.recordMilestone("EnrichmentQueue validation end")
                 }
 

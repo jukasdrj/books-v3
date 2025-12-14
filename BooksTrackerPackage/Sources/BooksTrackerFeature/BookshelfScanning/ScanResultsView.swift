@@ -28,6 +28,7 @@ public struct ScanResultsView: View {
     let onDismiss: () -> Void
 
     @Environment(\.iOS26ThemeStore) private var themeStore
+    @Environment(\.enrichmentQueue) private var enrichmentQueue
     @State private var resultsModel: ScanResultsModel
     @State private var dismissedSuggestionTypes: Set<String> = []
     @State private var photoOverlayInfo: PhotoOverlayInfo?
@@ -298,7 +299,7 @@ public struct ScanResultsView: View {
     private var addAllButton: some View {
         Button {
             Task {
-                await resultsModel.addAllToLibrary(modelContext: modelContext)
+                await resultsModel.addAllToLibrary(modelContext: modelContext, enrichmentQueue: enrichmentQueue)
                 onDismiss()
             }
         } label: {
@@ -591,7 +592,7 @@ class ScanResultsModel {
     // MARK: - Add to Library
 
     @MainActor
-    func addAllToLibrary(modelContext: ModelContext) async {
+    func addAllToLibrary(modelContext: ModelContext, enrichmentQueue: any EnrichmentQueueProtocol) async {
         isAdding = true
 
         // Include both auto-selected (.confirmed) and manually selected (.detected) books
@@ -750,7 +751,7 @@ class ScanResultsModel {
         // Queue Path B books for enrichment
         if !addedWorksForQueue.isEmpty {
             let workIDs = addedWorksForQueue.map { $0.persistentModelID }
-            EnrichmentQueue.shared.enqueueBatch(workIDs)
+            enrichmentQueue.enqueueBatch(workIDs)
             #if DEBUG
             print("📚 Queued \(workIDs.count) books from scan for background enrichment")
             #endif
@@ -759,35 +760,39 @@ class ScanResultsModel {
             Task {
                 var attempts = 0
                 let maxAttempts = 5
-                
+
                 #if DEBUG
                 print("[DEBUGGER:ScanResultsView] Waiting for SwiftData persistence - workIDs.count=\(workIDs.count)")
                 #endif
-                
+
                 // Poll until all works are available or max attempts reached
                 while attempts < maxAttempts {
                     let availableCount = workIDs.compactMap { modelContext.model(for: $0) as? Work }.count
-                    
+
                     #if DEBUG
                     print("[DEBUGGER:ScanResultsView] Attempt \(attempts + 1)/\(maxAttempts): \(availableCount)/\(workIDs.count) works available")
                     #endif
-                    
+
                     if availableCount == workIDs.count {
                         break  // All works persisted successfully
                     }
-                    
+
                     try? await Task.sleep(for: .milliseconds(100))
                     attempts += 1
                 }
-                
+
                 if attempts < maxAttempts {
                     #if DEBUG
                     print("[DEBUGGER:ScanResultsView] All works persisted, starting enrichment")
                     #endif
-                    
-                    EnrichmentQueue.shared.startProcessing(in: modelContext) { _, _, _ in
-                        // Silent background processing - progress shown via EnrichmentProgressBanner
-                    }
+
+                    enrichmentQueue.startProcessing(
+                        in: modelContext,
+                        progressHandler: { _, _, _ in
+                            // Silent background processing - progress shown via EnrichmentProgressBanner
+                        },
+                        timeoutDuration: 300
+                    )
                 } else {
                     #if DEBUG
                     print("⚠️ [DEBUGGER:ScanResultsView] Timeout waiting for persistence after \(maxAttempts * 100)ms")

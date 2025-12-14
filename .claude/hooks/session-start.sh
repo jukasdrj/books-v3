@@ -1,8 +1,19 @@
 #!/bin/bash
 
-# SessionStart Hook (v1.0.61+)
+# SessionStart Hook (v2.0.64)
 # Triggered when a new Claude Code session begins
 # Use for initialization, environment checks, or welcome messages
+#
+# New in v2.0.64:
+# - Named sessions: use /rename to name, /resume <name> to restore
+# - /stats command provides usage statistics and streak info
+# - Auto-compacting is now instant
+# - .claude/rules/ directory support for memory rules
+#
+# New in v2.0.65:
+# - Switch models during prompt with alt+p (linux/win) or option+p (mac)
+# - Context window info in status line
+# - CLAUDE_CODE_SHELL env var for shell override
 
 set -e
 

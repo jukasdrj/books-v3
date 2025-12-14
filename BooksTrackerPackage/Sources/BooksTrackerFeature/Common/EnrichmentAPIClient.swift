@@ -52,6 +52,14 @@ actor EnrichmentAPIClient {
         @available(*, deprecated, message: "Use authToken instead. Removal: March 1, 2026")
         let token: String?  // Deprecated field, backward compatibility only
 
+        /// Server-assigned job ID for async enrichment (V3 API)
+        /// CRITICAL: Use this for WebSocket/SSE connections, NOT the client-generated UUID
+        let serverJobId: String?
+
+        /// V3 SSE stream URL for real-time progress (preferred over WebSocket)
+        /// Format: https://api.oooefam.net/v3/jobs/enrichment/{jobId}/stream
+        let streamUrl: String?
+
         /// Embedded enriched books for sync mode (batch ≤50 ISBNs)
         /// When present, bypass WebSocket and use these results directly
         let embeddedBooks: [SyncEnrichedBook]?
@@ -62,12 +70,22 @@ actor EnrichmentAPIClient {
         }
 
         /// Memberwise initializer for programmatic construction (e.g., title-based search results)
-        init(success: Bool, processedCount: Int, totalCount: Int, authToken: String, embeddedBooks: [SyncEnrichedBook]? = nil) {
+        init(
+            success: Bool,
+            processedCount: Int,
+            totalCount: Int,
+            authToken: String,
+            serverJobId: String? = nil,
+            streamUrl: String? = nil,
+            embeddedBooks: [SyncEnrichedBook]? = nil
+        ) {
             self.success = success
             self.processedCount = processedCount
             self.totalCount = totalCount
             self.authToken = authToken
             self.token = nil  // Deprecated, not used for new instances
+            self.serverJobId = serverJobId
+            self.streamUrl = streamUrl
             self.embeddedBooks = embeddedBooks
         }
 
@@ -103,7 +121,9 @@ actor EnrichmentAPIClient {
                 token = nil
             }
 
-            // embeddedBooks is only present in programmatic construction, not from JSON
+            // These fields are only present in programmatic construction (async mode), not from JSON
+            serverJobId = nil
+            streamUrl = nil
             embeddedBooks = nil
         }
 
@@ -121,12 +141,15 @@ actor EnrichmentAPIClient {
         let token: String  // Auth token for SSE/WebSocket connection
 
         /// Convert to standard EnrichmentResult for API compatibility
+        /// CRITICAL: Passes serverJobId and streamUrl for SSE/WebSocket connection
         func toEnrichmentResult(totalCount: Int) -> EnrichmentResult {
             EnrichmentResult(
                 success: true,
                 processedCount: 0,  // Job queued, not processed yet
                 totalCount: totalCount,
                 authToken: token,
+                serverJobId: jobId,      // Server-assigned job ID for SSE/WS
+                streamUrl: streamUrl,    // V3 SSE stream URL (preferred)
                 embeddedBooks: nil
             )
         }
@@ -367,6 +390,7 @@ actor EnrichmentAPIClient {
                 var request = URLRequest(url: url)
                 request.setValue("application/json", forHTTPHeaderField: "Accept")
                 request.setValue("ios-v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown")", forHTTPHeaderField: "X-Client-Version")
+                request.setValue("v3.3", forHTTPHeaderField: "X-API-Contract-Version")
                 request.timeoutInterval = 15
 
                 let (data, response) = try await URLSession.shared.data(for: request)
@@ -526,6 +550,7 @@ actor EnrichmentAPIClient {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("ios-v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown")", forHTTPHeaderField: "X-Client-Version")
+        request.setValue("v3.3", forHTTPHeaderField: "X-API-Contract-Version")
         request.timeoutInterval = 30  // 30 second timeout for POST request
 
         // Track async mode for response decoding
@@ -739,6 +764,7 @@ actor EnrichmentAPIClient {
         request.httpMethod = "DELETE"
         request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
         request.setValue("ios-v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown")", forHTTPHeaderField: "X-Client-Version")
+        request.setValue("v3.3", forHTTPHeaderField: "X-API-Contract-Version")
         request.timeoutInterval = 15  // 15 second timeout for DELETE request
 
         #if DEBUG
@@ -940,6 +966,8 @@ actor EnrichmentAPIClient {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("ios-v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown")", forHTTPHeaderField: "X-Client-Version")
+        request.setValue("v3.3", forHTTPHeaderField: "X-API-Contract-Version")
 
         let payload = EnrichBookV2Request(barcode: barcode, preferProvider: preferProvider, idempotencyKey: idempotencyKey)
         request.httpBody = try JSONEncoder().encode(payload)

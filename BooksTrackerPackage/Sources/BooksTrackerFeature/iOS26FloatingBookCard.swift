@@ -74,13 +74,13 @@ struct iOS26FloatingBookCard: View {
         CachedAsyncImage(url: CoverImageService.coverURL(for: work)) { image in
             image
                 .resizable()
-                .aspectRatio(2/3, contentMode: .fill)
+                .aspectRatio(2/3, contentMode: .fit)
         } placeholder: {
             // Refined Placeholder with Theme Colors
             ZStack {
                 Rectangle()
                     .fill(themeStore.primaryColor.gradient.opacity(0.3))
-                
+
                 VStack(spacing: 8) {
                     Image(systemName: "book.closed")
                         .font(.largeTitle)
@@ -95,7 +95,7 @@ struct iOS26FloatingBookCard: View {
                 }
             }
         }
-        .frame(height: 240) // Consistent card height
+        .aspectRatio(2/3, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .glassEffect(.regular, tint: .white.opacity(0.1))
         .shadow(
@@ -275,17 +275,19 @@ struct QuickActionsSheet: View {
                     CachedAsyncImage(url: work.primaryEdition?.coverImageURL.flatMap(URL.init)) { image in
                         image
                             .resizable()
-                            .aspectRatio(2/3, contentMode: .fill)
+                            .aspectRatio(2/3, contentMode: .fit)
                     } placeholder: {
                         Rectangle()
                             .fill(.quaternary)
                     }
-                    .frame(width: 60, height: 90)
+                    .frame(width: 60)
+                    .aspectRatio(2/3, contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     #else
                     Rectangle()
                         .fill(.quaternary)
-                        .frame(width: 60, height: 90)
+                        .frame(width: 60)
+                        .aspectRatio(2/3, contentMode: .fit)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                     #endif
 

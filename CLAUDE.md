@@ -1,6 +1,6 @@
 # 📚 BooksTrack - Claude Code Guide
 
-**Version 3.7.5 (Build 189+)** | **iOS 26.0+** | **Swift 6.2+** | **Updated: December 6, 2025**
+**Version 3.7.5 (Build 189+)** | **iOS 26.0+** | **Swift 6.2+** | **Updated: December 11, 2025**
 
 > **📋 For universal AI agent instructions, see [`AGENTS.md`](AGENTS.md)**
 > This file contains **Claude Code-specific** setup (MCP, slash commands, skills).
@@ -12,6 +12,7 @@
 **🤖 AI Context Files:**
 - **`AGENTS.md`** - Universal AI agent guide (ALL tools use this)
 - **`CLAUDE.md`** - Claude Code-specific (this file - MCP, slash commands)
+- **`.claude/rules/`** - Memory rules (auto-loaded, see v2.0.64)
 - **`.ai/SHARED_CONTEXT.md`** - Project-wide context (tech stack, architecture)
 - **`.github/copilot-instructions.md`** - GitHub Copilot setup
 
@@ -65,7 +66,7 @@
 
 ### Available MCP Servers
 
-**Zen MCP Server (v9.1.3):**
+**PAL MCP Server (v9.1.3):**
 - **Providers:** Google Gemini ✅, X.AI ✅
 - **Available Models:** 14 (use `listmodels` tool)
 - **Mode:** Auto model selection
@@ -91,7 +92,7 @@
 - Critical decision-making with deep reasoning
 - Available in Claude Code v2.0.51+
 
-**⚡ Haiku 4.5 (Fast Implementation)** - Via `mcp__zen__chat` or Explore subagent
+**⚡ Haiku 4.5 (Fast Implementation)** - Via `mcp__pal__chat` or Explore subagent
 - Rapid iteration and implementation
 - Single-file focused changes
 - Simple bug fixes
@@ -99,13 +100,13 @@
 - Codebase exploration (Explore subagent)
 - Auto-uses Sonnet in plan mode ("SonnetPlan" mode)
 
-**🔍 Grok-4 / Grok Code Fast 1 (Expert Review)** - Via `mcp__zen__codereview` / `mcp__zen__secaudit`
+**🔍 Grok-4 / Grok Code Fast 1 (Expert Review)** - Via `mcp__pal__codereview` / `mcp__pal__secaudit`
 - Security and architecture validation
 - Complex code review (70.8% SWE-Bench-Verified)
 - Performance analysis
 - Best practices enforcement
 
-**🧪 Gemini 2.5 Pro / 3.0 Pro (Deep Analysis)** - Via `mcp__zen__debug` / `mcp__zen__thinkdeep`
+**🧪 Gemini 2.5 Pro / 3.0 Pro (Deep Analysis)** - Via `mcp__pal__debug` / `mcp__pal__thinkdeep`
 - Root cause analysis
 - Multi-stage investigation
 - Complex debugging scenarios
@@ -120,9 +121,9 @@
 ```
 Sonnet (you): Plan feature architecture
   ↓
-Haiku: Implement components rapidly via mcp__zen__chat
+Haiku: Implement components rapidly via mcp__pal__chat
   ↓
-Grok: Validate security/architecture via mcp__zen__codereview
+Grok: Validate security/architecture via mcp__pal__codereview
   ↓
 Sonnet (you): Final integration and testing
 ```
@@ -131,9 +132,9 @@ Sonnet (you): Final integration and testing
 ```
 Sonnet (you): Initial triage and context gathering
   ↓
-Gemini: Deep analysis via mcp__zen__debug or mcp__zen__thinkdeep
+Gemini: Deep analysis via mcp__pal__debug or mcp__pal__thinkdeep
   ↓
-Haiku: Implement fix via mcp__zen__chat
+Haiku: Implement fix via mcp__pal__chat
   ↓
 Sonnet (you): Regression test and validation
 ```
@@ -142,37 +143,52 @@ Sonnet (you): Regression test and validation
 ```
 Sonnet (you): Security requirements planning
   ↓
-Haiku: Initial implementation via mcp__zen__chat
+Haiku: Initial implementation via mcp__pal__chat
   ↓
-Grok: Security audit via mcp__zen__secaudit
+Grok: Security audit via mcp__pal__secaudit
   ↓
 Sonnet (you): Address findings and final review
 ```
 
-**Pattern 4: Background Agent Workflow (v2.0.60+)**
+**Pattern 4: Async Agent Workflow (v2.0.64+)**
 ```
 User: "Start a performance analysis in the background"
-Sonnet (you): Launch background agent for long-running analysis
+Sonnet (you): Launch async agent with run_in_background: true
   ↓
 Background Agent: Runs performance profiling independently
   ↓
 Sonnet (you): Continue with other tasks (refactoring, features)
   ↓
-Background Agent: Completes and returns findings
+Background Agent: Sends message to wake up main agent when done
   ↓
-Sonnet (you): Review findings and integrate recommendations
+Sonnet (you): Use TaskOutput tool to retrieve results
 ```
 
-**When to Use Background Agents:**
+**New in v2.0.64:**
+- Agents and bash commands can run asynchronously
+- Background tasks send messages to wake up main agent
+- **TaskOutput tool** replaces AgentOutputTool and BashOutputTool
+
+**When to Use Async Agents:**
 - Long-running analysis (performance profiling, security audits)
 - Parallel work streams (one agent analyzes while you implement)
 - Non-blocking investigations (let agent explore while you code)
 - Resource-intensive tasks (offload to background process)
 
-**Starting a Background Agent:**
-```
-User: "Analyze performance in the background while I fix this bug"
-or prefix message with `&` in Claude Code Web to run in background
+**Launching Async Agents:**
+```javascript
+Task({
+  subagent_type: "performance-analyzer",
+  prompt: "Analyze app startup performance",
+  run_in_background: true  // ← Key parameter
+})
+
+// Later, retrieve results:
+TaskOutput({
+  task_id: "task_xyz123",
+  block: true,     // Wait for completion
+  timeout: 60000   // Max wait time (ms)
+})
 ```
 
 ---
@@ -204,7 +220,7 @@ Sonnet: [Uses refactor-planner agent]
 
 ---
 
-### Zen MCP Subagent Delegation
+### PAL MCP Subagent Delegation
 
 **When to delegate to specialized models:**
 
@@ -213,21 +229,21 @@ Sonnet: [Uses refactor-planner agent]
 - View component creation
 - Model boilerplate
 - Test case generation
-- **Tool:** `mcp__zen__chat` with `model="haiku"`
+- **Tool:** `mcp__pal__chat` with `model="haiku"`
 
 **Grok (Expert Review):**
 - Security vulnerability scanning
 - Architecture pattern validation
 - Performance bottleneck analysis
 - API contract compliance
-- **Tools:** `mcp__zen__codereview`, `mcp__zen__secaudit` with `model="grok-code-fast-1"` or `"grok-4-1-fast-non-reasoning"`
+- **Tools:** `mcp__pal__codereview`, `mcp__pal__secaudit` with `model="grok-code-fast-1"` or `"grok-4-1-fast-non-reasoning"`
 
 **Gemini 2.5 (Deep Analysis):**
 - Mysterious crashes and race conditions
 - Complex SwiftData relationship bugs
 - Performance regression investigation
 - Architectural refactoring planning
-- **Tools:** `mcp__zen__debug`, `mcp__zen__thinkdeep`, `mcp__zen__planner` with `model="gemini-2.5-pro"`
+- **Tools:** `mcp__pal__debug`, `mcp__pal__thinkdeep`, `mcp__pal__planner` with `model="gemini-2.5-pro"`
 
 **Model Selection:**
 Use `listmodels` tool to see all 14 available models. When delegating, specify the model explicitly:
@@ -235,15 +251,15 @@ Use `listmodels` tool to see all 14 available models. When delegating, specify t
 ```swift
 // Example delegation pattern
 User: "Implement the BookDetailView"
-Sonnet: [Delegates to Haiku via mcp__zen__chat]
-  mcp__zen__chat(
+Sonnet: [Delegates to Haiku via mcp__pal__chat]
+  mcp__pal__chat(
     model: "haiku",
     prompt: "Create BookDetailView with @Bindable Work, cover image, title, author, rating"
   )
 
 User: "Review this for security issues"
-Sonnet: [Delegates to Grok via mcp__zen__secaudit]
-  mcp__zen__secaudit(
+Sonnet: [Delegates to Grok via mcp__pal__secaudit]
+  mcp__pal__secaudit(
     model: "grok-code-fast-1",
     audit_focus: "owasp",
     step: "Analyze AuthenticationService for vulnerabilities"
@@ -270,11 +286,11 @@ Sonnet: [Delegates to Grok via mcp__zen__secaudit]
 Always reuse `continuation_id` when resuming conversations with the same model:
 ```swift
 // First call
-mcp__zen__debug(model: "gemini-2.5-pro", step: "Initial investigation")
+mcp__pal__debug(model: "gemini-2.5-pro", step: "Initial investigation")
 // Returns: continuation_id: "abc123"
 
 // Follow-up call (REUSE ID!)
-mcp__zen__debug(
+mcp__pal__debug(
   model: "gemini-2.5-pro",
   continuation_id: "abc123",  // ← CRITICAL!
   step: "Continue investigation with new findings"
@@ -307,10 +323,11 @@ mcp__zen__debug(
 
 ### AskUserQuestion Tool (Enhanced)
 
-**Recent improvements:**
+**Recent improvements (v2.0.62+):**
 - Multi-select support for non-exclusive choices
 - Auto-submission for single-select queries
 - Better mobile experience
+- **"(Recommended)" indicator** - Add to preferred option label, move to top of list
 
 **Use when you need:**
 - User preferences or requirements
@@ -323,8 +340,9 @@ mcp__zen__debug(
 - `multiSelect: true` for multiple answers
 - 2-4 options per question
 - 1-4 questions max
+- **Place recommended option first** with "(Recommended)" suffix
 
-**Example:**
+**Example (v2.0.62 pattern):**
 ```swift
 AskUserQuestion(
   questions: [{
@@ -332,9 +350,9 @@ AskUserQuestion(
     header: "Testing",
     multiSelect: false,
     options: [
-      {label: "/quick-validate", description: "Safe build validation (recommended)"},
-      {label: "/sim-safe", description: "Simulator with resource limits"},
-      {label: "/device-deploy", description: "Real device (most accurate)"}
+      {label: "/quick-validate (Recommended)", description: "Safe build validation"},
+      {label: "/device-deploy", description: "Real device (most accurate)"},
+      {label: "/sim-safe", description: "Simulator with resource limits"}
     ]
   }]
 )
@@ -342,7 +360,7 @@ AskUserQuestion(
 
 ---
 
-## 🔄 Checkpoints & Rewind
+## 🔄 Checkpoints, Rewind & Sessions
 
 **Claude Code auto-saves before each change.**
 
@@ -358,6 +376,26 @@ AskUserQuestion(
 - Restore previous task states
 
 **Note:** Todo list state is preserved across rewinding.
+
+### Named Sessions (v2.0.64)
+
+**Sessions can now be named and resumed:**
+- `/rename <name>` - Name current session for easy reference
+- `/resume <name>` - Resume named session (in REPL)
+- `claude --resume <name>` - Resume from terminal
+
+**Resume Screen Features:**
+- Grouped forked sessions for clarity
+- `P` key - Preview session contents
+- `R` key - Rename session
+
+### Usage Statistics (v2.0.64)
+
+**New `/stats` command provides:**
+- Favorite model usage
+- Usage graphs over time
+- Usage streak tracking
+- Session history insights
 
 ---
 
@@ -485,6 +523,26 @@ Claude: [Uses Grep tool with pattern '@Model']
 - NEVER skip hooks (--no-verify, --no-gpg-sign) unless explicitly requested
 - Avoid `git commit --amend` (only when user requests OR adding edits from pre-commit hook)
 
+### Attribution Setting (v2.0.62)
+
+**Commit and PR attribution is configured via `attribution` setting:**
+
+```json
+{
+  "attribution": {
+    "commit": {
+      "trailer": "Co-Authored-By: Claude <noreply@anthropic.com>",
+      "footer": "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+    },
+    "pr": {
+      "footer": "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+    }
+  }
+}
+```
+
+**Note:** The `includeCoAuthoredBy` setting is **deprecated**. Use `attribution` instead.
+
 **Commit Workflow (ONLY when user explicitly asks):**
 
 1. **Run git commands in parallel:**
@@ -611,28 +669,28 @@ Claude: [Uses Grep tool with pattern '@Model']
 
 ### Available Skills
 
-**mcp-zen-usage:**
+**mcp-pal-usage:**
 - Use for debugging complex issues
 - Code review
 - Planning features
 - Expert analysis
-- Ensures Zen MCP tools used appropriately (thinkdeep, debug, codereview, consensus, planner)
+- Ensures PAL MCP tools used appropriately (thinkdeep, debug, codereview, consensus, planner)
 
 **Usage:**
 ```
-Skill: "mcp-zen-usage"
+Skill: "mcp-pal-usage"
 ```
 
-### Zen MCP Tools (Brief Reference)
+### PAL MCP Tools (Brief Reference)
 
-**Available tools from Zen MCP:**
-- `mcp__zen__chat` - General collaboration and brainstorming
-- `mcp__zen__thinkdeep` - Multi-stage investigation for complex problems
-- `mcp__zen__planner` - Interactive planning with revision/branching
-- `mcp__zen__consensus` - Multi-model consensus for decisions
-- `mcp__zen__codereview` - Systematic code review
-- `mcp__zen__debug` - Systematic debugging and root cause analysis
-- `mcp__zen__challenge` - Prevents reflexive agreement, forces critical thinking
+**Available tools from PAL MCP:**
+- `mcp__pal__chat` - General collaboration and brainstorming
+- `mcp__pal__thinkdeep` - Multi-stage investigation for complex problems
+- `mcp__pal__planner` - Interactive planning with revision/branching
+- `mcp__pal__consensus` - Multi-model consensus for decisions
+- `mcp__pal__codereview` - Systematic code review
+- `mcp__pal__debug` - Systematic debugging and root cause analysis
+- `mcp__pal__challenge` - Prevents reflexive agreement, forces critical thinking
 
 **Model Selection:**
 When user names a specific model, use that exact name. When no model mentioned, use `listmodels` tool to see available options.
@@ -648,11 +706,29 @@ When user names a specific model, use that exact name. When no model mentioned, 
 
 **Current Budget:** 200,000 tokens
 
+**Auto-Compacting (v2.0.64):** Now instant - no delay when context needs reduction.
+
+**Model Switching (v2.0.65):**
+- **macOS**: `option+p` while writing prompt
+- **Linux/Windows**: `alt+p` while writing prompt
+- Context window info now shown in status line
+
 **Optimization Tips:**
 - Use Task tool with Explore agent for open-ended searches (reduces context)
 - Use ast-grep over multiple Grep calls
 - Read files in parallel when possible
 - Don't repeat large code blocks in responses
+
+**File Suggestions (v2.0.65):**
+Custom `@` file search configured via `fileSuggestion` setting:
+```json
+{
+  "fileSuggestion": {
+    "command": "git ls-files --cached --others --exclude-standard",
+    "maxResults": 50
+  }
+}
+```
 
 ---
 
@@ -698,7 +774,7 @@ Sonnet (you):
      - Login/logout flows
   3. Reviews Haiku's implementation
   4. Delegates to Grok for security audit:
-     mcp__zen__secaudit(model="grok-code-fast-1", audit_focus="owasp")
+     mcp__pal__secaudit(model="grok-code-fast-1", audit_focus="owasp")
   5. Addresses Grok-4 findings
   6. Runs /test and /build
   7. Final integration testing
@@ -711,13 +787,13 @@ Sonnet (you):
   1. Uses Explore agent to find CSV import code
   2. Reads relevant files for context
   3. Delegates to Gemini for deep analysis:
-     mcp__zen__debug(
+     mcp__pal__debug(
        model="gemini-2.5-pro",
        step: "Investigate race condition in CSV parsing"
      )
   4. Gemini identifies SwiftData concurrency issue
   5. Delegates to Haiku for fix implementation:
-     mcp__zen__chat(model="haiku", prompt="Fix actor isolation in CSVParser")
+     mcp__pal__chat(model="haiku", prompt="Fix actor isolation in CSVParser")
   6. Adds regression test
   7. Runs /test to verify
 ```
@@ -729,7 +805,7 @@ Sonnet (you):
   1. Uses code-architecture-reviewer agent for initial scan
   2. Checks Swift 6 concurrency, SwiftData patterns
   3. For security-critical paths, delegates to Grok:
-     mcp__zen__codereview(
+     mcp__pal__codereview(
        model="grok-code-fast-1",
        review_type="security",
        step: "Audit API key handling and network security"
@@ -761,9 +837,9 @@ User: "Implement user profiles AND notification system"
 Sonnet (you):
   1. Creates parallel TodoWrite plans
   2. Delegates UserProfile to Haiku (Branch A):
-     mcp__zen__chat(model="haiku", prompt="UserProfile model + CRUD")
+     mcp__pal__chat(model="haiku", prompt="UserProfile model + CRUD")
   3. Delegates NotificationService to Haiku (Branch B):
-     mcp__zen__chat(model="haiku", prompt="NotificationService with local/push")
+     mcp__pal__chat(model="haiku", prompt="NotificationService with local/push")
   4. Reviews both implementations in parallel
   5. Integrates both features
   6. Runs /test for integration
@@ -825,9 +901,9 @@ Sonnet (you):
 User: "Audit the Workers API for security issues"
 Sonnet (you):
   1. Routes to code-review-grok subagent (Grok)
-  2. Grok performs OWASP Top 10 audit via mcp__zen__secaudit
+  2. Grok performs OWASP Top 10 audit via mcp__pal__secaudit
   3. You review findings and prioritize fixes
-  4. Delegates fixes to Haiku via mcp__zen__chat
+  4. Delegates fixes to Haiku via mcp__pal__chat
   5. Routes back to code-review-grok for validation
 ```
 
@@ -994,7 +1070,7 @@ claude --agent cloudflare-specialist
 }
 ```
 
-**Available Hook Events (v2.0.60):**
+**Available Hook Events (v2.0.64):**
 
 **Session Lifecycle:**
 - **SessionStart** (v1.0.61+) - Triggered when Claude Code session begins
@@ -1016,16 +1092,23 @@ claude --agent cloudflare-specialist
   - Use for: Validation, security checks, pre-flight checks
   - Hook: `.claude/hooks/pre-commit.sh` (for Bash commands)
 
-**Subagent Lifecycle:**
+**Subagent Lifecycle (Updated v2.0.64):**
 - **SubagentStart** (v2.0.43+) - Triggered when subagent starts
   - Use for: Logging, resource allocation, context preparation
   - Hook: `.claude/hooks/subagent-start.sh`
-  - Receives: `agent_id`, `CLAUDE_PROJECT_DIR`
+  - Receives: `agent_id`, `agent_type`, `run_in_background`, `CLAUDE_PROJECT_DIR`
+  - **New**: Supports async agents with background execution
 
 - **SubagentStop** (v2.0.42+) - Triggered when subagent completes
   - Use for: Review findings, archive transcripts, cleanup
   - Hook: `.claude/hooks/subagent-stop.sh`
-  - Receives: `agent_id`, `agent_transcript_path`
+  - Receives: `agent_id`, `agent_type`, `was_background`, `agent_transcript_path`
+  - **New**: Indicates if agent ran in background
+
+**New in v2.0.64:**
+- Async agents can send messages to wake up main agent
+- `TaskOutput` tool replaces `AgentOutputTool` and `BashOutputTool`
+- Background bash commands also supported
 
 **Hook Scripts (in `.claude/hooks/`):**
 - `session-start.sh` - Environment checks, memory warnings, OpenAPI freshness
@@ -1085,13 +1168,22 @@ claude --agent cloudflare-specialist
 
 ---
 
-**Last Updated:** December 6, 2025 (Claude Code v2.0.60, BooksTrack v3.7.5, Build 189)
+**Last Updated:** December 11, 2025 (Claude Code v2.0.65, BooksTrack v3.7.5, Build 189)
 **Maintained by:** oooe (jukasdrj)
 **See Also:** [`AGENTS.md`](AGENTS.md)
 
-**Recent Updates:**
+**Recent Updates (v2.0.62-65):**
+- ⚡ **v2.0.65**: Model switching during prompt (`option+p`/`alt+p`), context window in status line, `fileSuggestion` setting
+- 📛 **v2.0.64**: Named sessions (`/rename`, `/resume <name>`), `/stats` command, instant auto-compacting
+- 🔄 **v2.0.64**: Async agents with `run_in_background`, `TaskOutput` tool (replaces AgentOutputTool/BashOutputTool)
+- 📁 **v2.0.64**: `.claude/rules/` directory support for memory rules
+- ⭐ **v2.0.62**: "(Recommended)" indicator for multiple-choice options
+- 🏷️ **v2.0.62**: `attribution` setting (deprecates `includeCoAuthoredBy`)
+- 🐛 **v2.0.62**: Fixed duplicate slash commands, skill symlink issues, IDE diff tab closing
+
+**Previous Updates:**
 - ✨ Added Opus 4.5 and Haiku 4.5 model documentation
 - 🔄 Added background agent workflow patterns (v2.0.60)
 - 🪝 Added PermissionRequest, SessionStart, SessionEnd hooks
-- 📚 Created comprehensive mcp-zen-usage skill guide
+- 📚 Created comprehensive mcp-pal-usage skill guide
 - ⚙️ Documented `agent` setting for main thread configuration (v2.0.59)

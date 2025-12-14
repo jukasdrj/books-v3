@@ -39,8 +39,17 @@ import Combine
 @MainActor
 public final class ImagePrefetcher: ObservableObject {
 
+    /// Shared singleton instance for prefetching across the app
+    public static let shared = ImagePrefetcher()
+
     private var prefetchTask: Task<Void, Never>?
     private let session: URLSession
+    private var lastScrollDirection: ScrollDirection = .down
+
+    private enum ScrollDirection {
+        case up
+        case down
+    }
 
     public init() {
         let configuration = URLSessionConfiguration.default
@@ -88,5 +97,65 @@ public final class ImagePrefetcher: ObservableObject {
     public func cancelPrefetching() {
         prefetchTask?.cancel()
         prefetchTask = nil
+    }
+
+    /// Intelligently prefetch images for items near the current index during scroll.
+    ///
+    /// This method implements a smart prefetching strategy:
+    /// - Prefetches next 10 images when within 5 items of the end
+    /// - Adapts to scroll direction (cancels prefetch on upward scroll)
+    /// - Respects the 50MB cache limit by only prefetching when needed
+    ///
+    /// **Usage in LazyVGrid:**
+    /// ```swift
+    /// ForEach(works, id: \.id) { work in
+    ///     MyCard(work: work)
+    ///         .onAppear {
+    ///             ImagePrefetcher.shared.prefetchIfNeeded(
+    ///                 for: work,
+    ///                 in: cachedFilteredWorks,
+    ///                 prefetchCount: 10,
+    ///                 threshold: 5
+    ///             )
+    ///         }
+    /// }
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - work: The current work being displayed
+    ///   - works: Array of all works in the list
+    ///   - prefetchCount: Number of images to prefetch ahead (default: 10)
+    ///   - threshold: Distance from end to trigger prefetch (default: 5)
+    public func prefetchIfNeeded(
+        for work: Work,
+        in works: [Work],
+        prefetchCount: Int = 10,
+        threshold: Int = 5
+    ) {
+        guard let currentIndex = works.firstIndex(where: { $0.id == work.id }) else {
+            return
+        }
+
+        let distanceFromEnd = works.count - currentIndex.advanced(by: 1)
+        let shouldPrefetch = distanceFromEnd <= threshold
+
+        if shouldPrefetch && currentIndex < works.count {
+            let startIndex = currentIndex.advanced(by: 1)
+            let endIndex = min(startIndex + prefetchCount, works.count)
+
+            if startIndex < endIndex {
+                let worksToPrefetch = Array(works[startIndex..<endIndex])
+                let urlsToPrefetch = worksToPrefetch.compactMap { work in
+                    CoverImageService.coverURL(for: work)
+                }
+
+                if !urlsToPrefetch.isEmpty {
+                    #if DEBUG
+                    print("[ImagePrefetcher] Prefetching \(urlsToPrefetch.count) images starting at index \(startIndex)")
+                    #endif
+                    startPrefetching(urls: urlsToPrefetch)
+                }
+            }
+        }
     }
 }

@@ -237,6 +237,7 @@ struct DTOTests {
     func responseEnvelopeSuccessDecoding() throws {
         let json = """
         {
+            "success": true,
             "data": {
                 "works": [{
                     "title": "1984",
@@ -248,10 +249,12 @@ struct DTOTests {
                     "isbndbQuality": 0,
                     "reviewStatus": "verified"
                 }],
+                "editions": [],
                 "authors": [{
                     "name": "George Orwell",
                     "gender": "Male"
-                }]
+                }],
+                "resultCount": 1
             },
             "metadata": {
                 "timestamp": "2025-11-18T12:00:00Z",
@@ -284,6 +287,7 @@ struct DTOTests {
     func responseEnvelopeErrorDecoding() throws {
         let json = """
         {
+            "success": false,
             "data": null,
             "error": {
                 "message": "Invalid ISBN format",

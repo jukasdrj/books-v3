@@ -25,7 +25,7 @@ struct AppLaunchIntegrationTests {
         let dtoMapper = DTOMapper(modelContext: context)
         LaunchMetrics.shared.recordMilestone("DTOMapper created")
 
-        let libraryRepo = LibraryRepository(modelContext: context)
+        let libraryRepo = LibraryRepository(modelContext: context, dtoMapper: nil, featureFlags: nil)
         LaunchMetrics.shared.recordMilestone("LibraryRepository created")
 
         // 2. Background tasks scheduled (not blocking)
@@ -96,7 +96,7 @@ struct AppLaunchIntegrationTests {
         )
         let context = container.mainContext
 
-        EnrichmentQueue.shared.clear()
+        EnrichmentQueue.shared.clearQueue()
 
         let startTime = CFAbsoluteTimeGetCurrent()
 

@@ -80,6 +80,10 @@ public class V3APIClientActual {
         var request = URLRequest(url: url)
         request.timeoutInterval = 5.0  // 5s for search operations
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("v3.3", forHTTPHeaderField: "X-API-Contract-Version")
+        if let clientVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String {
+            request.setValue("ios-v\(clientVersion)", forHTTPHeaderField: "X-Client-Version")
+        }
 
         let (data, response) = try await performRequestWithRetry(request)
 
@@ -135,6 +139,10 @@ public class V3APIClientActual {
         var request = URLRequest(url: url)
         request.timeoutInterval = 5.0  // 5s for ISBN lookups
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("v3.3", forHTTPHeaderField: "X-API-Contract-Version")
+        if let clientVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String {
+            request.setValue("ios-v\(clientVersion)", forHTTPHeaderField: "X-Client-Version")
+        }
 
         // Add ETag for conditional request if cached
         if let cachedETag = etagCache[isbn] {
@@ -210,6 +218,10 @@ public class V3APIClientActual {
         request.timeoutInterval = 30.0  // 30s for batch operations
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("v3.3", forHTTPHeaderField: "X-API-Contract-Version")
+        if let clientVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String {
+            request.setValue("ios-v\(clientVersion)", forHTTPHeaderField: "X-Client-Version")
+        }
 
         // Create request payload
         let enrichRequest = V3EnrichRequest(isbns: isbns, includeEmbedding: includeEmbedding)

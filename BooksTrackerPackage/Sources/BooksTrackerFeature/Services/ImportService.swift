@@ -94,7 +94,7 @@ public actor ImportService {
     /// - Returns: Import result with success/failure counts and per-book errors
     /// - Throws: `SwiftDataError` if context save fails
     public func importCSVBooks(
-        _ books: [GeminiCSVImportJob.ParsedBook]
+        _ books: [CSVParsedBook]
     ) async throws -> ImportResult {
         let context = ModelContext(modelContainer)
         context.autosaveEnabled = false

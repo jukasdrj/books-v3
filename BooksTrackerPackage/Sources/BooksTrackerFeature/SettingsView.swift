@@ -42,7 +42,7 @@ public struct SettingsView: View {
     @Environment(FeatureFlags.self) private var featureFlags
     @Environment(\.dtoMapper) private var dtoMapper
     @Environment(LibraryRepository.self) private var libraryRepository
-    @Environment(EnrichmentQueue.self) private var enrichmentQueue
+    @Environment(\.enrichmentQueue) private var enrichmentQueue
     @Environment(\.tabCoordinator) private var tabCoordinator
     @Environment(\.curatorPointsService) private var curatorPointsService
 
@@ -190,7 +190,7 @@ public struct SettingsView: View {
                         }
                     }
                 }
-                .disabled(EnrichmentQueue.shared.isProcessing())
+                .disabled(enrichmentQueue.isProcessing())
 
             } header: {
                 Text("Data Management")
@@ -534,15 +534,15 @@ public struct SettingsView: View {
 
                 // Queue all works for enrichment
                 let workIDs = allWorks.map { $0.persistentModelID }
-                EnrichmentQueue.shared.enqueueBatch(workIDs)
+                enrichmentQueue.enqueueBatch(workIDs)
 
                 #if DEBUG
-                print("📚 Queue size after enqueueBatch: \(EnrichmentQueue.shared.count())")
-                print("📚 Is already processing? \(EnrichmentQueue.shared.isProcessing())")
+                print("📚 Queue size after enqueueBatch: \(enrichmentQueue.count())")
+                print("📚 Is already processing? \(enrichmentQueue.isProcessing())")
                 #endif
 
                 // Check if enrichment is already running
-                if EnrichmentQueue.shared.isProcessing() {
+                if enrichmentQueue.isProcessing() {
                     #if DEBUG
                     print("⚠️ Enrichment already in progress. Books added to queue.")
                     #endif
@@ -557,12 +557,16 @@ public struct SettingsView: View {
                 }
 
                 // Start processing with progress handler
-                EnrichmentQueue.shared.startProcessing(in: modelContext) { completed, total, currentTitle in
-                    // Progress is automatically shown via EnrichmentBanner in ContentView
-                    #if DEBUG
-                    print("📊 Progress: \(completed)/\(total) - \(currentTitle)")
-                    #endif
-                }
+                enrichmentQueue.startProcessing(
+                    in: modelContext,
+                    progressHandler: { completed, total, currentTitle in
+                        // Progress is automatically shown via EnrichmentBanner in ContentView
+                        #if DEBUG
+                        print("📊 Progress: \(completed)/\(total) - \(currentTitle)")
+                        #endif
+                    },
+                    timeoutDuration: 300
+                )
 
                 // Success haptic feedback
                 let generator = UINotificationFeedbackGenerator()

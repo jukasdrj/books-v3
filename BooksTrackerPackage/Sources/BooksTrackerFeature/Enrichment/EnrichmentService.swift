@@ -1,20 +1,20 @@
 import Foundation
 import SwiftData
+import OSLog
 
 // MARK: - Enrichment Service
 /// Service for enriching imported books with metadata from Cloudflare Worker
 /// Fetches cover images, ISBNs, publication details, and other metadata
 /// MainActor-isolated for SwiftData compatibility
 @MainActor
-public final class EnrichmentService {
-    public static let shared = EnrichmentService()
-
+public final class EnrichmentService: EnrichmentServiceProtocol {
     // MARK: - Properties
     private let apiClient = EnrichmentAPIClient()
     private let baseURL = EnrichmentConfig.baseURL
     private let urlSession: URLSession
     private let batchSize = 5 // Process 5 books at a time
     private let throttleDelay: TimeInterval = 0.5 // 500ms between requests
+    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "Enrichment")
 
     // Statistics
     private var totalEnriched: Int = 0
@@ -22,7 +22,7 @@ public final class EnrichmentService {
 
     // MARK: - Initialization
 
-    private init() {
+    public init() {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 15.0
         config.timeoutIntervalForResource = 60.0
@@ -77,21 +77,15 @@ public final class EnrichmentService {
             if let enrichmentError = error as? EnrichmentError {
                 switch enrichmentError {
                 case .httpError(let statusCode):
-                    #if DEBUG
-                    print("🚨 HTTP Error \(statusCode) enriching '\(searchTitle)'")
-                    #endif
+                    self.logger.error("HTTP Error \(statusCode) enriching '\(searchTitle, privacy: .private)'")
                 default:
-                    #if DEBUG
-                    print("🚨 Enrichment error: \(enrichmentError)")
-                    #endif
+                    self.logger.error("Enrichment error: \(enrichmentError.localizedDescription)")
                 }
                 return .failure(enrichmentError)
             }
 
             // Fallback for unknown errors
-            #if DEBUG
-            print("🚨 Unexpected error enriching '\(searchTitle)': \(error)")
-            #endif
+            self.logger.error("Unexpected error enriching '\(searchTitle, privacy: .private)': \(error.localizedDescription)")
             return .failure(.apiError(String(describing: error)))
         }
     }
@@ -115,9 +109,7 @@ public final class EnrichmentService {
 
             // Check if sync mode returned embedded books (batch ≤50 ISBNs)
             if result.hasSyncResults, let embeddedBooks = result.embeddedBooks {
-                #if DEBUG
-                print("✅ Sync enrichment completed: \(result.processedCount)/\(result.totalCount) books enriched")
-                #endif
+                self.logger.info("Sync enrichment completed: \(result.processedCount)/\(result.totalCount) books enriched")
 
                 // Convert SyncEnrichedBook to EnrichedBookPayload for downstream processing
                 let enrichedPayloads = embeddedBooks.map { $0.toEnrichedBookPayload() }
@@ -134,42 +126,33 @@ public final class EnrichmentService {
             }
 
             // Async mode: HTTP 202 response indicates job acceptance, not completion
-            // Actual enrichment happens asynchronously via WebSocket
-            #if DEBUG
-            print("✅ Async enrichment job accepted: \(result.totalCount) books queued for background processing")
-            #endif
+            // Actual enrichment happens asynchronously via SSE (preferred) or WebSocket
+            self.logger.info("Async enrichment job accepted: \(result.totalCount) books queued for background processing, serverJobId: \(result.serverJobId ?? "nil", privacy: .private), streamUrl: \(result.streamUrl ?? "nil", privacy: .private)")
 
             // Return 0/0 to avoid confusing "Success: 0, Failed: 48" logs
+            // CRITICAL: Pass serverJobId and streamUrl for SSE/WebSocket connection
             return BatchEnrichmentResult(
                 successCount: 0,  // Job accepted, enrichment pending (not complete)
                 failureCount: 0,  // No failures yet (enrichment in progress)
                 errors: [],
-                token: result.authToken  // WebSocket authentication token
+                token: result.authToken,    // Auth token for SSE/WebSocket
+                serverJobId: result.serverJobId,  // Server-assigned job ID
+                streamUrl: result.streamUrl       // V3 SSE stream URL (preferred)
             )
         } catch {
             // Enhanced error logging for debugging enrichment failures
-            #if DEBUG
-            print("🚨 Batch enrichment failed: \(error)")
-            #endif
-            #if DEBUG
-            print("🚨 Error type: \(type(of: error))")
-            #endif
+            self.logger.error("Batch enrichment failed: \(error.localizedDescription)")
+            self.logger.debug("Error type: \(type(of: error))")
 
             if let urlError = error as? URLError {
-                #if DEBUG
-                print("🚨 URLError code: \(urlError.code.rawValue), localized: \(urlError.localizedDescription)")
-                #endif
+                self.logger.debug("URLError code: \(urlError.code.rawValue), localized: \(urlError.localizedDescription)")
             } else {
                 // Bridge to NSError for detailed diagnostics
                 let nsError = error as NSError
-                #if DEBUG
-                print("🚨 NSError domain: \(nsError.domain), code: \(nsError.code)")
-                #endif
-                #if DEBUG
-                print("🚨 NSError userInfo: \(nsError.userInfo)")
-                #endif
+                self.logger.debug("NSError domain: \(nsError.domain), code: \(nsError.code)")
+                self.logger.debug("NSError userInfo: \(String(describing: nsError.userInfo), privacy: .sensitive)")
             }
-            
+
             return BatchEnrichmentResult(
                 successCount: 0,
                 failureCount: works.count,
@@ -218,11 +201,9 @@ public final class EnrichmentService {
             throw EnrichmentError.httpError(httpResponse.statusCode)
         }
 
-        #if DEBUG
         if let jsonString = String(data: data, encoding: .utf8) {
-            print("📡 Enrichment API Response: \(jsonString.prefix(500))")
+            self.logger.debug("Enrichment API Response: \(jsonString.prefix(500))")
         }
-        #endif
 
         // V3 Search Response is already the full envelope
         let decoder = JSONDecoder()
@@ -520,6 +501,14 @@ public struct BatchEnrichmentResult: Sendable {
     public let errors: [EnrichmentError]
     public let token: String?  // WebSocket authentication token (nil on error, empty for sync mode)
 
+    /// Server-assigned job ID for async enrichment (V3 API)
+    /// CRITICAL: Use this for WebSocket/SSE connections, NOT the client-generated UUID
+    public let serverJobId: String?
+
+    /// V3 SSE stream URL for real-time progress (preferred over WebSocket)
+    /// Format: https://api.oooefam.net/v3/jobs/enrichment/{jobId}/stream
+    public let streamUrl: String?
+
     /// Embedded enriched books from sync mode (batch ≤50 ISBNs)
     /// When present, results are already available - no WebSocket needed
     public let embeddedBooks: [EnrichedBookPayload]?
@@ -529,17 +518,26 @@ public struct BatchEnrichmentResult: Sendable {
         embeddedBooks != nil && !embeddedBooks!.isEmpty
     }
 
+    /// True if async mode with SSE stream URL available (V3 preferred path)
+    public var hasSSEStream: Bool {
+        streamUrl != nil && !streamUrl!.isEmpty
+    }
+
     public init(
         successCount: Int,
         failureCount: Int,
         errors: [EnrichmentError],
         token: String?,
+        serverJobId: String? = nil,
+        streamUrl: String? = nil,
         embeddedBooks: [EnrichedBookPayload]? = nil
     ) {
         self.successCount = successCount
         self.failureCount = failureCount
         self.errors = errors
         self.token = token
+        self.serverJobId = serverJobId
+        self.streamUrl = streamUrl
         self.embeddedBooks = embeddedBooks
     }
 }

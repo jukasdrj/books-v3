@@ -4,22 +4,44 @@ import XCTest
 final class WeeklyRecommendationsServiceTests: XCTestCase {
 
     var urlSession: URLSession!
+    private let cacheKey = "weeklyRecommendationsCache"
 
     override func setUp() {
         super.setUp()
+        // Clear cache to ensure test isolation
+        UserDefaults.standard.removeObject(forKey: cacheKey)
+
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [MockURLProtocol.self]
         urlSession = URLSession(configuration: configuration)
     }
 
+    override func tearDown() {
+        // Clean up cache after each test
+        UserDefaults.standard.removeObject(forKey: cacheKey)
+        super.tearDown()
+    }
+
     func testFetchWeeklyRecommendations_success() async throws {
-        // Given
+        // Given - V3 API response format
         let json = """
         {
-          "week_of": "2025-11-25",
-          "books": [],
-          "generated_at": "2025-11-24T00:00:00Z",
-          "next_refresh": "2025-12-01T00:00:00Z"
+          "success": true,
+          "data": {
+            "weekOf": "2025-11-25",
+            "recommendations": [
+              {
+                "isbn": "9780134685991",
+                "title": "Effective Java",
+                "author": "Joshua Bloch",
+                "coverUrl": "https://example.com/cover.jpg",
+                "reason": "A great read",
+                "score": 0.8
+              }
+            ],
+            "count": 1,
+            "totalAvailable": 1
+          }
         }
         """.data(using: .utf8)!
 
@@ -34,6 +56,9 @@ final class WeeklyRecommendationsServiceTests: XCTestCase {
 
         // Then
         XCTAssertEqual(response.weekOf, "2025-11-25")
+        XCTAssertEqual(response.books.count, 1)
+        XCTAssertEqual(response.books.first?.title, "Effective Java")
+        XCTAssertEqual(response.books.first?.authors, ["Joshua Bloch"])
     }
 
     func testFetchWeeklyRecommendations_noRecommendations() async {

@@ -70,7 +70,11 @@ func testRadarChartRenderPerformance() async throws {
     }
 
     // 5. Measure performance for 100 iterations
-    let metrics = await measure(iterations: 100) {
+    var durations: [Duration] = []
+
+    for _ in 0..<100 {
+        let start = ContinuousClock.now
+
         let randomCompletion = Double.random(in: 0...100)
         let newData = RadarChartData(dimensions: [
             RadarDimension(name: "Cultural", completionPercentage: randomCompletion, isComplete: true),
@@ -84,14 +88,19 @@ func testRadarChartRenderPerformance() async throws {
         hostingController.view.setNeedsLayout()
         hostingController.view.layoutIfNeeded()
 
+        let elapsed = ContinuousClock.now - start
+        durations.append(elapsed)
+
         try await Task.sleep(for: .milliseconds(1))
     }
 
     // 6. Report P95 latency and assert <200ms threshold
-    let p95 = metrics.p95
-    print("RadarChart Render Performance - P95: \(p95.formatted(.measurement(width: .wide)))")
+    let sortedDurations = durations.sorted()
+    let p95Index = Int(Double(sortedDurations.count) * 0.95)
+    let p95 = sortedDurations[min(p95Index, sortedDurations.count - 1)]
+    print("RadarChart Render Performance - P95: \(p95)")
 
-    #expect(p95 < .milliseconds(200), "RadarChart P95 render time exceeded 200ms: \(p95.formatted(.measurement(width: .wide)))")
+    #expect(p95 < .milliseconds(200), "RadarChart P95 render time exceeded 200ms: \(p95)")
 
     // 7. Cleanup
     hostingController.willMove(toParent: nil)

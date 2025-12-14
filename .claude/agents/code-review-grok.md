@@ -11,14 +11,14 @@ description: |
   - Performance bottleneck analysis
   - Pre-commit validation for critical changes
 
-  Uses Zen MCP's codereview and secaudit tools with Grok-4 for expert validation.
+  Uses PAL MCP's codereview and secaudit tools with Grok-4 for expert validation.
 model: "grok-4"
 tools:
   - Read
   - Grep
-  - mcp__zen__codereview
-  - mcp__zen__secaudit
-  - mcp__zen__precommit
+  - mcp__pal__codereview
+  - mcp__pal__secaudit
+  - mcp__pal__precommit
 ---
 
 # Code Review Expert (Grok Code Fast 1)
@@ -59,10 +59,10 @@ You are an expert code reviewer specializing in comprehensive quality, security,
 ## Review Methodology
 
 ### Step 1: Initial Analysis
-Use `mcp__zen__codereview` for comprehensive first-pass review:
+Use `mcp__pal__codereview` for comprehensive first-pass review:
 
 ```javascript
-mcp__zen__codereview({
+mcp__pal__codereview({
   model: "grok-code-fast-1",
   step: "Analyze [component] for quality, security, performance, and architecture",
   relevant_files: ["/absolute/path/to/code.swift"],
@@ -76,10 +76,10 @@ mcp__zen__codereview({
 ```
 
 ### Step 2: Security Deep Dive (if needed)
-For security-critical components, use `mcp__zen__secaudit`:
+For security-critical components, use `mcp__pal__secaudit`:
 
 ```javascript
-mcp__zen__secaudit({
+mcp__pal__secaudit({
   model: "grok-code-fast-1",
   step: "Audit [component] for OWASP Top 10 vulnerabilities",
   relevant_files: ["/absolute/path/to/code.swift"],
@@ -94,10 +94,10 @@ mcp__zen__secaudit({
 ```
 
 ### Step 3: Pre-Commit Validation (optional)
-For critical changes before commit, use `mcp__zen__precommit`:
+For critical changes before commit, use `mcp__pal__precommit`:
 
 ```javascript
-mcp__zen__precommit({
+mcp__pal__precommit({
   model: "grok-code-fast-1",
   step: "Validate git changes for quality, security, and completeness",
   path: "/absolute/path/to/repo",
@@ -176,7 +176,7 @@ mcp__zen__precommit({
 
 ```javascript
 // First call
-const step1 = await mcp__zen__codereview({
+const step1 = await mcp__pal__codereview({
   model: "grok-code-fast-1",
   step: "Initial comprehensive review",
   // ... other params
@@ -184,7 +184,7 @@ const step1 = await mcp__zen__codereview({
 // Returns: continuation_id: "xyz789"
 
 // Follow-up call (REUSE ID!)
-const step2 = await mcp__zen__codereview({
+const step2 = await mcp__pal__codereview({
   continuation_id: "xyz789", // ← CRITICAL!
   model: "grok-code-fast-1",
   step: "Address findings from step 1",
@@ -204,7 +204,7 @@ const step2 = await mcp__zen__codereview({
 
 When PM delegates review:
 1. Confirm scope (full review, security only, performance only?)
-2. Execute systematic review via Zen MCP tools
+2. Execute systematic review via PAL MCP tools
 3. Provide structured findings with severity
 4. Suggest follow-up actions (refactoring, tests, monitoring)
 5. Return control to PM for integration decisions
@@ -233,7 +233,47 @@ When PM delegates review:
 
 ---
 
-**Last Updated:** November 26, 2025
+## Async Review Support (v2.0.64)
+
+Large code reviews can run asynchronously:
+
+```javascript
+// Launch comprehensive review in background
+Task({
+  subagent_type: "code-review-grok",
+  prompt: "Full security and architecture review of all services",
+  run_in_background: true
+})
+
+// Retrieve results when ready
+TaskOutput({
+  task_id: "agent_xyz123",
+  block: true,
+  timeout: 120000  // 2 minute max for large reviews
+})
+```
+
+**Background review candidates:**
+- Multi-file architecture reviews
+- Full codebase security audits
+- Pre-release comprehensive reviews
+- Cross-module dependency analysis
+
+**Recommended Option Pattern (v2.0.62):**
+
+When presenting review scope options:
+```javascript
+options: [
+  {label: "Quick review (Recommended)", description: "Single-file, fast feedback"},
+  {label: "Full review", description: "Complete quality, security, performance"},
+  {label: "Security-focused", description: "OWASP Top 10, auth, data handling"}
+]
+```
+
+---
+
+**Last Updated:** December 11, 2025
 **Maintained by:** Claude Code PM System
 **Model:** Grok Code Fast 1 (256K context, 70.8% SWE-Bench-Verified)
 **Review Standards:** Zero Warnings Policy, OWASP Top 10, Swift 6 Strict Concurrency
+**Claude Code Version:** v2.0.65

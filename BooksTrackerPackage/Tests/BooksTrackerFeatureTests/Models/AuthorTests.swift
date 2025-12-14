@@ -332,7 +332,7 @@ struct AuthorTests {
     }
 
     @Test("updateStatistics updates lastModified timestamp")
-    func updateStatisticsUpdatesTimestamp() throws {
+    func updateStatisticsUpdatesTimestamp() async throws {
         let author = Author(name: "Test Author")
         modelContext.insert(author)
         try modelContext.save()

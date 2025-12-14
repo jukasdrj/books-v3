@@ -78,6 +78,7 @@ public struct iOS26LiquidLibraryView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.tabCoordinator) private var tabCoordinator
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.enrichmentQueue) private var enrichmentQueue
 
     public init() {}
 
@@ -416,15 +417,25 @@ public struct iOS26LiquidLibraryView: View {
                         .opacity(phase.isIdentity ? 1 : 0.8)
                         .scaleEffect(phase.isIdentity ? 1 : 0.95)
                 }
+                .onAppear {
+                    ImagePrefetcher.shared.prefetchIfNeeded(
+                        for: work,
+                        in: cachedFilteredWorks,
+                        prefetchCount: 10,
+                        threshold: 5
+                    )
+                }
             }
         }
     }
 
     private var adaptiveCardsLayout: some View {
-        LazyVGrid(columns: gridColumns, spacing: 16) {
+        let displayMode: AdaptiveDisplayMode = (horizontalSizeClass == .compact) ? .standard : .detailed
+
+        return LazyVGrid(columns: gridColumns, spacing: 16) {
             ForEach(cachedFilteredWorks, id: \.id) { work in
                 NavigationLink(value: work) {
-                    iOS26AdaptiveBookCard(work: work)
+                    iOS26AdaptiveBookCard(work: work, displayMode: displayMode)
                 }
                 .buttonStyle(ScaleButtonStyle())
                 .id(work.id)
@@ -432,6 +443,14 @@ public struct iOS26LiquidLibraryView: View {
                     content
                         .opacity(phase.isIdentity ? 1 : 0.8)
                         .scaleEffect(phase.isIdentity ? 1 : 0.95)
+                }
+                .onAppear {
+                    ImagePrefetcher.shared.prefetchIfNeeded(
+                        for: work,
+                        in: cachedFilteredWorks,
+                        prefetchCount: 10,
+                        threshold: 5
+                    )
                 }
             }
         }
@@ -448,6 +467,14 @@ public struct iOS26LiquidLibraryView: View {
                 .scrollTransition { content, phase in
                     content
                         .opacity(phase.isIdentity ? 1 : 0.9)
+                }
+                .onAppear {
+                    ImagePrefetcher.shared.prefetchIfNeeded(
+                        for: work,
+                        in: cachedFilteredWorks,
+                        prefetchCount: 10,
+                        threshold: 5
+                    )
                 }
             }
         }
@@ -607,7 +634,11 @@ public struct iOS26LiquidLibraryView: View {
                 
                 if !isEnriching {
                     Button("Start") {
-                        EnrichmentQueue.shared.startProcessing(in: modelContext) { _, _, _ in }
+                        enrichmentQueue.startProcessing(
+                            in: modelContext,
+                            progressHandler: { _, _, _ in },
+                            timeoutDuration: 300
+                        )
                     }
                     .buttonStyle(.glassProminent)
                     .tint(.purple)
@@ -625,7 +656,7 @@ public struct iOS26LiquidLibraryView: View {
     private func initialLoad() async {
         try? await Task.sleep(for: .seconds(0.5))
         updateFilteredWorks()
-        pendingEnrichmentCount = EnrichmentQueue.shared.count()
+        pendingEnrichmentCount = enrichmentQueue.count()
         updateReviewQueueCount()
         withAnimation { isLoading = false }
     }

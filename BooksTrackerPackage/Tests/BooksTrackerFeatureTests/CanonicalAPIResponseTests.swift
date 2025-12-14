@@ -21,6 +21,7 @@ struct CanonicalAPIResponseTests {
     func testDecodeSuccessfulBookSearchResponse() throws {
         let json = """
         {
+          "success": true,
           "data": {
             "works": [
               {
@@ -48,12 +49,14 @@ struct CanonicalAPIResponseTests {
                 "boundingBox": null
               }
             ],
+            "editions": [],
             "authors": [
               {
                 "name": "George Orwell",
                 "gender": "Male"
               }
             ],
+            "resultCount": 1,
             "totalResults": 1
           },
           "metadata": {
@@ -102,6 +105,7 @@ struct CanonicalAPIResponseTests {
     func testDecodeFailureResponse() throws {
         let json = """
         {
+          "success": false,
           "data": null,
           "error": {
             "message": "Book not found",
@@ -205,9 +209,12 @@ struct CanonicalAPIResponseTests {
     func testEmptyWorksArray() throws {
         let json = """
         {
+          "success": true,
           "data": {
             "works": [],
+            "editions": [],
             "authors": [],
+            "resultCount": 0,
             "totalResults": 0
           },
           "metadata": {

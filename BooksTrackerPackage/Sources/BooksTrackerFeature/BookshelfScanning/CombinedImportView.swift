@@ -74,6 +74,12 @@ public struct CombinedImportView: View {
                 .padding(.top, Layout.contentPaddingTop)
                 .padding(.horizontal, Layout.contentPaddingHorizontal)
             }
+            .navigationDestination(for: String.self) { value in
+                if value == "scan" {
+                    BookshelfScannerView()
+                        .environment(\.tabCoordinator, tabCoordinator)
+                }
+            }
         }
         .navigationTitle("Add Books")
         .navigationBarTitleDisplayMode(.inline)
@@ -81,12 +87,6 @@ public struct CombinedImportView: View {
             GeminiCSVImportView()
                 .environment(\.modelContext, modelContext)
                 .environment(\.tabCoordinator, tabCoordinator)
-        }
-        .navigationDestination(for: String.self) { value in
-            if value == "scan" {
-                BookshelfScannerView()
-                    .environment(\.tabCoordinator, tabCoordinator)
-            }
         }
     }
 

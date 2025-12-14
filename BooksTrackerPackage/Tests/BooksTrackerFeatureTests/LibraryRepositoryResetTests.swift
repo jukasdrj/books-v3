@@ -16,9 +16,8 @@ struct LibraryRepositoryResetTests {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         modelContext = ModelContext(modelContainer)
-        let featureFlags = FeatureFlags()
-        let dtoMapper = DTOMapper(modelContext: modelContext, featureFlags: featureFlags)
-        repository = LibraryRepository(modelContext: modelContext, dtoMapper: dtoMapper, featureFlags: featureFlags)
+        let dtoMapper = DTOMapper(modelContext: modelContext)
+        repository = LibraryRepository(modelContext: modelContext, dtoMapper: dtoMapper, featureFlags: nil)
     }
 
     @Test("deleteLibrary clears all data")
@@ -26,7 +25,7 @@ struct LibraryRepositoryResetTests {
         // GIVEN: A library with works, authors, editions, and user library entries
         let author = Author(name: "Author")
         let work = Work(title: "Work")
-        let edition = Edition(title: "Edition")
+        let edition = Edition(isbn: "9780000000001")
         let userLibraryEntry = UserLibraryEntry(readingStatus: .read)
 
         modelContext.insert(author)
@@ -37,7 +36,7 @@ struct LibraryRepositoryResetTests {
         try modelContext.save()
 
         // WHEN: The library is deleted
-        await repository.deleteLibrary()
+        try await repository.deleteLibrary()
 
         // THEN: All data should be deleted
         let works = try modelContext.fetch(FetchDescriptor<Work>())

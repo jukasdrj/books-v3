@@ -103,6 +103,7 @@ actor BooksTrackAPI {
         request.httpMethod = method
         request.addValue(contentType ?? "application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("ios-v\(clientVersion)", forHTTPHeaderField: "X-Client-Version")
+        request.addValue("v3.3", forHTTPHeaderField: "X-API-Contract-Version")
 
         if let token = accessToken {
             request.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")

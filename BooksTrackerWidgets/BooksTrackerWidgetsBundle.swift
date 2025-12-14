@@ -7,7 +7,7 @@
 
 import WidgetKit
 import SwiftUI
-import BooksTrackerFeature
+// import BooksTrackerFeature
 
 @main
 struct BooksTrackerWidgetsBundle: WidgetBundle {

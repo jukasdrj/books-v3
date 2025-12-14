@@ -138,7 +138,7 @@ struct LibraryRepositoryPerformanceTests {
         // Context 2: Simulate background import context
         let backgroundContext = ModelContext(container)
         backgroundContext.autosaveEnabled = false
-        backgroundContext.automaticallyMergesChangesFromParent = true
+        // Note: SwiftData handles change merging automatically via container
 
         // Step 1: Insert data via main context
         let mainWork = Work(title: "Main Context Book")
@@ -251,7 +251,7 @@ struct LibraryRepositoryPerformanceTests {
             configurations: config
         )
         let context = ModelContext(container)
-        let repository = LibraryRepository(modelContext: context)
+        let repository = LibraryRepository(modelContext: context, dtoMapper: nil, featureFlags: nil)
         return (repository, context)
     }
 }

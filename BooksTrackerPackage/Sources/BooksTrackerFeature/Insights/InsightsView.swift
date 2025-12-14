@@ -20,41 +20,40 @@ public struct InsightsView: View {
     public init() {}
 
     public var body: some View {
-        NavigationStack {
-            ZStack {
-                // Add themed background gradient for visual consistency
-                themeStore.backgroundGradient
-                    .ignoresSafeArea()
+        // NO NavigationStack here - ContentView already provides it
+        ZStack {
+            // Add themed background gradient for visual consistency
+            themeStore.backgroundGradient
+                .ignoresSafeArea()
 
-                Group {
-                    if isLoading {
-                        loadingView
-                    } else if let error = errorMessage {
-                        errorView(error)
-                    } else {
-                        contentView
-                    }
+            Group {
+                if isLoading {
+                    loadingView
+                } else if let error = errorMessage {
+                    errorView(error)
+                } else {
+                    contentView
                 }
             }
-            .navigationTitle("Insights")
-            .navigationBarTitleDisplayMode(.large)
-            .task {
+        }
+        .navigationTitle("Insights")
+        .navigationBarTitleDisplayMode(.large)
+        .task {
+            await loadStatistics()
+        }
+        .onChange(of: selectedPeriod) { _, newPeriod in
+            Task {
                 await loadStatistics()
             }
-            .onChange(of: selectedPeriod) { _, newPeriod in
-                Task {
-                    await loadStatistics()
-                }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .libraryWasReset)) { _ in
-                // CRITICAL: Immediately clear stats and reload.
-                // The `reset: true` flag handles nil-ing out the data, preventing
-                // the view from trying to render with stale, deleted objects.
-                // The load might "fail" if the library is empty, but it will
-                // correctly reflect the new empty state.
-                Task {
-                    await loadStatistics(reset: true)
-                }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .libraryWasReset)) { _ in
+            // CRITICAL: Immediately clear stats and reload.
+            // The `reset: true` flag handles nil-ing out the data, preventing
+            // the view from trying to render with stale, deleted objects.
+            // The load might "fail" if the library is empty, but it will
+            // correctly reflect the new empty state.
+            Task {
+                await loadStatistics(reset: true)
             }
         }
     }

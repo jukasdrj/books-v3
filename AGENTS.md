@@ -1,6 +1,8 @@
 # BooksTrack - AI Agent Guide
 
 **Version:** 3.7.5 (Build 189+) | **iOS:** 26.0+ | **Swift:** 6.2+ | **Bundle ID:** `Z67H8Y8DW.com.oooefam.booksV3`
+**Heuristic:** Documentation is secondary. Always check `Package.swift` and actual View code for current implementation details.
+
 
 Native iOS book tracking app with cultural diversity insights. SwiftUI, SwiftData, CloudKit sync, Cloudflare Workers backend.
 
@@ -10,14 +12,19 @@ Native iOS book tracking app with cultural diversity insights. SwiftUI, SwiftDat
 
 ---
 
+## Legacy Constraints & Migration
+- **Status**: Migration to V3 Architecture (SwiftData + CloudKit) is active.
+- **Reference**: See `V3_MIGRATION_PLAN.md` for specific module deprecations.
+- **Cleanup**: Code relating to `CoreData` (legacy V2 persistence) should be treated as deprecated/read-only unless migrating.
+
 ## 🎯 Multi-Agent Workflow (Claude Code)
 
 **Claude Code can orchestrate complex tasks using specialized AI models:**
 
 - **Sonnet 4.5** (Primary) - Planning, architecture, multi-file refactoring
-- **Haiku** - Fast implementation via `mcp__zen__chat`
-- **Grok Code Fast 1** - Expert code review via `mcp__zen__codereview` or `mcp__zen__secaudit` (70.8% SWE-Bench-Verified)
-- **Gemini 3 Pro** - Deep analysis via `mcp__zen__debug` or `mcp__zen__thinkdeep`
+- **Haiku** - Fast implementation via `mcp__pal__chat`
+- **Grok Code Fast 1** - Expert code review via `mcp__pal__codereview` or `mcp__pal__secaudit` (70.8% SWE-Bench-Verified)
+- **Gemini 3 Pro** - Deep analysis via `mcp__pal__debug` or `mcp__pal__thinkdeep`
 
 **When to use multi-agent workflows:**
 - ✅ Complex features requiring fast iteration + expert validation

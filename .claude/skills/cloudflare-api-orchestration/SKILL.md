@@ -398,6 +398,47 @@ This skill complements the `code-review-grok` subagent. When code review identif
 
 ---
 
-**Last Updated:** November 23, 2025
+## Async API Development (v2.0.64)
+
+**Complex API implementations can run in background:**
+
+```javascript
+// Launch complex endpoint implementation in background
+Task({
+  subagent_type: "cloudflare-specialist",
+  prompt: "Implement /api/v3/books/search with full orchestration, caching, rate limiting",
+  run_in_background: true
+})
+
+// Continue with other work (UI, tests)...
+
+// Retrieve implementation when ready
+TaskOutput({
+  task_id: "agent_xyz123",
+  block: true
+})
+```
+
+**Background-friendly tasks:**
+- Complex multi-provider orchestration
+- D1 schema migrations
+- KV→D1 data migrations
+- Comprehensive API security audits
+
+**Recommended Option Pattern (v2.0.62):**
+
+When presenting API implementation choices:
+```javascript
+options: [
+  {label: "Orchestrated (Recommended)", description: "Multi-provider with fallback"},
+  {label: "Single provider", description: "Google Books only"},
+  {label: "Cache-first", description: "D1/KV with lazy provider fetch"}
+]
+```
+
+---
+
+**Last Updated:** December 11, 2025
 **Maintained by:** Claude Code PM System
 **Related Agents:** cloudflare-specialist, code-review-grok
+**Claude Code Version:** v2.0.65

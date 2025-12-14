@@ -1,5 +1,12 @@
 import Foundation
 
+/// Type of SSE job for routing unprefixed events correctly
+public enum SSEJobType: Sendable {
+    case enrichment      // Legacy enrichment (enrichment.progress, etc.)
+    case csvImport       // CSV import (import.progress or unprefixed progress)
+    case bookshelfScan   // V3 bookshelf scan (unprefixed progress/completed with results)
+}
+
 /// A client for connecting to Server-Sent Events (SSE) streams,
 /// designed for real-time progress updates with reconnection logic.
 ///
@@ -12,6 +19,7 @@ import Foundation
 public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
     private let url: URL
     private let authToken: String
+    private let jobType: SSEJobType
     private var urlSession: URLSession?
     private var dataTask: URLSessionDataTask?
     private var currentContinuation: AsyncStream<EnrichmentEvent>.Continuation?
@@ -40,9 +48,11 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
     /// - Parameters:
     ///   - url: The URL of the SSE endpoint.
     ///   - authToken: The Bearer token for authentication.
-    public init(url: URL, authToken: String) {
+    ///   - jobType: Type of job for routing unprefixed events (default: .enrichment for backward compatibility)
+    public init(url: URL, authToken: String, jobType: SSEJobType = .enrichment) {
         self.url = url
         self.authToken = authToken
+        self.jobType = jobType
         super.init() // Call NSObject initializer
     }
 
@@ -305,31 +315,92 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
             }
 
             switch eventName {
+            // MARK: - Lifecycle Events (V3 - all job types)
+            case "initialized":
+                // Job initialized - yield for bookshelf scans, ignore for others
+                if jobType == .bookshelfScan {
+                    let initialized = try decoder.decode(V3ScanInitialized.self, from: jsonData)
+                    currentContinuation?.yield(.v3ScanInitialized(initialized))
+                }
+                #if DEBUG
+                print("SSEClient: Job initialized, waiting for progress events")
+                #endif
+
+            case "ping":
+                // Keep-alive heartbeat - yield for bookshelf scans, ignore for others
+                if jobType == .bookshelfScan {
+                    let ping = try decoder.decode(V3Ping.self, from: jsonData)
+                    currentContinuation?.yield(.v3Ping(ping))
+                }
+                // No action needed for other job types
+
+            // MARK: - Prefixed Enrichment Events (Legacy)
             case "enrichment.progress":
                 let progress = try decoder.decode(EnrichmentProgress.self, from: jsonData)
                 currentContinuation?.yield(.progress(progress))
-            case "progress":
-                // CSV import progress event - decode as CSVImportProgress
-                let csvProgress = try decoder.decode(CSVImportProgress.self, from: jsonData)
-                // Yield as csvImportProgress for GeminiCSVImportView handler
-                currentContinuation?.yield(.csvImportProgress(csvProgress))
+
             case "enrichment.completed":
                 let completed = try decoder.decode(EnrichmentCompleted.self, from: jsonData)
                 currentContinuation?.yield(.completed(completed))
-                // For completion events, we assume the stream should end.
-                // Disconnect to clean up resources and terminate the AsyncStream.
                 Task { [weak self] in await self?.disconnect() }
-            case "completed":
-                // CSV import completed event - decode as CSVImportCompleted
-                let csvCompleted = try decoder.decode(CSVImportCompleted.self, from: jsonData)
-                // Yield as csvImportCompleted for GeminiCSVImportView handler
-                currentContinuation?.yield(.csvImportCompleted(csvCompleted))
-                Task { [weak self] in await self?.disconnect() }
-            case "enrichment.failed", "failed":
+
+            case "enrichment.failed":
                 let failed = try decoder.decode(EnrichmentFailed.self, from: jsonData)
                 currentContinuation?.yield(.failed(failed))
-                // For failed events, we assume the stream should end.
                 Task { [weak self] in await self?.disconnect() }
+
+            // MARK: - Unprefixed Progress Event (routed by job type)
+            case "progress":
+                switch jobType {
+                case .bookshelfScan:
+                    // V3 scan progress - decode with V3ScanProgress model
+                    let scanProgress = try decoder.decode(V3ScanProgress.self, from: jsonData)
+                    currentContinuation?.yield(.v3ScanProgress(scanProgress))
+                case .csvImport:
+                    // CSV import progress
+                    let csvProgress = try decoder.decode(CSVImportProgress.self, from: jsonData)
+                    currentContinuation?.yield(.csvImportProgress(csvProgress))
+                case .enrichment:
+                    // Legacy: try to decode as CSV import (backward compatibility)
+                    let csvProgress = try decoder.decode(CSVImportProgress.self, from: jsonData)
+                    currentContinuation?.yield(.csvImportProgress(csvProgress))
+                }
+
+            // MARK: - Unprefixed Completed Event (routed by job type)
+            case "completed":
+                switch jobType {
+                case .bookshelfScan:
+                    // V3 scan completed - decode with inline results
+                    let scanCompleted = try decoder.decode(V3ScanCompleted.self, from: jsonData)
+                    currentContinuation?.yield(.v3ScanCompleted(scanCompleted))
+                    Task { [weak self] in await self?.disconnect() }
+                case .csvImport:
+                    // CSV import completed
+                    let csvCompleted = try decoder.decode(CSVImportCompleted.self, from: jsonData)
+                    currentContinuation?.yield(.csvImportCompleted(csvCompleted))
+                    Task { [weak self] in await self?.disconnect() }
+                case .enrichment:
+                    // Legacy: try to decode as CSV import (backward compatibility)
+                    let csvCompleted = try decoder.decode(CSVImportCompleted.self, from: jsonData)
+                    currentContinuation?.yield(.csvImportCompleted(csvCompleted))
+                    Task { [weak self] in await self?.disconnect() }
+                }
+
+            // MARK: - Failed Events (all variants)
+            case "failed":
+                switch jobType {
+                case .bookshelfScan:
+                    // V3 scan failed - decode with error object
+                    let scanFailed = try decoder.decode(V3ScanFailed.self, from: jsonData)
+                    currentContinuation?.yield(.v3ScanFailed(scanFailed))
+                    Task { [weak self] in await self?.disconnect() }
+                default:
+                    // Generic failed event
+                    let failed = try decoder.decode(EnrichmentFailed.self, from: jsonData)
+                    currentContinuation?.yield(.failed(failed))
+                    Task { [weak self] in await self?.disconnect() }
+                }
+
             case "canceled", "cancelled":
                 // Job was canceled by user or system - treat as failed
                 let failed = EnrichmentFailed(
@@ -339,6 +410,7 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
                 )
                 currentContinuation?.yield(.failed(failed))
                 Task { [weak self] in await self?.disconnect() }
+
             case "error":
                 // Stream error event - treat as failed
                 let errorMsg = try? decoder.decode([String: String].self, from: jsonData)
@@ -350,7 +422,7 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
                 currentContinuation?.yield(.failed(failed))
                 Task { [weak self] in await self?.disconnect() }
 
-            // MARK: - PhotoScan SSE Events (API Contract v3.2)
+            // MARK: - PhotoScan SSE Events (API Contract v3.2 - prefixed variant)
             case "photoscan.progress":
                 let progress = try decoder.decode(PhotoScanSSEProgress.self, from: jsonData)
                 // Convert to EnrichmentEvent for compatibility with existing stream
@@ -360,6 +432,7 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
                     progress: Int(progress.progress * 100),
                     provider: "photoscan"
                 )))
+
             case "photoscan.completed":
                 let completed = try decoder.decode(PhotoScanSSECompleted.self, from: jsonData)
                 currentContinuation?.yield(.completed(EnrichmentCompleted(
@@ -374,6 +447,7 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
                     ]])
                 )))
                 Task { [weak self] in await self?.disconnect() }
+
             case "photoscan.failed":
                 let failed = try decoder.decode(PhotoScanSSEFailed.self, from: jsonData)
                 currentContinuation?.yield(.failed(EnrichmentFailed(
@@ -383,14 +457,16 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
                 )))
                 Task { [weak self] in await self?.disconnect() }
 
-            // CSV import event parsing
+            // MARK: - CSV Import Prefixed Events
             case "import.progress":
                 let progress = try decoder.decode(CSVImportProgress.self, from: jsonData)
                 currentContinuation?.yield(.csvImportProgress(progress))
+
             case "import.completed":
                 let completed = try decoder.decode(CSVImportCompleted.self, from: jsonData)
                 currentContinuation?.yield(.csvImportCompleted(completed))
                 Task { [weak self] in await self?.disconnect() }
+
             case "import.failed":
                 let failed = try decoder.decode(CSVImportFailed.self, from: jsonData)
                 currentContinuation?.yield(.csvImportFailed(failed))

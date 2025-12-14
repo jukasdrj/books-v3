@@ -263,30 +263,83 @@ struct WorkDetailView: View {
                 }
             }
             .padding(.horizontal, 20)
+
+            // MARK: - Quick Facts Ribbon
+            quickFactsRibbon
         }
+    }
+
+    // MARK: - Quick Facts Ribbon
+
+    private var quickFactsRibbon: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                // Page count
+                if let pageCount = primaryEdition.pageCount {
+                    QuickFactPill(icon: "book.pages", text: "\(pageCount) pages", color: .white)
+                }
+
+                // Primary genre (first subject tag if available)
+                if let primaryGenre = work.subjectTags.first {
+                    QuickFactPill(icon: "tag", text: primaryGenre, color: .white)
+                }
+
+                // Publication year
+                if let year = work.firstPublicationYear {
+                    QuickFactPill(icon: "calendar", text: "\(year)", color: .white)
+                }
+
+                // Personal rating
+                if let rating = work.userEntry?.personalRating, rating > 0 {
+                    QuickFactPill(icon: "star.fill", text: String(format: "%.1f", rating), color: .orange)
+                }
+
+                // Owned status
+                if work.userEntry != nil {
+                    QuickFactPill(icon: "checkmark.circle.fill", text: "Owned", color: .green)
+                }
+
+                // Edition format
+                QuickFactPill(icon: primaryEdition.format.icon, text: primaryEdition.format.displayName, color: .white)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
+        }
+        .accessibilityLabel("Quick facts about this book")
     }
 
     // MARK: - Metadata & Diversity Tabs Section
 
+        // MARK: - Bento Box Layout Section
+
     @ViewBuilder
     private var metadataTabsSection: some View {
-        let diversityScore = DiversityScore(work: work)
-
-        if diversityScore.hasAnyData {
-            // Show tabbed interface when diversity data is available
-            TabView {
-                EditionMetadataView(work: work, edition: primaryEdition)
-                    .tag(0)
-
-                DiversityInsightsTab(work: work, diversityScore: diversityScore)
-                    .tag(1)
+        BentoDashboardLayout(
+            dnaBlock: {
+                DNABlock(work: work)
+            },
+            diversityBlock: {
+                // Clickable Diversity Block -> Detailed Tab
+                Button(action: {
+                     // In the future: Navigation or Sheet to detailed diversity stats
+                     // For now toggle expanded state or just show it
+                }) {
+                     DiversityBlock(work: work)
+                }
+                .buttonStyle(.plain)
+            },
+            interactionBlock: {
+                UserInteractionBlock(work: work)
+            },
+            readingProgressBlock: {
+                 // Placeholder for Reading Progress
+                 if work.userEntry != nil {
+                     ReadingProgressModule(work: work)
+                 } else {
+                     EmptyView()
+                 }
             }
-            .tabViewStyle(.page(indexDisplayMode: .always))
-            .frame(minHeight: 400) // Adjust based on content
-        } else {
-            // Show only metadata when no diversity data
-            EditionMetadataView(work: work, edition: primaryEdition)
-        }
+        )
     }
 
     // MARK: - Manual Edition Selection Section

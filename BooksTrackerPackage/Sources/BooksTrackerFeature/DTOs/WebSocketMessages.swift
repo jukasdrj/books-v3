@@ -283,6 +283,15 @@ public struct EnrichedBookPayload: Codable, Sendable {
     public let success: Bool
     public let error: String?
     public let enriched: EnrichedDataPayload?
+
+    public init(title: String, author: String?, isbn: String?, success: Bool, error: String?, enriched: EnrichedDataPayload?) {
+        self.title = title
+        self.author = author
+        self.isbn = isbn
+        self.success = success
+        self.error = error
+        self.enriched = enriched
+    }
 }
 
 /// The enriched data containing work, edition, and authors
@@ -291,6 +300,12 @@ public struct EnrichedDataPayload: Codable, Sendable {
     public let work: WorkDTO
     public let edition: EditionDTO?
     public let authors: [AuthorDTO]
+
+    public init(work: WorkDTO, edition: EditionDTO?, authors: [AuthorDTO]) {
+        self.work = work
+        self.edition = edition
+        self.authors = authors
+    }
 }
 
 // MARK: - CSV Import Complete Payload

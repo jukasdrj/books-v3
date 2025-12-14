@@ -1,7 +1,7 @@
 ---
-name: mcp-zen-usage
+name: mcp-pal-usage
 description: |
-  Ensures proper use of Zen MCP tools (thinkdeep, debug, codereview, consensus, planner)
+  Ensures proper use of PAL MCP tools (thinkdeep, debug, codereview, consensus, planner)
   for complex tasks requiring deep analysis, multi-model collaboration, or systematic
   investigation.
 
@@ -12,21 +12,21 @@ description: |
   - Deep thinking required for root cause analysis
 
   Provides guidance on:
-  - When to use each Zen MCP tool
+  - When to use each PAL MCP tool
   - Proper continuation_id management
   - Model selection strategies
   - Workflow orchestration patterns
 
-allowed-tools: ["Read", "Grep", "mcp__zen__chat", "mcp__zen__thinkdeep", "mcp__zen__debug", "mcp__zen__codereview", "mcp__zen__consensus", "mcp__zen__planner", "mcp__zen__secaudit", "mcp__zen__precommit", "mcp__zen__listmodels"]
+allowed-tools: ["Read", "Grep", "mcp__pal__chat", "mcp__pal__thinkdeep", "mcp__pal__debug", "mcp__pal__codereview", "mcp__pal__consensus", "mcp__pal__planner", "mcp__pal__secaudit", "mcp__pal__precommit", "mcp__pal__listmodels", "mcp__pal__analyze", "mcp__pal__refactor", "mcp__pal__tracer", "mcp__pal__testgen", "mcp__pal__docgen", "mcp__pal__clink"]
 ---
 
-# Zen MCP Usage Skill
+# PAL MCP Usage Skill
 
-This skill provides guidance on using Zen MCP tools effectively for complex software engineering tasks.
+This skill provides guidance on using PAL MCP tools effectively for complex software engineering tasks.
 
-## Available Zen MCP Tools
+## Available PAL MCP Tools
 
-### 1. `mcp__zen__chat` - General Collaboration
+### 1. `mcp__pal__chat` - General Collaboration
 **Use for:**
 - Brainstorming and ideation
 - Getting second opinions
@@ -35,7 +35,7 @@ This skill provides guidance on using Zen MCP tools effectively for complex soft
 
 **Example:**
 ```javascript
-mcp__zen__chat({
+mcp__pal__chat({
   model: "haiku",  // Fast for simple tasks
   prompt: "Review this approach for implementing dark mode",
   absolute_file_paths: ["/path/to/ThemeManager.swift"],
@@ -50,7 +50,7 @@ mcp__zen__chat({
 
 ---
 
-### 2. `mcp__zen__debug` - Systematic Debugging
+### 2. `mcp__pal__debug` - Systematic Debugging
 **Use for:**
 - Complex bugs with unclear root cause
 - Race conditions and concurrency issues
@@ -59,7 +59,7 @@ mcp__zen__chat({
 
 **Example:**
 ```javascript
-mcp__zen__debug({
+mcp__pal__debug({
   model: "gemini-2.5-pro",  // Deep analysis capability
   step: "Investigate SwiftData relationship crash in LibraryView",
   step_number: 1,
@@ -86,7 +86,7 @@ mcp__zen__debug({
 
 ---
 
-### 3. `mcp__zen__codereview` - Systematic Code Review
+### 3. `mcp__pal__codereview` - Systematic Code Review
 **Use for:**
 - Comprehensive quality assessment
 - Security vulnerability scanning
@@ -101,7 +101,7 @@ mcp__zen__debug({
 
 **Example:**
 ```javascript
-mcp__zen__codereview({
+mcp__pal__codereview({
   model: "grok-code-fast-1",  // Expert review capability
   step: "Review EnrichmentService for security and performance",
   step_number: 1,
@@ -120,7 +120,7 @@ mcp__zen__codereview({
 
 ---
 
-### 4. `mcp__zen__secaudit` - Security Audit
+### 4. `mcp__pal__secaudit` - Security Audit
 **Use for:**
 - OWASP Top 10 vulnerability scanning
 - Security compliance validation
@@ -136,7 +136,7 @@ mcp__zen__codereview({
 
 **Example:**
 ```javascript
-mcp__zen__secaudit({
+mcp__pal__secaudit({
   model: "grok-code-fast-1",  // Security expertise
   step: "Audit AuthenticationService for OWASP vulnerabilities",
   step_number: 1,
@@ -158,7 +158,7 @@ mcp__zen__secaudit({
 
 ---
 
-### 5. `mcp__zen__planner` - Interactive Planning
+### 5. `mcp__pal__planner` - Interactive Planning
 **Use for:**
 - Complex project planning
 - Multi-phase migrations
@@ -172,7 +172,7 @@ mcp__zen__secaudit({
 
 **Example:**
 ```javascript
-mcp__zen__planner({
+mcp__pal__planner({
   model: "gemini-2.5-pro",  // Strategic thinking
   step: "Plan migration from KV storage to D1 database",
   step_number: 1,
@@ -181,7 +181,7 @@ mcp__zen__planner({
 })
 
 // Later: Branch to explore alternative approach
-mcp__zen__planner({
+mcp__pal__planner({
   continuation_id: "abc123",  // REUSE ID!
   model: "gemini-2.5-pro",
   step: "Explore zero-downtime migration using dual-write pattern",
@@ -196,7 +196,7 @@ mcp__zen__planner({
 
 ---
 
-### 6. `mcp__zen__consensus` - Multi-Model Consensus
+### 6. `mcp__pal__consensus` - Multi-Model Consensus
 **Use for:**
 - Critical architectural decisions
 - Technology selection
@@ -205,7 +205,7 @@ mcp__zen__planner({
 
 **Example:**
 ```javascript
-mcp__zen__consensus({
+mcp__pal__consensus({
   step: "Evaluate: Should we use SwiftData or Core Data for BooksTrack v4?",
   step_number: 1,
   total_steps: 4,  // 3 models + synthesis
@@ -227,7 +227,7 @@ mcp__zen__consensus({
 
 ---
 
-### 7. `mcp__zen__precommit` - Pre-Commit Validation
+### 7. `mcp__pal__precommit` - Pre-Commit Validation
 **Use for:**
 - Validating git changes before commit
 - Multi-repository change validation
@@ -236,7 +236,7 @@ mcp__zen__consensus({
 
 **Example:**
 ```javascript
-mcp__zen__precommit({
+mcp__pal__precommit({
   model: "grok-code-fast-1",
   step: "Validate staged changes for completeness and security",
   path: "/path/to/repo",
@@ -257,7 +257,7 @@ mcp__zen__precommit({
 
 ---
 
-### 8. `mcp__zen__thinkdeep` - Deep Thinking
+### 8. `mcp__pal__thinkdeep` - Deep Thinking
 **Use for:**
 - Complex problem analysis
 - Architecture decisions requiring deep reasoning
@@ -268,7 +268,7 @@ mcp__zen__precommit({
 
 **Example:**
 ```javascript
-mcp__zen__thinkdeep({
+mcp__pal__thinkdeep({
   model: "gemini-2.5-pro",
   step: "Analyze the architectural implications of real-time sync",
   step_number: 1,
@@ -287,7 +287,7 @@ mcp__zen__thinkdeep({
 
 **Use `listmodels` to see all available models:**
 ```javascript
-mcp__zen__listmodels()
+mcp__pal__listmodels()
 ```
 
 **Top Models (as of v2.0.60):**
@@ -320,7 +320,7 @@ mcp__zen__listmodels()
 
 ```javascript
 // First call
-const step1 = await mcp__zen__debug({
+const step1 = await mcp__pal__debug({
   model: "gemini-2.5-pro",
   step: "Investigate crash",
   // ...
@@ -328,7 +328,7 @@ const step1 = await mcp__zen__debug({
 // Returns: continuation_id: "xyz789"
 
 // Follow-up (CRITICAL: REUSE ID!)
-const step2 = await mcp__zen__debug({
+const step2 = await mcp__pal__debug({
   continuation_id: "xyz789",  // ← MUST REUSE!
   model: "gemini-2.5-pro",
   step: "Continue investigation with new findings",
@@ -349,28 +349,28 @@ const step2 = await mcp__zen__debug({
 ```
 User request
   ├─ "Debug this crash/bug/issue"
-  │    → Use mcp__zen__debug
+  │    → Use mcp__pal__debug
   │
   ├─ "Review this code"
-  │    → Use mcp__zen__codereview
+  │    → Use mcp__pal__codereview
   │
   ├─ "Audit for security issues"
-  │    → Use mcp__zen__secaudit
+  │    → Use mcp__pal__secaudit
   │
   ├─ "Plan this migration/feature"
-  │    → Use mcp__zen__planner
+  │    → Use mcp__pal__planner
   │
   ├─ "Should we use X or Y?"
-  │    → Use mcp__zen__consensus
+  │    → Use mcp__pal__consensus
   │
   ├─ "Validate my changes before commit"
-  │    → Use mcp__zen__precommit
+  │    → Use mcp__pal__precommit
   │
   ├─ "Analyze this complex problem"
-  │    → Use mcp__zen__thinkdeep
+  │    → Use mcp__pal__thinkdeep
   │
   └─ "Quick question about approach"
-       → Use mcp__zen__chat
+       → Use mcp__pal__chat
 ```
 
 ---
@@ -380,9 +380,9 @@ User request
 **This skill works alongside:**
 
 - **cloudflare-specialist** - Cloudflare-specific architecture
-- **code-review-grok** - Wraps `mcp__zen__codereview` with project context
-- **security-auditor** - Wraps `mcp__zen__secaudit` with project context
-- **performance-analyzer** - Wraps `mcp__zen__thinkdeep` for performance
+- **code-review-grok** - Wraps `mcp__pal__codereview` with project context
+- **security-auditor** - Wraps `mcp__pal__secaudit` with project context
+- **performance-analyzer** - Wraps `mcp__pal__thinkdeep` for performance
 
 **Skill activates proactively to ensure:**
 - Correct tool selection
@@ -397,20 +397,20 @@ User request
 ### ❌ Don't: Forget continuation_id
 ```javascript
 // First call - gets continuation_id
-mcp__zen__debug({ step: "Step 1", ... });
+mcp__pal__debug({ step: "Step 1", ... });
 
 // Second call - WRONG! No continuation_id
-mcp__zen__debug({ step: "Step 2", ... });
+mcp__pal__debug({ step: "Step 2", ... });
 ```
 
 ### ✅ Do: Always reuse continuation_id
 ```javascript
 // First call
-const result1 = mcp__zen__debug({ step: "Step 1", ... });
+const result1 = mcp__pal__debug({ step: "Step 1", ... });
 const contId = result1.continuation_id;
 
 // Second call - CORRECT!
-mcp__zen__debug({ continuation_id: contId, step: "Step 2", ... });
+mcp__pal__debug({ continuation_id: contId, step: "Step 2", ... });
 ```
 
 ---
@@ -418,13 +418,13 @@ mcp__zen__debug({ continuation_id: contId, step: "Step 2", ... });
 ### ❌ Don't: Use wrong tool for task
 ```javascript
 // Debugging a crash with chat tool (too shallow)
-mcp__zen__chat({ prompt: "Why does this crash?" });
+mcp__pal__chat({ prompt: "Why does this crash?" });
 ```
 
 ### ✅ Do: Use systematic debugging tool
 ```javascript
 // Proper systematic investigation
-mcp__zen__debug({
+mcp__pal__debug({
   step: "Investigate crash in LibraryView",
   hypothesis: "SwiftData concurrency issue",
   // ...
@@ -436,13 +436,13 @@ mcp__zen__debug({
 ### ❌ Don't: Skip model selection
 ```javascript
 // No model specified - uses default
-mcp__zen__codereview({ step: "Review code", ... });
+mcp__pal__codereview({ step: "Review code", ... });
 ```
 
 ### ✅ Do: Choose appropriate model
 ```javascript
 // Explicit model selection for security expertise
-mcp__zen__codereview({
+mcp__pal__codereview({
   model: "grok-code-fast-1",  // Security specialist
   step: "Review for OWASP vulnerabilities",
   // ...
@@ -466,7 +466,76 @@ mcp__zen__codereview({
 
 ---
 
-**Last Updated:** December 6, 2025 (v2.0.60)
+## Async PAL MCP Usage (v2.0.64)
+
+**Long-running PAL analyses can run in background:**
+
+```javascript
+// Launch comprehensive debug session in background
+Task({
+  subagent_type: "pal",
+  prompt: "Deep investigation of memory leak in LibraryView",
+  run_in_background: true
+})
+
+// Continue with other work...
+
+// Retrieve results when ready
+TaskOutput({
+  task_id: "agent_xyz123",
+  block: true,
+  timeout: 180000  // 3 minutes for deep analysis
+})
+```
+
+**Background-friendly operations:**
+- `mcp__pal__debug` - Complex multi-step debugging
+- `mcp__pal__codereview` with `review_type: "full"`
+- `mcp__pal__secaudit` with `audit_focus: "comprehensive"`
+- `mcp__pal__consensus` - Multi-model deliberation
+
+**Keep synchronous:**
+- `mcp__pal__chat` - Quick consultations
+- `mcp__pal__codereview` with `review_type: "quick"`
+- `mcp__pal__challenge` - Immediate critical thinking
+
+---
+
+## Named Sessions (v2.0.64)
+
+For long debugging/review sessions, name your session:
+```
+/rename debug-memory-leak
+```
+
+Resume later from terminal:
+```bash
+claude --resume debug-memory-leak
+```
+
+---
+
+## Recommended Options (v2.0.62)
+
+When presenting choices, add "(Recommended)" to preferred option:
+
+```javascript
+AskUserQuestion({
+  questions: [{
+    question: "Which analysis depth?",
+    header: "Analysis",
+    options: [
+      {label: "Quick review (Recommended)", description: "Fast, single-file"},
+      {label: "Full analysis", description: "Comprehensive, multi-file"},
+      {label: "Deep investigation", description: "Maximum depth, longest time"}
+    ]
+  }]
+})
+```
+
+---
+
+**Last Updated:** December 11, 2025 (v2.0.65)
 **Maintained by:** BooksTrack Project
 **Related Skills:** cloudflare-api-orchestration
 **Related Agents:** code-review-grok, security-auditor, performance-analyzer

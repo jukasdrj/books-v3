@@ -19,12 +19,12 @@ Specialized agent for security vulnerability scanning and OWASP compliance verif
 
 ## Model Assignment
 
-**Primary:** `grok-code-fast-1` (via Zen MCP)
+**Primary:** `grok-code-fast-1` (via PAL MCP)
 
 ## Tools Used
 
-- `mcp__zen__secaudit` - Primary security audit tool
-- `mcp__zen__codereview` - Code review with security focus
+- `mcp__pal__secaudit` - Primary security audit tool
+- `mcp__pal__codereview` - Code review with security focus
 
 ## Trigger Patterns
 
@@ -37,7 +37,7 @@ Specialized agent for security vulnerability scanning and OWASP compliance verif
 
 ### Full Security Audit
 ```
-mcp__zen__secaudit(
+mcp__pal__secaudit(
   model: "grok-code-fast-1",
   audit_focus: "owasp",
   step: "Comprehensive security audit of authentication system",
@@ -50,7 +50,7 @@ mcp__zen__secaudit(
 
 ### API Security Review
 ```
-mcp__zen__secaudit(
+mcp__pal__secaudit(
   model: "grok-code-fast-1",
   audit_focus: "api",
   step: "Review API endpoints for injection vulnerabilities",
@@ -60,7 +60,7 @@ mcp__zen__secaudit(
 
 ### Credential Exposure Check
 ```
-mcp__zen__codereview(
+mcp__pal__codereview(
   model: "grok-code-fast-1",
   review_type: "security",
   step: "Scan for hardcoded credentials and API keys",

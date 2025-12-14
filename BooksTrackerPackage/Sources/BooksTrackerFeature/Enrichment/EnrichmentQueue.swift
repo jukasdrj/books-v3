@@ -23,9 +23,7 @@ struct EnrichmentTimeoutError: Error, LocalizedError {
 /// MainActor-isolated for SwiftData compatibility
 @MainActor
 @Observable
-public final class EnrichmentQueue {
-    public static let shared = EnrichmentQueue()
-
+public final class EnrichmentQueue: EnrichmentQueueProtocol {
     // MARK: - Published State
 
     /// Books currently being enriched (for UI observation)
@@ -49,6 +47,7 @@ public final class EnrichmentQueue {
     private var processing: Bool = false
     private var currentTask: Task<Void, Never>?
     private var webSocketHandler: GenericWebSocketHandler?
+    private var sseClient: SSEClient?  // V3 SSE client for real-time updates
     // Track current backend job ID for cancellation
     private var currentJobId: String?
     // Activity tracking for timeout watchdog
@@ -58,6 +57,9 @@ public final class EnrichmentQueue {
 
     // Persistence
     private let queueStorageKey = "EnrichmentQueueStorage"
+
+    // Injected dependencies
+    private let enrichmentService: EnrichmentServiceProtocol
 
     // MARK: - Queue Item
 
@@ -82,7 +84,8 @@ public final class EnrichmentQueue {
 
     // MARK: - Initialization
 
-    private init() {
+    public init(enrichmentService: EnrichmentServiceProtocol = EnrichmentService()) {
+        self.enrichmentService = enrichmentService
         loadQueue()
     }
 
@@ -332,7 +335,7 @@ public final class EnrichmentQueue {
                             print("📤 Sending batch enrichment POST request...")
                             #endif
 
-                            let enrichmentResult = await EnrichmentService.shared.batchEnrichWorks(batch, jobId: jobId, in: modelContext)
+                            let enrichmentResult = await enrichmentService.batchEnrichWorks(batch, jobId: jobId, in: modelContext)
 
                             // Handle V3 sync mode (batch ≤50 ISBNs) - results embedded directly
                             if enrichmentResult.hasSyncResults, let embeddedBooks = enrichmentResult.embeddedBooks {
@@ -414,10 +417,105 @@ public final class EnrichmentQueue {
                                 return
                             }
 
+                            // V3 API: Prefer SSE stream URL, fall back to WebSocket
+                            // CRITICAL: Use server's jobId for connections, NOT the client-generated UUID
+                            let effectiveJobId = enrichmentResult.serverJobId ?? jobId
+
+                            #if DEBUG
+                            print("🔗 [ENRICHMENT] Connection setup:")
+                            print("   - Client jobId: \(jobId)")
+                            print("   - Server jobId: \(enrichmentResult.serverJobId ?? "nil")")
+                            print("   - Effective jobId: \(effectiveJobId)")
+                            print("   - SSE streamUrl: \(enrichmentResult.streamUrl ?? "nil")")
+                            #endif
+
+                            // Try SSE first if streamUrl is available (V3 preferred transport)
+                            if let streamUrlString = enrichmentResult.streamUrl,
+                               let sseURL = URL(string: streamUrlString) {
+                                #if DEBUG
+                                print("📡 [ENRICHMENT] Using SSE stream for batch \(index + 1): \(streamUrlString)")
+                                #endif
+
+                                // Use SSEClient for V3 SSE streaming
+                                // Store as instance property to prevent garbage collection during async operation
+                                self.sseClient = SSEClient(url: sseURL, authToken: token, jobType: .enrichment)
+                                let eventStream = await self.sseClient!.connect()
+
+                                // Process SSE events
+                                // V3 enrichment uses unprefixed events (progress, completed) which SSEClient
+                                // routes to .csvImportProgress and .csvImportCompleted (same JSON structure)
+                                Task { @MainActor in
+                                    for await event in eventStream {
+                                        self.resetActivityTimer()
+
+                                        switch event {
+                                        // Legacy prefixed events (enrichment.progress)
+                                        case .progress(let progress):
+                                            let overallProcessed = processedCount + progress.progress
+                                            let progressTitle = "(\(index + 1)/\(batches.count)) \(progress.status)"
+                                            progressHandler(overallProcessed, works.count, progressTitle)
+                                            NotificationCoordinator.postEnrichmentProgress(completed: overallProcessed, total: works.count, currentTitle: progressTitle)
+
+                                        // V3 unprefixed progress events (routed as csvImportProgress)
+                                        case .csvImportProgress(let csvProgress):
+                                            let overallProcessed = processedCount + csvProgress.processedCount
+                                            let progressTitle = "(\(index + 1)/\(batches.count)) \(csvProgress.status)"
+                                            progressHandler(overallProcessed, works.count, progressTitle)
+                                            NotificationCoordinator.postEnrichmentProgress(completed: overallProcessed, total: works.count, currentTitle: progressTitle)
+
+                                        // Legacy prefixed completed events (enrichment.completed)
+                                        case .completed(let completed):
+                                            #if DEBUG
+                                            print("✅ [SSE] Enrichment completed (prefixed): \(completed.status)")
+                                            #endif
+                                            await self.handleSSECompletion(
+                                                effectiveJobId: effectiveJobId,
+                                                batchWorkIDs: batchWorkIDs,
+                                                modelContext: modelContext,
+                                                continuation: continuation
+                                            )
+                                            return  // Exit the event loop
+
+                                        // V3 unprefixed completed events (routed as csvImportCompleted)
+                                        case .csvImportCompleted(let csvCompleted):
+                                            #if DEBUG
+                                            print("✅ [SSE] V3 Enrichment completed: \(csvCompleted.status), processed: \(csvCompleted.processedCount)/\(csvCompleted.totalCount)")
+                                            #endif
+                                            await self.handleSSECompletion(
+                                                effectiveJobId: effectiveJobId,
+                                                batchWorkIDs: batchWorkIDs,
+                                                modelContext: modelContext,
+                                                continuation: continuation
+                                            )
+                                            return  // Exit the event loop
+
+                                        case .failed(let failed):
+                                            #if DEBUG
+                                            print("❌ [SSE] Enrichment failed: \(failed.error)")
+                                            #endif
+                                            // Cleanup SSE client
+                                            await self.sseClient?.disconnect()
+                                            self.sseClient = nil
+
+                                            self.activeEnrichments.subtract(batchWorkIDs)
+                                            NotificationCoordinator.postEnrichmentFailed(error: failed.error)
+                                            continuation.resume(throwing: EnrichmentError.apiError(failed.error))
+                                            return  // Exit the event loop
+
+                                        default:
+                                            // Ignore scan events and other unhandled types
+                                            break
+                                        }
+                                    }
+                                }
+                                return  // SSE path handled - don't fall through to WebSocket
+                            }
+
+                            // WebSocket fallback (deprecated V1/V2 path)
                             // ⚠️ SECURITY (Issue #163): Token passed separately (not in URL) for Sec-WebSocket-Protocol header
                             var components = URLComponents(string: "\(EnrichmentConfig.webSocketBaseURL)/ws/progress")!
                             components.queryItems = [
-                                URLQueryItem(name: "jobId", value: jobId)
+                                URLQueryItem(name: "jobId", value: effectiveJobId)  // ✅ Use server's jobId
                                 // ✅ Token removed from URL query params (security fix)
                             ]
 
@@ -427,7 +525,7 @@ public final class EnrichmentQueue {
                             }
 
                             #if DEBUG
-                            print("🔌 Connecting WebSocket for batch \(index + 1)...")
+                            print("🔌 [ENRICHMENT] Falling back to WebSocket for batch \(index + 1) (jobId: \(effectiveJobId))...")
                             #endif
 
                             self.webSocketHandler = GenericWebSocketHandler(
@@ -678,6 +776,72 @@ public final class EnrichmentQueue {
 
             // Check every 10 seconds
             try await Task.sleep(for: .seconds(10))
+        }
+    }
+
+    // MARK: - SSE Completion Handler
+
+    /// Handle SSE enrichment completion (shared by prefixed and unprefixed events)
+    /// - Parameters:
+    ///   - effectiveJobId: Server-assigned job ID for fetching results
+    ///   - batchWorkIDs: Work IDs in this batch for cleanup
+    ///   - modelContext: SwiftData context for applying results
+    ///   - continuation: Continuation to resume when complete
+    private func handleSSECompletion(
+        effectiveJobId: String,
+        batchWorkIDs: [PersistentIdentifier],
+        modelContext: ModelContext,
+        continuation: CheckedContinuation<Void, Error>
+    ) async {
+        // Cleanup SSE client
+        await self.sseClient?.disconnect()
+        self.sseClient = nil
+
+        // Fetch full results from KV cache using server jobId
+        do {
+            #if DEBUG
+            print("🔄 [SSE] Fetching results for jobId: \(effectiveJobId)")
+            #endif
+
+            let enrichedBooks = try await self.fetchEnrichmentResults(jobId: effectiveJobId)
+
+            #if DEBUG
+            print("📦 [SSE] Received \(enrichedBooks.count) enriched books from HTTP")
+            #endif
+
+            let result = self.applyEnrichedData(enrichedBooks, in: modelContext)
+
+            #if DEBUG
+            print("✅ [SSE] Applied enrichment: \(result.successCount) success, \(result.failureCount) failed")
+            if !result.errors.isEmpty {
+                print("⚠️ [SSE] Errors: \(result.errors.prefix(5).joined(separator: ", "))")
+            }
+            #endif
+
+            self.activeEnrichments.subtract(batchWorkIDs)
+            self.completionEvents.send(EnrichmentCompletionEvent(
+                bookIds: batchWorkIDs,
+                successCount: result.successCount,
+                failureCount: result.failureCount,
+                errors: result.errors,
+                timestamp: Date()
+            ))
+            continuation.resume()
+        } catch {
+            #if DEBUG
+            print("❌ [SSE] Fetch/apply failed: \(error.localizedDescription)")
+            print("❌ [SSE] Error type: \(type(of: error))")
+            #endif
+
+            self.activeEnrichments.subtract(batchWorkIDs)
+            self.completionEvents.send(EnrichmentCompletionEvent(
+                bookIds: batchWorkIDs,
+                successCount: 0,
+                failureCount: batchWorkIDs.count,
+                errors: ["SSE fetch failed: \(error.localizedDescription)"],
+                timestamp: Date()
+            ))
+            continuation.resume()
         }
     }
 

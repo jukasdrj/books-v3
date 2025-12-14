@@ -33,7 +33,7 @@ struct LibraryRepositoryTests {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         modelContext = ModelContext(modelContainer)
-        repository = LibraryRepository(modelContext: modelContext)
+        repository = LibraryRepository(modelContext: modelContext, dtoMapper: nil, featureFlags: nil)
     }
 
     // MARK: - Library Queries Tests

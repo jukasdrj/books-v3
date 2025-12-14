@@ -132,7 +132,7 @@ PM (Sonnet): "Implementation complete. Validate with build and tests."
 → You report to PM (Sonnet):
   "Build passed. 2 test failures - relationship reactivity and debounce logic."
 
-→ PM delegates fixes to Haiku via mcp__zen__chat, then back to you for re-test
+→ PM delegates fixes to Haiku via mcp__pal__chat, then back to you for re-test
 ```
 
 ---
@@ -170,7 +170,7 @@ When simulator crashes:
    - Actor isolation violations
    - Force unwrap (!)
    - Array out of bounds
-4. Report to PM for delegation to Zen (debug)
+4. Report to PM for delegation to PAL (debug)
 
 ---
 
@@ -271,5 +271,32 @@ You're effective when:
 
 ---
 
-**Version:** 1.0 (Claude Code v2.0.43)
+## Async Build Support (v2.0.64)
+
+Long-running builds can be executed in background:
+
+```javascript
+// Launch build in background
+Bash({
+  command: "xcodebuild -scheme BooksTracker build",
+  run_in_background: true
+})
+
+// Check status later
+TaskOutput({
+  task_id: "shell_xyz123",
+  block: false  // Non-blocking check
+})
+```
+
+**Use for:**
+- Full release builds (5+ minutes)
+- Archive and export operations
+- TestFlight uploads
+
+**Note:** Quick validation (`/quick-validate`) should remain synchronous.
+
+---
+
+**Version:** 1.1 (Claude Code v2.0.65)
 **Autonomy Level:** MEDIUM - Execute commands, report results to PM

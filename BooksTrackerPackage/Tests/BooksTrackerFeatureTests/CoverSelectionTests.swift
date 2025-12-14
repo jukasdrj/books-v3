@@ -2,6 +2,7 @@ import Testing
 @testable import BooksTrackerFeature
 
 @Suite("Cover Selection Quality Scoring")
+@MainActor
 struct CoverSelectionTests {
 
     @Test("Edition with cover scores higher than edition without cover")
@@ -100,6 +101,7 @@ struct CoverSelectionTests {
 }
 
 @Suite("Cover Selection Strategies")
+@MainActor
 struct CoverSelectionStrategyTests {
 
     @Test("Auto strategy uses quality scoring")
@@ -155,6 +157,7 @@ struct CoverSelectionStrategyTests {
 }
 
 @Suite("Cover Selection Persistence")
+@MainActor
 struct CoverSelectionPersistenceTests {
 
     @Test("Strategy persists across FeatureFlags instances")
@@ -183,6 +186,7 @@ struct CoverSelectionPersistenceTests {
 }
 
 @Suite("Cover Selection Edge Cases")
+@MainActor
 struct CoverSelectionEdgeCaseTests {
 
     @Test("Work with no editions returns nil")

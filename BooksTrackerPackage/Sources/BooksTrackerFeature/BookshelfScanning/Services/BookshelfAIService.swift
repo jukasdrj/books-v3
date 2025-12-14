@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 #if canImport(UIKit)
 import UIKit
@@ -93,6 +94,7 @@ actor BookshelfAIService {
     private let endpoint = EnrichmentConfig.scanBookshelfURL
     private let timeout: TimeInterval = EnrichmentConfig.sseTimeout
     private let maxImageSize: Int = 10_000_000 // 10MB max (matches worker limit)
+    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "Scanning")
 
     // MARK: - Singleton
 
@@ -181,9 +183,7 @@ actor BookshelfAIService {
         let scanResponse: ScanJobResponse
         do {
             scanResponse = try await startScanJob(imageData, provider: provider, jobId: jobId)
-            #if DEBUG
-            print("✅ Image uploaded with jobId: \(jobId), token: \(scanResponse.authToken.prefix(8))...")
-            #endif
+            logger.info("Image uploaded with jobId: \(jobId, privacy: .private), token: <redacted>")
         } catch {
             throw .networkError(error)
         }
@@ -199,9 +199,7 @@ actor BookshelfAIService {
             // NEW: Send ready signal to server
             try await wsManager.sendReadySignal()
 
-            #if DEBUG
-            print("✅ WebSocket connected with authentication and ready signal sent for job \(serverJobId)")
-            #endif
+            logger.info("WebSocket connected with authentication and ready signal sent for job \(serverJobId, privacy: .private)")
         } catch {
             throw .networkError(error)
         }
@@ -216,18 +214,14 @@ actor BookshelfAIService {
                 wsManager.setDisconnectionHandler { error in
                     guard !continuationResumed else { return }
                     continuationResumed = true
-                    #if DEBUG
-                    print("⚠️ WebSocket disconnected unexpectedly, resuming continuation with error")
-                    #endif
+                    self.logger.warning("WebSocket disconnected unexpectedly, resuming continuation with error: \(error.localizedDescription)")
                     continuation.resume(returning: .failure(.networkError(error)))
                 }
 
                 wsManager.setProgressHandler { jobProgress in
                     // Skip keep-alive pings
                     guard jobProgress.keepAlive != true else {
-                        #if DEBUG
-                        print("🔁 Keep-alive ping received (skipping UI update)")
-                        #endif
+                        self.logger.debug("Keep-alive ping received (skipping UI update)")
                         return
                     }
 
@@ -238,9 +232,7 @@ actor BookshelfAIService {
                         guard !continuationResumed else { return }
                         continuationResumed = true
 
-                        #if DEBUG
-                        print("✅ Scan complete with \(scanResult.totalDetected) books (\(scanResult.approved) approved, \(scanResult.needsReview) review)")
-                        #endif
+                        self.logger.info("Scan complete with \(scanResult.totalDetected) books (\(scanResult.approved) approved, \(scanResult.needsReview) review)")
                         wsManager.disconnect()
 
                         // Convert scan result to detected books
@@ -302,10 +294,8 @@ actor BookshelfAIService {
         let scanResponse: ScanJobResponse
         do {
             scanResponse = try await startScanJob(imageData, provider: provider, jobId: jobId)
-            #if DEBUG
             // Note: scanResponse.jobId is the server-assigned ID; jobId is client-side tracking ID
-            print("SSE: Image uploaded with serverJobId: \(scanResponse.jobId)")
-            #endif
+            logger.info("Image uploaded with serverJobId: \(scanResponse.jobId, privacy: .private)")
         } catch {
             throw .networkError(error)
         }
@@ -341,9 +331,7 @@ actor BookshelfAIService {
         let sseClient = SSEClient(url: sseUrl, authToken: authToken, jobType: .bookshelfScan)
         let eventStream = await sseClient.connect()
 
-        #if DEBUG
-        print("SSE: Connected for job \(serverJobId)")
-        #endif
+        logger.info("SSE connected for job \(serverJobId, privacy: .private)")
 
         // STEP 5: Process SSE events
         // V3 backend sends inline results in 'completed' event, no separate fetch needed
@@ -354,9 +342,7 @@ actor BookshelfAIService {
             switch event {
             // MARK: - V3 Scan Events (unprefixed from backend)
             case .v3ScanInitialized(let initialized):
-                #if DEBUG
-                print("SSE: Job \(initialized.jobId) initialized, totalCount: \(initialized.totalCount)")
-                #endif
+                logger.info("Bookshelf scan job initialized, totalCount: \(initialized.totalCount)")
                 await progressHandler(0.0, "Initializing scan...")
 
             case .v3ScanProgress(let progress):
@@ -365,9 +351,7 @@ actor BookshelfAIService {
                 await progressHandler(progress.progress ?? 0.0, displayMessage)
 
             case .v3ScanCompleted(let completed):
-                #if DEBUG
-                print("SSE: Job completed with \(completed.results.count) books")
-                #endif
+                logger.info("Bookshelf scan completed with \(completed.results.count) books")
                 v3Results = completed.results
                 break
 
@@ -509,9 +493,7 @@ actor BookshelfAIService {
         let provider = getSelectedProvider()
         let jobId = UUID().uuidString
 
-        #if DEBUG
-        print("[Analytics] bookshelf_scan_started - provider: \(provider.rawValue), scan_id: \(jobId)")
-        #endif
+        logger.info("Bookshelf scan started, provider: \(provider.rawValue), scan_id: \(jobId, privacy: .private)")
 
         // Check feature flag for SSE (API Contract v3.2)
         let useSSE = await FeatureFlags.shared.enablePhotoScanSSE
@@ -519,9 +501,7 @@ actor BookshelfAIService {
         if useSSE {
             // Try SSE first (API Contract v3.2)
             do {
-                #if DEBUG
-                print("SSE: Attempting connection for job \(jobId)")
-                #endif
+                logger.info("Attempting SSE connection for job \(jobId, privacy: .private)")
 
                 let result = try await processViaSSE(
                     image: image,
@@ -530,27 +510,19 @@ actor BookshelfAIService {
                     progressHandler: progressHandler
                 )
 
-                #if DEBUG
-                print("SSE: Scan completed successfully")
-                print("[Analytics] bookshelf_scan_completed - provider: \(provider.rawValue), books_detected: \(result.0.count), scan_id: \(jobId), success: true, strategy: sse")
-                #endif
+                logger.info("Bookshelf scan completed successfully via SSE, books_detected: \(result.0.count), provider: \(provider.rawValue)")
 
                 return (image, result.0, result.1)
 
             } catch {
-                #if DEBUG
-                print("SSE: Failed, falling back to WebSocket: \(error)")
-                print("[Analytics] sse_fallback_triggered - provider: \(provider.rawValue), scan_id: \(jobId), error: \(error), fallback_to: websocket")
-                #endif
+                logger.warning("SSE connection failed, falling back to WebSocket: \(error.localizedDescription)")
                 // Fall through to WebSocket
             }
         }
 
         // WebSocket fallback (or primary if SSE disabled)
         do {
-            #if DEBUG
-            print("WebSocket: Attempting connection for job \(jobId)")
-            #endif
+            logger.info("Attempting WebSocket connection for job \(jobId, privacy: .private)")
 
             let result = try await processViaWebSocket(
                 image: image,
@@ -559,18 +531,12 @@ actor BookshelfAIService {
                 progressHandler: progressHandler
             )
 
-            #if DEBUG
-            print("WebSocket: Scan completed successfully")
-            print("[Analytics] bookshelf_scan_completed - provider: \(provider.rawValue), books_detected: \(result.0.count), scan_id: \(jobId), success: true, strategy: websocket")
-            #endif
+            logger.info("Bookshelf scan completed successfully via WebSocket, books_detected: \(result.0.count), provider: \(provider.rawValue)")
 
             return (image, result.0, result.1)
 
         } catch {
-            #if DEBUG
-            print("Scan failed: \(error)")
-            print("[Analytics] bookshelf_scan_failed - provider: \(provider.rawValue), scan_id: \(jobId), error: \(error)")
-            #endif
+            logger.error("Bookshelf scan failed: \(error.localizedDescription), provider: \(provider.rawValue), scan_id: \(jobId, privacy: .private)")
             throw error
         }
     }
@@ -635,21 +601,15 @@ actor BookshelfAIService {
                     if let retryAfterHeader = httpResponse.value(forHTTPHeaderField: "Retry-After"),
                        let seconds = Int(retryAfterHeader) {
                         retryAfter = seconds
-                        #if DEBUG
-                        print("⏱️ Rate limit: using Retry-After header value: \(seconds)s")
-                        #endif
+                        logger.debug("Rate limit: using Retry-After header value: \(seconds)s")
                     } else if let bodyValue = parseRetryAfterFromBody(data) {
                         // Fallback: try to parse from response body
                         retryAfter = bodyValue
-                        #if DEBUG
-                        print("⏱️ Rate limit: using body retryAfter value: \(bodyValue)s")
-                        #endif
+                        logger.debug("Rate limit: using body retryAfter value: \(bodyValue)s")
                     } else {
                         // Final fallback: 60s default (Issue #6 - verify backend alignment)
                         retryAfter = 60
-                        #if DEBUG
-                        print("⚠️ Rate limit fallback: using default 60s (verify backend rate limit config)")
-                        #endif
+                        logger.warning("Rate limit fallback: using default 60s (verify backend rate limit config)")
                     }
                     throw BookshelfAIError.rateLimitExceeded(retryAfter: retryAfter)
                 }
@@ -815,13 +775,9 @@ actor BookshelfAIService {
             detectedBook.enrichmentEditions = editions
             detectedBook.enrichmentAuthors = authors
 
-            #if DEBUG
-            print("✅ Enrichment data attached to DetectedBook: \(work.title)")
-            #endif
+            logger.debug("Enrichment data attached to DetectedBook: \(work.title, privacy: .private)")
         } else {
-            #if DEBUG
-            print("⚠️ No enrichment data available for DetectedBook: \(bookPayload.title)")
-            #endif
+            logger.debug("No enrichment data available for DetectedBook: \(bookPayload.title, privacy: .private)")
         }
 
         return detectedBook
@@ -868,13 +824,7 @@ actor BookshelfAIService {
         request.httpBody = createMultipartBody(imageData: imageData, boundary: boundary)
 
         // DIAGNOSTIC: Log outgoing request details
-        #if DEBUG
-        print("[Diagnostic iOS Layer] === Outgoing Request (V3 multipart) ===")
-        print("[Diagnostic iOS Layer] Provider: Gemini 2.0 Flash (optimized)")
-        print("[Diagnostic iOS Layer] Full URL: \(endpoint.absoluteString)")
-        print("[Diagnostic iOS Layer] Content-Type: multipart/form-data")
-        print("[Diagnostic iOS Layer] Image size: \(imageData.count) bytes")
-        #endif
+        logger.debug("V3 scan request: Content-Type: multipart/form-data, image size: \(imageData.count) bytes")
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -882,12 +832,10 @@ actor BookshelfAIService {
             throw BookshelfAIError.invalidResponse
         }
 
-        #if DEBUG
+        logger.debug("V3 scan response HTTP \(httpResponse.statusCode)")
         if let body = String(data: data, encoding: .utf8) {
-            print("[Diagnostic iOS Layer] HTTP \(httpResponse.statusCode)")
-            print("[Diagnostic iOS Layer] Response: \(body.prefix(500))")
+            logger.debug("V3 scan response: \(body.prefix(500))")
         }
-        #endif
 
         // V3 API returns 202 Accepted for async jobs
         guard httpResponse.statusCode == 202 else {
@@ -1009,9 +957,7 @@ actor BookshelfAIService {
                 }
             } else {
                 // Log if expiresAt string is malformed
-                #if DEBUG
-                print("⚠️ Failed to parse expiresAt date: \(expiresAtString)")
-                #endif
+                logger.warning("Failed to parse expiresAt date: \(expiresAtString, privacy: .private)")
             }
         }
 
@@ -1048,9 +994,7 @@ actor BookshelfAIService {
                     }
                 } else {
                     // Log if expiresAt string is malformed
-                    #if DEBUG
-                    print("⚠️ Failed to parse expiresAt date: \(expiresAtString)")
-                    #endif
+                    logger.warning("Failed to parse expiresAt date: \(expiresAtString, privacy: .private)")
                 }
             }
 

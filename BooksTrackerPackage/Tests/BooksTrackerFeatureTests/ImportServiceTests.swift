@@ -58,14 +58,12 @@ struct ImportServiceTests {
     func relationshipCreation() async throws {
         let service = ImportService(modelContainer: modelContainer)
         let books = [
-            GeminiCSVImportJob.ParsedBook(
+            CSVParsedBook.mock(
                 title: "Test Book",
-                author: "Test Author",
+                authors: ["Test Author"],
                 isbn: "9781234567890",
-                coverUrl: nil,
                 publisher: "Test Publisher",
-                publicationYear: 2020,
-                enrichmentError: nil
+                year: 2020
             )
         ]
 
@@ -115,13 +113,9 @@ struct ImportServiceTests {
         // 2. Import via background context
         let service = ImportService(modelContainer: modelContainer)
         let books = [
-            GeminiCSVImportJob.ParsedBook(
+            CSVParsedBook.mock(
                 title: "Background Book",
-                author: "Background Author",
-                isbn: nil,
-                publicationYear: nil,
-                publisher: nil,
-                coverUrl: nil
+                authors: ["Background Author"]
             )
         ]
         let result = try await service.importCSVBooks(books)
@@ -145,13 +139,10 @@ struct ImportServiceTests {
         // 1. Import first book
         let service = ImportService(modelContainer: modelContainer)
         let books1 = [
-            GeminiCSVImportJob.ParsedBook(
+            CSVParsedBook.mock(
                 title: "Harry Potter",
-                author: "J.K. Rowling",
-                isbn: nil,
-                publicationYear: 1997,
-                publisher: nil,
-                coverUrl: nil
+                authors: ["J.K. Rowling"],
+                year: 1997
             )
         ]
         let result1 = try await service.importCSVBooks(books1)
@@ -159,13 +150,10 @@ struct ImportServiceTests {
 
         // 2. Attempt to import duplicate (case-insensitive match)
         let books2 = [
-            GeminiCSVImportJob.ParsedBook(
+            CSVParsedBook.mock(
                 title: "harry potter",  // Lowercase
-                author: "j.k. rowling",  // Lowercase
-                isbn: nil,
-                publicationYear: 1997,
-                publisher: nil,
-                coverUrl: nil
+                authors: ["j.k. rowling"],  // Lowercase
+                year: 1997
             )
         ]
         let result2 = try await service.importCSVBooks(books2)
@@ -182,21 +170,15 @@ struct ImportServiceTests {
     func differentAuthors() async throws {
         let service = ImportService(modelContainer: modelContainer)
         let books = [
-            GeminiCSVImportJob.ParsedBook(
+            CSVParsedBook.mock(
                 title: "Foundation",
-                author: "Isaac Asimov",
-                isbn: nil,
-                publicationYear: 1951,
-                publisher: nil,
-                coverUrl: nil
+                authors: ["Isaac Asimov"],
+                year: 1951
             ),
-            GeminiCSVImportJob.ParsedBook(
+            CSVParsedBook.mock(
                 title: "Foundation",
-                author: "Peter Ackroyd",  // Different author!
-                isbn: nil,
-                publicationYear: 2011,
-                publisher: nil,
-                coverUrl: nil
+                authors: ["Peter Ackroyd"],  // Different author!
+                year: 2011
             )
         ]
 
@@ -218,7 +200,7 @@ struct ImportServiceTests {
     @Test("Empty book list returns zero results")
     func emptyImport() async throws {
         let service = ImportService(modelContainer: modelContainer)
-        let books: [GeminiCSVImportJob.ParsedBook] = []
+        let books: [CSVParsedBook] = []
 
         let result = try await service.importCSVBooks(books)
 
@@ -232,13 +214,9 @@ struct ImportServiceTests {
     func noISBN() async throws {
         let service = ImportService(modelContainer: modelContainer)
         let books = [
-            GeminiCSVImportJob.ParsedBook(
+            CSVParsedBook.mock(
                 title: "Ancient Book",
-                author: "Unknown Author",
-                isbn: nil,  // No ISBN
-                publicationYear: nil,
-                publisher: nil,
-                coverUrl: nil
+                authors: ["Unknown Author"]
             )
         ]
 
@@ -263,13 +241,10 @@ struct ImportServiceTests {
     func publicationYearStorage() async throws {
         let service = ImportService(modelContainer: modelContainer)
         let books = [
-            GeminiCSVImportJob.ParsedBook(
+            CSVParsedBook.mock(
                 title: "1984",
-                author: "George Orwell",
-                isbn: nil,
-                publicationYear: 1949,
-                publisher: nil,
-                coverUrl: nil
+                authors: ["George Orwell"],
+                year: 1949
             )
         ]
 
@@ -288,15 +263,13 @@ struct ImportServiceTests {
     // MARK: - Test Helpers
 
     /// Creates a large dataset for performance testing
-    private func makeLargeDataset(count: Int) -> [GeminiCSVImportJob.ParsedBook] {
+    private func makeLargeDataset(count: Int) -> [CSVParsedBook] {
         (1...count).map { i in
-            GeminiCSVImportJob.ParsedBook(
+            CSVParsedBook.mock(
                 title: "Book \(i)",
-                author: "Author \(i)",
-                isbn: nil,
-                publicationYear: 2000 + (i % 25),
+                authors: ["Author \(i)"],
                 publisher: "Publisher \(i % 10)",
-                coverUrl: nil
+                year: 2000 + (i % 25)
             )
         }
     }

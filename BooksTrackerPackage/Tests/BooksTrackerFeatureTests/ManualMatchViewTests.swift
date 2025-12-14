@@ -152,28 +152,26 @@ struct ManualMatchViewTests {
         edition.work = work
         
         // Create user library entry
-        let entry = UserLibraryEntry(
-            readingStatus: .reading,
-            personalRating: 4.5,
-            edition: edition
-        )
+        let entry = UserLibraryEntry(readingStatus: ReadingStatus.reading)
+        entry.personalRating = 4.5
+        entry.edition = edition
         context.insert(entry)
         entry.work = work
-        
+
         try context.save()
-        
+
         let originalEntryCount = work.userLibraryEntries?.count ?? 0
-        
+
         // Act - Update work metadata (simulating match application)
         work.title = "Updated Book Title"
         work.googleBooksVolumeID = "new-id"
-        
+
         try context.save()
-        
+
         // Assert - User library entry should still exist
         #expect(work.userLibraryEntries?.count == originalEntryCount)
         #expect(entry.work?.title == "Updated Book Title")
-        #expect(entry.readingStatus == .reading)
+        #expect(entry.readingStatus == ReadingStatus.reading)
         #expect(entry.personalRating == 4.5)
     }
 }

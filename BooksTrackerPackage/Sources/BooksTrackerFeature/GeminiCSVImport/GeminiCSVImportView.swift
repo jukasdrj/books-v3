@@ -11,12 +11,12 @@ import UIKit
 /// Full job results fetched via HTTP GET after SSE completion
 /// v2.0 Migration: SSE now sends lightweight summary, full results stored in KV cache
 struct CSVImportJobResults: Codable, Sendable {
-    let books: [ParsedBook]?
-    let errors: [ImportError]?
+    let books: [CSVParsedBook]?
+    let errors: [CSVImportError]?
 }
 
-/// CSV Import errors
-enum CSVImportError: Error, LocalizedError {
+/// CSV Import errors (distinct from CSVImportError DTO struct)
+enum CSVImportViewError: Error, LocalizedError {
     case invalidResponse
     case emptyResults
     case resultsExpired          // Results no longer available in KV cache (> 24 hours)
@@ -53,6 +53,7 @@ public struct GeminiCSVImportView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.iOS26ThemeStore) private var themeStore
     @Environment(\.tabCoordinator) private var tabCoordinator
+    @Environment(\.enrichmentQueue) private var enrichmentQueue
 
     @State private var showingFilePicker = false
     @State private var jobId: String?
@@ -72,7 +73,7 @@ public struct GeminiCSVImportView: View {
         case idle
         case uploading
         case processing(progress: Double, message: String)
-        case completed(books: [GeminiCSVImportJob.ParsedBook], errors: [GeminiCSVImportJob.ImportError])
+        case completed(books: [CSVParsedBook], errors: [CSVImportError])
         case failed(ErrorDetail)
     }
 
@@ -205,7 +206,7 @@ public struct GeminiCSVImportView: View {
         .padding()
     }
 
-    private func completedView(books: [GeminiCSVImportJob.ParsedBook], errors: [GeminiCSVImportJob.ImportError]) -> some View {
+    private func completedView(books: [CSVParsedBook], errors: [CSVImportError]) -> some View {
         VStack(spacing: 20) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 64))
@@ -569,7 +570,7 @@ public struct GeminiCSVImportView: View {
         let (data, response) = try await URLSession.shared.data(from: url)
 
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw CSVImportError.invalidResponse
+            throw CSVImportViewError.invalidResponse
         }
 
         #if DEBUG
@@ -586,26 +587,26 @@ public struct GeminiCSVImportView: View {
 
             // Check for API error in envelope
             if envelope.error != nil {
-                throw CSVImportError.emptyResults
+                throw CSVImportViewError.emptyResults
             }
 
             guard let results = envelope.data else {
-                throw CSVImportError.emptyResults
+                throw CSVImportViewError.emptyResults
             }
 
             return results
 
         case 404:
             // Results expired (> 24 hours old)
-            throw CSVImportError.resultsExpired
+            throw CSVImportViewError.resultsExpired
 
         case 429:
             // Rate limited - use value(forHTTPHeaderField:) for reliable header access
             let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After").flatMap(Int.init)
-            throw CSVImportError.rateLimited(retryAfter: retryAfter)
+            throw CSVImportViewError.rateLimited(retryAfter: retryAfter)
 
         default:
-            throw CSVImportError.httpError(statusCode: httpResponse.statusCode)
+            throw CSVImportViewError.httpError(statusCode: httpResponse.statusCode)
         }
     }
 
@@ -640,7 +641,7 @@ public struct GeminiCSVImportView: View {
     }
 
     @MainActor
-    private func saveBooks(_ books: [GeminiCSVImportJob.ParsedBook]) async -> Bool {
+    private func saveBooks(_ books: [CSVParsedBook]) async -> Bool {
         guard !books.isEmpty else {
             #if DEBUG
             print("⚠️ No books to save")
@@ -675,7 +676,7 @@ public struct GeminiCSVImportView: View {
                 #if DEBUG
                 print("📚 Enqueueing \(result.newWorkIDs.count) books for enrichment")
                 #endif
-                EnrichmentQueue.shared.enqueueBatch(result.newWorkIDs)
+                enrichmentQueue.enqueueBatch(result.newWorkIDs)
 
                 // Start enrichment in background
                 // Wait for SwiftData context merging with exponential backoff (Issue #467)
@@ -714,11 +715,15 @@ public struct GeminiCSVImportView: View {
                         #endif
                     }
 
-                    EnrichmentQueue.shared.startProcessing(in: modelContext) { completed, total, currentTitle in
-                        #if DEBUG
-                        print("📚 Enriching (\(completed)/\(total)): \(currentTitle)")
-                        #endif
-                    }
+                    enrichmentQueue.startProcessing(
+                        in: modelContext,
+                        progressHandler: { completed, total, currentTitle in
+                            #if DEBUG
+                            print("📚 Enriching (\(completed)/\(total)): \(currentTitle)")
+                            #endif
+                        },
+                        timeoutDuration: 300
+                    )
                 }
             }
 

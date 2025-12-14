@@ -1,8 +1,13 @@
 #!/bin/bash
 
-# SessionEnd Hook (v1.0.85+)
+# SessionEnd Hook (v2.0.64)
 # Triggered when a Claude Code session ends
 # Use for cleanup, final checks, or session summaries
+#
+# New in v2.0.64:
+# - Named sessions can be resumed with /resume <name>
+# - Sessions can be renamed with /rename for easier resumption
+# - /resume screen shows grouped forked sessions with keyboard shortcuts (P=preview, R=rename)
 
 set -e
 

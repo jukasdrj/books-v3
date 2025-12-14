@@ -10,6 +10,7 @@ public struct WorkDiscoveryView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.iOS26ThemeStore) private var themeStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.enrichmentQueue) private var enrichmentQueue
 
     let searchResult: SearchResult
     @State private var isAddingToLibrary = false
@@ -52,53 +53,52 @@ public struct WorkDiscoveryView: View {
     }
 
     public var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Book header with cover and basic info
-                    bookHeaderSection
+        // NO NavigationStack here - this view is pushed via navigationDestination
+        ScrollView {
+            VStack(spacing: 24) {
+                // Book header with cover and basic info
+                bookHeaderSection
 
-                    // Book details section
-                    bookDetailsSection
+                // Book details section
+                bookDetailsSection
 
-                    // Add to library section
-                    addToLibrarySection
+                // Add to library section
+                addToLibrarySection
 
-                    Spacer(minLength: 100)
-                }
-                .padding(.horizontal, 20)
+                Spacer(minLength: 100)
             }
-            .background {
-                themeStore.backgroundGradient
-                    .ignoresSafeArea()
-            }
-            .navigationTitle("Book Details")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(themeStore.primaryColor)
-                }
-            }
-            .themedNavigationGlass()
-            .alert("Success!", isPresented: $showingSuccessAlert) {
-                Button("View Library") {
-                    // Dismiss this view first
-                    dismiss()
-
-                    // Post notification to switch to library tab
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        NotificationCoordinator.postSwitchToLibraryTab()
-                    }
-                }
-                Button("OK") {
+            .padding(.horizontal, 20)
+        }
+        .background {
+            themeStore.backgroundGradient
+                .ignoresSafeArea()
+        }
+        .navigationTitle("Book Details")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Cancel") {
                     dismiss()
                 }
-            } message: {
-                Text(alertMessage)
+                .foregroundColor(themeStore.primaryColor)
             }
+        }
+        .themedNavigationGlass()
+        .alert("Success!", isPresented: $showingSuccessAlert) {
+            Button("View Library") {
+                // Dismiss this view first
+                dismiss()
+
+                // Post notification to switch to library tab
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    NotificationCoordinator.postSwitchToLibraryTab()
+                }
+            }
+            Button("OK") {
+                dismiss()
+            }
+        } message: {
+            Text(alertMessage)
         }
     }
 
@@ -107,8 +107,10 @@ public struct WorkDiscoveryView: View {
     private var bookHeaderSection: some View {
         HStack(alignment: .top, spacing: 20) {
             // Book cover with cached image loading
+            // Use searchResult.primaryEdition (not work.primaryEdition) to support
+            // transient objects like WeeklyRecommendation that aren't persisted to SwiftData
             CachedAsyncImage(
-                url: URL(string: searchResult.work.primaryEdition?.coverImageURL ?? "")
+                url: URL(string: searchResult.primaryEdition?.coverImageURL ?? "")
             ) { image in
                 image
                     .resizable()
@@ -403,15 +405,19 @@ public struct WorkDiscoveryView: View {
             // Trigger auto-enrichment for manually added books
             let workID = work.persistentModelID
             Task { @MainActor in
-                EnrichmentQueue.shared.enqueue(workID: workID, priority: 100)
+                enrichmentQueue.enqueue(workID: workID, priority: 100)
 
-                let isCurrentlyProcessing = EnrichmentQueue.shared.isProcessing()
+                let isCurrentlyProcessing = enrichmentQueue.isProcessing()
                 if !isCurrentlyProcessing {
-                    EnrichmentQueue.shared.startProcessing(in: modelContext) { completed, total, currentTitle in
-                        #if DEBUG
-                        print("📚 Enrichment Progress: \(completed)/\(total) - \(currentTitle)")
-                        #endif
-                    }
+                    enrichmentQueue.startProcessing(
+                        in: modelContext,
+                        progressHandler: { completed, total, currentTitle in
+                            #if DEBUG
+                            print("📚 Enrichment Progress: \(completed)/\(total) - \(currentTitle)")
+                            #endif
+                        },
+                        timeoutDuration: 300
+                    )
                 }
             }
 

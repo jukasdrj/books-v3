@@ -1,6 +1,15 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "customInstructions": "CRITICAL: Safe Testing Policy - ALWAYS use /quick-validate instead of /build. NEVER use /sim (use /sim-safe or /device-deploy). When user requests testing, default to safe validation workflow (see CLAUDE.md Safe Testing section).",
+  "attribution": {
+    "commit": "🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>",
+    "pr": "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+  },
+  "fileSuggestion": {
+    "type": "command",
+    "command": "git ls-files --cached --others --exclude-standard",
+    "maxResults": 50
+  },
   "subagentModels": {
     "cloudflare-specialist": "sonnet",
     "code-review-grok": "grok-code-fast-1",
@@ -75,19 +84,26 @@
       {
         "type": "allow",
         "tools": [
-          "mcp__zen__chat",
-          "mcp__zen__thinkdeep",
-          "mcp__zen__planner",
-          "mcp__zen__consensus",
-          "mcp__zen__codereview",
-          "mcp__zen__debug",
-          "mcp__zen__secaudit",
-          "mcp__zen__challenge",
-          "mcp__zen__apilookup",
-          "mcp__zen__listmodels",
-          "mcp__zen__version"
+          "mcp__pal__chat",
+          "mcp__pal__thinkdeep",
+          "mcp__pal__planner",
+          "mcp__pal__consensus",
+          "mcp__pal__codereview",
+          "mcp__pal__debug",
+          "mcp__pal__secaudit",
+          "mcp__pal__challenge",
+          "mcp__pal__apilookup",
+          "mcp__pal__listmodels",
+          "mcp__pal__version",
+          "mcp__pal__clink",
+          "mcp__pal__precommit",
+          "mcp__pal__docgen",
+          "mcp__pal__analyze",
+          "mcp__pal__refactor",
+          "mcp__pal__tracer",
+          "mcp__pal__testgen"
         ],
-        "comment": "Allow all Zen MCP tools"
+        "comment": "Allow all PAL MCP tools"
       },
       {
         "type": "ask",
@@ -121,6 +137,11 @@
   "compactMode": {
     "enabled": true,
     "threshold": 0.8
+  },
+  "asyncAgents": {
+    "enabled": true,
+    "maxConcurrent": 3,
+    "wakeOnMessage": true
   },
   "spinnerTipsEnabled": true,
   "verbose": false

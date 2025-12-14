@@ -390,4 +390,40 @@ public final class Work {
             "isbndbId": isbndbID ?? ""
         ]
     }
+
+    // MARK: - Metadata Completion
+
+    /// Calculate the metadata completion percentage based on enriched fields
+    ///
+    /// Tracks the following core metadata fields:
+    /// - Original language (publication info)
+    /// - First publication year (historical data)
+    /// - Primary author (identity data)
+    /// - ISBN from primary edition (unique identifier)
+    /// - Publisher from primary edition (publication info)
+    /// - Subject tags (categorization)
+    /// - Accessibility tags (accessibility data)
+    ///
+    /// Returns a value between 0.0 (0% complete) and 1.0 (100% complete)
+    @MainActor
+    var metadataCompletion: Double {
+        let primaryEditionInfo = primaryEdition.map { edition -> [Any?] in
+            return [
+                edition.primaryISBN,
+                edition.publisher
+            ]
+        } ?? []
+
+        let workFields: [Any?] = [
+            originalLanguage,
+            firstPublicationYear,
+            primaryAuthor,
+            !subjectTags.isEmpty ? subjectTags : nil,
+            !accessibilityTags.isEmpty ? accessibilityTags : nil
+        ]
+
+        let allFields = workFields + primaryEditionInfo
+        let filled = allFields.compactMap { $0 }.count
+        return Double(filled) / Double(allFields.count)
+    }
 }

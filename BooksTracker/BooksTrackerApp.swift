@@ -3,13 +3,25 @@ import SwiftData
 import BooksTrackerFeature
 import OSLog
 
+// MARK: - Model Container Factory Protocol
+
+/// Protocol abstraction for ModelContainer factory
+/// Enables dependency injection and testability
+@MainActor
+protocol ModelContainerFactoryProtocol {
+    /// Get or create ModelContainer with optional reset callback
+    /// - Parameter onResetNeeded: Callback invoked when database reset is needed (errorMessage, resetAction)
+    func container(onResetNeeded: ((String, @escaping () -> Void) -> Void)?) -> ModelContainer
+
+    /// Get LibraryRepository instance
+    var libraryRepository: LibraryRepository { get }
+}
+
 // MARK: - Model Container Factory
 
 /// Factory for creating ModelContainer with lazy initialization pattern
 @MainActor
-class ModelContainerFactory {
-    static let shared = ModelContainerFactory()
-
+final class ModelContainerFactory: ModelContainerFactoryProtocol {
     private var _container: ModelContainer?
     private var resetCallback: ((String, @escaping () -> Void) -> Void)?
 
@@ -203,12 +215,20 @@ class ModelContainerFactory {
     }
 }
 
+// MARK: - DTO Mapper Factory Protocol
+
+/// Protocol abstraction for DTOMapper factory
+/// Enables dependency injection and testability
+@MainActor
+protocol DTOMapperFactoryProtocol {
+    /// Get or create DTOMapper for a given ModelContext
+    func mapper(for context: ModelContext) -> DTOMapper
+}
+
 // MARK: - DTO Mapper Factory
 
 @MainActor
-class DTOMapperFactory {
-    static let shared = DTOMapperFactory()
-
+final class DTOMapperFactory: DTOMapperFactoryProtocol {
     private var _mapper: DTOMapper?
 
     func mapper(for context: ModelContext) -> DTOMapper {
@@ -232,6 +252,10 @@ struct BooksTrackerApp: App {
     @State private var curatorPointsService = CuratorPointsService()
     @State private var capabilitiesService = CapabilitiesService()
 
+    // Dependency injection - no more singletons!
+    @State private var modelContainerFactory = ModelContainerFactory()
+    @State private var dtoMapperFactory = DTOMapperFactory()
+
     // Database reset state
     @State private var showDatabaseResetAlert = false
     @State private var databaseResetError: String = ""
@@ -239,18 +263,24 @@ struct BooksTrackerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            let container = ModelContainerFactory.shared.container(
+            let container = modelContainerFactory.container(
                 onResetNeeded: { errorMessage, resetAction in
                     databaseResetError = errorMessage
                     pendingReset = resetAction
                     showDatabaseResetAlert = true
                 }
             )
-            let dtoMapper = DTOMapperFactory.shared.mapper(for: container.mainContext)
+            let dtoMapper = dtoMapperFactory.mapper(for: container.mainContext)
+
+            // Create service instances
+            let enrichmentService = EnrichmentService()
+            let enrichmentQueue = EnrichmentQueue(enrichmentService: enrichmentService)
+
             let libraryRepository = LibraryRepository(
                 modelContext: container.mainContext,
                 dtoMapper: dtoMapper,
-                featureFlags: featureFlags
+                featureFlags: featureFlags,
+                enrichmentQueue: enrichmentQueue
             )
 
             ContentView()
@@ -270,7 +300,8 @@ struct BooksTrackerApp: App {
                 .environment(featureFlags)
                 .environment(\.dtoMapper, dtoMapper)
                 .environment(libraryRepository)
-                .environment(EnrichmentQueue.shared)
+                .environment(\.enrichmentService, enrichmentService)
+                .environment(\.enrichmentQueue, enrichmentQueue)
                 .environment(\.curatorPointsService, curatorPointsService)
                 .alert("Database Reset Required", isPresented: $showDatabaseResetAlert) {
                     Button("Reset & Lose Data", role: .destructive) {

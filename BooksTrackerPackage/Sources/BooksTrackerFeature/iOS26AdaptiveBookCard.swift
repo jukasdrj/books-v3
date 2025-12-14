@@ -3,13 +3,13 @@ import SwiftData
 
 /// Adaptive book card that changes layout based on available space
 /// Provides multiple display modes from compact to detailed
+/// Parent view determines displayMode based on layout and size class
 @available(iOS 26.0, *)
 struct iOS26AdaptiveBookCard: View {
     let work: Work
     let displayMode: AdaptiveDisplayMode
 
     @Environment(\.iOS26ThemeStore) private var themeStore
-    @State private var cardSize: CGSize = .zero
     @State private var showingQuickActions = false
 
     // Current user's library entry for this work
@@ -22,55 +22,43 @@ struct iOS26AdaptiveBookCard: View {
         work.primaryEdition  // ✅ FIXED: Uses AutoStrategy
     }
 
-    init(work: Work, displayMode: AdaptiveDisplayMode = .automatic) {
+    init(work: Work, displayMode: AdaptiveDisplayMode) {
         self.work = work
         self.displayMode = displayMode
     }
 
     var body: some View {
-        GeometryReader { geometry in
-            adaptiveContent(for: geometry.size)
-                .onAppear {
-                    cardSize = geometry.size
-                }
-                .onChange(of: geometry.size) { _, newSize in
-                    cardSize = newSize
-                }
-        }
-        .aspectRatio(cardAspectRatio, contentMode: .fit)
-        .contextMenu {
-            quickActionsMenu
-        }
-        .sheet(isPresented: $showingQuickActions) {
-            QuickActionsSheet(work: work)
-                .presentationDetents([.medium])
-                .iOS26SheetGlass()
-        }
-        // iOS 26 HIG: Accessibility support for context menu
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityDescription)
-        .accessibilityHint("Long press for quick actions")
-        .accessibilityActions {
-            if userEntry != nil {
-                Button("Mark as Reading") {
-                    updateReadingStatus(.reading)
-                }
-                Button("Mark as Read") {
-                    updateReadingStatus(.read)
+        adaptiveContent()
+            .aspectRatio(cardAspectRatio, contentMode: .fit)
+            .contextMenu {
+                quickActionsMenu
+            }
+            .sheet(isPresented: $showingQuickActions) {
+                QuickActionsSheet(work: work)
+                    .presentationDetents([.medium])
+                    .iOS26SheetGlass()
+            }
+            // iOS 26 HIG: Accessibility support for context menu
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(accessibilityDescription)
+            .accessibilityHint("Long press for quick actions")
+            .accessibilityActions {
+                if userEntry != nil {
+                    Button("Mark as Reading") {
+                        updateReadingStatus(.reading)
+                    }
+                    Button("Mark as Read") {
+                        updateReadingStatus(.read)
+                    }
                 }
             }
-        }
     }
 
     // MARK: - Adaptive Content
 
     @ViewBuilder
-    private func adaptiveContent(for size: CGSize) -> some View {
-        let resolvedMode = resolveDisplayMode(for: size)
-
-        switch resolvedMode {
-        case .automatic:
-            standardCard // Fallback, though this shouldn't happen
+    private func adaptiveContent() -> some View {
+        switch displayMode {
         case .compact:
             compactCard
         case .standard:
@@ -82,33 +70,12 @@ struct iOS26AdaptiveBookCard: View {
         }
     }
 
-    private func resolveDisplayMode(for size: CGSize) -> AdaptiveDisplayMode {
-        if displayMode != .automatic {
-            return displayMode
-        }
-
-        // Auto-determine based on available space
-        let area = size.width * size.height
-        let width = size.width
-
-        if area > 50000 || width > 300 {
-            return .hero
-        } else if area > 25000 || width > 200 {
-            return .detailed
-        } else if area > 15000 || width > 150 {
-            return .standard
-        } else {
-            return .compact
-        }
-    }
-
     // MARK: - Card Variants
 
     private var compactCard: some View {
         VStack(spacing: 8) {
             // Compact cover with minimal details
             coverImage
-                .frame(height: 120)
                 .glassEffect(.subtle, tint: themeStore.primaryColor.opacity(0.1))
 
             VStack(spacing: 4) {
@@ -130,7 +97,6 @@ struct iOS26AdaptiveBookCard: View {
             // Standard floating cover
             ZStack {
                 coverImage
-                    .frame(height: 180)
                     .glassEffect(.regular, tint: themeStore.primaryColor.opacity(0.1))
 
                 // Overlay indicators
@@ -162,7 +128,6 @@ struct iOS26AdaptiveBookCard: View {
             // Large cover with enhanced effects
             ZStack {
                 coverImage
-                    .frame(height: 220)
                     .glassEffect(.prominent, tint: themeStore.primaryColor.opacity(0.15))
                     .shadow(color: Color.black.opacity(0.2), radius: 16, x: 0, y: 8)
 
@@ -212,7 +177,6 @@ struct iOS26AdaptiveBookCard: View {
             // Hero cover with premium effects
             ZStack {
                 coverImage
-                    .frame(height: 280)
                     .glassEffect(.prominent, tint: themeStore.primaryColor.opacity(0.2))
                     .shadow(color: themeStore.primaryColor.opacity(0.3), radius: 20, x: 0, y: 12)
                     .overlay {
@@ -276,7 +240,7 @@ struct iOS26AdaptiveBookCard: View {
         CachedAsyncImage(url: CoverImageService.coverURL(for: work)) { image in  // ✅ FIXED: Fallback logic
             image
                 .resizable()
-                .aspectRatio(2/3, contentMode: .fill)
+                .aspectRatio(2/3, contentMode: .fit)
         } placeholder: {
             Rectangle()
                 .fill(LinearGradient(
@@ -321,10 +285,8 @@ struct iOS26AdaptiveBookCard: View {
 
                 Spacer()
 
-                // Status indicator
-                if let userEntry = userEntry {
-                    statusBadge(for: userEntry.readingStatus)
-                }
+                // Metadata completion ring (top-right)
+                CompletionRing(completion: work.metadataCompletion)
             }
 
             Spacer()
@@ -337,6 +299,13 @@ struct iOS26AdaptiveBookCard: View {
             }
         }
         .padding(12)
+        // Status badge overlay (bottom-right)
+        .overlay(alignment: .bottomTrailing) {
+            if let userEntry = userEntry {
+                statusBadge(for: userEntry.readingStatus)
+                    .padding(12)
+            }
+        }
     }
 
     private var culturalDiversityBadge: some View {
@@ -436,10 +405,7 @@ struct iOS26AdaptiveBookCard: View {
     }
 
     private var cardAspectRatio: CGFloat {
-        let resolvedMode = resolveDisplayMode(for: cardSize)
-
-        switch resolvedMode {
-        case .automatic: return 0.65
+        switch displayMode {
         case .compact: return 0.75
         case .standard: return 0.65
         case .detailed: return 0.6
@@ -461,7 +427,6 @@ struct iOS26AdaptiveBookCard: View {
 // MARK: - Supporting Types
 
 enum AdaptiveDisplayMode: String, CaseIterable {
-    case automatic = "automatic"
     case compact = "compact"
     case standard = "standard"
     case detailed = "detailed"
@@ -469,7 +434,6 @@ enum AdaptiveDisplayMode: String, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .automatic: return "Automatic"
         case .compact: return "Compact"
         case .standard: return "Standard"
         case .detailed: return "Detailed"
@@ -514,7 +478,7 @@ enum StatusIndicatorStyle {
             GridItem(.flexible()),
             GridItem(.flexible())
         ], spacing: 20) {
-            ForEach(AdaptiveDisplayMode.allCases.dropFirst(), id: \.self) { mode in
+            ForEach(AdaptiveDisplayMode.allCases, id: \.self) { mode in
                 VStack {
                     Text(mode.displayName)
                         .font(.caption.bold())

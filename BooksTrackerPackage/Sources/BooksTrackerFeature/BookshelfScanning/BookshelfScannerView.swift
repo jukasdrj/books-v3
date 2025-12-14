@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import OSLog
 
 #if canImport(PhotosUI)
 import PhotosUI
@@ -31,14 +32,13 @@ public struct BookshelfScannerView: View {
     // MARK: - Body
 
     public var body: some View {
-        NavigationStack {
-            ZStack {
-                // Background gradient
-                themeStore.backgroundGradient
-                    .ignoresSafeArea()
+        ZStack {
+            // Background gradient
+            themeStore.backgroundGradient
+                .ignoresSafeArea()
 
-                // Main content
-                ScrollView {
+            // Main content
+            ScrollView {
                     VStack(spacing: 24) {
                         // Rate limit banner (GitHub Issue #426)
                         if scanModel.showRateLimitBanner {
@@ -133,7 +133,6 @@ public struct BookshelfScannerView: View {
             .onChange(of: scanModel.isError) { oldValue, newValue in
                 showingErrorAlert = newValue
             }
-        }
         .onDisappear {
             Task {
                 await scanModel.cleanupTempFiles(mode: .global)
@@ -269,6 +268,8 @@ public struct BookshelfScannerView: View {
 @MainActor
 @Observable
 class BookshelfScanModel {
+    private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "Scanning")
+
     var scanState: ScanState = .idle
     var detectedCount: Int = 0
     var confirmedCount: Int = 0
@@ -325,9 +326,7 @@ class BookshelfScanModel {
         currentProgress = 0.0
         currentStage = ""
         lastSavedImagePath = nil
-        #if DEBUG
-        print("🔄 Scan model reset to initial state")
-        #endif
+        logger.info("Scan model reset to initial state")
     }
 
     /// Cleanup modes for temp file management (Issue #472)
@@ -365,14 +364,10 @@ class BookshelfScanModel {
                 do {
                     if FileManager.default.fileExists(atPath: url.path) {
                         try FileManager.default.removeItem(at: url)
-                        #if DEBUG
-                        print("🗑️ Deleted per-session temp file: \(url.lastPathComponent)")
-                        #endif
+                        self.logger.debug("Deleted per-session temp file: \(url.lastPathComponent)")
                     }
                 } catch {
-                    #if DEBUG
-                    print("⚠️ Failed to delete temp file \(url.lastPathComponent): \(error.localizedDescription)")
-                    #endif
+                    self.logger.warning("Failed to delete temp file \(url.lastPathComponent): \(error.localizedDescription)")
                     allSucceeded = false
                 }
             }
@@ -408,22 +403,16 @@ class BookshelfScanModel {
                             
                             if FileManager.default.fileExists(atPath: url.path) {
                                 try FileManager.default.removeItem(at: url)
-                                #if DEBUG
-                                print("🗑️ Deleted stale temp file: \(url.lastPathComponent)")
-                                #endif
+                                self.logger.debug("Deleted stale temp file: \(url.lastPathComponent)")
                             }
                         }
                     } catch {
-                        #if DEBUG
-                        print("⚠️ Failed to check/delete stale file \(url.lastPathComponent): \(error.localizedDescription)")
-                        #endif
+                        self.logger.warning("Failed to check/delete stale file \(url.lastPathComponent): \(error.localizedDescription)")
                         allSucceeded = false
                     }
                 }
             } catch {
-                #if DEBUG
-                print("⚠️ Failed to enumerate temp directory: \(error.localizedDescription)")
-                #endif
+                self.logger.warning("Failed to enumerate temp directory: \(error.localizedDescription)")
                 allSucceeded = false
             }
             
@@ -443,9 +432,7 @@ class BookshelfScanModel {
         // Offload JPEG compression to background task
         let imageData = await Task.detached(priority: .background) { () -> Data? in
             guard let data = image.jpegData(compressionQuality: 0.8) else {
-                #if DEBUG
-                print("⚠️ Failed to convert image to JPEG data")
-                #endif
+                self.logger.warning("Failed to convert image to JPEG data")
                 return nil
             }
             return data
@@ -459,20 +446,16 @@ class BookshelfScanModel {
         do {
             let savedURL = try await Task.detached(priority: .background) { () -> URL in
                 try imageData.write(to: fileURL)
-                #if DEBUG
-                print("✅ Saved original image to: \(fileURL.path)")
-                #endif
+                self.logger.info("Saved original image to: \(fileURL.path, privacy: .private)")
                 return fileURL
             }.value
 
             // Track the URL for cleanup (Issue #472)
             tempFiles.append(savedURL)
-            
+
             return savedURL.path
         } catch {
-            #if DEBUG
-            print("❌ Failed to save original image: \(error)")
-            #endif
+            logger.error("Failed to save original image: \(error.localizedDescription)")
             return nil
         }
     }
@@ -487,9 +470,7 @@ class BookshelfScanModel {
         // CRITICAL: Prevent device from sleeping during scan (25-40s AI processing)
         // iOS will kill the app if it enters background while WebSocket is waiting
         UIApplication.shared.isIdleTimerDisabled = true
-        #if DEBUG
-        print("🔒 Idle timer disabled - device won't sleep during scan")
-        #endif
+        logger.debug("Idle timer disabled - device won't sleep during scan")
 
         // Save original image first for correction UI
         self.lastSavedImagePath = await saveOriginalImage(image)
@@ -500,9 +481,7 @@ class BookshelfScanModel {
                 // Progress handler runs on MainActor - safe for UI updates
                 self.currentProgress = progress
                 self.currentStage = stage
-                #if DEBUG
-                print("📸 SSE progress: \(Int(progress * 100))% - \(stage)")
-                #endif
+                self.logger.debug("SSE progress: \(Int(progress * 100))% - \(stage)")
             }
 
             // Attach original image path to each detected book for correction UI
@@ -532,16 +511,14 @@ class BookshelfScanModel {
 
             // Re-enable idle timer on success
             UIApplication.shared.isIdleTimerDisabled = false
-            #if DEBUG
-            print("🔓 Idle timer re-enabled")
-            #endif
+            logger.debug("Idle timer re-enabled")
 
         } catch {
             // Per-session cleanup on error (Issue #472)
             Task {
                 await cleanupTempFiles(mode: .perSession)
             }
-            
+
             // Check for rate limit error (GitHub Issue #426)
             if let aiError = error as? BookshelfAIError,
                case .rateLimitExceeded(let retryAfter) = aiError {
@@ -551,10 +528,8 @@ class BookshelfScanModel {
                     showRateLimitBanner = true
                 }
                 scanState = .idle // Reset to idle (don't show error alert)
-                
-                #if DEBUG
-                print("⏱️ Rate limit hit - retry after \(retryAfter)s")
-                #endif
+
+                logger.info("Rate limit hit - retry after \(retryAfter)s")
             } else {
                 // Generic error handling
                 scanState = .error(error.localizedDescription)
@@ -562,9 +537,7 @@ class BookshelfScanModel {
 
             // CRITICAL: Re-enable idle timer on error (prevent battery drain)
             UIApplication.shared.isIdleTimerDisabled = false
-            #if DEBUG
-            print("🔓 Idle timer re-enabled (error case)")
-            #endif
+            logger.debug("Idle timer re-enabled (error case)")
         }
     }
 }
