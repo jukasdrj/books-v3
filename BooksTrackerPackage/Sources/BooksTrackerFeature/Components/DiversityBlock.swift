@@ -2,53 +2,54 @@ import SwiftUI
 
 /// Bento Box Module: DiversityBlock
 /// Displays the representation radar chart and diversity badges.
+@available(iOS 26.0, *)
 struct DiversityBlock: View {
     let work: Work
+    var onAddData: ((String) -> Void)?
     @State private var showDetailedBreakdown = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Header
-            HStack {
-                Image(systemName: "globe")
-                    .foregroundColor(.green)
-                Text("Representation")
-                    .font(.headline)
-                Spacer()
-            }
-
-            Divider()
-
-            // Radar Chart (Miniature/Preview)
-            // We use the existing RepresentationRadarChart but constrained
-            RepresentationRadarChart(
-                data: RadarChartData(dimensions: radarDimensions),
-                onAddData: { _ in } // Interaction disabled in small view, or opens detail
-            )
-            .frame(height: 140)
-            .disabled(true) // Disable internal interaction for now, make whole card clickable
-
-            // Identity Badges (Horizontal Scroll)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    if work.isOwnVoices == true {
-                        IdentityBadge(text: "Own Voices", color: .purple)
+        GlassCard(title: "Representation", icon: "globe") {
+            VStack(spacing: 16) {
+                // Radar Chart - centered and editable
+                RepresentationRadarChart(
+                    data: RadarChartData(dimensions: radarDimensions),
+                    onAddData: { dimension in
+                        onAddData?(dimension)
                     }
-                    if let cultural = work.culturalRegion?.rawValue { // Fixed: culturalSetting -> culturalRegion
-                        IdentityBadge(text: cultural.capitalized, color: .orange)
-                    }
-                    if work.subjectTags.contains(where: { $0.localizedCaseInsensitiveContains("LGBT") || $0.localizedCaseInsensitiveContains("Queer") }) {
-                        IdentityBadge(text: "LGBTQ+", color: .blue)
-                    }
-                    if work.accessibilityTags.contains(where: { $0.localizedCaseInsensitiveContains("Dyslexia") || $0.localizedCaseInsensitiveContains("Neurodivergent") }) {
-                        IdentityBadge(text: "Neurodivergent", color: .teal)
+                )
+                .frame(height: 240)
+                .frame(maxWidth: .infinity, alignment: .center)
+
+                // Identity Badges (Horizontal Scroll) - centered
+                if hasIdentityBadges {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            if work.isOwnVoices == true {
+                                IdentityBadge(text: "Own Voices", color: .purple)
+                            }
+                            if let cultural = work.culturalRegion?.rawValue {
+                                IdentityBadge(text: cultural.capitalized, color: .orange)
+                            }
+                            if work.subjectTags.contains(where: { $0.localizedCaseInsensitiveContains("LGBT") || $0.localizedCaseInsensitiveContains("Queer") }) {
+                                IdentityBadge(text: "LGBTQ+", color: .blue)
+                            }
+                            if work.accessibilityTags.contains(where: { $0.localizedCaseInsensitiveContains("Dyslexia") || $0.localizedCaseInsensitiveContains("Neurodivergent") }) {
+                                IdentityBadge(text: "Neurodivergent", color: .teal)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
                     }
                 }
             }
         }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
+    }
+
+    private var hasIdentityBadges: Bool {
+        work.isOwnVoices == true ||
+        work.culturalRegion != nil ||
+        work.subjectTags.contains(where: { $0.localizedCaseInsensitiveContains("LGBT") || $0.localizedCaseInsensitiveContains("Queer") }) ||
+        work.accessibilityTags.contains(where: { $0.localizedCaseInsensitiveContains("Dyslexia") || $0.localizedCaseInsensitiveContains("Neurodivergent") })
     }
 
     // Computed property for Radar Data (runs on MainActor)

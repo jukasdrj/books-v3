@@ -2,101 +2,88 @@ import SwiftUI
 
 /// Bento Box Module: User Interaction & Status
 /// Allows quick actions: Rate, Change Status, Edit
+@available(iOS 26.0, *)
 struct UserInteractionBlock: View {
     @Bindable var work: Work
     @Environment(\.modelContext) private var modelContext
     @State private var showingEditSheet = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Header
-            HStack {
-                Image(systemName: "slider.horizontal.3")
-                    .foregroundColor(.accentColor)
-                Text("Actions")
-                    .font(.headline)
-                Spacer()
-                
-                // Edit Button
-                Button(action: { showingEditSheet = true }) {
-                    Image(systemName: "pencil.circle.fill")
-                        .font(.title2)
-                        .foregroundColor(.secondary)
-                }
-            }
-            
-            Divider()
-            
-            // 1. Reading Status Picker
-            VStack(alignment: .leading, spacing: 6) {
-                Text("STATUS")
-                    .font(.caption.weight(.bold))
-                    .foregroundColor(.accentColor) // "Pull user in" with color
-                    .tracking(1) // Uppercase tracking
-                
-                Menu {
-                    ForEach(ReadingStatus.allCases) { status in
-                         Button {
-                             updateStatus(to: status)
-                         } label: {
-                             if let current = work.userEntry?.readingStatus, current == status {
-                                 Label(status.displayName, systemImage: "checkmark")
-                             } else {
-                                 Text(status.displayName)
-                             }
-                         }
-                    }
-                } label: {
-                    StatusCapsule(status: work.userEntry?.readingStatus ?? .toRead)
-                        .shadow(color: (work.userEntry?.readingStatus ?? .toRead).color.opacity(0.3), radius: 4, x: 0, y: 2) // Add depth
-                }
-            }
-            
-            Divider().padding(.vertical, 4)
-            
-            // 2. Rating
-            if let entry = work.userEntry {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("YOUR RATING")
+        GlassCard(title: "Actions", icon: "slider.horizontal.3") {
+            VStack(alignment: .leading, spacing: 16) {
+                // 1. Reading Status Picker
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("STATUS")
                         .font(.caption.weight(.bold))
-                        .foregroundColor(.accentColor)
+                        .foregroundStyle(.secondary)
                         .tracking(1)
-                    
-                    InteractiveRatingView(rating: Binding(
-                        get: { entry.personalRating ?? 0 },
-                        set: { newValue in
-                            entry.personalRating = newValue
-                            try? modelContext.save()
+
+                    Menu {
+                        ForEach(ReadingStatus.allCases) { status in
+                            Button {
+                                updateStatus(to: status)
+                            } label: {
+                                if let current = work.userEntry?.readingStatus, current == status {
+                                    Label(status.displayName, systemImage: "checkmark")
+                                } else {
+                                    Text(status.displayName)
+                                }
+                            }
                         }
-                    ))
-                    .padding(.vertical, 4)
-                    .background(Color.yellow.opacity(0.1))
-                    .cornerRadius(8)
+                    } label: {
+                        StatusCapsule(status: work.userEntry?.readingStatus ?? .toRead)
+                    }
                 }
-            } else {
-                 Button {
-                     // Add to Lib logic
-                 } label: {
-                     HStack {
-                         Image(systemName: "plus.circle.fill")
-                         Text("Add to Library to Rate")
-                     }
-                     .font(.subheadline.bold())
-                     .foregroundColor(.white)
-                     .padding()
-                     .background(Color.accentColor)
-                     .cornerRadius(8)
-                     .shadow(radius: 2)
-                 }
+
+                Divider()
+
+                // 2. Rating
+                if let entry = work.userEntry {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("YOUR RATING")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.secondary)
+                            .tracking(1)
+
+                        StarRatingView(
+                            rating: Binding(
+                                get: { entry.personalRating ?? 0 },
+                                set: { newValue in
+                                    entry.personalRating = newValue
+                                    try? modelContext.save()
+                                }
+                            ),
+                            size: .standard
+                        )
+                    }
+                } else {
+                    Button {
+                        addToLibrary()
+                    } label: {
+                        HStack {
+                            Image(systemName: "plus.circle.fill")
+                            Text("Add to Library to Rate")
+                        }
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.white)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.accentColor)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                }
             }
         }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
         .sheet(isPresented: $showingEditSheet) {
-             // Placeholder for Edit Sheet
-             Text("Edit Details Coming Soon")
+            Text("Edit Details Coming Soon")
         }
+    }
+
+    private func addToLibrary() {
+        let entry = UserLibraryEntry(readingStatus: .toRead)
+        modelContext.insert(entry)
+        entry.work = work
+        try? modelContext.save()
     }
 
     private func updateStatus(to status: ReadingStatus) {
@@ -133,22 +120,3 @@ struct StatusCapsule: View {
     }
 }
 
-// Sub-component for Interactive Rating
-struct InteractiveRatingView: View {
-    @Binding var rating: Double
-    
-    var body: some View {
-        HStack(spacing: 4) {
-            ForEach(1...5, id: \.self) { index in
-                Image(systemName: index <= Int(rating) ? "star.fill" : "star")
-                    .foregroundColor(.yellow)
-                    .font(.title3)
-                    .onTapGesture {
-                        withAnimation {
-                            rating = Double(index)
-                        }
-                    }
-            }
-        }
-    }
-}

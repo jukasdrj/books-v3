@@ -1,5 +1,6 @@
 import SwiftUI
 
+@available(iOS 26.0, *)
 struct AnnotationsModule: View {
     @Bindable var work: Work
     @Environment(\.modelContext) private var modelContext
@@ -10,47 +11,47 @@ struct AnnotationsModule: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ModuleHeader(title: "Annotations", icon: "pencil.and.ruler.fill")
+        GlassCard(title: "Annotations", icon: "pencil.and.ruler.fill") {
+            VStack(alignment: .leading, spacing: 16) {
+                // Star Rating
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("YOUR RATING")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                        .tracking(1)
 
-            Spacer()
-
-            // Star Rating
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Your Rating")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                StarRatingView(rating: Binding(
-                    get: { libraryEntry?.personalRating ?? 0 },
-                    set: { newRating in
-                        guard let entry = libraryEntry else { return }
-                        entry.personalRating = newRating
-                        try? modelContext.save()
-                    }
-                ))
-            }
-
-            Spacer()
-
-            // Notes Button
-            Button(action: {
-                showingNotesEditor.toggle()
-            }) {
-                HStack {
-                    Image(systemName: "note.text")
-                    Text("View Notes")
+                    StarRatingView(
+                        rating: Binding(
+                            get: { libraryEntry?.personalRating ?? 0 },
+                            set: { newRating in
+                                guard let entry = libraryEntry else { return }
+                                entry.personalRating = newRating
+                                try? modelContext.save()
+                            }
+                        ),
+                        size: .standard
+                    )
                 }
-                .font(.headline)
-                .foregroundColor(.white)
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(Color.blue)
-                .cornerRadius(12)
+
+                Divider()
+
+                // Notes Button
+                Button(action: {
+                    showingNotesEditor.toggle()
+                }) {
+                    HStack {
+                        Image(systemName: "note.text")
+                        Text("View Notes")
+                    }
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.blue)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
             }
         }
-        .padding()
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
         .sheet(isPresented: $showingNotesEditor) {
             NotesEditorView(
                 notes: Binding(

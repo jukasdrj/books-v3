@@ -32,6 +32,8 @@ public struct GlassCard<Content: View>: View {
     let icon: String?
     let content: Content
 
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
     /// Creates a glass card with optional header and content.
     ///
     /// - Parameters:
@@ -66,15 +68,22 @@ public struct GlassCard<Content: View>: View {
             content
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(.ultraThinMaterial)
-        )
+        .background(cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(.primary.opacity(0.15))
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(.primary.opacity(0.15), lineWidth: 1)
         )
-        .shadow(color: Color.black.opacity(0.18), radius: 24, x: 0, y: 8)
+        .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 8)
+    }
+
+    @ViewBuilder
+    private var cardBackground: some View {
+        if reduceTransparency {
+            Color(.secondarySystemGroupedBackground)
+        } else {
+            Rectangle().fill(.ultraThinMaterial)
+        }
     }
 
     private var accessibilityHeaderLabel: String {

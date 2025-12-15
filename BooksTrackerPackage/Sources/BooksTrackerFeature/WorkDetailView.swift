@@ -266,6 +266,11 @@ struct WorkDetailView: View {
 
             // MARK: - Quick Facts Ribbon
             quickFactsRibbon
+
+            // MARK: - Genre Tags Row
+            if !work.subjectTags.isEmpty {
+                genreTagsRow
+            }
         }
     }
 
@@ -277,11 +282,6 @@ struct WorkDetailView: View {
                 // Page count
                 if let pageCount = primaryEdition.pageCount {
                     QuickFactPill(icon: "book.pages", text: "\(pageCount) pages", color: .white)
-                }
-
-                // Primary genre (first subject tag if available)
-                if let primaryGenre = work.subjectTags.first {
-                    QuickFactPill(icon: "tag", text: primaryGenre, color: .white)
                 }
 
                 // Publication year
@@ -302,10 +302,23 @@ struct WorkDetailView: View {
                 // Edition format
                 QuickFactPill(icon: primaryEdition.format.icon, text: primaryEdition.format.displayName, color: .white)
             }
-            .padding(.horizontal, 20)
+            .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
         }
+        .frame(maxWidth: .infinity)
         .accessibilityLabel("Quick facts about this book")
+    }
+
+    // MARK: - Genre Tags Row
+
+    private var genreTagsRow: some View {
+        GenreTagView(
+            genres: work.subjectTags,
+            maxVisible: 5,
+            style: .prominent
+        )
+        .padding(.horizontal, 20)
+        .accessibilityLabel("Genres: \(work.subjectTags.prefix(5).joined(separator: ", "))")
     }
 
     // MARK: - Metadata & Diversity Tabs Section
@@ -319,14 +332,10 @@ struct WorkDetailView: View {
                 DNABlock(work: work)
             },
             diversityBlock: {
-                // Clickable Diversity Block -> Detailed Tab
-                Button(action: {
-                     // In the future: Navigation or Sheet to detailed diversity stats
-                     // For now toggle expanded state or just show it
-                }) {
-                     DiversityBlock(work: work)
+                DiversityBlock(work: work) { dimension in
+                    // TODO: Open sheet to add diversity data for this dimension
+                    print("Add data for: \(dimension)")
                 }
-                .buttonStyle(.plain)
             },
             interactionBlock: {
                 UserInteractionBlock(work: work)

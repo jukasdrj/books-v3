@@ -37,11 +37,12 @@ public struct RepresentationRadarChart: View {
 
     @State private var chartModel: ChartModel?
 
-    private let chartSize: CGFloat = 280
-    private let chartRadius: CGFloat = 120
+    private let chartSize: CGFloat = 320
+    private let chartRadius: CGFloat = 100
     private let gridLevels: [CGFloat] = [0.25, 0.5, 0.75, 1.0]
     private let dimensionCount = 5
     private let angleStep: Double = .pi * 2 / 5 // 72 degrees
+    private let labelPadding: CGFloat = 35
 
     public init(data: RadarChartData, onAddData: @escaping (String) -> Void) {
         self.data = data
@@ -157,24 +158,80 @@ public struct RepresentationRadarChart: View {
             }
         }
 
-        // Axis labels
+        // Axis labels - positioned around the chart with proper sizing
         for (i, dimension) in data.dimensions.enumerated() {
             let angle = model.startAngle + Double(i) * model.angleStep
             let vector = AngleVector(angle: angle)
-            let labelPoint = center.adding(vector.scaled(by: model.maxRadius + 25))
+            let labelDistance = model.maxRadius + 20
+            let labelPoint = center.adding(vector.scaled(by: labelDistance))
+
+            // Use full readable names
+            let displayName = readableName(for: dimension.name)
+
+            // Larger label dimensions for legibility
+            let labelWidth: CGFloat = 80
+            let labelHeight: CGFloat = 20
+
+            // Position labels based on their angle around the chart
+            let xOffset: CGFloat
+            let yOffset: CGFloat
+
+            // Normalize angle to 0-2π range
+            var normalizedAngle = angle
+            while normalizedAngle < 0 { normalizedAngle += .pi * 2 }
+            while normalizedAngle >= .pi * 2 { normalizedAngle -= .pi * 2 }
+
+            // Top (around -π/2 or 3π/2)
+            if normalizedAngle > 1.3 * .pi && normalizedAngle < 1.7 * .pi {
+                xOffset = -labelWidth / 2
+                yOffset = -labelHeight - 2
+            }
+            // Right side (0 to π)
+            else if normalizedAngle >= 0 && normalizedAngle < .pi / 2 {
+                xOffset = 6
+                yOffset = -labelHeight / 2
+            }
+            // Bottom right
+            else if normalizedAngle >= .pi / 2 && normalizedAngle < .pi {
+                xOffset = 6
+                yOffset = -labelHeight / 2
+            }
+            // Bottom left
+            else if normalizedAngle >= .pi && normalizedAngle < 1.3 * .pi {
+                xOffset = -labelWidth - 6
+                yOffset = -labelHeight / 2
+            }
+            // Left side
+            else {
+                xOffset = -labelWidth - 6
+                yOffset = -labelHeight / 2
+            }
+
             let labelRect = CGRect(
-                x: labelPoint.x - 20,
-                y: labelPoint.y - 6,
-                width: 40,
-                height: 12
+                x: labelPoint.x + xOffset,
+                y: labelPoint.y + yOffset,
+                width: labelWidth,
+                height: labelHeight
             )
 
             context.draw(
-                Text(dimension.name)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.secondary),
+                Text(displayName)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.primary),
                 in: labelRect
             )
+        }
+    }
+
+    /// Returns readable full names for display
+    private func readableName(for name: String) -> String {
+        switch name.lowercased() {
+        case "cultural": return "Cultural"
+        case "gender": return "Gender"
+        case "translation": return "Translation"
+        case "own voices", "ownvoices": return "Own Voices"
+        case "accessible", "accessibility": return "Accessible"
+        default: return name
         }
     }
 }
