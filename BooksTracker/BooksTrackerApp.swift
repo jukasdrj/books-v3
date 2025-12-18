@@ -1,7 +1,7 @@
-import SwiftUI
-import SwiftData
 import BooksTrackerFeature
 import OSLog
+import SwiftData
+import SwiftUI
 
 // MARK: - Model Container Factory Protocol
 
@@ -27,7 +27,8 @@ final class ModelContainerFactory: ModelContainerFactoryProtocol {
 
     /// Get or create ModelContainer with optional reset callback
     /// - Parameter onResetNeeded: Callback invoked when database reset is needed (errorMessage, resetAction)
-    func container(onResetNeeded: ((String, @escaping () -> Void) -> Void)? = nil) -> ModelContainer {
+    func container(onResetNeeded: ((String, @escaping () -> Void) -> Void)? = nil) -> ModelContainer
+    {
         self.resetCallback = onResetNeeded
         return container
     }
@@ -52,29 +53,29 @@ final class ModelContainerFactory: ModelContainerFactoryProtocol {
             AuthorMetadata.self,
             WorkOverride.self,
             StreakData.self,
-            UserSettings.self
+            UserSettings.self,
         ])
 
         #if targetEnvironment(simulator)
-        // Simulator: Use persistent storage (no CloudKit on simulator)
-        #if DEBUG
-        print("🧪 Running on simulator - using persistent local database")
-        #endif
-        let modelConfiguration = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: false,  // ← Persist data across launches
-            cloudKitDatabase: .none  // Explicitly disable CloudKit on simulator
-        )
+            // Simulator: Use persistent storage (no CloudKit on simulator)
+            #if DEBUG
+                print("🧪 Running on simulator - using persistent local database")
+            #endif
+            let modelConfiguration = ModelConfiguration(
+                schema: schema,
+                isStoredInMemoryOnly: false,  // ← Persist data across launches
+                cloudKitDatabase: .none  // Explicitly disable CloudKit on simulator
+            )
         #else
-        // Device: Enable CloudKit sync via entitlements
-        #if DEBUG
-        print("📱 Running on device - CloudKit sync enabled")
-        #endif
-        let modelConfiguration = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: false
-            // CloudKit sync will be enabled automatically via entitlements
-        )
+            // Device: Enable CloudKit sync via entitlements
+            #if DEBUG
+                print("📱 Running on device - CloudKit sync enabled")
+            #endif
+            let modelConfiguration = ModelConfiguration(
+                schema: schema,
+                isStoredInMemoryOnly: false
+                    // CloudKit sync will be enabled automatically via entitlements
+            )
         #endif
 
         do {
@@ -89,13 +90,13 @@ final class ModelContainerFactory: ModelContainerFactoryProtocol {
         } catch {
             // Print detailed error for debugging
             #if DEBUG
-            print("❌ ModelContainer creation failed: \(error)")
+                print("❌ ModelContainer creation failed: \(error)")
 
-            #if targetEnvironment(simulator)
-            print("💡 Simulator detected - trying persistent fallback")
-            #else
-            print("💡 Device detected - trying local-only fallback (CloudKit disabled)")
-            #endif
+                #if targetEnvironment(simulator)
+                    print("💡 Simulator detected - trying persistent fallback")
+                #else
+                    print("💡 Device detected - trying local-only fallback (CloudKit disabled)")
+                #endif
             #endif
 
             // Last resort fallback: Disable CloudKit and use local-only storage
@@ -104,7 +105,7 @@ final class ModelContainerFactory: ModelContainerFactoryProtocol {
                 let fallbackConfig = ModelConfiguration(
                     schema: schema,
                     isStoredInMemoryOnly: false,  // Persist data locally
-                    cloudKitDatabase: .none       // Disable CloudKit sync
+                    cloudKitDatabase: .none  // Disable CloudKit sync
                 )
                 let container = try ModelContainer(for: schema, configurations: [fallbackConfig])
                 LaunchMetrics.shared.recordMilestone("ModelContainer created (fallback)")
@@ -112,27 +113,32 @@ final class ModelContainerFactory: ModelContainerFactoryProtocol {
                 return container
             } catch let fallbackError {
                 #if DEBUG
-                print("❌ Fallback also failed: \(fallbackError)")
-                print("💡 Migration failure detected - attempting database reset")
-                print("⚠️  DATABASE RESET WARNING: User data will be lost!")
-                print("📋 Migration Error Details:")
-                print("   - Initial Error: \(error)")
-                print("   - Fallback Error: \(fallbackError)")
+                    print("❌ Fallback also failed: \(fallbackError)")
+                    print("💡 Migration failure detected - attempting database reset")
+                    print("⚠️  DATABASE RESET WARNING: User data will be lost!")
+                    print("📋 Migration Error Details:")
+                    print("   - Initial Error: \(error)")
+                    print("   - Fallback Error: \(fallbackError)")
                 #endif
 
                 // If migration failed due to constraint violations, database reset is needed
                 // This is a destructive operation but necessary for schema changes
                 let fileManager = FileManager.default
-                guard let storeURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?.appendingPathComponent("default.store") else {
+                guard
+                    let storeURL = fileManager.urls(
+                        for: .applicationSupportDirectory, in: .userDomainMask
+                    ).first?.appendingPathComponent("default.store")
+                else {
                     fatalError("Failed to locate database file. Fallback error: \(fallbackError)")
                 }
 
                 #if DEBUG
-                print("📍 Database location: \(storeURL.path)")
+                    print("📍 Database location: \(storeURL.path)")
                 #endif
 
                 // Build error message for user
-                let errorMessage = "Initial error: \(error.localizedDescription)\n\nFallback error: \(fallbackError.localizedDescription)"
+                let errorMessage =
+                    "Initial error: \(error.localizedDescription)\n\nFallback error: \(fallbackError.localizedDescription)"
 
                 // Check if we have a callback to ask the user first
                 if let resetCallback = resetCallback {
@@ -140,14 +146,15 @@ final class ModelContainerFactory: ModelContainerFactoryProtocol {
                     // Delete corrupted DB and exit cleanly - fresh DB created on next launch
                     let resetAction = {
                         #if DEBUG
-                        print("🗑️ User confirmed database reset")
+                            print("🗑️ User confirmed database reset")
                         #endif
 
                         do {
                             try fileManager.removeItem(at: storeURL)
                             #if DEBUG
-                            print("🗑️ Removed corrupted database at \(storeURL)")
-                            print("✅ Exiting app - fresh database will be created on next launch")
+                                print("🗑️ Removed corrupted database at \(storeURL)")
+                                print(
+                                    "✅ Exiting app - fresh database will be created on next launch")
                             #endif
                             // Exit cleanly to allow fresh start on next launch
                             exit(0)
@@ -162,7 +169,9 @@ final class ModelContainerFactory: ModelContainerFactoryProtocol {
 
                     // Return temp in-memory container to allow app to launch and show alert
                     #if DEBUG
-                    print("⚠️ Returning temporary in-memory container while waiting for user decision")
+                        print(
+                            "⚠️ Returning temporary in-memory container while waiting for user decision"
+                        )
                     #endif
                     let tempConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
                     // Force-try is safe here - in-memory container creation should not fail
@@ -170,14 +179,14 @@ final class ModelContainerFactory: ModelContainerFactoryProtocol {
                 } else {
                     // No callback - automatic reset (legacy behavior for tests/non-UI contexts)
                     #if DEBUG
-                    print("⚠️  No reset callback provided - performing automatic reset")
+                        print("⚠️  No reset callback provided - performing automatic reset")
                     #endif
 
                     try? fileManager.removeItem(at: storeURL)
 
                     #if DEBUG
-                    print("🗑️ Removed corrupted database at \(storeURL)")
-                    print("✅ Attempting fresh database creation...")
+                        print("🗑️ Removed corrupted database at \(storeURL)")
+                        print("✅ Attempting fresh database creation...")
                     #endif
 
                     // Try one more time with fresh database
@@ -187,12 +196,15 @@ final class ModelContainerFactory: ModelContainerFactoryProtocol {
                             isStoredInMemoryOnly: false,
                             cloudKitDatabase: .none
                         )
-                        let container = try ModelContainer(for: schema, configurations: [freshConfig])
-                        LaunchMetrics.shared.recordMilestone("ModelContainer created (fresh database - automatic)")
+                        let container = try ModelContainer(
+                            for: schema, configurations: [freshConfig])
+                        LaunchMetrics.shared.recordMilestone(
+                            "ModelContainer created (fresh database - automatic)")
                         _container = container
                         return container
                     } catch {
-                        fatalError("Failed to create ModelContainer even with fresh database: \(error)")
+                        fatalError(
+                            "Failed to create ModelContainer even with fresh database: \(error)")
                     }
                 }
             }
@@ -208,7 +220,8 @@ final class ModelContainerFactory: ModelContainerFactoryProtocol {
         }
 
         LaunchMetrics.shared.recordMilestone("LibraryRepository creation start")
-        let repository = LibraryRepository(modelContext: container.mainContext, dtoMapper: nil, featureFlags: nil)
+        let repository = LibraryRepository(
+            modelContext: container.mainContext, dtoMapper: nil, featureFlags: nil)
         LaunchMetrics.shared.recordMilestone("LibraryRepository created")
         _libraryRepository = repository
         return repository
@@ -312,8 +325,11 @@ struct BooksTrackerApp: App {
                         exit(0)
                     }
                 } message: {
-                    Text("Migration failed with error:\n\n\(databaseResetError)\n\nResetting will delete all your books and data. This cannot be undone.\n\nIf you cancel, the app will close.")
+                    Text(
+                        "Migration failed with error:\n\n\(databaseResetError)\n\nResetting will delete all your books and data. This cannot be undone.\n\nIf you cancel, the app will close."
+                    )
                 }
+                .preferredColorScheme(.dark)
         }
     }
 }
