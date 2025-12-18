@@ -157,3 +157,14 @@ build-verify.log
 BooksTrackerPackage/test-output-new.log
 BooksTrackerPackage/test-results.log
 BooksTrackerPackage/test-results-*.log
+
+# Xcode DerivedData
+DerivedData/
+
+# Swift build artifacts
+*.d
+*.dia
+*.swiftdeps
+
+# Build check logs
+build-check.log
