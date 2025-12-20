@@ -53,7 +53,7 @@ final class ModelContainerFactory: ModelContainerFactoryProtocol {
             AuthorMetadata.self,
             WorkOverride.self,
             StreakData.self,
-            UserSettings.self,
+            UserSettings.self
         ])
 
         #if targetEnvironment(simulator)
@@ -174,8 +174,13 @@ final class ModelContainerFactory: ModelContainerFactoryProtocol {
                         )
                     #endif
                     let tempConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-                    // Force-try is safe here - in-memory container creation should not fail
-                    return try! ModelContainer(for: schema, configurations: [tempConfig])
+                    do {
+                        return try ModelContainer(for: schema, configurations: [tempConfig])
+                    } catch {
+                        // In-memory container creation failed - this should never happen
+                        // but if it does, we need to crash gracefully with context
+                        fatalError("Failed to create in-memory ModelContainer during error recovery: \(error)")
+                    }
                 } else {
                     // No callback - automatic reset (legacy behavior for tests/non-UI contexts)
                     #if DEBUG

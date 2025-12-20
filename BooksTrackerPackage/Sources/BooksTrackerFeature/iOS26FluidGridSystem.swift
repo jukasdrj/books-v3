@@ -206,7 +206,7 @@ struct iOS26MasonryFluidGrid<Item: Identifiable, Content: View>: View {
             LazyVStack(spacing: 0) {
                 ForEach(Array(items.chunked(into: columns)), id: \.first?.id) { chunk in
                     HStack(alignment: .top, spacing: spacing) {
-                        ForEach(Array(chunk.enumerated()), id: \.element.id) { index, item in
+                        ForEach(Array(chunk.enumerated()), id: \.element.id) { _, item in
                             content(item)
                                 .transition(.asymmetric(
                                     insertion: .scale(scale: 0.9).combined(with: .opacity),

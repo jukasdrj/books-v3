@@ -1,0 +1,114 @@
+# SwiftLint Configuration for BooksTrack
+# Focused on architectural quality, not style (compiler handles correctness)
+# Complements existing -Werror policy and Swift 6 strict concurrency
+
+# Only enable specific rules that add value beyond compiler warnings
+only_rules:
+  # Complexity & Architecture
+  - cyclomatic_complexity
+  - function_body_length
+  - file_length
+  - type_body_length
+  - function_parameter_count
+  - large_tuple
+  - nesting
+
+  # SwiftData/SwiftUI Specific
+  - force_unwrapping
+  - force_cast
+  - force_try
+  - strong_iboutlet
+
+  # Code Quality & Cleanup
+  - redundant_discardable_let
+  - redundant_nil_coalescing
+  - redundant_void_return
+  - unused_optional_binding
+  - unused_closure_parameter
+  - unused_enumerated
+  - shorthand_operator
+
+  # Error Handling & Safety
+  - fatal_error_message
+  - discouraged_direct_init
+  - unhandled_throwing_task
+
+  # Style & Consistency (minimal set)
+  - trailing_comma
+  - colon
+  - comma
+
+  # Performance
+  - contains_over_filter_count
+  - contains_over_filter_is_empty
+  - first_where
+  - contains_over_first_not_nil
+
+  # Custom rules (defined below)
+  - swiftdata_bindable
+  - no_timer_in_actor
+
+# Thresholds tailored for SwiftData/SwiftUI patterns
+cyclomatic_complexity:
+  warning: 15
+  error: 25
+
+function_body_length:
+  warning: 60
+  error: 100
+
+function_parameter_count:
+  warning: 8
+  error: 12
+
+file_length:
+  warning: 500
+  error: 800
+
+type_body_length:
+  warning: 300
+  error: 500
+
+# SwiftUI Views can have complex body hierarchies
+nesting:
+  type_level:
+    warning: 2
+    error: 3
+
+# Paths to exclude from linting
+excluded:
+  - Pods
+  - DerivedData
+  - .build
+  - Build
+  - BooksTracker.xcodeproj
+  - BooksTracker.xcworkspace
+
+# File patterns to include
+included:
+  - BooksTracker
+  - BooksTrackerPackage/Sources
+  - BooksTrackerWidgets
+  - BooksTrackerUITests
+
+# Custom rules for BooksTrack patterns
+custom_rules:
+  # Enforce @Bindable for SwiftData models in child views
+  swiftdata_bindable:
+    name: "SwiftData @Bindable Pattern"
+    regex: '@State var \w+: \w*Model'
+    message: "Use @Bindable for SwiftData models, not @State"
+    severity: warning
+
+  # Discourage Timer.publish in actors (Swift 6 concurrency)
+  no_timer_in_actor:
+    name: "No Timer.publish in Actors"
+    regex: 'actor.*\{[^}]*Timer\.publish'
+    message: "Use Task.sleep instead of Timer.publish in actors"
+    severity: error
+
+# Disable rules that conflict with Swift 6 or your existing patterns
+disabled_rules: []
+
+# Reporter format for CI integration
+reporter: "github-actions-logging"

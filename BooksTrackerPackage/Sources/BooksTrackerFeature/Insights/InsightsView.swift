@@ -41,7 +41,7 @@ public struct InsightsView: View {
         .task {
             await loadStatistics()
         }
-        .onChange(of: selectedPeriod) { _, newPeriod in
+        .onChange(of: selectedPeriod) { _, _ in
             Task {
                 await loadStatistics()
             }

@@ -187,10 +187,34 @@ struct DiversityInsightsTab: View {
 @available(iOS 26.0, *)
 @MainActor
 private func makePreviewContainer(configure: (ModelContext) -> Void) -> ModelContainer {
-    let container = try! ModelContainer(for: Work.self, Edition.self, Author.self)
-    let context = container.mainContext
-    configure(context)
-    return container
+    do {
+        let container = try ModelContainer(for: Work.self, Edition.self, Author.self)
+        let context = container.mainContext
+        configure(context)
+        return container
+    } catch {
+        // Preview container creation failed - return in-memory fallback
+        do {
+            let config = ModelConfiguration(schema: Schema([Work.self, Edition.self, Author.self]), isStoredInMemoryOnly: true)
+            let container = try ModelContainer(for: Work.self, Edition.self, Author.self, configurations: [config])
+            configure(container.mainContext)
+            return container
+        } catch {
+            fatalError("Failed to create preview ModelContainer: \(error)")
+        }
+    }
+}
+
+private func getPreviewWork(from container: ModelContainer) -> Work {
+    do {
+        let works = try container.mainContext.fetch(FetchDescriptor<Work>())
+        guard let work = works.first else {
+            fatalError("No Work found in preview container")
+        }
+        return work
+    } catch {
+        fatalError("Failed to fetch Work from preview container: \(error)")
+    }
 }
 
 // MARK: - Preview
@@ -217,7 +241,7 @@ private func makePreviewContainer(configure: (ModelContext) -> Void) -> ModelCon
         context.insert(work)
     }
 
-    let work = try! container.mainContext.fetch(FetchDescriptor<Work>()).first!
+    let work = getPreviewWork(from: container)
     let themeStore = BooksTrackerFeature.iOS26ThemeStore()
 
     DiversityInsightsTab(work: work)
@@ -237,7 +261,7 @@ private func makePreviewContainer(configure: (ModelContext) -> Void) -> ModelCon
         context.insert(work)
     }
 
-    let work = try! container.mainContext.fetch(FetchDescriptor<Work>()).first!
+    let work = getPreviewWork(from: container)
     let themeStore = BooksTrackerFeature.iOS26ThemeStore()
 
     DiversityInsightsTab(work: work)
@@ -253,7 +277,7 @@ private func makePreviewContainer(configure: (ModelContext) -> Void) -> ModelCon
         context.insert(work)
     }
 
-    let work = try! container.mainContext.fetch(FetchDescriptor<Work>()).first!
+    let work = getPreviewWork(from: container)
     let themeStore = BooksTrackerFeature.iOS26ThemeStore()
 
     DiversityInsightsTab(work: work)

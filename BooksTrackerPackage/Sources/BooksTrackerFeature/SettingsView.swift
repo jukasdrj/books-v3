@@ -327,7 +327,8 @@ public struct SettingsView: View {
                     }
                 }
 
-                Link(destination: URL(string: "https://www.apple.com/legal/privacy/")!) {
+                if let privacyURL = URL(string: "https://www.apple.com/legal/privacy/") {
+                    Link(destination: privacyURL) {
                     HStack {
                         Image(systemName: "hand.raised")
                             .foregroundStyle(themeStore.primaryColor)
@@ -341,9 +342,11 @@ public struct SettingsView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                    }
                 }
 
-                Link(destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/")!) {
+                if let termsURL = URL(string: "https://www.apple.com/legal/internet-services/itunes/") {
+                    Link(destination: termsURL) {
                     HStack {
                         Image(systemName: "doc.text")
                             .foregroundStyle(themeStore.primaryColor)
@@ -356,6 +359,7 @@ public struct SettingsView: View {
                         Image(systemName: "arrow.up.right")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                    }
                     }
                 }
 

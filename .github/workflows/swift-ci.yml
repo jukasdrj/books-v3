@@ -7,6 +7,34 @@ on:
     branches: [ main ]
 
 jobs:
+  # Lint check (non-blocking initially - for evaluation)
+  lint:
+    runs-on: macos-15
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install SwiftLint
+      run: |
+        # Use Mint for consistent versioning
+        brew install mint
+        mint install realm/SwiftLint@0.57.0
+
+    - name: Run SwiftLint
+      run: |
+        # Run linting (strict mode - critical issues fixed)
+        mint run swiftlint lint --reporter github-actions-logging
+
+        # Generate report for review
+        mint run swiftlint lint --reporter json > swiftlint-report.json
+
+    - name: Upload lint report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: swiftlint-report
+        path: swiftlint-report.json
+
   build-and-test:
     runs-on: macos-15
 

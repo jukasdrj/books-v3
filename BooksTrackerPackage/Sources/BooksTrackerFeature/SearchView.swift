@@ -206,10 +206,10 @@ public struct SearchView: View {
                             handlePendingAuthorSearch(searchModel: searchModel)
                         }
                         // onChange for search text with scope filtering
-                        .onChange(of: searchModel.searchText) { oldValue, newValue in
+                        .onChange(of: searchModel.searchText) { _, newValue in
                             performScopedSearch(query: newValue, scope: searchScope, searchModel: searchModel)
                         }
-                        .onChange(of: searchScope) { oldValue, newValue in
+                        .onChange(of: searchScope) { _, newValue in
                             // Re-search with new scope if there's active text
                             if !searchModel.searchText.isEmpty {
                                 performScopedSearch(query: searchModel.searchText, scope: newValue, searchModel: searchModel)
@@ -661,7 +661,12 @@ struct iOS26ScrollEdgeEffectModifier: ViewModifier {
 
 @available(iOS 26.0, *)
 #Preview("Search View - Initial State") {
-    let container = try! ModelContainer(for: Work.self, Edition.self, Author.self, UserLibraryEntry.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let container: ModelContainer
+    do {
+        container = try ModelContainer(for: Work.self, Edition.self, Author.self, UserLibraryEntry.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    } catch {
+        fatalError("Failed to create preview ModelContainer: \(error)")
+    }
     let dtoMapper = DTOMapper(modelContext: container.mainContext)
 
     return NavigationStack {
@@ -674,7 +679,12 @@ struct iOS26ScrollEdgeEffectModifier: ViewModifier {
 
 @available(iOS 26.0, *)
 #Preview("Search View - Dark Mode") {
-    let container = try! ModelContainer(for: Work.self, Edition.self, Author.self, UserLibraryEntry.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let container: ModelContainer
+    do {
+        container = try ModelContainer(for: Work.self, Edition.self, Author.self, UserLibraryEntry.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    } catch {
+        fatalError("Failed to create preview ModelContainer: \(error)")
+    }
     let dtoMapper = DTOMapper(modelContext: container.mainContext)
 
     return NavigationStack {

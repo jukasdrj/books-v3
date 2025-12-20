@@ -67,7 +67,7 @@ public struct GenderDonutChart: View {
                 }
             }
         }
-        .chartBackground { proxy in
+        .chartBackground { _ in
             GeometryReader { geometry in
                 VStack(spacing: 4) {
                     Text("\(totalAuthors)")
