@@ -102,7 +102,7 @@ struct UserInteractionBlock: View {
 // Sub-component for Status Display
 struct StatusCapsule: View {
     let status: ReadingStatus
-    
+
     var body: some View {
         HStack {
             Image(systemName: status.systemImage)

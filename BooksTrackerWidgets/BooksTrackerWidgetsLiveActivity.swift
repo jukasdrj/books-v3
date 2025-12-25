@@ -66,7 +66,7 @@ extension BooksTrackerWidgetsAttributes.ContentState {
     fileprivate static var smiley: BooksTrackerWidgetsAttributes.ContentState {
         BooksTrackerWidgetsAttributes.ContentState(emoji: "😀")
      }
-     
+
      fileprivate static var starEyes: BooksTrackerWidgetsAttributes.ContentState {
          BooksTrackerWidgetsAttributes.ContentState(emoji: "🤩")
      }

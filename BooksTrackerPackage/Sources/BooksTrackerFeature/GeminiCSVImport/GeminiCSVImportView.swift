@@ -685,7 +685,7 @@ public struct GeminiCSVImportView: View {
                     let workIDs = result.newWorkIDs
                     let startTime = Date.now
                     let timeout: TimeInterval = 5.0
-                    
+
                     // Try immediate check first (often succeeds immediately)
                     var foundCount = workIDs.compactMap { modelContext.model(for: $0) as? Work }.count
                     if foundCount == workIDs.count {
@@ -696,19 +696,19 @@ public struct GeminiCSVImportView: View {
                         // Exponential backoff: 250ms, 500ms, then 1s intervals
                         let intervals: [Duration] = [.milliseconds(250), .milliseconds(500), .milliseconds(1000)]
                         var intervalIndex = 0
-                        
+
                         while Date.now.timeIntervalSince(startTime) < timeout {
                             let currentInterval = intervals[min(intervalIndex, intervals.count - 1)]
                             try? await Task.sleep(for: currentInterval)
-                            
+
                             foundCount = workIDs.compactMap { modelContext.model(for: $0) as? Work }.count
                             if foundCount == workIDs.count {
                                 break
                             }
-                            
+
                             intervalIndex += 1
                         }
-                        
+
                         #if DEBUG
                         let elapsed = Date.now.timeIntervalSince(startTime)
                         print("📚 Context merge: \(foundCount)/\(workIDs.count) in \(Int(elapsed * 1000))ms")

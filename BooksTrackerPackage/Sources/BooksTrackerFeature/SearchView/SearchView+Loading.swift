@@ -6,7 +6,7 @@ import SwiftUI
 extension SearchView {
     struct LoadingTrendingView: View {
         @Environment(\.iOS26ThemeStore) private var themeStore
-        
+
         var body: some View {
             ScrollView {
                 LazyVStack(spacing: 32) {
@@ -48,13 +48,13 @@ extension SearchView {
             .modifier(iOS26ScrollEdgeEffectModifier(edges: [.top]))
         }
     }
-    
+
     struct SearchingView: View {
         let query: String
         let scope: SearchScope
         let previousResults: [SearchResult]
         @Environment(\.iOS26ThemeStore) private var themeStore
-        
+
         var body: some View {
             ZStack {
                 // Show previous results if available for smooth transition
@@ -119,7 +119,7 @@ extension SearchView {
             }
             .transition(.opacity.combined(with: .scale(scale: 0.9)))
         }
-        
+
         // HIG: Contextual loading messages
         private func searchStatusMessage(for scope: SearchScope) -> String {
             switch scope {

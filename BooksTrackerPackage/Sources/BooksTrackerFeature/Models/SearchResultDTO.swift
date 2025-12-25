@@ -16,7 +16,7 @@ public struct SearchResultDTO: Identifiable, Hashable, Sendable {
     public let relevanceScore: Double
     public let provider: String
     public let isInLibrary: Bool
-    
+
     public init(
         from searchResult: SearchResult,
         isInLibrary: Bool = false
@@ -30,12 +30,12 @@ public struct SearchResultDTO: Identifiable, Hashable, Sendable {
         self.provider = searchResult.provider
         self.isInLibrary = isInLibrary
     }
-    
+
     // Computed properties for display
     public var displayTitle: String {
         title
     }
-    
+
     public var displayAuthors: String {
         let names = authors.map { $0.name }
         switch names.count {
@@ -52,7 +52,7 @@ public struct SearchResultDTO: Identifiable, Hashable, Sendable {
 public struct SearchResultAuthorDTO: Sendable, Hashable {
     public let id: PersistentIdentifier
     public let name: String
-    
+
     public init(from author: Author) {
         self.id = author.persistentModelID
         self.name = author.name
@@ -68,7 +68,7 @@ public struct SearchResultEditionDTO: Sendable, Hashable {
     public let publisher: String?
     public let publicationDate: String?
     public let coverImageURL: String?
-    
+
     public init(from edition: Edition) {
         self.id = edition.persistentModelID
         self.isbn = edition.primaryISBN

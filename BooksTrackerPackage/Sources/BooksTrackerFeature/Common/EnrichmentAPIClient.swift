@@ -1016,7 +1016,7 @@ actor EnrichmentAPIClient {
                     throw EnrichmentError.invalidResponse
                 }
             }
-            
+
         case 404:
             throw EnrichmentError.noMatchFound
         case 429:

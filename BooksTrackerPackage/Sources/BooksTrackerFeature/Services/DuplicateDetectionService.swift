@@ -130,10 +130,10 @@ public final class DuplicateDetectionService {
             // Use localizedCaseInsensitiveCompare for Unicode-aware matching.
             let titleMatches = entryTitle.localizedCaseInsensitiveCompare(normalizedTitle) == .orderedSame
             let authorMatches = entryAuthor.localizedCaseInsensitiveCompare(normalizedAuthor) == .orderedSame
-            
+
             return titleMatches && authorMatches
         }
-        
+
         return matchedWork?.userLibraryEntries?.first
     }
 }

@@ -6,7 +6,7 @@ import SwiftUI
 @available(iOS 26.0, *)
 struct MetricView: View {
     @Environment(\.iOS26ThemeStore) private var themeStore
-    
+
     let title: String
     let value: String
     let color: Color

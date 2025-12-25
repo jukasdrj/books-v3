@@ -261,7 +261,7 @@ public struct WorkDiscoveryView: View {
             }
         }
     }
-    
+
     private var actionSelectionSection: some View {
         VStack(spacing: 12) {
             ForEach(LibraryAction.allCases, id: \.self) { action in
@@ -269,7 +269,7 @@ public struct WorkDiscoveryView: View {
             }
         }
     }
-    
+
     private func actionSelectionRow(for action: LibraryAction) -> some View {
         Button {
             selectedAction = action
@@ -288,14 +288,14 @@ public struct WorkDiscoveryView: View {
         }
         .buttonStyle(.plain)
     }
-    
+
     private func actionIconView(for action: LibraryAction) -> some View {
         Image(systemName: action.systemImage)
             .font(.title3)
             .foregroundColor(selectedAction == action ? .white : themeStore.primaryColor)
             .frame(width: 24)
     }
-    
+
     private func actionTextView(for action: LibraryAction) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(action.title)
@@ -308,7 +308,7 @@ public struct WorkDiscoveryView: View {
                 .foregroundColor(selectedAction == action ? .white.opacity(0.8) : .secondary)
         }
     }
-    
+
     @ViewBuilder
     private func actionCheckmarkView(for action: LibraryAction) -> some View {
         if selectedAction == action {
@@ -317,7 +317,7 @@ public struct WorkDiscoveryView: View {
                 .foregroundColor(Color.white)
         }
     }
-    
+
     private var addToLibraryButton: some View {
         Button {
             addToLibrary()

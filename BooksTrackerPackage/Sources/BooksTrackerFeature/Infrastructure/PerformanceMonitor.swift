@@ -8,7 +8,7 @@ import SwiftUI
 struct PerformanceMonitor: ViewModifier {
     let identifier: String
     @State private var renderStartTime: CFTimeInterval = 0
-    
+
     func body(content: Content) -> some View {
         content
             .onAppear {

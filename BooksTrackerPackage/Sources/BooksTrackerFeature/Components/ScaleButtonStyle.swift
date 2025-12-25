@@ -26,15 +26,15 @@ import SwiftUI
 public struct ScaleButtonStyle: ButtonStyle {
     /// Scale factor when button is pressed (default 0.95 = 95% of original size)
     private let pressedScale: CGFloat
-    
+
     /// Enable haptic feedback on press (iOS 26 sensory feedback)
     private let enableHaptics: Bool
-    
+
     public init(pressedScale: CGFloat = 0.95, enableHaptics: Bool = false) {
         self.pressedScale = pressedScale
         self.enableHaptics = enableHaptics
     }
-    
+
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? pressedScale : 1.0)
@@ -53,7 +53,7 @@ public struct ScaleButtonStyle: ButtonStyle {
         Text("Visual Press Feedback Demo")
             .font(.title2)
             .padding()
-        
+
         // Standard button
         Button {
             print("Button tapped")
@@ -68,7 +68,7 @@ public struct ScaleButtonStyle: ButtonStyle {
                 }
         }
         .buttonStyle(ScaleButtonStyle())
-        
+
         // With haptics
         Button {
             print("Haptic button tapped")
@@ -83,7 +83,7 @@ public struct ScaleButtonStyle: ButtonStyle {
                 }
         }
         .buttonStyle(ScaleButtonStyle(enableHaptics: true))
-        
+
         // NavigationLink example
         NavigationStack {
             NavigationLink {

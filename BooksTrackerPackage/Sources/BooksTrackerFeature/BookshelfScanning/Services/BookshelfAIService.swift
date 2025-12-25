@@ -563,7 +563,7 @@ actor BookshelfAIService {
               let details = error["details"] as? [String: Any] else {
             return nil
         }
-        
+
         // Try to extract retryAfter from details (can be Int, Double, or String)
         if let retryAfter = details["retryAfter"] as? Int {
             return retryAfter
@@ -573,7 +573,7 @@ actor BookshelfAIService {
                   let seconds = Int(retryAfter) {
             return seconds
         }
-        
+
         return nil
     }
 
@@ -613,7 +613,7 @@ actor BookshelfAIService {
                     }
                     throw BookshelfAIError.rateLimitExceeded(retryAfter: retryAfter)
                 }
-                
+
                 // Other server errors
                 let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
                 throw BookshelfAIError.serverError(httpResponse.statusCode, errorMessage)

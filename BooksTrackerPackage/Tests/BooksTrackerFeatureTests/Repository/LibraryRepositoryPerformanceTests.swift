@@ -230,7 +230,7 @@ struct LibraryRepositoryPerformanceTests {
             } else {
                 // For full fetch, measure all properties
                 totalSize += (work.originalLanguage?.utf8.count ?? 0)
-                
+
                 // Relationships (if loaded)
                 if let authors = work.authors {
                     totalSize += authors.count * 150  // Author objects

@@ -32,7 +32,7 @@ enum LibraryLayout: String, CaseIterable, Identifiable {
 @available(iOS 26.0, *)
 @MainActor
 public struct iOS26LiquidLibraryView: View {
-    
+
     // MARK: - Data
 
     // NOTE: Cannot use #Predicate for relationship aggregates (isEmpty, count, etc.)
@@ -44,9 +44,9 @@ public struct iOS26LiquidLibraryView: View {
     private var libraryWorks: [Work] {
         filterService.filterLibraryWorks(from: allWorks, modelContext: modelContext)
     }
-    
+
     // MARK: - State
-    
+
     @State private var selectedLayout: LibraryLayout = .floatingGrid
     @State private var searchText = ""
     @State private var showingDiversityInsights = false
@@ -61,7 +61,7 @@ public struct iOS26LiquidLibraryView: View {
     @State private var showError = false
 
     // MARK: - Performance Cache
-    
+
     @State private var cachedFilteredWorks: [Work] = []
     @State private var cachedDiversityScore: Double = 0.0
     @State private var cachedStatusCounts: [ReadingStatus: Int] = [:]
@@ -69,7 +69,7 @@ public struct iOS26LiquidLibraryView: View {
     @State private var isLoading = true
 
     // MARK: - Environment
-    
+
     @Namespace private var layoutTransition
     #if os(iOS)
     @State private var scrollPosition = ScrollPosition()
@@ -109,9 +109,9 @@ public struct iOS26LiquidLibraryView: View {
                 settingsSheet
             }
     }
-    
+
     // MARK: - Toolbar
-    
+
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .navigationBarLeading) {
@@ -126,7 +126,7 @@ public struct iOS26LiquidLibraryView: View {
             settingsButton
         }
     }
-    
+
     private var reviewQueueButton: some View {
         Button { showingReviewQueue.toggle() } label: {
             Label("Review Queue", systemImage: "exclamationmark.triangle.badge.\(min(reviewQueueCount, 99))")
@@ -137,7 +137,7 @@ public struct iOS26LiquidLibraryView: View {
         .foregroundStyle(.white)
         .symbolEffect(.bounce, value: reviewQueueCount)
     }
-    
+
     private var filterMenu: some View {
         Menu {
             Button("Recently Added") {
@@ -156,7 +156,7 @@ public struct iOS26LiquidLibraryView: View {
         #endif
         .foregroundStyle(.primary)
     }
-    
+
     private var diversityButton: some View {
         Button { showingDiversityInsights.toggle() } label: {
             Image(systemName: "chart.bar.xaxis")
@@ -166,7 +166,7 @@ public struct iOS26LiquidLibraryView: View {
         #endif
         .foregroundStyle(.primary)
     }
-    
+
     private var layoutMenu: some View {
         Menu {
             Picker("Layout", selection: $selectedLayout.animation(.smooth)) {
@@ -182,7 +182,7 @@ public struct iOS26LiquidLibraryView: View {
         #endif
         .foregroundStyle(.primary)
     }
-    
+
     private var settingsButton: some View {
         Button { showingSettings = true } label: {
             Image(systemName: "gearshape")
@@ -192,7 +192,7 @@ public struct iOS26LiquidLibraryView: View {
         #endif
         .foregroundStyle(themeStore.primaryColor)
     }
-    
+
     private var settingsSheet: some View {
         NavigationStack {
             SettingsView()
@@ -248,7 +248,7 @@ public struct iOS26LiquidLibraryView: View {
     private var mainContentView: some View {
         ZStack {
             backgroundGradient
-            
+
             if isLoading {
                 skeletonLoadingView
             } else if cachedFilteredWorks.isEmpty {
@@ -256,11 +256,11 @@ public struct iOS26LiquidLibraryView: View {
             } else {
                 libraryScrollView
             }
-            
+
             floatingActionButton
         }
     }
-    
+
     private var backgroundGradient: some View {
         Color.clear
             .background {
@@ -272,7 +272,7 @@ public struct iOS26LiquidLibraryView: View {
                 .ignoresSafeArea()
             }
     }
-    
+
     private var emptyStateView: some View {
         Group {
             if searchText.isEmpty && quickFilter == nil {
@@ -297,7 +297,7 @@ public struct iOS26LiquidLibraryView: View {
             }
         }
     }
-    
+
     private var libraryScrollView: some View {
         Group {
             if cachedFilteredWorks.count > 50 {
@@ -313,7 +313,7 @@ public struct iOS26LiquidLibraryView: View {
             }
         }
     }
-    
+
     private var floatingActionButton: some View {
         VStack {
             Spacer()
@@ -330,7 +330,7 @@ public struct iOS26LiquidLibraryView: View {
             }
         }
     }
-    
+
     private var scrollContent: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
@@ -339,7 +339,7 @@ public struct iOS26LiquidLibraryView: View {
                         .padding(.horizontal)
                         .padding(.bottom, 20)
                 }
-                
+
                 if !cachedFilteredWorks.isEmpty {
                     culturalInsightsHeader
                         .padding(.horizontal)
@@ -357,7 +357,7 @@ public struct iOS26LiquidLibraryView: View {
     }
 
     // MARK: - Skeleton Loading
-    
+
     private var skeletonLoadingView: some View {
         ScrollView {
             LazyVGrid(columns: gridColumns, spacing: 16) {
@@ -373,7 +373,7 @@ public struct iOS26LiquidLibraryView: View {
 
 
     // MARK: - Grid Columns
-    
+
     private var gridColumns: [GridItem] {
         switch horizontalSizeClass {
         case .compact:
@@ -545,7 +545,7 @@ public struct iOS26LiquidLibraryView: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(isReadingStatsExpanded ? "Reading status expanded" : "Reading status collapsed")
     }
-    
+
     private var collapsedReadingStats: some View {
         Button {
             withAnimation(.easeInOut(duration: 0.3)) { isReadingStatsExpanded = true }
@@ -564,7 +564,7 @@ public struct iOS26LiquidLibraryView: View {
         }
         .buttonStyle(.plain)
     }
-    
+
     private var expandedReadingStats: some View {
         VStack(spacing: 12) {
             Button {
@@ -582,7 +582,7 @@ public struct iOS26LiquidLibraryView: View {
                 .padding(.vertical, 8)
             }
             .buttonStyle(.plain)
-            
+
             HStack(spacing: 16) {
                 ForEach(ReadingStatus.allCases.prefix(4), id: \.self) { status in
                     readingStatusBadge(for: status)
@@ -590,7 +590,7 @@ public struct iOS26LiquidLibraryView: View {
             }
         }
     }
-    
+
     private func readingStatusBadge(for status: ReadingStatus) -> some View {
         VStack(spacing: 4) {
             Image(systemName: status.systemImage)
@@ -631,7 +631,7 @@ public struct iOS26LiquidLibraryView: View {
                 }
 
                 Spacer()
-                
+
                 if !isEnriching {
                     Button("Start") {
                         enrichmentQueue.startProcessing(
@@ -663,21 +663,21 @@ public struct iOS26LiquidLibraryView: View {
 
     private func updateFilteredWorks() {
         var filtered = Array(libraryWorks)
-        
+
         if !searchText.isEmpty {
             filtered = filtered.filter { work in
                 work.title.localizedStandardContains(searchText) ||
                 (work.authors?.contains(where: { $0.name.localizedStandardContains(searchText) }) ?? false)
             }
         }
-        
+
         if let quickFilter {
             guard let thirtyDaysAgo = Calendar.current.date(byAdding: .day, value: -30, to: Date()) else {
                 errorMessage = "Failed to calculate date range for filtering"
                 showError = true
                 return
             }
-            
+
             switch quickFilter {
             case .recentlyAdded:
                 filtered = filtered.filter { work in
@@ -711,16 +711,16 @@ public struct iOS26LiquidLibraryView: View {
         )
         reviewQueueCount = (try? modelContext.fetchCount(descriptor)) ?? 0
     }
-    
+
     private func updateCachedStatusCounts() {
         guard !cachedFilteredWorks.isEmpty else {
             cachedStatusCounts = [:]
             return
         }
-        
+
         var counts: [ReadingStatus: Int] = [:]
         for status in ReadingStatus.allCases { counts[status] = 0 }
-        
+
         for work in cachedFilteredWorks {
             guard modelContext.model(for: work.persistentModelID) as? Work != nil else { continue }
             if let entries = work.userLibraryEntries {
@@ -732,11 +732,11 @@ public struct iOS26LiquidLibraryView: View {
         }
         cachedStatusCounts = counts
     }
-    
+
     private func safeCountEntries(for status: ReadingStatus) -> Int {
         cachedStatusCounts[status] ?? 0
     }
-    
+
     private func clearAllCaches() {
         cachedFilteredWorks = []
         cachedDiversityScore = 0.0

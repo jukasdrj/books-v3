@@ -393,7 +393,7 @@ struct iOS26ThemePicker: View {
     var body: some View {
         VStack(spacing: 24) {
             // ✅ REMOVED duplicate "Choose Your Theme" heading - parent view provides it
-            
+
             // Theme Grid - Two columns for better tap targets (adaptive for iPad)
             LazyVGrid(columns: gridColumns, spacing: 20) {
                 ForEach(iOS26Theme.allCases) { theme in
@@ -416,7 +416,7 @@ struct iOS26ThemePicker: View {
                     Text("Follow System Appearance")
                         .font(.subheadline.weight(.medium))
                         .foregroundColor(Color.white) // ✅ High contrast
-                    
+
                     Text("Switch automatically between light and dark")
                         .font(.caption)
                         .foregroundColor(Color.white.opacity(0.8)) // ✅ WCAG AA compliant (5.5:1 contrast)
@@ -434,7 +434,7 @@ struct iOS26ThemePicker: View {
         }
         .padding(.horizontal)
     }
-    
+
     // MARK: - Adaptive Grid Layout
 
     /// iOS 26 HIG: 2-column for iPhone (comfortable tap targets), 3-column for iPad
@@ -463,7 +463,7 @@ struct ThemePreviewCard: View {
     let isSelected: Bool
     let namespace: Namespace.ID
     let action: () -> Void
-    
+
     @Environment(\.iOS26ThemeStore) private var themeStore
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -574,7 +574,7 @@ struct ThemePreviewCard: View {
             .matchedGeometryEffect(id: "selection", in: namespace)
             .shadow(color: theme.primaryColor.opacity(0.5), radius: 8)
     }
-    
+
     // MARK: - Accessibility Support
 
     /// High contrast mode detection for WCAG AAA compliance

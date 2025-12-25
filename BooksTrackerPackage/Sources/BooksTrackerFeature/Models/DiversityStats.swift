@@ -199,7 +199,7 @@ public struct DiversityStats: Sendable {
             guard context.model(for: work.persistentModelID) as? Work != nil else {
                 continue
             }
-            
+
             if let primaryAuthor = work.primaryAuthor {
                 // DEFENSIVE: Validate author is still in context before accessing properties
                 guard context.model(for: primaryAuthor.persistentModelID) as? Author != nil else {
@@ -256,7 +256,7 @@ public struct DiversityStats: Sendable {
             guard context.model(for: work.persistentModelID) as? Work != nil else {
                 continue
             }
-            
+
             if let language = work.originalLanguage, !language.isEmpty {
                 languageCounts[language, default: 0] += 1
             }

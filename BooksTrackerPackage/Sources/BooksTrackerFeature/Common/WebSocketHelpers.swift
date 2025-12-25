@@ -3,7 +3,7 @@ import Foundation
 /// Shared utilities for WebSocket connection management
 /// Provides race-condition-free connection establishment patterns
 enum WebSocketHelpers {
-    
+
     /// Wait for WebSocket connection to be established before allowing send/receive operations
     /// Prevents POSIX error 57 "Socket is not connected" by verifying the handshake completed
     ///
@@ -26,7 +26,7 @@ enum WebSocketHelpers {
         let maxAttempts = 5
         var attempts = 0
         var lastError: Error?
-        
+
         while attempts < maxAttempts {
             if Date().timeIntervalSince(startTime) > timeout {
                 throw URLError(.timedOut)
@@ -68,7 +68,7 @@ enum WebSocketHelpers {
             }
         }
     }
-    
+
     /// Helper to add timeout to async operations
     private static func withTimeout<T: Sendable>(
         seconds: TimeInterval,

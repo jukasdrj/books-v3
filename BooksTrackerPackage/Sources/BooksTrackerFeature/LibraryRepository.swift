@@ -211,17 +211,17 @@ public class LibraryRepository {
             guard modelContext.model(for: entry.persistentModelID) as? UserLibraryEntry != nil else {
                 return nil
             }
-            
+
             // 2. ACCESS: Now safe to access entry.work
             guard let work = entry.work else {
                 return nil
             }
-            
+
             // 3. VALIDATE: Check if the work is still valid in the context
             guard modelContext.model(for: work.persistentModelID) as? Work != nil else {
                 return nil
             }
-            
+
             return work
         }
     }
@@ -275,7 +275,7 @@ public class LibraryRepository {
     }
 
     // MARK: - Quick Filters
-    
+
     /// Quick filter types for common library views
     public enum QuickFilterType: Sendable {
         case recentlyAdded
@@ -326,7 +326,7 @@ public class LibraryRepository {
             \.coverImageURL,
             \.reviewStatus
         ]
-        
+
         // Fetching Work directly handles deduplication automatically
         let allWorks = try modelContext.fetch(descriptor)
         // Filter to only works in user's library (must be in-memory to avoid KVC crash)

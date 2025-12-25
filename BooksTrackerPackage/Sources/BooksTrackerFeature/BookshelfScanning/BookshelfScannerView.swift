@@ -48,7 +48,7 @@ public struct BookshelfScannerView: View {
                             }
                             .transition(.move(edge: .top).combined(with: .opacity))
                         }
-                        
+
                         // Privacy disclosure banner
                         PrivacyDisclosureBanner()
 
@@ -282,10 +282,10 @@ class BookshelfScanModel {
 
     // Original image storage for correction UI
     public var lastSavedImagePath: String?
-    
+
     // Temp file tracking for per-session cleanup (Issue #472)
     private var tempFiles: [URL] = []
-    
+
     // Rate limit state (GitHub Issue #426)
     var rateLimitRetryAfter: Int = 0
     var showRateLimitBanner: Bool = false
@@ -347,15 +347,15 @@ class BookshelfScanModel {
         case .global:
             success = await deleteStaleGlobalFiles()
         }
-        
+
         // Clear tracked files after per-session cleanup
         if mode == .perSession {
             tempFiles.removeAll()
         }
-        
+
         return success
     }
-    
+
     /// Deletes only the tracked temp files from the current session
     private func deleteTrackedFiles() async -> Bool {
         await Task.detached(priority: .utility) { [tempFiles] in
@@ -374,33 +374,33 @@ class BookshelfScanModel {
             return allSucceeded
         }.value
     }
-    
+
     /// Deletes all bookshelf_scan_*.jpg files in temp dir older than 24 hours
     private func deleteStaleGlobalFiles() async -> Bool {
         let ttlInterval: TimeInterval = 24 * 60 * 60  // 24 hours
         let tempDirectory = FileManager.default.temporaryDirectory
-        
+
         return await Task.detached(priority: .utility) {
             var allSucceeded = true
-            
+
             do {
                 let fileURLs = try FileManager.default.contentsOfDirectory(
                     at: tempDirectory,
                     includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey],
                     options: [.skipsHiddenFiles]
                 )
-                
+
                 let pattern = "bookshelf_scan_.*\\.jpg"
                 let staleFiles = fileURLs.filter { url in
                     url.lastPathComponent.range(of: pattern, options: .regularExpression) != nil
                 }
-                
+
                 for url in staleFiles {
                     do {
                         let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
                         if let modDate = attributes[.modificationDate] as? Date,
                            Date().timeIntervalSince(modDate) > ttlInterval {
-                            
+
                             if FileManager.default.fileExists(atPath: url.path) {
                                 try FileManager.default.removeItem(at: url)
                                 self.logger.debug("Deleted stale temp file: \(url.lastPathComponent)")
@@ -415,7 +415,7 @@ class BookshelfScanModel {
                 self.logger.warning("Failed to enumerate temp directory: \(error.localizedDescription)")
                 allSucceeded = false
             }
-            
+
             return allSucceeded
         }.value
     }

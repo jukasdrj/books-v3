@@ -148,13 +148,13 @@ struct iOS26FloatingBookCard: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-            
+
             // Refined metadata row for status and format
             HStack {
                 if let userEntry = userEntry {
                     infoCardStatus(for: userEntry.readingStatus)
                 }
-                
+
                 Spacer()
 
                 if let edition = primaryEdition {
@@ -175,7 +175,7 @@ struct iOS26FloatingBookCard: View {
     private func statusIndicator(for status: ReadingStatus) -> some View {
         StatusBadgeCircle(status: status)
     }
-    
+
     // ✅ Compact status indicator for the info card
     private func infoCardStatus(for status: ReadingStatus) -> some View {
         StatusBadgeInline(status: status)
