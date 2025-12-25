@@ -1322,7 +1322,7 @@ claude --agent cloudflare-specialist
 - [ ] Migrate `EnrichmentQueue` to V3 cancel endpoint
 - [ ] Replace debug `print()` with `Logger`
 - [ ] Remove WebSocket infrastructure (90 days post-V3 GA)
-- [ ] Evaluate V2 workflow import adoption (Q1 2026)
+- [ ] Evaluate V2 workflow import adoption (Q2 2026)
 - [ ] Remove `V3ToV2Mapper` (when native V3 models adopted)
 
 ---
