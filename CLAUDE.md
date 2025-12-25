@@ -2,19 +2,21 @@
 
 **Version 3.7.5 (Build 189+)** | **iOS 26.0+** | **Swift 6.2+** | **Updated: December 25, 2025**
 
-> **📋 For universal AI agent instructions, see [`AGENTS.md`](AGENTS.md)**
-> This file contains **Claude Code-specific** setup (MCP, slash commands, skills).
+## Agent Role
+
+**Identity:** Books (iOS Frontend) - User Interface  
+**Scope:** SwiftUI views, SwiftData persistence, CloudKit sync  
+**Upstream:** bendv3 API (api.oooefam.net)  
+**Cross-repo docs:** See `~/dev_repos/bendv3/docs/SYSTEM_ARCHITECTURE.md`
 
 ---
 
 ## Quick Reference
 
 **🤖 AI Context Files:**
-- **`AGENTS.md`** - Universal AI agent guide (ALL tools use this)
 - **`CLAUDE.md`** - Claude Code-specific (this file - MCP, slash commands)
 - **`.claude/rules/`** - Memory rules (auto-loaded, see v2.0.64)
-- **`.ai/SHARED_CONTEXT.md`** - Project-wide context (tech stack, architecture)
-- **`.github/copilot-instructions.md`** - GitHub Copilot setup
+- **`docs/CROSS_REPO.md`** - Cross-repository architecture pointer
 
 ---
 
