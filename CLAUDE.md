@@ -1,6 +1,6 @@
 # 📚 BooksTrack - Claude Code Guide
 
-**Version 3.7.5 (Build 189+)** | **iOS 26.0+** | **Swift 6.2+** | **Updated: December 11, 2025**
+**Version 3.7.5 (Build 189+)** | **iOS 26.0+** | **Swift 6.2+** | **Updated: December 25, 2025**
 
 > **📋 For universal AI agent instructions, see [`AGENTS.md`](AGENTS.md)**
 > This file contains **Claude Code-specific** setup (MCP, slash commands, skills).
@@ -70,6 +70,59 @@
 - **Providers:** Google Gemini ✅, X.AI ✅
 - **Available Models:** 14 (use `listmodels` tool)
 - **Mode:** Auto model selection
+
+---
+
+## 🛠️ SwiftLint Integration (NEW)
+
+**Added:** December 2025 (Build 189+)
+
+BooksTrack now uses SwiftLint for architectural code quality enforcement, complementing the existing `-Werror` policy and Swift 6 strict concurrency.
+
+### Configuration (`.swiftlint.yml`)
+
+**Philosophy:** Focus on architectural quality, not style (compiler handles correctness).
+
+**Enabled Rule Categories:**
+- **Complexity & Architecture:** `cyclomatic_complexity`, `function_body_length`, `file_length`, `type_body_length`
+- **SwiftData/SwiftUI Specific:** `force_unwrapping`, `force_cast`, `force_try`
+- **Code Quality:** `redundant_discardable_let`, `unused_optional_binding`, `unused_closure_parameter`
+- **Performance:** `contains_over_filter_count`, `first_where`
+
+**Custom Rules (BooksTrack-specific):**
+```yaml
+# Enforce @Bindable for SwiftData models in child views
+swiftdata_bindable:
+  regex: '@State var \w+: \w*Model'
+  message: "Use @Bindable for SwiftData models, not @State"
+  severity: warning
+
+# Discourage Timer.publish in actors (Swift 6 concurrency)
+no_timer_in_actor:
+  regex: 'actor.*\{[^}]*Timer\.publish'
+  message: "Use Task.sleep instead of Timer.publish in actors"
+  severity: error
+```
+
+**Thresholds:**
+| Metric | Warning | Error |
+|--------|---------|-------|
+| Cyclomatic Complexity | 15 | 25 |
+| Function Body Length | 60 | 100 |
+| File Length | 500 | 800 |
+| Type Body Length | 300 | 500 |
+
+**Running SwiftLint:**
+```bash
+# Run manually
+swiftlint lint
+
+# Auto-fix violations
+swiftlint lint --autocorrect
+
+# CI/CD (GitHub Actions format)
+swiftlint lint --reporter github-actions-logging
+```
 
 ---
 
@@ -203,8 +256,21 @@ TaskOutput({
 - **code-refactor-master** - Refactoring & code organization
 - **refactor-planner** - Creating refactoring plans
 - **auto-error-resolver** - Fixing compilation errors
-- **security-auditor** - Security scanning and OWASP compliance (NEW)
-- **performance-analyzer** - Performance profiling and optimization (NEW)
+- **security-auditor** - Security scanning and OWASP compliance
+- **performance-analyzer** - Performance profiling and optimization
+
+**Custom Project Agents (`.claude/agents/`):**
+
+- **pm** - Product manager & development orchestrator (HIGH autonomy)
+  - Delegates fast tasks to Haiku, expert review to Grok-4
+  - Makes architecture decisions, runs build/test workflows
+- **xcode** - iOS build, test, and deployment specialist
+  - Uses native xcodebuild CLI for all operations
+  - Supports async builds for long-running operations
+- **pal** - Deep analysis specialist (PAL MCP tools)
+  - Debug, code review, security audit, planning
+- **code-review-grok** - Expert code review via Grok-4
+- **idb-ui-validator** - iOS UI/UX validation using IDB
 
 **Examples:**
 ```
@@ -945,13 +1011,21 @@ Sonnet (you):
    - Graceful degradation when limits exceeded
 
 5. **Real-Time Updates: V3 Uses SSE Exclusively**
-   - ✅ **V3 API**: Server-Sent Events (SSE) for all job streaming
+   - ✅ **V3 API**: Server-Sent Events (SSE) for all job streaming (ACTIVE)
      - `GET /v3/jobs/scans/{jobId}/stream` - Scan progress
      - `GET /v3/jobs/imports/{jobId}/stream` - CSV import progress
      - `GET /v3/jobs/enrichment/{jobId}/stream` - Enrichment progress
    - ⚠️ **V1/V2 DEPRECATED**: WebSocket (`GET /ws/progress?jobId=xxx`)
      - iOS app uses WebSocket as automatic fallback when SSE fails
      - Backend sunsets WebSocket 90 days after V3 GA
+
+   **V3 Migration Status (December 2025):**
+   - ✅ iOS app migrated to V3 API endpoints
+   - ✅ SSE client implemented (`SSEClient.swift`, `SSEResponseHandler.swift`)
+   - ✅ V3 DTO models added (`V3Book.swift`, `V3ScanProgress.swift`, etc.)
+   - ✅ Sync enrichment mode for small batches (≤50 ISBNs) - HTTP 200
+   - ✅ Live API integration tests passing
+   - 🔄 WebSocket fallback remains for SSE connection failures
 
    **Why V3 Chose SSE Over WebSockets:**
    - ✅ Browser-native reconnection with Last-Event-ID
@@ -1123,6 +1197,67 @@ claude --agent cloudflare-specialist
 - Subagent starts → log activation
 - Subagent completes → prompt to integrate results
 
+### Memory Rules (`.claude/rules/`)
+
+**Auto-loaded context rules for specific scenarios:**
+
+| Rule File | Trigger Keywords | Purpose |
+|-----------|------------------|---------|
+| `safe-testing.md` | test, build, run, validate, simulator | Safe testing workflow enforcement |
+| `swift-concurrency.md` | @Observable, @MainActor, actors, SwiftData | Swift 6 concurrency compliance |
+| `async-agents.md` | background, async, parallel | Async agent usage patterns |
+| `attribution.md` | commit, attribution | Git attribution settings |
+
+**Rule Content Examples:**
+
+**safe-testing.md:**
+- Enforces `/quick-validate` as default (not `/build`)
+- Recommends `/device-deploy` over `/sim`
+- Provides emergency recovery with `/kill-xcode`
+
+**swift-concurrency.md:**
+- Requires `@MainActor` for all Observable classes
+- Requires `@Bindable` for SwiftData in child views
+- Prohibits `Timer.publish` in actors (use `Task.sleep`)
+
+### Advanced Settings (`.claude/settings.json`)
+
+**Async Agent Configuration:**
+```json
+{
+  "asyncAgents": {
+    "enabled": true,
+    "maxConcurrent": 3,
+    "wakeOnMessage": true
+  }
+}
+```
+
+**Compact Mode (Auto-Compacting):**
+```json
+{
+  "compactMode": {
+    "enabled": true,
+    "threshold": 0.8
+  }
+}
+```
+
+**Environment Variables:**
+```json
+{
+  "env": {
+    "MAX_MCP_OUTPUT_TOKENS": "50000",
+    "CLAUDE_CODE_SUBAGENT_PARALLEL": "true"
+  }
+}
+```
+
+**Permission Rules:**
+- Auto-allow: Slash commands, safe git reads, file operations, PAL MCP tools
+- Require approval: `git add`, `git commit`, `git push`, `rm`, `mv`, `cp`
+- Deny: `rm -rf /`, `sudo rm`, `git push --force`
+
 ### Actions & Workflows
 
 **Configured in `.claude/actions.yaml`:**
@@ -1132,6 +1267,63 @@ claude --agent cloudflare-specialist
 - **API Contract Check** - Verifies provider orchestration
 - **Swift 6 Concurrency Audit** - Checks actor isolation
 - **Test Coverage Reminder** - Prompts for tests on new services
+
+---
+
+## 🔧 Known Tech Debt & Sunset Plan
+
+### API Sunset Timeline
+
+| Component | Status | Sunset Date | Replacement |
+|-----------|--------|-------------|-------------|
+| V1 Search API (`/v1/search/*`) | Deprecated | March 1, 2026 | V3 API (`/v3/books/*`) |
+| V1/V2 WebSocket | Deprecated | 90 days post-V3 GA | SSE (`/v3/jobs/{type}/{id}/stream`) |
+| V2 Workflow Import | Experimental | Q2 2026 (TBD) | Evaluate adoption |
+| V1 Enrichment (`/api/enrichment/*`) | Deprecated | March 1, 2026 | V3 (`/v3/books/enrich`) |
+
+### Legacy Code Locations
+
+**WebSocket Infrastructure (V1/V2 Fallback):**
+- `Common/GenericWebSocketHandler.swift` - Generic handler
+- `Common/WebSocketProgressManager.swift` - Progress tracking
+- `Common/WebSocketHelpers.swift` - Utilities
+
+**V1/V2 API Endpoints:** (See `EnrichmentConfig.swift`)
+- All deprecated endpoints marked with `@available(*, deprecated)`
+- Emergency fallback controlled by `FeatureFlags.disableCanonicalEnrichment`
+
+**V3-to-V2 Compatibility:**
+- `Services/V3ToV2Mapper.swift` - Maps V3 responses to SwiftData models
+- Required until native V3 data model migration (long-term)
+
+### Debug Print Statements
+
+**Status:** 433+ print statements in codebase (mostly in `#if DEBUG` blocks)
+
+**Priority Cleanup Areas:**
+- `Common/WebSocketProgressManager.swift` - 40+ unwrapped prints
+- `ReviewQueue/CorrectionView.swift` - 6 prints
+- `ReviewQueue/ManualMatchView.swift` - 1 print
+
+**Recommendation:** Replace with structured `Logger` from `os.log`
+
+### Active Tech Debt TODOs
+
+| File | Issue | Priority |
+|------|-------|----------|
+| `APIIntegrationTests.swift:28` | Migrate to V3 API before March 2026 | High |
+| `EnrichmentQueue.swift:695` | Uses V1 cancel endpoint | Medium |
+| `V3BooksService.swift:175` | Pagination TODO | Low |
+| `BookSearchAPIService.swift:512` | Analytics TODO | Low |
+
+### Cleanup Checklist
+
+- [ ] Migrate `APIIntegrationTests.swift` to V3 API (before March 2026)
+- [ ] Migrate `EnrichmentQueue` to V3 cancel endpoint
+- [ ] Replace debug `print()` with `Logger`
+- [ ] Remove WebSocket infrastructure (90 days post-V3 GA)
+- [ ] Evaluate V2 workflow import adoption (Q2 2026)
+- [ ] Remove `V3ToV2Mapper` (when native V3 models adopted)
 
 ---
 
@@ -1160,19 +1352,29 @@ claude --agent cloudflare-specialist
 **CLAUDE.md provides:**
 - Multi-agent workflow orchestration (Sonnet → Haiku/Grok-4/Gemini)
 - MCP slash commands (/build, /test, /sim, /device-deploy)
+- SwiftLint integration with architectural quality rules
 - TodoWrite patterns for task management
 - Git commit and PR workflows
 - Claude Code-specific debugging tips
+- Tech debt tracking and sunset timelines
 
 **For universal project context, see AGENTS.md.**
 
 ---
 
-**Last Updated:** December 11, 2025 (Claude Code v2.0.65, BooksTrack v3.7.5, Build 189)
+**Last Updated:** December 25, 2025 (Claude Code v2.0.65, BooksTrack v3.7.5, Build 189)
 **Maintained by:** oooe (jukasdrj)
 **See Also:** [`AGENTS.md`](AGENTS.md)
 
-**Recent Updates (v2.0.62-65):**
+**Recent Updates (December 2025):**
+- 🔧 **SwiftLint Integration**: Added `.swiftlint.yml` with architectural quality rules (Build 189)
+- 🚀 **V3 API Migration**: iOS app fully migrated to V3 API with SSE streaming
+- 📱 **Custom Agents**: Added pm, xcode, pal, code-review-grok, idb-ui-validator agents
+- 📋 **Memory Rules**: Documented `.claude/rules/` auto-loaded context rules
+- ⚙️ **Settings**: Added asyncAgents, compactMode, permission rules documentation
+- 🔄 **Live API Tests**: Added integration tests for V3 DTOs and BookSearchAPIService
+
+**Claude Code v2.0.62-65 Features:**
 - ⚡ **v2.0.65**: Model switching during prompt (`option+p`/`alt+p`), context window in status line, `fileSuggestion` setting
 - 📛 **v2.0.64**: Named sessions (`/rename`, `/resume <name>`), `/stats` command, instant auto-compacting
 - 🔄 **v2.0.64**: Async agents with `run_in_background`, `TaskOutput` tool (replaces AgentOutputTool/BashOutputTool)

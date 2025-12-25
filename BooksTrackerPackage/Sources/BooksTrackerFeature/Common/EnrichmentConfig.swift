@@ -105,16 +105,24 @@ enum EnrichmentConfig {
         URL(string: "\(baseURL)/api/scan-bookshelf")!
     }
 
-    // MARK: - Workflow Import Endpoints
+    // MARK: - Workflow Import Endpoints (V2 EXPERIMENTAL - Sunset TBD)
 
-    /// Create a new import workflow
+    /// Create a new import workflow (V2 Experimental)
+    /// ⚠️ EXPERIMENTAL: V2 workflow import is a P2 feature with limited adoption.
+    ///   - Controlled by FeatureFlags.enableWorkflowImport
+    ///   - No V3 equivalent planned; evaluate adoption before sunset decision
+    ///   - Tech Debt: Define migration path or removal timeline by Q2 2026
+    /// - Returns: URL for the workflow creation endpoint
+    @available(*, deprecated, message: "V2 workflow import is experimental. Evaluate adoption before Q2 2026 sunset decision.")
     static var workflowCreateURL: URL {
         URL(string: "\(baseURL)/v2/import/workflow")!
     }
 
-    /// Get workflow status by ID
+    /// Get workflow status by ID (V2 Experimental)
+    /// ⚠️ EXPERIMENTAL: Part of V2 workflow import feature
     /// - Parameter workflowId: The workflow ID to check
     /// - Returns: URL for the workflow status endpoint
+    @available(*, deprecated, message: "V2 workflow import is experimental. Evaluate adoption before Q2 2026 sunset decision.")
     static func workflowStatusURL(workflowId: String) -> URL {
         URL(string: "\(baseURL)/v2/import/workflow/\(workflowId)")!
     }
