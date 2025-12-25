@@ -113,7 +113,7 @@ public final class Work {
     // Review status for AI-detected books
     // Stored as String to enable SwiftData predicate queries (predicates can't access enum.rawValue)
     var reviewStatusRawValue: String = ReviewStatus.verified.rawValue
-    
+
     /// Review status for AI-detected books (computed property wrapping stored String)
     public var reviewStatus: ReviewStatus {
         get {

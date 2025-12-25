@@ -76,11 +76,11 @@ public final class ImagePrefetcher: ObservableObject {
                 // URLSession with the default cache policy handles this automatically.
                 // A simple dataTask is enough to trigger the cache load.
                 do {
-                    let (data, _) = try await session.data(from: url)
+                    // Fetch triggers URLCache storage - response is intentionally discarded
+                    _ = try await session.data(from: url)
                     #if DEBUG
                     print("[ImagePrefetcher] Successfully prefetched: \(url.lastPathComponent)")
                     #endif
-                    _ = data // Silence unused variable warning
                 } catch {
                     #if DEBUG
                     print("[ImagePrefetcher] Failed to prefetch: \(url.lastPathComponent) - \(error.localizedDescription)")

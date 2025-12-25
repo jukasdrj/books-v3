@@ -36,7 +36,7 @@ public struct ContentView: View {
     @State private var tabCoordinator = TabCoordinator()
     @State private var notificationCoordinator = NotificationCoordinator()
     @Environment(LibraryRepository.self) private var libraryRepository
-    
+
     // Review queue count (computed from LibraryRepository)
     private var reviewQueueCount: Int {
         return (try? libraryRepository.reviewQueueCount()) ?? 0
@@ -169,7 +169,7 @@ public struct ContentView: View {
                     LaunchMetrics.shared.recordMilestone("SampleData check end")
                 }
                 #endif
-                
+
                 BackgroundTaskScheduler.shared.schedule(priority: .low) {
                     LaunchMetrics.shared.recordMilestone("DTOMapper cache pruning start")
                     await MainActor.run {
@@ -239,7 +239,7 @@ public struct ContentView: View {
                         }
                         .padding(.top, 8)
                     }
-                    
+
                     if showingCompletionToast, let event = latestCompletionEvent {
                         EnrichmentCompletionToast(
                             event: event,
@@ -262,44 +262,44 @@ public struct ContentView: View {
     }
 
     public init() {}
-    
+
     // MARK: - Error Message Sanitization
-    
+
     /// Sanitizes backend error messages for user-friendly display
     /// Maps known error patterns to actionable messages, prevents internal details from leaking
     private func sanitizedErrorMessage(from rawMessage: String) -> String {
         let lowercased = rawMessage.lowercased()
-        
+
         // Timeout errors
         if lowercased.contains("timeout") || lowercased.contains("timed out") {
             return "The request timed out. Please check your internet connection and try again."
         }
-        
+
         // Network errors
         if lowercased.contains("network") || lowercased.contains("connection") || lowercased.contains("offline") {
             return "Unable to connect to the server. Please check your internet connection."
         }
-        
+
         // Rate limiting
         if lowercased.contains("rate limit") || lowercased.contains("too many requests") {
             return "Too many requests. Please wait a moment and try again."
         }
-        
+
         // Authentication errors
         if lowercased.contains("unauthorized") || lowercased.contains("authentication") {
             return "Authentication error. Please restart the app and try again."
         }
-        
+
         // Server errors
         if lowercased.contains("server error") || lowercased.contains("internal error") || lowercased.contains("500") {
             return "The server encountered an error. Please try again later."
         }
-        
+
         // Not found errors
         if lowercased.contains("not found") || lowercased.contains("404") {
             return "The requested resource was not found. Please try searching again."
         }
-        
+
         // Generic fallback - don't expose raw backend errors
         return "An unexpected error occurred during enrichment. Please try again later."
     }

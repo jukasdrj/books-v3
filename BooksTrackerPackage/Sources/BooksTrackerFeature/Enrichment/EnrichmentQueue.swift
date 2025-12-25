@@ -271,7 +271,7 @@ public final class EnrichmentQueue: EnrichmentQueueProtocol {
             #if DEBUG
             print("[DEBUGGER:EnrichmentQueue:startProcessing:242] workIDs.count=\(workIDs.count), works.count=\(works.count)")
             #endif
-            
+
             logger.debug("📚 [ENRICHMENT] Fetched \(works.count)/\(workIDs.count) works from context")
             if works.isEmpty && !workIDs.isEmpty {
                 #if DEBUG
@@ -901,7 +901,7 @@ public final class EnrichmentQueue: EnrichmentQueueProtocol {
         var successCount = 0
         var failureCount = 0
         var errors: [String] = []
-        
+
         for enrichedBook in enrichedBooks {
             guard enrichedBook.success,
                   let enrichedData = enrichedBook.enriched else {
@@ -909,7 +909,7 @@ public final class EnrichmentQueue: EnrichmentQueueProtocol {
                 failureCount += 1
                 let reason = enrichedBook.error ?? "No enriched data available"
                 errors.append("Failed to enrich '\(enrichedBook.title)': \(reason)")
-                
+
                 #if DEBUG
                 print("⏭️ Skipping \(enrichedBook.title) - \(reason)")
                 #endif
@@ -1156,7 +1156,7 @@ public final class EnrichmentQueue: EnrichmentQueueProtocol {
             print("❌ Failed final save of enriched data: \(error)")
             #endif
         }
-        
+
         return (successCount: successCount, failureCount: failureCount, errors: errors)
     }
 }

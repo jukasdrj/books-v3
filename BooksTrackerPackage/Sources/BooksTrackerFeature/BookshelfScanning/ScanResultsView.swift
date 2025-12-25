@@ -89,7 +89,7 @@ public struct ScanResultsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     if let image = scanResult?.capturedImage, let books = scanResult?.detectedBooks, !books.isEmpty {
-                        Button(action: { 
+                        Button(action: {
                             self.photoOverlayInfo = PhotoOverlayInfo(image: image, books: books)
                         }) {
                             Image(systemName: "photo.on.rectangle")
@@ -391,7 +391,7 @@ struct DetectedBookRow: View {
                     // Confidence with enhanced badge
                     HStack(spacing: 8) {
                         ConfidenceBadge(confidence: detectedBook.confidence, style: .detailed)
-                        
+
                         if detectedBook.confidence < ConfidenceThresholds.medium {
                             Button("Why?") {
                                 confidenceExplanationFor = ConfidenceExplanationInfo(confidence: detectedBook.confidence)
@@ -522,13 +522,13 @@ class ScanResultsModel {
         guard let title = detectedBook.title, let author = detectedBook.author else {
             return false
         }
-        
+
         // Normalize for predicate search
         let normalizedTitle = title
             .folding(options: .diacriticInsensitive, locale: Locale.current)
             .lowercased()
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        
+
         // Pre-filter Works by title at database level (performance optimization)
         // NOTE: Cannot use .isEmpty on relationships in predicates - causes KVC @count crash
         let predicate = #Predicate<Work> { work in
@@ -548,18 +548,18 @@ class ScanResultsModel {
             .folding(options: .diacriticInsensitive, locale: Locale.current)
             .lowercased()
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        
+
         return libraryWorks.contains { work in
             let workTitle = work.title
                 .folding(options: .diacriticInsensitive, locale: Locale.current)
                 .lowercased()
                 .trimmingCharacters(in: .whitespacesAndNewlines)
-            
+
             let workAuthor = work.authorNames
                 .folding(options: .diacriticInsensitive, locale: Locale.current)
                 .lowercased()
                 .trimmingCharacters(in: .whitespacesAndNewlines)
-            
+
             return workTitle == normalizedTitle && workAuthor == detectedAuthor
         }
     }
@@ -644,7 +644,7 @@ class ScanResultsModel {
                     if let primaryEdition = editions.first {
                         entry.edition = primaryEdition
                     }
-                    
+
                     // Store AI confidence score for transparency
                     entry.aiConfidence = detectedBook.confidence
                     entry.aiConfidenceDate = Date()
@@ -671,7 +671,7 @@ class ScanResultsModel {
                     #if DEBUG
                     print("[DEBUGGER:ScanResultsView:631] Creating minimal work for: \(detectedBook.title ?? "Unknown")")
                     #endif
-                    
+
                     // Create minimal Work
                     let work = Work(
                         title: detectedBook.title ?? "Unknown Title",

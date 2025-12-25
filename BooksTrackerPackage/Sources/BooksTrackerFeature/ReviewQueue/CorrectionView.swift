@@ -181,7 +181,7 @@ public struct CorrectionView: View {
                 HStack {
                     Image(systemName: "magnifyingglass.circle.fill")
                         .font(.title3)
-                    
+
                     Text("Search for Match")
                         .fontWeight(.semibold)
                 }
@@ -194,7 +194,7 @@ public struct CorrectionView: View {
                 }
             }
             .disabled(isSaving)
-            
+
             // Save Corrections button
             Button {
                 Task {

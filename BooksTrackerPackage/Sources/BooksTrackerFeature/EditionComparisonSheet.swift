@@ -109,14 +109,15 @@ struct EditionComparisonSheet: View {
         // Insert models into context if not already present
         modelContext.insert(work)
         modelContext.insert(searchResult)
-        
+
         // Now safe to create UserLibraryEntry using factory method
         _ = UserLibraryEntry.createOwnedEntry(for: work, edition: searchResult, context: modelContext)
         do {
             try modelContext.save()
         } catch {
-            // Handle error - log silently for now
+            #if DEBUG
             print("Error saving UserLibraryEntry: \(error)")
+            #endif
         }
     }
 }
@@ -168,9 +169,9 @@ struct EditionDetailCard: View {
                 .fill(.ultraThinMaterial)
         }
     }
-    
+
     // MARK: - Private Methods
-    
+
     /// Extracts the year from a publication date string or Date object
     /// - Parameter publicationDate: Either a String date (YYYY-MM-DD format or partial) or Date object
     /// - Returns: The year as a string or nil if invalid
@@ -178,12 +179,12 @@ struct EditionDetailCard: View {
         guard let publicationDate = publicationDate, !publicationDate.isEmpty else {
             return nil
         }
-        
+
         // If it's already a year (4 digits), return it
         if publicationDate.count == 4 && publicationDate.allSatisfy({ $0.isNumber }) {
             return publicationDate
         }
-        
+
         // Try to parse as ISO 8601 date string
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
@@ -191,20 +192,20 @@ struct EditionDetailCard: View {
             let year = Calendar.current.component(.year, from: date)
             return String(year)
         }
-        
+
         // Try other common formats
         formatter.dateFormat = "yyyy"
         if let date = formatter.date(from: publicationDate) {
             let year = Calendar.current.component(.year, from: date)
             return String(year)
         }
-        
+
         formatter.dateFormat = "yyyy-MM"
         if let date = formatter.date(from: publicationDate) {
             let year = Calendar.current.component(.year, from: date)
             return String(year)
         }
-        
+
         // Fallback: Extract first 4 characters if they're all digits
         if publicationDate.count >= 4 {
             let firstFour = String(publicationDate.prefix(4))
@@ -212,7 +213,7 @@ struct EditionDetailCard: View {
                 return firstFour
             }
         }
-        
+
         return nil
     }
 }

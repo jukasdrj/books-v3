@@ -13,7 +13,7 @@ extension SearchView {
         @Namespace private var searchTransition
 
         let onBookSelected: (SearchResult) -> Void  // Keep for backward compatibility
-        
+
         var body: some View {
             ScrollView {
                 LazyVStack(spacing: 32) {
@@ -40,7 +40,7 @@ extension SearchView {
                 removal: .opacity.combined(with: .scale(scale: 1.05))
             ))
         }
-        
+
         private var welcomeSection: some View {
             // Flattened: removed nested VStack (was 2 levels, now 1)
             VStack(spacing: 16) {
@@ -62,7 +62,7 @@ extension SearchView {
             }
             .padding(.top, 32)
         }
-        
+
         private var recentSearchesSection: some View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
@@ -108,7 +108,7 @@ extension SearchView {
                 }
             }
         }
-        
+
         // HIG: Trending search queries as pill-shaped chips (Issue #16)
         private var trendingSearchesSection: some View {
             VStack(alignment: .leading, spacing: 16) {

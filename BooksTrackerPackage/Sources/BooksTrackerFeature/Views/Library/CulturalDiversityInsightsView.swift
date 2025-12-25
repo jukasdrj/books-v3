@@ -181,11 +181,11 @@ struct CulturalDiversityInsightsView: View {
 
     private func calculateDiversityMetrics() -> (diversePercentage: Double, regionCount: Int, languageCount: Int) {
         let allAuthors = works.compactMap(\.authors).flatMap { $0 }
-        
+
         var validCount = 0
         var diverseCount = 0
         var regions = Set<CulturalRegion>()
-        
+
         for author in allAuthors {
             guard modelContext.model(for: author.persistentModelID) as? Author != nil else {
                 continue
@@ -198,7 +198,7 @@ struct CulturalDiversityInsightsView: View {
                 regions.insert(region)
             }
         }
-        
+
         let diversePercentage = validCount > 0 ? Double(diverseCount) / Double(validCount) : 0.0
         let languages = Set(works.compactMap(\.originalLanguage))
 

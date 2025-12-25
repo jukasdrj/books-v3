@@ -20,7 +20,7 @@ import Foundation
 public enum MessageType: String, Codable, Sendable {
     // Client-to-Server
     case ready = "ready"              // Client ready signal
-    
+
     // Server-to-Client
     case readyAck = "ready_ack"       // Backend acknowledgment of client ready signal
     case reconnected = "reconnected"  // State sync after reconnect
@@ -170,7 +170,7 @@ public struct ReconnectedPayload: Codable, Sendable {
     public let totalCount: Int
     public let lastUpdate: Int64?
     public let message: String
-    
+
     enum CodingKeys: String, CodingKey {
         case type, progress, status, message
         case processedCount = "processed_count"

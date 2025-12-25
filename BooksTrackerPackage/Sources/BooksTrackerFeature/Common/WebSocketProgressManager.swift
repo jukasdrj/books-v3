@@ -727,7 +727,7 @@ extension WebSocketProgressManager {
             reconnect()
         }
     }
-    
+
     private func reconnect() {
         // Attempt automatic reconnection if we have jobId and token in Keychain
         Task {
@@ -736,7 +736,7 @@ extension WebSocketProgressManager {
                     #if DEBUG
                     print("🔄 Connection lost - attempting reconnection...")
                     #endif
-                    
+
                     // Spawn reconnection task (don't await to avoid blocking)
                     reconnectionTask = Task {
                         await self.attemptReconnection()

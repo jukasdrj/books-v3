@@ -80,7 +80,7 @@ extension SearchView {
             }
         }
     }
-    
+
     struct ErrorStateView: View {
         let message: String
         let lastQuery: String?

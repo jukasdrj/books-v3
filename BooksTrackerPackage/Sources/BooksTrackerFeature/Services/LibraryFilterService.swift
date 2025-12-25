@@ -78,7 +78,7 @@ public final class LibraryFilterService {
             guard modelContext.model(for: work.persistentModelID) as? Work != nil else {
                 return false
             }
-            
+
             // Search in title
             if work.title.lowercased().contains(lowercased) {
                 return true
@@ -159,7 +159,7 @@ public final class LibraryFilterService {
             guard modelContext.model(for: work.persistentModelID) as? Work != nil else {
                 continue
             }
-            
+
             guard let authors = work.authors else { continue }
             for author in authors {
                 // DEFENSIVE: Validate author is still in context before accessing properties

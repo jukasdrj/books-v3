@@ -121,7 +121,7 @@ struct LibraryResetCrashTests {
         // Should only count the valid work's entry
         #expect(safeCount == 1)
     }
-    
+
     @Test("LibraryFilterService handles deleted works during library reset")
     func testLibraryFilterServiceWithDeletedWorks() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -131,46 +131,46 @@ struct LibraryResetCrashTests {
         )
         let context = container.mainContext
         let service = LibraryFilterService()
-        
+
         // Create works in library
         let work1 = Work(title: "Book 1")
         let work2 = Work(title: "Book 2")
         context.insert(work1)
         context.insert(work2)
-        
+
         let entry1 = UserLibraryEntry(readingStatus: .reading)
         let entry2 = UserLibraryEntry(readingStatus: .read)
         context.insert(entry1)
         context.insert(entry2)
-        
+
         entry1.work = work1
         work1.userLibraryEntries = [entry1]
         entry2.work = work2
         work2.userLibraryEntries = [entry2]
-        
+
         try context.save()
-        
+
         // Keep references to works (simulating stale @Query)
         let allWorks = [work1, work2]
-        
+
         // Simulate library reset - delete all works
         context.delete(work1)
         context.delete(work2)
         try context.save()
-        
+
         // TEST: filterLibraryWorks should handle deleted works gracefully
         let filtered = service.filterLibraryWorks(from: allWorks, modelContext: context)
         #expect(filtered.isEmpty, "Should return empty array for deleted works")
-        
+
         // TEST: searchWorks should handle deleted works gracefully
         let searchResults = service.searchWorks(allWorks, searchText: "Book", modelContext: context)
         #expect(searchResults.isEmpty, "Should return empty array for deleted works")
-        
+
         // TEST: calculateDiversityScore should handle deleted works gracefully
         let score = service.calculateDiversityScore(for: allWorks, modelContext: context)
         #expect(score == 0.0, "Should return 0.0 for deleted works")
     }
-    
+
     @Test("CulturalDiversityInsightsView calculations handle deleted authors gracefully")
     func testCulturalDiversityInsightsWithDeletedAuthors() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -179,50 +179,50 @@ struct LibraryResetCrashTests {
             configurations: config
         )
         let context = container.mainContext
-        
+
         // Create work with authors
         let work = Work(title: "Test Book")
         context.insert(work)
-        
+
         let author1 = Author(name: "Jane Doe", gender: .female, culturalRegion: .africa)
         let author2 = Author(name: "John Smith", gender: .male, culturalRegion: .northAmerica)
         context.insert(author1)
         context.insert(author2)
-        
+
         work.authors = [author1, author2]
-        
+
         try context.save()
-        
+
         // Keep references to works (simulating stale view state)
         let allWorks = [work]
-        
+
         // Verify authors exist
         #expect(work.authors?.count == 2)
-        
+
         // Simulate library reset - delete all authors
         context.delete(author1)
         context.delete(author2)
         try context.save()
-        
+
         // TEST: Accessing author.gender on deleted authors should be handled gracefully
         // This simulates calculateGenderStatistics() logic
         let allAuthors = allWorks.compactMap(\.authors).flatMap { $0 }
         var genderCounts: [AuthorGender: Int] = [:]
-        
+
         for author in allAuthors {
             // Defensive check (what our fix adds)
             if context.model(for: author.persistentModelID) as? Author != nil {
                 genderCounts[author.gender, default: 0] += 1
             }
         }
-        
+
         // Should have no counts since all authors are deleted
         #expect(genderCounts.isEmpty, "Should have no gender counts for deleted authors")
-        
+
         // TEST: Accessing author.culturalRegion on deleted authors should be handled gracefully
         // This simulates calculateRegionStatistics() logic
         var regionCounts: [CulturalRegion: Int] = [:]
-        
+
         for author in allAuthors {
             // Defensive check (what our fix adds)
             if context.model(for: author.persistentModelID) as? Author != nil {
@@ -231,10 +231,10 @@ struct LibraryResetCrashTests {
                 }
             }
         }
-        
+
         // Should have no counts since all authors are deleted
         #expect(regionCounts.isEmpty, "Should have no region counts for deleted authors")
-        
+
         // TEST: Accessing author.name during search should be handled gracefully
         // This simulates searchWorks() and searchLibrary() logic
         let searchResults = allWorks.filter { work in
@@ -250,7 +250,7 @@ struct LibraryResetCrashTests {
             }
             return false
         }
-        
+
         // Should return empty since all authors are deleted
         #expect(searchResults.isEmpty, "Should have no search results for deleted authors")
     }

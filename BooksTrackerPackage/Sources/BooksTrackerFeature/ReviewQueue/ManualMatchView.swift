@@ -14,12 +14,12 @@ import SwiftData
 @MainActor
 public struct ManualMatchView: View {
     @Bindable var work: Work
-    
+
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.iOS26ThemeStore) private var themeStore
     @Environment(\.dtoMapper) private var dtoMapper
-    
+
     @State private var searchModel: SearchModel?
     @State private var searchText: String = ""
     @State private var searchScope: SearchScope = .all
@@ -27,23 +27,23 @@ public struct ManualMatchView: View {
     @State private var isApplyingMatch = false
     @State private var showingConfirmation = false
     @State private var errorAlert: ErrorAlert?
-    
+
     private struct ErrorAlert: Identifiable {
         let id = UUID()
         let message: String
     }
-    
+
     public init(work: Work) {
         self.work = work
         _searchText = State(initialValue: work.title) // Pre-populate with work title
     }
-    
+
     public var body: some View {
         NavigationStack {
             ZStack {
                 themeStore.backgroundGradient
                     .ignoresSafeArea()
-                
+
                 if let searchModel = searchModel {
                     contentView(searchModel: searchModel)
                 } else {
@@ -87,22 +87,22 @@ public struct ManualMatchView: View {
             }
         }
     }
-    
+
     // MARK: - Content View
-    
+
     @ViewBuilder
     private func contentView(searchModel: SearchModel) -> some View {
         VStack(spacing: 0) {
             // Search header
             searchHeaderView(searchModel: searchModel)
-            
+
             // Search results
             searchResultsView(searchModel: searchModel)
         }
     }
-    
+
     // MARK: - Search Header
-    
+
     private func searchHeaderView(searchModel: SearchModel) -> some View {
         VStack(spacing: 16) {
             // Info banner
@@ -110,17 +110,17 @@ public struct ManualMatchView: View {
                 Image(systemName: "magnifyingglass.circle.fill")
                     .font(.title2)
                     .foregroundStyle(themeStore.primaryColor)
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Find the Correct Book")
                         .font(.subheadline.weight(.semibold))
-                    
+
                     Text("Search and select the right match for '\(work.title)'")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
-                
+
                 Spacer()
             }
             .padding()
@@ -128,12 +128,12 @@ public struct ManualMatchView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(.ultraThinMaterial)
             }
-            
+
             // Search field
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                
+
                 TextField("Search books...", text: Binding(
                     get: { searchModel.searchText },
                     set: { searchModel.searchText = $0 }
@@ -143,7 +143,7 @@ public struct ManualMatchView: View {
                 .onSubmit {
                     performSearch(searchModel: searchModel)
                 }
-                
+
                 if !searchModel.searchText.isEmpty {
                     Button {
                         searchModel.clearSearch()
@@ -158,7 +158,7 @@ public struct ManualMatchView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(.ultraThinMaterial)
             }
-            
+
             // Search scope picker
             Picker("Search Scope", selection: $searchScope) {
                 ForEach(SearchScope.allCases) { scope in
@@ -174,9 +174,9 @@ public struct ManualMatchView: View {
         }
         .padding()
     }
-    
+
     // MARK: - Search Results
-    
+
     @ViewBuilder
     private func searchResultsView(searchModel: SearchModel) -> some View {
         switch searchModel.viewState {
@@ -199,45 +199,45 @@ public struct ManualMatchView: View {
             errorView(message: message, searchModel: searchModel)
         }
     }
-    
+
     // MARK: - State Views
-    
+
     private var initialStateView: some View {
         VStack(spacing: 16) {
             Spacer()
-            
+
             Image(systemName: "book.circle")
                 .font(.system(size: 60))
                 .foregroundStyle(.secondary)
-            
+
             Text("Search to Find the Correct Book")
                 .font(.title3.weight(.medium))
-            
+
             Text("Enter a title, author, or ISBN to search")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            
+
             Spacer()
         }
         .padding()
     }
-    
+
     private var searchingStateView: some View {
         VStack(spacing: 16) {
             Spacer()
-            
+
             ProgressView()
                 .scaleEffect(1.5)
-            
+
             Text("Searching...")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            
+
             Spacer()
         }
     }
-    
+
     private func resultsListView(items: [SearchResult]) -> some View {
         ScrollView {
             LazyVStack(spacing: 12) {
@@ -252,68 +252,68 @@ public struct ManualMatchView: View {
             .padding()
         }
     }
-    
+
     private func noResultsView(query: String, searchModel: SearchModel) -> some View {
         VStack(spacing: 16) {
             Spacer()
-            
+
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 60))
                 .foregroundStyle(.secondary)
-            
+
             Text("No Results Found")
                 .font(.title3.weight(.medium))
-            
+
             Text("No books found for '\(query)'")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            
+
             Button("Try Different Search") {
                 searchModel.clearSearch()
             }
             .buttonStyle(.borderedProminent)
             .tint(themeStore.primaryColor)
-            
+
             Spacer()
         }
         .padding()
     }
-    
+
     private func errorView(message: String, searchModel: SearchModel) -> some View {
         VStack(spacing: 16) {
             Spacer()
-            
+
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 60))
                 .foregroundStyle(.orange)
-            
+
             Text("Search Error")
                 .font(.title3.weight(.medium))
-            
+
             Text(message)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            
+
             Button("Try Again") {
                 searchModel.retryLastSearch()
             }
             .buttonStyle(.borderedProminent)
             .tint(themeStore.primaryColor)
-            
+
             Spacer()
         }
         .padding()
     }
-    
+
     // MARK: - Logic
-    
+
     private func setupSearchModel() {
         if searchModel == nil, let dtoMapper = dtoMapper {
             let model = SearchModel(modelContext: modelContext, dtoMapper: dtoMapper)
             searchModel = model
-            
+
             // Auto-trigger initial search with work title
             if !searchText.isEmpty {
                 model.searchText = searchText
@@ -321,22 +321,22 @@ public struct ManualMatchView: View {
             }
         }
     }
-    
+
     private func performSearch(searchModel: SearchModel) {
         guard !searchModel.searchText.isEmpty else { return }
         searchModel.search(query: searchModel.searchText, scope: searchScope)
     }
-    
+
     /// Apply the selected match to replace the current work's data
     private func applyMatch(_ result: SearchResult) async {
         isApplyingMatch = true
-        
+
         // Update work with selected result's data
         work.title = result.work.title
         work.originalLanguage = result.work.originalLanguage
         work.firstPublicationYear = result.work.firstPublicationYear
         work.subjectTags = result.work.subjectTags
-        
+
         // Update external IDs for better deduplication
         work.openLibraryID = result.work.openLibraryID
         work.openLibraryWorkID = result.work.openLibraryWorkID
@@ -347,7 +347,7 @@ public struct ManualMatchView: View {
         work.goodreadsWorkIDs = result.work.goodreadsWorkIDs
         work.amazonASINs = result.work.amazonASINs
         work.librarythingIDs = result.work.librarythingIDs
-        
+
         // Update authors - proper SwiftData relationship management
         // Remove existing author relationships (doesn't delete Author entities)
         if let existingAuthors = work.authors {
@@ -356,10 +356,10 @@ public struct ManualMatchView: View {
             }
             work.authors = []
         }
-        
+
         // Add new authors (already inserted in context by SearchResult)
         work.authors = result.authors
-        
+
         // Update/replace editions - copy data, don't reassign entities
         // Keep existing user library entries but update edition metadata
         if let newPrimaryEdition = result.work.primaryEdition {
@@ -386,24 +386,24 @@ public struct ManualMatchView: View {
                 newEdition.isbns = newPrimaryEdition.isbns
                 newEdition.openLibraryID = newPrimaryEdition.openLibraryID
                 newEdition.googleBooksVolumeID = newPrimaryEdition.googleBooksVolumeID
-                
+
                 modelContext.insert(newEdition)
                 newEdition.work = work
             }
         }
-        
+
         // Mark as user-edited and verified
         work.reviewStatus = .userEdited
         work.synthetic = false // No longer synthetic after manual match
-        
+
         // Save changes
         do {
             try modelContext.save()
-            
+
             // Dismiss view
             isApplyingMatch = false
             dismiss()
-            
+
         } catch {
             // Show error to user
             #if DEBUG
@@ -420,9 +420,9 @@ public struct ManualMatchView: View {
 struct ManualMatchResultRow: View {
     let result: SearchResult
     let onSelect: () -> Void
-    
+
     @Environment(\.iOS26ThemeStore) private var themeStore
-    
+
     var body: some View {
         Button(action: onSelect) {
             HStack(spacing: 16) {
@@ -441,25 +441,25 @@ struct ManualMatchResultRow: View {
                 }
                 .frame(width: 60, height: 90)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
-                
+
                 // Book info
                 VStack(alignment: .leading, spacing: 6) {
                     Text(result.displayTitle)
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(.primary)
                         .lineLimit(2)
-                    
+
                     Text(result.displayAuthors)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
-                    
+
                     if let year = result.work.firstPublicationYear {
                         Text("Published \(year)")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
-                    
+
                     // Provider badge
                     HStack(spacing: 4) {
                         Image(systemName: "checkmark.circle.fill")
@@ -475,9 +475,9 @@ struct ManualMatchResultRow: View {
                             .fill(themeStore.primaryColor.opacity(0.15))
                     }
                 }
-                
+
                 Spacer()
-                
+
                 // Select indicator
                 Image(systemName: "arrow.right.circle")
                     .font(.title3)

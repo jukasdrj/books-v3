@@ -168,7 +168,7 @@ public struct RecentStrategy: EditionSelectionStrategy {
     /// For 100 editions, this reduces parsing time from ~50ms to ~5ms.
     private func yearFromPublicationDate(_ dateString: String?) -> Int {
         guard let dateString = dateString else { return 0 }
-        
+
         // Try each cached formatter
         for formatter in Self.cachedFormatters {
             if let date = formatter.date(from: dateString) {
@@ -176,10 +176,10 @@ public struct RecentStrategy: EditionSelectionStrategy {
                 return components.year ?? 0
             }
         }
-        
+
         // Fallback: Try to extract year directly from string (for backwards compatibility)
         let normalizedString = dateString.applyingTransform(.stripDiacritics, reverse: false) ?? dateString
-        
+
         // Use cached regex for year extraction
         let range = NSRange(location: 0, length: normalizedString.utf16.count)
         if let match = Self.yearRegex?.firstMatch(in: normalizedString, options: [], range: range),
@@ -187,13 +187,13 @@ public struct RecentStrategy: EditionSelectionStrategy {
            let year = Int(normalizedString[yearRange]) {
             return year
         }
-        
+
         #if DEBUG
         if dateString.count > 0 {
             print("⚠️ EditionSelectionStrategy: Unparseable date '\(dateString)' - defaulting to 0")
         }
         #endif
-        
+
         return 0  // Default for unparseable dates
     }
 }

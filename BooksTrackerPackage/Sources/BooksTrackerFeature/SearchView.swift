@@ -107,7 +107,7 @@ public struct SearchView: View {
 
     // Image prefetching
     @StateObject private var imagePrefetcher = ImagePrefetcher()
-    
+
     // MARK: - Computed Properties
 
     private var availableSearchScopes: [SearchScope] {

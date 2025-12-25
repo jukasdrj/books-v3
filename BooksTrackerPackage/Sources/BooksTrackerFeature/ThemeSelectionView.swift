@@ -63,28 +63,28 @@ public struct ThemeSelectionView: View {
                         Image(systemName: "icloud.fill")
                             .font(.title3)
                             .foregroundStyle(themeStore.primaryColor)
-                        
+
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Syncs Across Devices")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundColor(.white) // ✅ High contrast
-                            
+
                             Text("Your theme choice is saved to iCloud")
                                 .font(.caption)
                                 .foregroundColor(.white.opacity(0.7)) // ✅ Better contrast
                         }
                     }
-                    
+
                     HStack(spacing: 12) {
                         Image(systemName: "eye.fill")
                             .font(.title3)
                             .foregroundStyle(themeStore.primaryColor)
-                        
+
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Optimized for Accessibility")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundColor(.white) // ✅ High contrast
-                            
+
                             Text("All themes meet WCAG 2.1 Level AA standards")
                                 .font(.caption)
                                 .foregroundColor(.white.opacity(0.7)) // ✅ Better contrast

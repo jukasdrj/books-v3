@@ -118,11 +118,11 @@ public final class GenericWebSocketHandler {
                 } catch {
                     attempts += 1
                     logger.error("❌ GenericWebSocketHandler connection failed (\(self.pipeline.rawValue)), attempt \(attempts)/\(maxRetries): \(error.localizedDescription)")
-                    
+
                     // Clean up failed connection
                     webSocket.cancel(with: .abnormalClosure, reason: nil)
                     self.webSocket = nil
-                    
+
                     if attempts < maxRetries {
                         // Exponential backoff: 1s, 2s, 4s
                         let delay = pow(2.0, Double(attempts))

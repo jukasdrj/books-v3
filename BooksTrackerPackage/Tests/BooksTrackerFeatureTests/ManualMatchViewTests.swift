@@ -12,7 +12,7 @@ import SwiftData
 @Suite("Manual Match View Tests")
 @MainActor
 struct ManualMatchViewTests {
-    
+
     /// Test that ManualMatchView can be initialized with a Work
     @Test("ManualMatchView initialization")
     func testInitialization() async throws {
@@ -22,7 +22,7 @@ struct ManualMatchViewTests {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let context = container.mainContext
-        
+
         let author = Author(name: "Test Author")
         let work = Work(
             title: "Test Book",
@@ -30,21 +30,21 @@ struct ManualMatchViewTests {
             firstPublicationYear: 2024
         )
         work.reviewStatus = .needsReview
-        
+
         context.insert(author)
         context.insert(work)
         work.authors = [author]
-        
+
         try context.save()
-        
+
         // Act - Create view (just verify it doesn't crash)
         let view = ManualMatchView(work: work)
-        
+
         // Assert
         #expect(view.work.title == "Test Book")
         #expect(view.work.reviewStatus == .needsReview)
     }
-    
+
     /// Test that applying a match updates Work metadata
     @Test("Apply match updates work")
     func testApplyMatchUpdatesWork() async throws {
@@ -54,7 +54,7 @@ struct ManualMatchViewTests {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let context = container.mainContext
-        
+
         // Original work with missing data
         let originalAuthor = Author(name: "Unknown")
         let originalWork = Work(
@@ -63,11 +63,11 @@ struct ManualMatchViewTests {
             firstPublicationYear: nil
         )
         originalWork.reviewStatus = .needsReview
-        
+
         context.insert(originalAuthor)
         context.insert(originalWork)
         originalWork.authors = [originalAuthor]
-        
+
         // Create a "matched" work with complete data
         let matchedAuthor = Author(name: "Complete Author")
         let matchedWork = Work(
@@ -77,11 +77,11 @@ struct ManualMatchViewTests {
         )
         matchedWork.googleBooksVolumeID = "abc123"
         matchedWork.openLibraryID = "OL123"
-        
+
         context.insert(matchedAuthor)
         context.insert(matchedWork)
         matchedWork.authors = [matchedAuthor]
-        
+
         // Create edition for matched work
         let edition = Edition(
             isbn: "9781234567890",
@@ -93,9 +93,9 @@ struct ManualMatchViewTests {
         )
         context.insert(edition)
         edition.work = matchedWork
-        
+
         try context.save()
-        
+
         // Act - Simulate applying match by copying data
         originalWork.title = matchedWork.title
         originalWork.originalLanguage = matchedWork.originalLanguage
@@ -105,9 +105,9 @@ struct ManualMatchViewTests {
         originalWork.authors = [matchedAuthor]
         originalWork.reviewStatus = .userEdited
         originalWork.synthetic = false
-        
+
         try context.save()
-        
+
         // Assert
         #expect(originalWork.title == "Complete Book")
         #expect(originalWork.originalLanguage == "English")
@@ -119,7 +119,7 @@ struct ManualMatchViewTests {
         #expect(originalWork.reviewStatus == .userEdited)
         #expect(originalWork.synthetic == false)
     }
-    
+
     /// Test that manual matching preserves user library entries
     @Test("Apply match preserves library entries")
     func testApplyMatchPreservesLibraryEntries() async throws {
@@ -129,7 +129,7 @@ struct ManualMatchViewTests {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let context = container.mainContext
-        
+
         // Create work with user library entry
         let author = Author(name: "Test Author")
         let work = Work(
@@ -144,13 +144,13 @@ struct ManualMatchViewTests {
             pageCount: 200,
             format: .paperback
         )
-        
+
         context.insert(author)
         context.insert(work)
         context.insert(edition)
         work.authors = [author]
         edition.work = work
-        
+
         // Create user library entry
         let entry = UserLibraryEntry(readingStatus: ReadingStatus.reading)
         entry.personalRating = 4.5

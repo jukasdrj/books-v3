@@ -7,12 +7,12 @@ import Foundation
 public struct ConfidenceThresholds {
     /// High confidence threshold (80%+) - Books are auto-confirmed
     public static let high: Double = 0.8
-    
+
     /// Medium confidence threshold (60-79%) - Books require review
     public static let medium: Double = 0.6
-    
+
     /// Low confidence (<60%) - Books sent to review queue with explanation
     // Implicit: anything below medium is low
-    
+
     private init() {} // Prevent instantiation
 }

@@ -16,21 +16,21 @@ extension SearchView {
         @Bindable var searchModel: SearchModel
         let imagePrefetcher: ImagePrefetcher
         @Environment(\.iOS26ThemeStore) private var themeStore
-        
+
         let onBookSelected: (SearchResult) -> Void
         let onBookTapped: (SearchResult, EditionComparisonData?) -> Void
         let onLoadMore: () -> Void
-        
+
         @State private var showBackToTop = false
         @State private var scrollPosition = ScrollPosition()
-        
+
         var body: some View {
             ZStack(alignment: .bottomTrailing) {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         // Results header
                         resultsHeader
-                        
+
                         // Results list with accessibility
                         ForEach(Array(items.enumerated()), id: \.element.id) { index, result in
                             Button {
@@ -89,7 +89,7 @@ extension SearchView {
                 imagePrefetcher.cancelPrefetching()
             }
         }
-        
+
         private var resultsHeader: some View {
             HStack {
                 Text("\(items.count) results")
@@ -113,7 +113,7 @@ extension SearchView {
             .padding(.horizontal, 20)
             .padding(.top, 16)
         }
-        
+
         // HIG: Clear loading indicator for pagination
         private var loadMoreIndicator: some View {
             HStack(spacing: 12) {
@@ -149,7 +149,7 @@ extension SearchView {
             ))
             .accessibilityLabel("Scroll to top")
         }
-        
+
         private func handleBookTap(_ result: SearchResult) {
             if result.isInLibrary {
                 // Try edition comparison first
@@ -165,7 +165,7 @@ extension SearchView {
                     // ✅ Fallback: Navigate to existing library entry
                     // This handles edge cases where isInLibrary=true but edition data is missing
                     onBookSelected(result)
-                    
+
                     #if DEBUG
                     // Log edge cases for debugging data integrity issues
                     if result.work.userLibraryEntries?.first == nil {
@@ -181,7 +181,7 @@ extension SearchView {
                 onBookSelected(result)
             }
         }
-        
+
         /// Prefetches images for upcoming search results to improve scrolling performance.
         /// Now prefetches during normal scrolling, not just at the end of the list.
         private func prefetchImages(for items: [SearchResult], currentIndex: Int) {
