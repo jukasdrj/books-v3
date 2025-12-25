@@ -2,9 +2,7 @@
 
 **Status:** [Draft | Review | Approved | Shipped]
 **Owner:** [Product Manager / Team Lead]
-**Engineering Lead:** [iOS Developer]
-**Design Lead:** [UI/UX Designer (if applicable)]
-**Target Release:** [Build Number / Date]
+**Target Release:** [Version / Date]
 **Last Updated:** [Date]
 
 ---
@@ -26,7 +24,7 @@
 [Describe the specific user frustration, workflow inefficiency, or unmet need this feature addresses.]
 
 **Example:**
-> "Users with large book collections (100+ books) spend hours manually entering each book into BooksTrack. This creates friction during onboarding and prevents users from experiencing the app's value quickly."
+> "Users with large book collections (100+ books) spend hours manually entering each book. This creates friction during onboarding and prevents users from experiencing the app's value quickly."
 
 ### Current Experience
 
@@ -34,27 +32,22 @@
 
 [Describe existing workarounds, competitor solutions, or manual processes users employ today.]
 
-**Example:**
-> "Users either manually search and add books one-by-one (tedious for 100+ books) or skip digital tracking entirely, relying on physical shelves or spreadsheets."
-
 ---
 
 ## Target Users
 
 ### Primary Persona
 
-**Who is this feature primarily for?**
-
 | Attribute | Description |
 |-----------|-------------|
 | **User Type** | [e.g., Avid readers, collectors, students] |
 | **Usage Frequency** | [e.g., Daily, weekly, monthly] |
 | **Tech Savvy** | [Low / Medium / High] |
-| **Primary Goal** | [What they want to achieve with BooksTrack] |
+| **Primary Goal** | [What they want to achieve] |
 
 **Example User Story:**
 
-> "As a **book collector with 500+ books on shelves**, I want to **bulk import my existing library** so that I can **start tracking new reads without manual data entry**."
+> "As a **book collector with 500+ books**, I want to **bulk import my existing library** so that I can **start tracking new reads without manual data entry**."
 
 ---
 
@@ -62,20 +55,13 @@
 
 ### Key Performance Indicators (KPIs)
 
-**How will we measure success?**
-
 | Metric | Target | Measurement Method |
 |--------|--------|-------------------|
-| **Adoption Rate** | [X%] of users try feature within 30 days | Analytics event tracking |
+| **Adoption Rate** | [X%] of users try feature within 30 days | Analytics |
 | **Completion Rate** | [X%] of users complete workflow | Conversion funnel |
 | **Performance** | [Response time / processing speed] | Instrumentation |
 | **Accuracy** | [X%] success rate (if applicable) | Quality metrics |
-| **User Satisfaction** | [X/5 stars or NPS score] | In-app survey / App Store reviews |
-
-**Example:**
-> - **Adoption:** 40% of new users import CSV within first session
-> - **Performance:** Import 100 books in <60 seconds
-> - **Accuracy:** 90%+ metadata enrichment success rate
+| **User Satisfaction** | [X/5 stars or NPS score] | Surveys / Reviews |
 
 ---
 
@@ -94,16 +80,6 @@
 - [ ] Given [context], when [action], then [expected outcome]
 - [ ] Edge case: Given [unusual context], system should [handle gracefully]
 
-**Example:**
-> **As a** Goodreads user
-> **I want to** import my CSV export
-> **So that** I don't have to manually re-enter 500 books
->
-> **Acceptance Criteria:**
-> - [ ] Given a valid Goodreads CSV file, when I select it in the file picker, then the app auto-detects column mappings
-> - [ ] Given 500 books in the CSV, when import starts, then all books are processed in <5 minutes
-> - [ ] Given duplicate books already in library, when using "Smart" strategy, then metadata is merged without creating duplicates
-
 ---
 
 ### Should-Have (P1) - Enhanced Experience
@@ -114,7 +90,7 @@
 
 ### Nice-to-Have (P2) - Future Enhancements
 
-[Repeat user story format for low-priority or future iteration features]
+[List future iteration features as bullet points]
 
 ---
 
@@ -122,7 +98,7 @@
 
 ### High-Level Flow
 
-**What is the end-to-end user journey?**
+**End-to-end user journey:**
 
 ```mermaid
 flowchart TD
@@ -135,8 +111,6 @@ flowchart TD
     PathB --> End
 ```
 
-[Replace with actual Mermaid diagram or reference existing workflow doc]
-
 **OR link to existing workflow:**
 > See `docs/workflows/[feature]-workflow.md` for detailed flow diagrams.
 
@@ -148,24 +122,11 @@ flowchart TD
 
 **Description:** [What this sub-feature does]
 
-**Technical Requirements:**
+**Requirements:**
 - **Input:** [What data/input is required]
 - **Processing:** [How the system processes it]
 - **Output:** [What the user sees/receives]
 - **Error Handling:** [How errors are surfaced and recovered]
-
-**Example:**
-> **Auto-Detect CSV Format**
-> - **Input:** CSV file from file picker
-> - **Processing:** Parse first 5 rows, match column names against known formats (Goodreads, LibraryThing, StoryGraph)
-> - **Output:** Display detected format and preview of first 3 books
-> - **Error Handling:** If format unknown, show manual mapping UI
-
----
-
-#### [Sub-Feature 2 Name]
-
-[Repeat specification format]
 
 ---
 
@@ -178,33 +139,23 @@ flowchart TD
 | **Response Time** | [X ms/s] | [Why this matters] |
 | **Memory Usage** | [X MB] | [Device constraints] |
 | **Battery Impact** | [Minimal / Moderate] | [User expectations] |
-| **Network Usage** | [X MB per operation] | [Data plan considerations] |
-
-**Example:**
-> - **Processing Time:** Import 100 books in <30 seconds (users won't wait longer)
-> - **Memory Usage:** <200MB peak for 1500 book import (avoid crashes on older devices)
 
 ---
 
 ### Reliability
 
 - **Error Rate:** [Target X% success rate]
-- **Offline Support:** [Required / Not Required]
+- **Offline Support:** [Required / Not Required / Partial]
 - **Data Integrity:** [How data consistency is ensured]
-
-**Example:**
-> - **Error Rate:** 90%+ enrichment success (with title normalization)
-> - **Offline Support:** Not required (network needed for metadata enrichment)
-> - **Data Integrity:** Atomic SwiftData transactions prevent partial imports
 
 ---
 
 ### Accessibility (WCAG AA Compliance)
 
-- [ ] VoiceOver labels on all interactive elements
-- [ ] Color contrast ratio ≥ 4.5:1 for text
-- [ ] Dynamic Type support (system font scaling)
-- [ ] Keyboard navigation (iPad support)
+- [ ] Screen reader labels on all interactive elements
+- [ ] Color contrast ratio >= 4.5:1 for text
+- [ ] Dynamic text sizing support
+- [ ] Keyboard/controller navigation
 - [ ] Reduced motion option (for animations)
 
 ---
@@ -215,11 +166,6 @@ flowchart TD
 - **API Security:** [How are backend calls authenticated?]
 - **Privacy Considerations:** [What data is collected/shared?]
 
-**Example:**
-> - **Data Storage:** All books stored locally in SwiftData (CloudKit sync optional)
-> - **API Security:** HTTPS-only, no authentication required for public search endpoints
-> - **Privacy:** Uploaded bookshelf photos processed server-side but not stored permanently
-
 ---
 
 ## Design & User Experience
@@ -228,93 +174,84 @@ flowchart TD
 
 [Include screenshots, Figma links, or references to design assets]
 
-**Example:**
-> See Figma: [Link to design file]
-> Screenshots: `docs/designs/[feature]-mockups/`
-
 ---
 
-### iOS 26 HIG Compliance
+### Design System Compliance
 
-- [ ] Liquid Glass design system (`.ultraThinMaterial` backgrounds)
-- [ ] Theme-aware gradient (uses `iOS26ThemeStore.primaryColor`)
-- [ ] Standard corner radius (16pt for cards)
-- [ ] System semantic colors (`.primary`, `.secondary`, `.tertiary`)
-- [ ] Proper navigation patterns (push vs sheet vs modal)
+- [ ] Uses standard design system components
+- [ ] Follows platform-specific guidelines (iOS HIG / Material Design / etc.)
+- [ ] Theme-aware colors (light/dark mode)
+- [ ] Standard spacing and corner radius
+- [ ] Proper navigation patterns
 
 ---
 
 ### User Feedback & Affordances
 
-**How does the system communicate state to the user?**
-
 | State | Visual Feedback | Example |
 |-------|----------------|---------|
 | **Loading** | Progress indicator | Spinner with "Processing..." |
 | **Success** | Confirmation message | Checkmark + "100 books imported" |
-| **Error** | Clear error message + recovery action | "Import failed - check file format" + Retry button |
+| **Error** | Clear error message + recovery | "Import failed" + Retry button |
 | **Empty State** | Helpful guidance | "Tap + to import your first CSV" |
 
 ---
 
-## Technical Architecture
+## Data Models
 
-### System Components
+### Core Entities
 
-**What new/modified components are required?**
+**Use platform-agnostic format (TypeScript/JSON style):**
 
-| Component | Type | Responsibility | File Location |
-|-----------|------|---------------|---------------|
-| **[ComponentName]** | [View / Model / Service] | [What it does] | `path/to/file.swift` |
-
-**Example:**
-> | Component | Type | Responsibility | File Location |
-> |-----------|------|---------------|---------------|
-> | **CSVParsingActor** | @globalActor Service | High-performance CSV parsing | `CSVParsingActor.swift` |
-> | **CSVImportFlowView** | SwiftUI View | Multi-step import wizard UI | `CSVImportFlowView.swift` |
-
----
-
-### Data Model Changes
-
-**What SwiftData models are added/modified?**
-
-```swift
-// Example: New @Model or modifications to existing Work model
-@Model
-public class ImportJob {
-    public var id: UUID
-    public var status: ImportStatus
-    public var totalBooks: Int
-    public var processedBooks: Int
-    public var createdAt: Date
+```typescript
+interface ExampleModel {
+  id: string;           // UUID
+  name: string;         // Required
+  description?: string; // Optional
+  createdAt: Date;
+  status: 'pending' | 'active' | 'completed';
+  items: ExampleItem[]; // One-to-many relationship
 }
+```
+
+### Relationships
+
+```
+Entity1 1:many Entity2
+Entity1 many:many Entity3
 ```
 
 ---
 
-### API Contracts
+## API Contracts
 
-**What backend endpoints are required?**
+### Endpoints
 
 | Endpoint | Method | Purpose | Request | Response |
 |----------|--------|---------|---------|----------|
-| `/api/[endpoint]` | GET/POST | [What it does] | [Payload] | [Response structure] |
+| `/api/[endpoint]` | GET/POST | [What it does] | [Payload] | [Response] |
 
-**Example:**
-> | Endpoint | Method | Purpose | Request | Response |
-> |----------|--------|---------|---------|----------|
-> | `/search/title` | GET | Book metadata search | `?q={title}` | `[SearchResult]` JSON |
+### Request/Response Examples
 
----
+```json
+// GET /api/example
+{
+  "success": true,
+  "data": { ... },
+  "meta": {
+    "timestamp": "2025-01-01T00:00:00Z",
+    "processingTime": 150
+  }
+}
+```
 
-### Dependencies
+### Error Codes
 
-**What libraries/frameworks are needed?**
-
-- **iOS:** [SwiftData, AVFoundation, etc.]
-- **Backend:** [Cloudflare Workers, Durable Objects, etc.]
-- **External APIs:** [Google Books API, OpenLibrary, etc.]
+| Code | HTTP Status | Meaning |
+|------|-------------|---------|
+| `INVALID_INPUT` | 400 | Invalid request parameters |
+| `NOT_FOUND` | 404 | Resource not found |
+| `RATE_LIMIT` | 429 | Too many requests |
 
 ---
 
@@ -322,73 +259,37 @@ public class ImportJob {
 
 ### Unit Tests
 
-**What needs automated test coverage?**
-
-- [ ] [Component/function to test] - [Expected behavior]
+- [ ] [Component/function] - [Expected behavior]
 - [ ] [Edge case] - [Expected handling]
-
-**Example:**
-> - [ ] Title normalization - Strips series markers correctly
-> - [ ] Duplicate detection - Matches title + author accurately
-> - [ ] Empty CSV - Shows appropriate error message
-
----
 
 ### Integration Tests
 
-**What end-to-end flows need validation?**
-
 - [ ] [User flow] from [start] to [end]
-
-**Example:**
-> - [ ] Import 100-book CSV → All books inserted → Enrichment queue populated
-
----
 
 ### Manual QA Checklist
 
-**What should be manually tested before launch?**
-
-- [ ] Real device testing (iPhone/iPad)
-- [ ] Different iOS versions (26.0+)
-- [ ] Edge cases (empty files, malformed data, network failures)
-- [ ] Accessibility (VoiceOver, Dynamic Type)
-- [ ] Performance under load (1500 book import)
+- [ ] Real device testing
+- [ ] Edge cases (empty data, network failures)
+- [ ] Accessibility (screen reader, large text)
+- [ ] Performance under load
 
 ---
 
 ## Rollout Plan
 
-### Phased Release (if applicable)
+### Phased Release
 
-| Phase | Audience | Features Enabled | Success Criteria | Timeline |
-|-------|----------|------------------|------------------|----------|
-| **Alpha** | Internal team | Core functionality | Zero crashes | Week 1-2 |
-| **Beta** | TestFlight users | Full feature set | 90%+ success rate | Week 3-4 |
-| **GA** | All users | Production-ready | <1% error rate | Week 5 |
-
----
-
-### Feature Flags
-
-**Are there toggles to control rollout?**
-
-```swift
-// Example: FeatureFlags.swift
-public static var enableCSVImport: Bool {
-    return UserDefaults.standard.bool(forKey: "feature_csv_import")
-}
-```
-
----
+| Phase | Audience | Features Enabled | Success Criteria |
+|-------|----------|------------------|------------------|
+| **Alpha** | Internal team | Core functionality | Zero crashes |
+| **Beta** | Test users | Full feature set | 90%+ success rate |
+| **GA** | All users | Production-ready | <1% error rate |
 
 ### Rollback Plan
 
-**If the feature causes issues, how do we revert?**
-
-1. **Disable feature flag** → Hide UI entry points
-2. **Backend rollback** → Revert Cloudflare Worker deployment
-3. **Data migration** → [If schema changes were made, how to roll back?]
+1. **Disable feature** - Hide UI entry points
+2. **Backend rollback** - Revert API deployment
+3. **Data migration** - [If schema changes, how to revert]
 
 ---
 
@@ -396,19 +297,18 @@ public static var enableCSVImport: Bool {
 
 **Pre-Launch:**
 - [ ] All P0 acceptance criteria met
-- [ ] Unit tests passing (90%+ coverage)
-- [ ] Manual QA completed (checklist above)
+- [ ] Unit tests passing
+- [ ] Manual QA completed
 - [ ] Performance benchmarks validated
-- [ ] iOS 26 HIG compliance review
-- [ ] Accessibility audit (VoiceOver, contrast)
+- [ ] Accessibility audit
 - [ ] Analytics events instrumented
-- [ ] Documentation updated (CLAUDE.md, feature docs)
+- [ ] Documentation updated
 
 **Post-Launch:**
-- [ ] Monitor analytics for adoption rate
-- [ ] Track error rates (Sentry/Crashlytics)
-- [ ] Collect user feedback (App Store reviews, support tickets)
-- [ ] Measure success metrics (KPIs table above)
+- [ ] Monitor analytics for adoption
+- [ ] Track error rates
+- [ ] Collect user feedback
+- [ ] Measure success metrics
 
 ---
 
@@ -416,37 +316,78 @@ public static var enableCSVImport: Bool {
 
 ### Unresolved Decisions
 
-**What still needs to be decided?**
-
-- [ ] [Question 1] - **Owner:** [Name] - **Due:** [Date]
-- [ ] [Question 2] - **Owner:** [Name] - **Due:** [Date]
-
-**Example:**
-> - [ ] Should we support Excel (.xlsx) files in addition to CSV? - **Owner:** Product - **Due:** Oct 30
-> - [ ] What's the maximum file size limit? - **Owner:** Engineering - **Due:** Nov 1
-
----
+- [ ] [Question] - **Owner:** [Name] - **Due:** [Date]
 
 ### Known Risks
 
-| Risk | Impact | Probability | Mitigation Plan |
-|------|--------|-------------|-----------------|
-| [Risk description] | [High/Med/Low] | [High/Med/Low] | [How to address] |
+| Risk | Impact | Probability | Mitigation |
+|------|--------|-------------|------------|
+| [Description] | High/Med/Low | High/Med/Low | [Plan] |
 
-**Example:**
-> | Risk | Impact | Probability | Mitigation Plan |
-> |------|--------|-------------|-----------------|
-> | API rate limits exceed quota | High | Medium | Implement client-side caching + backoff |
-> | Users export invalid CSV formats | Medium | High | Auto-detect + manual mapping fallback |
+---
+
+## Platform Implementation Notes
+
+### iOS Implementation
+
+**Status:** [Not Started | In Progress | Completed]
+
+**Key Files:**
+- `path/to/MainView.swift` - [Purpose]
+- `path/to/Service.swift` - [Purpose]
+
+**Platform-Specific Considerations:**
+- [iOS-specific APIs or patterns used]
+- [Framework dependencies: VisionKit, CloudKit, etc.]
+- [iOS version requirements]
+
+---
+
+### Flutter Implementation
+
+**Status:** [Not Started | In Progress | Completed]
+
+**Key Files:**
+- `lib/features/[feature]/` - [Purpose]
+- `lib/services/[service].dart` - [Purpose]
+
+**Platform-Specific Considerations:**
+- [Flutter packages required]
+- [Platform channels needed]
+- [Minimum SDK versions]
+
+---
+
+### Android Implementation
+
+**Status:** [Not Started | In Progress | Completed]
+
+**Key Files:**
+- `app/src/main/java/.../` - [Purpose]
+
+**Platform-Specific Considerations:**
+- [Android-specific APIs]
+- [Minimum API level]
 
 ---
 
 ## Related Documentation
 
 - **Workflow Diagram:** `docs/workflows/[feature]-workflow.md`
-- **Technical Implementation:** `docs/features/[FEATURE].md`
-- **API Documentation:** `cloudflare-workers/README.md`
-- **Design Specs:** [Figma link or design doc]
+- **Technical Spec:** `docs/features/[FEATURE].md`
+- **API Documentation:** [Link to API docs]
+
+---
+
+## Decision Log
+
+### [Date] Decision: [Title]
+
+**Context:** [Why this decision was needed]
+**Decision:** [What was decided]
+**Rationale:** [Why this approach was chosen]
+**Alternatives Considered:** [Other options]
+**Outcome:** [Result]
 
 ---
 
@@ -456,14 +397,7 @@ public static var enableCSVImport: Bool {
 |------|--------|--------|
 | [Date] | Initial draft | [Name] |
 | [Date] | Added acceptance criteria | [Name] |
-| [Date] | Final approval for Build X | [Name] |
-
-**Example:**
-> | Date | Change | Author |
-> |------|--------|--------|
-> | Oct 15, 2025 | Initial draft | Product Team |
-> | Oct 18, 2025 | Added performance benchmarks | Engineering |
-> | Oct 20, 2025 | Approved for Build 45 | PM |
+| [Date] | Platform-agnostic refactor | [Name] |
 
 ---
 
