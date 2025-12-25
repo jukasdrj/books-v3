@@ -115,7 +115,7 @@ Users rely on manual title search, which:
 #### US-4: Multi-Barcode Detection
 
 **As a** user with a book that has multiple barcodes
-**I want to** the app to pick the ISBN barcode automatically
+**I want** the app to pick the ISBN barcode automatically
 **So that** I don't have to cover up other barcodes
 
 **Acceptance Criteria:**

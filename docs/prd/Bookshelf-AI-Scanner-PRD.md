@@ -119,7 +119,7 @@ Without AI scanning, users must:
 #### US-4: Enrichment After Save
 
 **As a** user who just scanned a shelf
-**I want to** books automatically enriched with covers and metadata
+**I want** books to be automatically enriched with covers and metadata
 **So that** my library looks complete without manual work
 
 **Acceptance Criteria:**

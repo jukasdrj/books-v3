@@ -121,7 +121,7 @@ For users with 500 books, this is 10+ hours of manual work.
 #### US-4: Provider Fallback Chain
 
 **As a** user searching for obscure books
-**I want to** the app to check multiple sources automatically
+**I want** the app to check multiple sources automatically
 **So that** rare books are still found
 
 **Acceptance Criteria:**
