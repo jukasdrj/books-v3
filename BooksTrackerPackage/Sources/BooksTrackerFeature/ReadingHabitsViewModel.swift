@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 
+@MainActor
 @Observable
 class ReadingHabitsViewModel {
     private var readingSessions: [ReadingSession]
@@ -25,10 +26,10 @@ class ReadingHabitsViewModel {
 
     /// Calculates the current reading streak in days.
     var readingStreak: Int {
-        guard !readingSessions.isEmpty else { return 0 }
+        guard let lastSession = readingSessions.last else { return 0 }
 
         var streak = 1
-        var lastDate = readingSessions.last!.date
+        var lastDate = lastSession.date
 
         for session in readingSessions.reversed().dropFirst() {
             let day1 = Calendar.current.startOfDay(for: session.date)

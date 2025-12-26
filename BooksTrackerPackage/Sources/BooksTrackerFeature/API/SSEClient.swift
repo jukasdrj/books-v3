@@ -44,6 +44,15 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
     private var currentEventName: String?
     private var currentEventData: [String] = []
 
+    // Static regex for line splitting - computed once, guaranteed valid pattern
+    private static let lineSeparatorRegex: NSRegularExpression = {
+        // Pattern is statically known to be valid; this only runs once at app launch
+        guard let regex = try? NSRegularExpression(pattern: "\\r\\n?|\\n", options: []) else {
+            fatalError("SSEClient: Invalid line separator regex pattern - this is a programmer error")
+        }
+        return regex
+    }()
+
     /// Initializes the SSEClient.
     /// - Parameters:
     ///   - url: The URL of the SSE endpoint.
@@ -258,7 +267,7 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
         buffer += string
 
         // Use a regex to robustly split by newlines (\r, \n, \r\n) while keeping empty lines.
-        let lineSeparatorRegex = try! NSRegularExpression(pattern: "\\r?\\n", options: [])
+        let lineSeparatorRegex = Self.lineSeparatorRegex
         var lastRange = NSRange(buffer.startIndex..<buffer.startIndex, in: buffer)
         var lines: [String] = []
 
