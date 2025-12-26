@@ -1,9 +1,26 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "customInstructions": "CRITICAL: Safe Testing Policy - ALWAYS use /quick-validate instead of /build. NEVER use /sim (use /sim-safe or /device-deploy). When user requests testing, default to safe validation workflow (see CLAUDE.md Safe Testing section).",
+  "customInstructions": "CRITICAL: Safe Testing Policy - ALWAYS use /quick-validate instead of /build. NEVER use /sim (use /sim-safe or /device-deploy). Memory rules auto-load context based on keywords. Use shared knowledge base (~/.claude/knowledge-base/) for cross-repo patterns.",
   "attribution": {
-    "commit": "🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>",
-    "pr": "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+    "commit": {
+      "footer": "🤖 Generated with [Claude Code](https://claude.com/claude-code)",
+      "trailer": "Co-Authored-By: Claude <noreply@anthropic.com>"
+    },
+    "pr": {
+      "footer": "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+    }
+  },
+  "memoryRules": {
+    "enabled": true,
+    "autoLoad": true,
+    "triggerKeywords": {
+      "safe-testing.md": ["test", "build", "run", "validate", "simulator"],
+      "swift-concurrency.md": ["@Observable", "@MainActor", "actors", "SwiftData"],
+      "multi-agent-workflows.md": ["workflow", "multi-agent", "delegation", "parallel", "background"],
+      "git-workflows.md": ["commit", "git", "pull request", "pr", "attribution"],
+      "claude-code-patterns.md": ["claude code", "settings", "hooks", "sessions"],
+      "swiftlint-integration.md": ["swiftlint", "linting", "code quality", "architecture rules"]
+    }
   },
   "fileSuggestion": {
     "type": "command",
@@ -144,5 +161,25 @@
     "wakeOnMessage": true
   },
   "spinnerTipsEnabled": true,
-  "verbose": false
+  "verbose": false,
+  "sharedKnowledgeBase": {
+    "enabled": true,
+    "location": "~/.claude/knowledge-base",
+    "autoSync": true,
+    "patterns": ["patterns", "architectures", "debugging", "decisions"]
+  },
+  "modernFeatures": {
+    "modelSwitching": {
+      "enabled": true,
+      "shortcut": "option+p"
+    },
+    "namedSessions": {
+      "enabled": true,
+      "autoName": false
+    },
+    "usageStats": {
+      "enabled": true,
+      "trackStreaks": true
+    }
+  }
 }
