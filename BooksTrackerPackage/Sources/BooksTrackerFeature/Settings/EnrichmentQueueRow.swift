@@ -4,18 +4,28 @@ import SwiftData
 struct EnrichmentQueueRow: View {
     let workId: PersistentIdentifier
     @Environment(\.modelContext) private var modelContext
-    @State private var work: Work?
+
+    /// Computed property ensures we always get fresh data from SwiftData context
+    private var work: Work? {
+        modelContext.model(for: workId) as? Work
+    }
 
     var body: some View {
-        LabeledContent {
-            ProgressView()
-                .scaleEffect(0.8)
-        } label: {
-            Text(work?.title ?? "Loading book...")
-        }
-        .task {
-            // Fetch the work object when the view appears
-            work = modelContext.model(for: workId) as? Work
+        if let work {
+            LabeledContent {
+                ProgressView()
+                    .scaleEffect(0.8)
+            } label: {
+                Text(work.title)
+            }
+        } else {
+            LabeledContent {
+                Image(systemName: "xmark.circle")
+                    .foregroundStyle(.secondary)
+            } label: {
+                Text("Book no longer available")
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 }

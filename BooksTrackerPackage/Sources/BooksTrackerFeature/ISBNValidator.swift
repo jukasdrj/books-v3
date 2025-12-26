@@ -47,9 +47,9 @@ public struct ISBNValidator {
             return cleanValue
         } else if cleanValue.count == 10 {
             let first9 = cleanValue.prefix(9)
-            guard first9.allSatisfy({ $0.isNumber }) else { return nil }
+            guard first9.allSatisfy({ $0.isNumber }),
+                  let lastChar = cleanValue.last else { return nil }
 
-            let lastChar = cleanValue.last!
             if lastChar == "X" {
                 // ISBN-10 ending in X: convert to ISBN-13
                 // Formula: prepend 978, recalculate check digit
