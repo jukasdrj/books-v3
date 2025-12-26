@@ -47,7 +47,7 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
     // Static regex for line splitting - computed once, guaranteed valid pattern
     private static let lineSeparatorRegex: NSRegularExpression = {
         // Pattern is statically known to be valid; this only runs once at app launch
-        guard let regex = try? NSRegularExpression(pattern: "\\r?\\n", options: []) else {
+        guard let regex = try? NSRegularExpression(pattern: "\\r\\n?|\\n", options: []) else {
             fatalError("SSEClient: Invalid line separator regex pattern - this is a programmer error")
         }
         return regex
