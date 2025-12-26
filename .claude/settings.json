@@ -2,13 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "customInstructions": "CRITICAL: Safe Testing Policy - ALWAYS use /quick-validate instead of /build. NEVER use /sim (use /sim-safe or /device-deploy). Memory rules auto-load context based on keywords. Use shared knowledge base (~/.claude/knowledge-base/) for cross-repo patterns.",
   "attribution": {
-    "commit": {
-      "footer": "🤖 Generated with [Claude Code](https://claude.com/claude-code)",
-      "trailer": "Co-Authored-By: Claude <noreply@anthropic.com>"
-    },
-    "pr": {
-      "footer": "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
-    }
+    "commit": "🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>",
+    "pr": "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
   },
   "memoryRules": {
     "enabled": true,
@@ -77,8 +72,9 @@
   },
   "respectGitIgnore": true,
   "env": {
-    "MAX_MCP_OUTPUT_TOKENS": "50000",
-    "CLAUDE_CODE_SUBAGENT_PARALLEL": "true"
+    "MAX_MCP_OUTPUT_TOKENS": "25000",
+    "CLAUDE_CODE_SUBAGENT_PARALLEL": "true",
+    "MCP_CONTEXT_OPTIMIZATION": "true"
   },
   "permissions": {
     "rules": [
@@ -181,5 +177,11 @@
       "enabled": true,
       "trackStreaks": true
     }
+  },
+  "mcpOptimization": {
+    "enabled": true,
+    "compactDescriptions": true,
+    "hideUnusedTools": true,
+    "contextTokenLimit": 25000
   }
 }
