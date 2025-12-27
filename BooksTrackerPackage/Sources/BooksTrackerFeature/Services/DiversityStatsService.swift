@@ -216,6 +216,35 @@ public final class DiversityStatsService {
     ///   - entryId: PersistentIdentifier of the UserLibraryEntry to update
     ///   - dimension: Dimension name ("culturalOrigins", "genderDistribution", "translationStatus", "ownVoicesCount", "accessibilityTags")
     ///   - value: The value to set for the dimension
+    /// Finds a work in the library that is missing diversity metadata
+    /// Used for Progressive Profiling flow
+    /// - Returns: A Work object that needs profiling, or nil if all works are complete
+    public func findNextWorkForProfiling() -> Work? {
+        // Fetch all library entries
+        // Note: For large libraries, we might want to paginate or optimize this.
+        // But since this is triggered by user action, a fetch is acceptable.
+        let descriptor = FetchDescriptor<UserLibraryEntry>()
+
+        guard let entries = try? modelContext.fetch(descriptor) else { return nil }
+
+        for entry in entries {
+            guard let work = entry.work else { continue }
+
+            // Check for missing data supported by ProgressiveProfilingSheet
+
+            // 1. Cultural Region
+            if work.primaryAuthor?.culturalRegion == nil { return work }
+
+            // 2. Gender
+            if work.primaryAuthor?.gender == nil || work.primaryAuthor?.gender == .unknown { return work }
+
+            // 3. Original Language
+            if work.originalLanguage == nil || work.originalLanguage?.isEmpty == true { return work }
+        }
+
+        return nil
+    }
+
     public func updateDiversityData(entryId: PersistentIdentifier, dimension: String, value: Any) async throws {
         guard let entry = modelContext.model(for: entryId) as? UserLibraryEntry, let work = entry.work else {
             throw DiversityStatsError.workNotFound
