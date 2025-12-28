@@ -87,11 +87,8 @@ public class ReviewQueueModel {
 
     // MARK: - Analytics
 
-    /// Log analytics event (placeholder for real analytics SDK)
+    /// Log analytics event
     private func logAnalyticsEvent(_ eventName: String, properties: [String: Any] = [:]) {
-        #if DEBUG
-        print("📊 Analytics: \(eventName) - \(properties)")
-        #endif
-        // TODO: Replace with real analytics SDK (Firebase, Mixpanel, etc.)
+        AnalyticsService.shared.logEvent(eventName, parameters: properties)
     }
 }
