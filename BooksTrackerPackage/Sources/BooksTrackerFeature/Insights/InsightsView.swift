@@ -17,6 +17,10 @@ public struct InsightsView: View {
     @State private var errorMessage: String?
     @State private var scrollPosition = ScrollPosition()
 
+    // Progressive Profiling State
+    @State private var workToProfile: Work?
+    @State private var showNoMissingDataAlert = false
+
     public init() {}
 
     public var body: some View {
@@ -56,6 +60,21 @@ public struct InsightsView: View {
                 await loadStatistics(reset: true)
             }
         }
+        .sheet(item: $workToProfile) { work in
+            if #available(iOS 26.0, *) {
+                ProgressiveProfilingSheet(work: work) {
+                    // Refresh stats when profiling is complete
+                    Task {
+                        await loadStatistics()
+                    }
+                }
+            }
+        }
+        .alert("All Caught Up!", isPresented: $showNoMissingDataAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Your library metadata is complete! Check back when you add more books.")
+        }
     }
 
     private var contentView: some View {
@@ -90,10 +109,18 @@ public struct InsightsView: View {
                                     // TODO: Navigate to dimension detail (Phase 4)
                                 },
                                 onFillMissingData: {
-                                    #if DEBUG
-                                    print("📊 Fill missing data tapped")
-                                    #endif
-                                    // TODO: Navigate to progressive profiling flow (Phase 4)
+                                    // Navigate to progressive profiling flow (Phase 4)
+                                    let service = DiversityStatsService(modelContext: modelContext)
+                                    do {
+                                        if let work = try service.findNextWorkForProfiling() {
+                                            workToProfile = work
+                                        } else {
+                                            showNoMissingDataAlert = true
+                                        }
+                                    } catch {
+                                        // Handle database error gracefully
+                                        showNoMissingDataAlert = true
+                                    }
                                 }
                             )
                         }

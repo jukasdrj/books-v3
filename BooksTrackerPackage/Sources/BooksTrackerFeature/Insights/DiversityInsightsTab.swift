@@ -196,7 +196,7 @@ private func makePreviewContainer(configure: (ModelContext) -> Void) -> ModelCon
         // Preview container creation failed - return in-memory fallback
         do {
             let config = ModelConfiguration(schema: Schema([Work.self, Edition.self, Author.self]), isStoredInMemoryOnly: true)
-            let container = try ModelContainer(for: Work.self, Edition.self, Author.self, configurations: [config])
+            let container = try ModelContainer(for: Work.self, Edition.self, Author.self, configurations: config)
             configure(container.mainContext)
             return container
         } catch {
@@ -205,6 +205,7 @@ private func makePreviewContainer(configure: (ModelContext) -> Void) -> ModelCon
     }
 }
 
+@MainActor
 private func getPreviewWork(from container: ModelContainer) -> Work {
     do {
         let works = try container.mainContext.fetch(FetchDescriptor<Work>())
