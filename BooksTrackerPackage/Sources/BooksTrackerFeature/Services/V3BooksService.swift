@@ -173,7 +173,10 @@ public class V3BooksService: BooksServiceProtocol {
     private func searchV3(query: String, mode: SearchMode, limit: Int) async throws -> SearchResponse {
         return try await performV3Request {
             let page = 1  // For now, always first page (pagination TODO)
+
+            let startTime = Date()
             let v3Response = try await self.v3Client.search(query: query, page: page, limit: limit)
+            let responseTime = Date().timeIntervalSince(startTime) * 1000
 
             // Use V3ToV2Mapper to convert V3 response to V2 DTOs
             let v2Response = V3ToV2Mapper.mapSearchResponse(v3Response)
@@ -185,7 +188,7 @@ public class V3BooksService: BooksServiceProtocol {
                 results: searchResults,
                 cacheHitRate: 0.0,  // V3 doesn't provide cache metrics yet
                 provider: "v3-alexandria",
-                responseTime: 0.0,  // TODO: Track response time
+                responseTime: responseTime,
                 totalItems: v3Response.data.total
             )
         }
