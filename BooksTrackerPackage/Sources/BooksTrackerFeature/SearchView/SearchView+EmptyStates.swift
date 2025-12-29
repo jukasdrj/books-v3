@@ -31,7 +31,7 @@ extension SearchView {
                         icon: "flame.fill",
                         color: .orange,
                         handler: {
-                            // TODO: Navigate to trending view
+                            searchModel.clearSearch()
                         }
                     ),
                     EmptyStateAction(
