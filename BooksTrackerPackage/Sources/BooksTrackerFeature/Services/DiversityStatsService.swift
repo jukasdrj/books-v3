@@ -292,10 +292,10 @@ public final class DiversityStatsService {
     }
 
     public func updateDiversityData(entryId: PersistentIdentifier, dimension: String, value: Any) async throws {
-        logger.debug("Updating diversity data - dimension: \(dimension), entryId: \(entryId.debugDescription)")
+        logger.debug("Updating diversity data - dimension: \(dimension), entryId: \(String(describing: entryId))")
 
         guard let entry = modelContext.model(for: entryId) as? UserLibraryEntry, let work = entry.work else {
-            logger.error("Work not found for entry ID: \(entryId.debugDescription)")
+            logger.error("Work not found for entry ID: \(String(describing: entryId))")
             throw DiversityStatsError.workNotFound
         }
 
@@ -357,7 +357,7 @@ public final class DiversityStatsService {
             }
 
             guard let edition = entry.edition else {
-                logger.error("Edition not found for entry: \(entryId)")
+                logger.error("Edition not found for entry: \(String(describing: entryId))")
                 throw DiversityStatsError.editionNotFound
             }
 

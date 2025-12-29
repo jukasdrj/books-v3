@@ -4,6 +4,7 @@ import OSLog
 /// Service for logging application analytics events.
 /// This acts as a wrapper around the underlying analytics implementation (currently OSLog),
 /// allowing for easy swap to a real SDK (e.g., Firebase, Mixpanel) in the future.
+@MainActor
 public final class AnalyticsService {
     public static let shared = AnalyticsService()
 

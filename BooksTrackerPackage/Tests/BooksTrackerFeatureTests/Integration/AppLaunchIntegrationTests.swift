@@ -29,8 +29,9 @@ struct AppLaunchIntegrationTests {
         LaunchMetrics.shared.recordMilestone("LibraryRepository created")
 
         // 2. Background tasks scheduled (not blocking)
+        let enrichmentQueue = EnrichmentQueue()
         BackgroundTaskScheduler.shared.schedule {
-            EnrichmentQueue.shared.validateQueue(in: context)
+            enrichmentQueue.validateQueue(in: context)
         }
 
         BackgroundTaskScheduler.shared.schedule {
@@ -96,12 +97,13 @@ struct AppLaunchIntegrationTests {
         )
         let context = container.mainContext
 
-        EnrichmentQueue.shared.clearQueue()
+        let enrichmentQueue = EnrichmentQueue()
+        enrichmentQueue.clearQueue()
 
         let startTime = CFAbsoluteTimeGetCurrent()
 
         // Validation should exit early
-        EnrichmentQueue.shared.validateQueue(in: context)
+        enrichmentQueue.validateQueue(in: context)
 
         let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
 

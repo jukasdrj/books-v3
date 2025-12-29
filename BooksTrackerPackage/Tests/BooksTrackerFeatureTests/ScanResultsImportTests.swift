@@ -53,7 +53,8 @@ struct ScanResultsImportTests {
         resultsModel.detectedBooks[1].status = .confirmed
 
         // Import books
-        await resultsModel.addAllToLibrary(modelContext: context)
+        let enrichmentQueue = EnrichmentQueue()
+        await resultsModel.addAllToLibrary(modelContext: context, enrichmentQueue: enrichmentQueue)
 
         // Fetch works from context
         let descriptor = FetchDescriptor<Work>()
@@ -102,7 +103,8 @@ struct ScanResultsImportTests {
         resultsModel.detectedBooks[0].status = .confirmed
 
         // Import books
-        await resultsModel.addAllToLibrary(modelContext: context)
+        let enrichmentQueue = EnrichmentQueue()
+        await resultsModel.addAllToLibrary(modelContext: context, enrichmentQueue: enrichmentQueue)
 
         // Fetch works from context
         let descriptor = FetchDescriptor<Work>()

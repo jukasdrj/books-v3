@@ -27,7 +27,7 @@ struct LibraryResetIntegrationTests {
     @Test("EnrichmentQueue tracks and clears job ID")
     func testEnrichmentQueueJobIdTracking() async throws {
         // GIVEN: EnrichmentQueue with no job ID
-        let queue = EnrichmentQueue.shared
+        let queue = EnrichmentQueue()
         #expect(queue.getCurrentJobId() == nil)
 
         // WHEN: Job ID is set

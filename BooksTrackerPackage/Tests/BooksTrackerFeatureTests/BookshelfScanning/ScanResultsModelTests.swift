@@ -112,8 +112,9 @@ struct ScanResultsModelTests {
         )
 
         // Act: Create model and add books to library
+        let enrichmentQueue = EnrichmentQueue()
         let resultsModel = ScanResultsModel(scanResult: scanResult)
-        await resultsModel.addAllToLibrary(modelContext: modelContext)
+        await resultsModel.addAllToLibrary(modelContext: modelContext, enrichmentQueue: enrichmentQueue)
 
         // Assert: Works should be saved
         let descriptor = FetchDescriptor<Work>()
@@ -124,7 +125,7 @@ struct ScanResultsModelTests {
         #expect(works.contains { $0.title == "Pride and Prejudice" })
 
         // Assert: Should not crash when enrichment queue processes IDs
-        let queuedIDs = EnrichmentQueue.shared.getAllPending()
+        let queuedIDs = enrichmentQueue.getAllPending()
         #expect(queuedIDs.count == 2)
 
         // Verify IDs are valid (can be fetched)
