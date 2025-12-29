@@ -2,6 +2,13 @@ import SwiftUI
 import SwiftData
 import OSLog
 
+/// Layout options for the Work Detail View
+enum DetailLayout: String, CaseIterable, Identifiable {
+    case immersive = "Immersive"
+    case classic = "Classic"
+    var id: String { rawValue }
+}
+
 /// Single Book Detail View - iOS 26 Immersive Design
 /// Features blurred cover art background with floating metadata card
 @available(iOS 26.0, *)
@@ -23,6 +30,9 @@ struct WorkDetailView: View {
     @State private var similarBooksState: LoadingState = .idle
     @State private var selectedSimilarBook: SearchResult?
 
+    // Layout State
+    @AppStorage("preferredDetailLayout") private var currentLayout: DetailLayout = .immersive
+
     private let logger = Logger(subsystem: "com.oooefam.booksV3", category: "WorkDetailView")
 
     // Primary edition for display
@@ -36,43 +46,12 @@ struct WorkDetailView: View {
     }
 
     var body: some View {
-        ZStack {
-            // MARK: - Immersive Background
-            immersiveBackground
-
-            // MARK: - Main Content
-            mainContent
-        }
-        .navigationBarBackButtonHidden(true)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button(action: { dismiss() }) {
-                    Image(systemName: "chevron.left")
-                        .font(.title3.bold())
-                        .foregroundColor(Color.white)
-                        .frame(width: 44, height: 44)
-                        .background {
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .frame(width: 44, height: 44)
-                        }
-                }
-                .accessibilityLabel("Back")
-            }
-
-            ToolbarItem(placement: .navigationBarTrailing) {
-                if work.availableEditions.count > 1 {
-                    Button("Editions") {
-                        showingEditionPicker.toggle()
-                    }
-                    .foregroundColor(Color.white)
-                    .background {
-                        Capsule()
-                            .fill(.ultraThinMaterial)
-                            .frame(height: 32)
-                    }
-                    .padding(.horizontal, 12)
-                }
+        Group {
+            switch currentLayout {
+            case .immersive:
+                immersiveLayoutView
+            case .classic:
+                classicLayoutView
             }
         }
         .onAppear {
@@ -101,6 +80,181 @@ struct WorkDetailView: View {
         }
         .task(id: work.id) {
             await loadSimilarBooks()
+        }
+    }
+
+    // MARK: - Immersive Layout
+
+    private var immersiveLayoutView: some View {
+        ZStack {
+            // MARK: - Immersive Background
+            immersiveBackground
+
+            // MARK: - Main Content
+            immersiveMainContent
+        }
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: { dismiss() }) {
+                    Image(systemName: "chevron.left")
+                        .font(.title3.bold())
+                        .foregroundColor(Color.white)
+                        .frame(width: 44, height: 44)
+                        .background {
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                                .frame(width: 44, height: 44)
+                        }
+                }
+                .accessibilityLabel("Back")
+            }
+
+            ToolbarItem(placement: .navigationBarTrailing) {
+                HStack(spacing: 8) {
+                    layoutSwitcher(isImmersive: true)
+
+                    if work.availableEditions.count > 1 {
+                        Button("Editions") {
+                            showingEditionPicker.toggle()
+                        }
+                        .foregroundColor(Color.white)
+                        .background {
+                            Capsule()
+                                .fill(.ultraThinMaterial)
+                                .frame(height: 32)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Classic Layout
+
+    private var classicLayoutView: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                // Classic Header
+                HStack(alignment: .top, spacing: 16) {
+                    // Cover
+                    CachedAsyncImage(url: CoverImageService.coverURL(for: work)) { image in
+                        image.resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        Color.gray.opacity(0.3)
+                    }
+                    .frame(width: 100, height: 150)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .shadow(radius: 4)
+
+                    // Info
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(work.title)
+                            .font(.title2.bold())
+                            .foregroundStyle(.primary)
+
+                        if let authors = work.authors {
+                            Button {
+                                selectedAuthor = authors.first
+                            } label: {
+                                Text(authors.map(\.name).joined(separator: ", "))
+                                    .font(.headline)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        // Status/Rating
+                        HStack {
+                            if let rating = work.userEntry?.personalRating, rating > 0 {
+                                Label(String(format: "%.1f", rating), systemImage: "star.fill")
+                                    .foregroundStyle(.orange)
+                            }
+
+                            if let pageCount = primaryEdition.pageCount {
+                                Text("•")
+                                    .foregroundStyle(.secondary)
+                                Text("\(pageCount) pages")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .font(.subheadline)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal)
+                .padding(.top)
+
+                Divider()
+                    .padding(.horizontal)
+
+                // Metadata Tabs (Reused)
+                metadataTabsSection
+                    .padding(.horizontal)
+
+                // Similar Books
+                if !similarBooks.isEmpty {
+                    Text("You Might Also Like")
+                        .font(.title3.bold())
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+
+                    similarBooksSection
+                        .padding(.horizontal)
+                }
+
+                // Provider Attribution
+                if let provider = work.primaryProvider {
+                    ProviderAttributionView(provider: provider, cached: work.cached)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                }
+            }
+            .padding(.bottom, 40)
+        }
+        .background(Color(uiColor: .systemBackground))
+        .navigationTitle(work.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                HStack(spacing: 8) {
+                    layoutSwitcher(isImmersive: false)
+
+                    if work.availableEditions.count > 1 {
+                        Button("Editions") {
+                            showingEditionPicker.toggle()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Layout Switcher
+
+    private func layoutSwitcher(isImmersive: Bool) -> some View {
+        Menu {
+            Picker("Layout", selection: $currentLayout) {
+                ForEach(DetailLayout.allCases) { layout in
+                    Label(layout.rawValue, systemImage: layout == .immersive ? "sparkles" : "doc.text")
+                        .tag(layout)
+                }
+            }
+        } label: {
+            Image(systemName: "square.dashed.inset.filled")
+                .font(.body)
+                .foregroundStyle(isImmersive ? .white : .primary)
+                .padding(6)
+                .background {
+                    if isImmersive {
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                    } else {
+                        Circle()
+                            .fill(Color.gray.opacity(0.1))
+                    }
+                }
         }
     }
 
@@ -148,14 +302,14 @@ struct WorkDetailView: View {
 
     // MARK: - Main Content
 
-    private var mainContent: some View {
+    private var immersiveMainContent: some View {
         ScrollView {
             VStack(spacing: 24) {
                 // Top spacer for navigation bar
                 Color.clear.frame(height: 60)
 
                 // MARK: - Book Cover Hero
-                bookCoverHero
+                immersiveBookCoverHero
 
                 // MARK: - Metadata & Diversity Tabs
                 metadataTabsSection
@@ -193,7 +347,7 @@ struct WorkDetailView: View {
         }
     }
 
-    private var bookCoverHero: some View {
+    private var immersiveBookCoverHero: some View {
         VStack(spacing: 16) {
             // Large cover image
             CachedAsyncImage(url: CoverImageService.coverURL(for: work)) { image in  // ✅ FIXED
