@@ -111,9 +111,14 @@ public struct InsightsView: View {
                                 onFillMissingData: {
                                     // Navigate to progressive profiling flow (Phase 4)
                                     let service = DiversityStatsService(modelContext: modelContext)
-                                    if let work = service.findNextWorkForProfiling() {
-                                        workToProfile = work
-                                    } else {
+                                    do {
+                                        if let work = try service.findNextWorkForProfiling() {
+                                            workToProfile = work
+                                        } else {
+                                            showNoMissingDataAlert = true
+                                        }
+                                    } catch {
+                                        // Handle database error gracefully
                                         showNoMissingDataAlert = true
                                     }
                                 }
