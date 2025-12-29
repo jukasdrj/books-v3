@@ -10,6 +10,7 @@ struct DiversityInsightsTab: View {
     let work: Work
     let diversityScore: DiversityScore
 
+    @State private var showProfilingSheet = false
     @Environment(\.iOS26ThemeStore) private var themeStore
 
     init(work: Work, diversityScore: DiversityScore? = nil) {
@@ -44,6 +45,11 @@ struct DiversityInsightsTab: View {
             .padding(20)
         }
         .glassEffect(.regular, tint: themeStore.primaryColor.opacity(0.1))
+        .sheet(isPresented: $showProfilingSheet) {
+            ProgressiveProfilingSheet(work: work) {
+                showProfilingSheet = false
+            }
+        }
     }
 
     // MARK: - Header
@@ -176,7 +182,11 @@ struct DiversityInsightsTab: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
 
-            // TODO: Link to Progressive Profiling Sheet (Issue #70)
+            Button("Improve Data") {
+                showProfilingSheet = true
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(themeStore.primaryColor)
         }
         .padding(.vertical, 40)
     }
