@@ -477,6 +477,9 @@ public struct SearchView: View {
             NoResultsView(
                 query: query,
                 scope: scope,
+                onLaunchScanner: {
+                    showingScanner = true
+                },
                 searchModel: searchModel
             )
 

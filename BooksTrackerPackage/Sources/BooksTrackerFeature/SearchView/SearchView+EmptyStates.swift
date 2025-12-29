@@ -7,6 +7,7 @@ extension SearchView {
     struct NoResultsView: View {
         let query: String
         let scope: SearchScope
+        var onLaunchScanner: () -> Void
         @Environment(\.iOS26ThemeStore) private var themeStore
         @Bindable var searchModel: SearchModel
 
@@ -40,7 +41,7 @@ extension SearchView {
                         icon: "barcode.viewfinder",
                         color: .purple,
                         handler: {
-                            // TODO: Launch scanner
+                            onLaunchScanner()
                         }
                     )
                 ]
