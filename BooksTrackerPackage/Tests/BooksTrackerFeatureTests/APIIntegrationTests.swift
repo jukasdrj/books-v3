@@ -23,18 +23,16 @@ struct APIIntegrationTests {
     // Use the production URL from config, but ensure we are testing what we think we are
     private let baseURL = EnrichmentConfig.baseURL
 
-    // MARK: - Search API Tests
+    // MARK: - Search API Tests (V3)
 
-    // TODO: Migrate these tests to V3 API before March 1, 2026 (V1 sunset)
-    // V1 endpoints (searchISBNURL, searchTitleURL, searchAdvancedURL) are deprecated
+    // Migrated to V3 API (V1 sunset March 1, 2026)
     // Use V3 endpoints: bookByISBNURL(isbn:) and searchURL with query parameters
-    // See: docs/V1_SUNSET_PLAN.md and docs/FRONTEND_INTEGRATION.md
 
-    @Test("GET /v1/search/isbn returns valid results for known ISBN")
+    @Test("GET /v3/books/{isbn} returns valid results for known ISBN")
     func testSearchISBN_Valid() async throws {
         // Harry Potter and the Sorcerer's Stone
         let isbn = "9780439708180"
-        let url = EnrichmentConfig.searchISBNURL.appending(queryItems: [URLQueryItem(name: "isbn", value: isbn)])
+        let url = EnrichmentConfig.bookByISBNURL(isbn: isbn)
 
         let (data, response) = try await URLSession.shared.data(from: url)
 
@@ -47,26 +45,28 @@ struct APIIntegrationTests {
 
         // 2. Decode Response
         let decoder = JSONDecoder()
-        let envelope = try decoder.decode(ApiResponse<BookSearchResponse>.self, from: data)
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
 
-        guard case .success(let searchResponse, _) = envelope else {
-            Issue.record("Expected success response, got failure or invalid format")
+        // V3 returns V3BookResponse for single ISBN lookup
+        let envelope = try decoder.decode(V3BookResponse.self, from: data)
+
+        guard envelope.success else {
+            Issue.record("Expected success response, got failure")
             return
         }
 
         // 3. Verify Content
-        // Should find at least one work or edition related to Harry Potter
-        let hasHarryPotter = searchResponse.works.contains { $0.title.localizedCaseInsensitiveContains("Harry Potter") } ||
-                             searchResponse.editions.contains { $0.title?.localizedCaseInsensitiveContains("Harry Potter") ?? false }
-
-        #expect(hasHarryPotter, "Results should contain 'Harry Potter'")
+        // Should find Harry Potter
+        let book = envelope.data
+        #expect(book.title.localizedCaseInsensitiveContains("Harry Potter"), "Title should contain 'Harry Potter'")
+        #expect(book.isbn == isbn, "ISBN should match")
     }
 
-    @Test("GET /v1/search/isbn returns empty for unknown ISBN")
+    @Test("GET /v3/books/{isbn} returns 404 for unknown ISBN")
     func testSearchISBN_Unknown() async throws {
         // Random non-existent ISBN
         let isbn = "0000000000000"
-        let url = EnrichmentConfig.searchISBNURL.appending(queryItems: [URLQueryItem(name: "isbn", value: isbn)])
+        let url = EnrichmentConfig.bookByISBNURL(isbn: isbn)
 
         let (data, response) = try await URLSession.shared.data(from: url)
 
@@ -75,32 +75,34 @@ struct APIIntegrationTests {
             return
         }
 
-        // Note: API Contract says 200 OK with empty data for Not Found, OR 404.
-        // Let's check what it actually returns. The contract says:
-        // "Not Found (200): { data: { works: [], ... } }"
-        // BUT also "Error (400): Invalid ISBN"
-        // Let's assume a valid formatted ISBN that just doesn't exist returns 200 with empty results.
+        // V3 API should return 404 for unknown ISBN
+        if httpResponse.statusCode == 404 {
+            // This is expected behavior for V3
+            #expect(httpResponse.statusCode == 404)
+        } else if httpResponse.statusCode == 200 {
+            // Check if it's a success=false response (soft 404)
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
 
-        #expect(httpResponse.statusCode == 200)
-
-        let decoder = JSONDecoder()
-        let envelope = try decoder.decode(ApiResponse<BookSearchResponse>.self, from: data)
-
-        if case .success(let searchResponse, _) = envelope {
-            #expect(searchResponse.works.isEmpty)
-            #expect(searchResponse.editions.isEmpty)
-        } else if case .failure(let error, _) = envelope {
-            // If it returns a failure envelope, that's also "valid" protocol behavior,
-            // but for "Not Found" we usually expect empty success or 404.
-            // Contract says: "Not Found (200)"
-            Issue.record("Expected success envelope with empty results, got failure: \(error.message)")
+            // Try decoding as error response
+            if let errorResponse = try? decoder.decode(V3ErrorResponse.self, from: data) {
+                #expect(!errorResponse.success)
+            } else {
+                 Issue.record("Expected 404 or Error Response, got 200 OK with unknown body")
+            }
+        } else {
+             // 400 or other errors are also possible
+             #expect(httpResponse.statusCode == 404 || httpResponse.statusCode == 400)
         }
     }
 
-    @Test("GET /v1/search/title returns results for fuzzy query")
+    @Test("GET /v3/books/search returns results for fuzzy query")
     func testSearchTitle_Fuzzy() async throws {
         let query = "Great Gatsby"
-        let url = EnrichmentConfig.searchTitleURL.appending(queryItems: [URLQueryItem(name: "q", value: query)])
+        let url = EnrichmentConfig.searchURL.appending(queryItems: [
+            URLQueryItem(name: "q", value: query),
+            URLQueryItem(name: "limit", value: "5")
+        ])
 
         let (data, response) = try await URLSession.shared.data(from: url)
 
@@ -111,31 +113,34 @@ struct APIIntegrationTests {
         #expect(httpResponse.statusCode == 200)
 
         let decoder = JSONDecoder()
-        let envelope = try decoder.decode(ApiResponse<BookSearchResponse>.self, from: data)
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let envelope = try decoder.decode(V3SearchResponse.self, from: data)
 
-        guard case .success(let searchResponse, _) = envelope else {
+        guard envelope.success else {
             Issue.record("Expected success response")
             return
         }
 
-        #expect(!searchResponse.works.isEmpty, "Should return works")
+        #expect(!envelope.data.books.isEmpty, "Should return books")
 
-        let firstMatch = searchResponse.works.first
+        let firstMatch = envelope.data.books.first
         #expect(firstMatch?.title.localizedCaseInsensitiveContains("Gatsby") ?? false)
     }
 
-    @Test("GET /v1/search/advanced filters by author")
+    @Test("GET /v3/books/search handles combined query (Advanced Search)")
     func testSearchAdvanced_Author() async throws {
         let title = "Foundation"
         let author = "Asimov"
 
-        var components = URLComponents(url: EnrichmentConfig.searchAdvancedURL, resolvingAgainstBaseURL: true)!
-        components.queryItems = [
-            URLQueryItem(name: "title", value: title),
-            URLQueryItem(name: "author", value: author)
-        ]
+        // V3 Unified Search uses a single 'q' parameter
+        let query = "\(title) \(author)"
 
-        let (data, response) = try await URLSession.shared.data(from: components.url!)
+        let url = EnrichmentConfig.searchURL.appending(queryItems: [
+            URLQueryItem(name: "q", value: query),
+            URLQueryItem(name: "limit", value: "5")
+        ])
+
+        let (data, response) = try await URLSession.shared.data(from: url)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             Issue.record("Expected HTTPURLResponse")
@@ -144,30 +149,31 @@ struct APIIntegrationTests {
         #expect(httpResponse.statusCode == 200)
 
         let decoder = JSONDecoder()
-        let envelope = try decoder.decode(ApiResponse<BookSearchResponse>.self, from: data)
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let envelope = try decoder.decode(V3SearchResponse.self, from: data)
 
-        guard case .success(let searchResponse, _) = envelope else {
+        guard envelope.success else {
             Issue.record("Expected success response")
             return
         }
 
-        #expect(!searchResponse.works.isEmpty)
+        #expect(!envelope.data.books.isEmpty)
 
-        // Verify author match
-        let hasAsimov = searchResponse.authors.contains { $0.name.localizedCaseInsensitiveContains("Asimov") }
+        // Verify author match in results
+        let hasAsimov = envelope.data.books.contains { book in
+            book.authors.contains { authorName in
+                authorName.localizedCaseInsensitiveContains("Asimov")
+            }
+        }
         #expect(hasAsimov, "Results should contain author 'Asimov'")
     }
 
-    // MARK: - WebSocket Connectivity (Basic)
+    // MARK: - Health Check
 
-    @Test("WebSocket connection can be established")
-    func testWebSocketConnectivity() async throws {
-        // We can't easily test full auth flow without a valid token/jobId from a POST request.
-        // However, we can try to connect to the health check or just verify the URL is reachable.
-        // The contract mentions: wss://api.oooefam.net/ws/progress
-
-        // For now, let's just verify the Health Check endpoint as a proxy for backend availability
-        // since WebSocket requires a valid token which we can't generate without starting a job (which costs money/resources).
+    @Test("API Health Check is accessible")
+    func testHealthCheck() async throws {
+        // WebSocket is deprecated. V3 uses SSE.
+        // We verify the API health endpoint as a proxy for connectivity.
 
         let healthURL = EnrichmentConfig.healthCheckURL
         let (data, response) = try await URLSession.shared.data(from: healthURL)
@@ -182,5 +188,11 @@ struct APIIntegrationTests {
         // Optional: Check body if it returns "OK" or similar
         let body = String(data: data, encoding: .utf8)
         #expect(body != nil)
+
+        // V3 API typically returns a JSON health status
+        // e.g., {"status":"ok","version":"..."}
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+             #expect(json["status"] as? String == "ok" || json["status"] as? String == "healthy")
+        }
     }
 }
