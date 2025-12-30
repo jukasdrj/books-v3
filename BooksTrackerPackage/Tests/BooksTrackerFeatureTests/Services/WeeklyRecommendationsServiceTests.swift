@@ -1,28 +1,23 @@
-import XCTest
+import Testing
 @testable import BooksTrackerFeature
 
-final class WeeklyRecommendationsServiceTests: XCTestCase {
+@Suite("Weekly Recommendations Service Tests")
+struct WeeklyRecommendationsServiceTests {
 
-    var urlSession: URLSession!
     private let cacheKey = "weeklyRecommendationsCache"
 
-    override func setUp() {
-        super.setUp()
+    init() {
         // Clear cache to ensure test isolation
         UserDefaults.standard.removeObject(forKey: cacheKey)
-
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.protocolClasses = [MockURLProtocol.self]
-        urlSession = URLSession(configuration: configuration)
     }
 
-    override func tearDown() {
-        // Clean up cache after each test
+    deinit {
+        // Clean up cache after tests
         UserDefaults.standard.removeObject(forKey: cacheKey)
-        super.tearDown()
     }
 
-    func testFetchWeeklyRecommendations_success() async throws {
+    @Test("Fetch weekly recommendations success")
+    func fetchWeeklyRecommendationsSuccess() async throws {
         // Given - V3 API response format
         let json = """
         {
@@ -50,60 +45,74 @@ final class WeeklyRecommendationsServiceTests: XCTestCase {
             return (response, json)
         }
 
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [MockURLProtocol.self]
+        let urlSession = URLSession(configuration: configuration)
+
         // When
         let service = WeeklyRecommendationsService(urlSession: urlSession)
         let response = try await service.fetchWeeklyRecommendations()
 
         // Then
-        XCTAssertEqual(response.weekOf, "2025-11-25")
-        XCTAssertEqual(response.books.count, 1)
-        XCTAssertEqual(response.books.first?.title, "Effective Java")
-        XCTAssertEqual(response.books.first?.authors, ["Joshua Bloch"])
+        #expect(response.weekOf == "2025-11-25")
+        #expect(response.books.count == 1)
+        #expect(response.books.first?.title == "Effective Java")
+        #expect(response.books.first?.authors == ["Joshua Bloch"])
     }
 
-    func testFetchWeeklyRecommendations_noRecommendations() async {
+    @Test("Fetch weekly recommendations when no recommendations available")
+    func fetchWeeklyRecommendationsNoRecommendations() async {
         // Given
         MockURLProtocol.requestHandler = { request in
             let response = HTTPURLResponse(url: request.url!, statusCode: 404, httpVersion: nil, headerFields: nil)!
             return (response, nil)
         }
 
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [MockURLProtocol.self]
+        let urlSession = URLSession(configuration: configuration)
+
         // When
         let service = WeeklyRecommendationsService(urlSession: urlSession)
 
         // Then
         do {
             _ = try await service.fetchWeeklyRecommendations()
-            XCTFail("Expected to throw noRecommendations error")
+            Issue.record("Expected to throw noRecommendations error")
         } catch let error as WeeklyRecommendationsService.APIError {
-            XCTAssertEqual(error, .noRecommendations)
+            #expect(error == .noRecommendations)
         } catch {
-            XCTFail("Unexpected error thrown")
+            Issue.record("Unexpected error thrown: \(error)")
         }
     }
 
-    func testFetchWeeklyRecommendations_serverError() async {
+    @Test("Fetch weekly recommendations handles server error")
+    func fetchWeeklyRecommendationsServerError() async {
         // Given
         MockURLProtocol.requestHandler = { request in
             let response = HTTPURLResponse(url: request.url!, statusCode: 500, httpVersion: nil, headerFields: nil)!
             return (response, nil)
         }
 
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [MockURLProtocol.self]
+        let urlSession = URLSession(configuration: configuration)
+
         // When
         let service = WeeklyRecommendationsService(urlSession: urlSession)
 
         // Then
         do {
             _ = try await service.fetchWeeklyRecommendations()
-            XCTFail("Expected to throw serverError")
+            Issue.record("Expected to throw serverError")
         } catch let error as WeeklyRecommendationsService.APIError {
             if case .serverError(let statusCode) = error {
-                XCTAssertEqual(statusCode, 500)
+                #expect(statusCode == 500)
             } else {
-                XCTFail("Incorrect error type")
+                Issue.record("Incorrect error type: \(error)")
             }
         } catch {
-            XCTFail("Unexpected error thrown")
+            Issue.record("Unexpected error thrown: \(error)")
         }
     }
 }
