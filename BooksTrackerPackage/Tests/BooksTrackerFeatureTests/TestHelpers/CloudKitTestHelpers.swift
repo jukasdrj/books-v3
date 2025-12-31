@@ -42,8 +42,8 @@ struct CloudKitMultiDeviceSimulator {
         try modification(device2Context)
         try device2Context.save()
 
-        // Force refresh device 1's context to pick up changes
-        device1Context.refreshAllModels()
+        // Note: SwiftData automatically refreshes contexts sharing the same container
+        // No explicit refresh needed in modern SwiftData
     }
 
     /// Simulate conflict scenario: both devices modify the same object
@@ -61,8 +61,8 @@ struct CloudKitMultiDeviceSimulator {
         device2Change(object)
         try device2Context.save()
 
-        // Refresh device 1 to see device 2's change
-        device1Context.refreshAllModels()
+        // Note: SwiftData automatically refreshes contexts sharing the same container
+        // No explicit refresh needed in modern SwiftData
     }
 
     /// Verify consistency across both contexts
@@ -121,7 +121,7 @@ struct CloudKitComplianceValidator {
         var issues: [(issue: String, severity: String)] = []
 
         // ISBN is required for editions
-        if edition.isbn.isEmpty {
+        if edition.isbn?.isEmpty ?? true {
             issues.append((issue: "ISBN is required", severity: "high"))
         }
 
@@ -166,6 +166,7 @@ struct DataConsistencyHelper {
 /// Helper for stress testing with large datasets
 struct LargeDatasetHelper {
     /// Create a large library scenario (n works with entries and sessions)
+    @MainActor
     static func createLargeLibraryScenario(
         workCount: Int,
         entriesPerWork: Int,

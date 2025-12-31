@@ -1,4 +1,5 @@
 import Testing
+import Foundation
 @testable import BooksTrackerFeature
 
 @Suite("Weekly Recommendations Service Tests")
@@ -11,10 +12,7 @@ struct WeeklyRecommendationsServiceTests {
         UserDefaults.standard.removeObject(forKey: cacheKey)
     }
 
-    deinit {
-        // Clean up cache after tests
-        UserDefaults.standard.removeObject(forKey: cacheKey)
-    }
+    // Note: Structs cannot have deinit - cache cleanup handled in init for next test run
 
     @Test("Fetch weekly recommendations success")
     func fetchWeeklyRecommendationsSuccess() async throws {
