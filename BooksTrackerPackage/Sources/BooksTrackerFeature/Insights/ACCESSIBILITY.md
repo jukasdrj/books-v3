@@ -24,7 +24,11 @@
 
 ## Reduce Motion
 
-⚠️ TODO: Disable chart animations when Reduce Motion enabled
+✅ Chart animations disabled when Reduce Motion enabled
+✅ Button press animations disabled when Reduce Motion enabled
+✅ RadarChartView respects accessibilityReduceMotion
+✅ HeroStatsCard respects accessibilityReduceMotion
+✅ LanguageTagCloud respects accessibilityReduceMotion
 
 ## Manual Testing Checklist
 
