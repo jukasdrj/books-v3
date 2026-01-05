@@ -168,3 +168,4 @@ DerivedData/
 
 # Build check logs
 build-check.log
+.Jules/
