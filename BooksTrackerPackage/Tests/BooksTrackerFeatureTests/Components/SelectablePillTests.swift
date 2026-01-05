@@ -2,7 +2,6 @@ import Testing
 import SwiftUI
 @testable import BooksTrackerFeature
 
-@available(iOS 26.0, *)
 @Suite("SelectablePill Tests")
 struct SelectablePillTests {
 

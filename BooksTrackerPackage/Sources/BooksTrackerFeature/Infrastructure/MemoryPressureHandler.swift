@@ -1,4 +1,6 @@
+#if canImport(UIKit)
 import UIKit
+#endif
 
 // MARK: - Memory Pressure Handler
 
@@ -7,6 +9,7 @@ struct MemoryPressureHandler {
     static let shared = MemoryPressureHandler()
 
     private init() {
+        #if canImport(UIKit)
         // Listen for memory warnings
         NotificationCenter.default.addObserver(
             forName: UIApplication.didReceiveMemoryWarningNotification,
@@ -15,6 +18,7 @@ struct MemoryPressureHandler {
         ) { _ in
             Self.cleanupImageCache()
         }
+        #endif
     }
 
     private static func cleanupImageCache() {

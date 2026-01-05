@@ -325,12 +325,12 @@ struct EditionBuilder {
 
     /// Set language
     mutating func withLanguage(_ language: String) -> Self {
-        edition.language = language
+        edition.originalLanguage = language
         return self
     }
 
     /// Set format
-    mutating func withFormat(_ format: String) -> Self {
+    mutating func withFormat(_ format: EditionFormat) -> Self {
         edition.format = format
         return self
     }
