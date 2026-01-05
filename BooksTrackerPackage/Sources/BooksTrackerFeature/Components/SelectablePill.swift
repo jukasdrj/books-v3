@@ -32,6 +32,7 @@ struct SelectablePill: View {
                 .scaleEffect(isSelected ? 1.0 : 1.0) // Can add subtle scale on press if desired
         }
         .buttonStyle(PillButtonStyle())
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
         .animation(.easeInOut(duration: 0.2), value: isSelected)
     }
 }
