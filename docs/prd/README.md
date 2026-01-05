@@ -12,9 +12,9 @@ This directory contains platform-agnostic PRDs for BooksTrack features. Each PRD
 
 | Document | Status | Description |
 |----------|--------|-------------|
-| [Barcode-Scanner-PRD.md](Barcode-Scanner-PRD.md) | Shipped | ISBN barcode scanning for quick book entry |
-| [Bookshelf-AI-Scanner-PRD.md](Bookshelf-AI-Scanner-PRD.md) | Shipped | AI-powered bookshelf photo scanning |
-| [CSV-Import-PRD.md](CSV-Import-PRD.md) | Shipped | AI-powered CSV import from Goodreads/LibraryThing |
+| [Barcode-Scanner-PRD.md](archive/Barcode-Scanner-PRD.md) | Shipped | ISBN barcode scanning for quick book entry |
+| [Bookshelf-AI-Scanner-PRD.md](archive/Bookshelf-AI-Scanner-PRD.md) | Shipped | AI-powered bookshelf photo scanning |
+| [CSV-Import-PRD.md](archive/CSV-Import-PRD.md) | Shipped | AI-powered CSV import from Goodreads/LibraryThing |
 | [Book-Enrichment-PRD.md](Book-Enrichment-PRD.md) | Shipped | Metadata enrichment and book search |
 | [Review-Queue-PRD.md](Review-Queue-PRD.md) | Shipped | Human verification for low-confidence AI detections |
 

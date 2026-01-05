@@ -186,7 +186,8 @@ Proprietary - © 2025 jukasdrj
 
 - **Documentation:** `docs/`
 - **PRDs:** `docs/prd/`
-- **V2 Design:** `docs/v2-plans/`
+- **API Documentation:** `docs/API.md`
+- **Feature Flags:** `docs/features/FEATURE_FLAGS.md`
 - **Frontend Integration:** `docs/FRONTEND_INTEGRATION.md`
 
 ---
