@@ -49,12 +49,20 @@ Native iOS book tracking app with cultural diversity insights. SwiftUI, SwiftDat
 BooksTracker/                       # iOS app shell (thin entry point)
 BooksTrackerPackage/
   Sources/BooksTrackerFeature/      # All business logic, UI, models
-    Models/                         # Work, Edition, Author, UserLibraryEntry
-    Views/                          # Library, Search, Shelf, Insights tabs
-    Services/                       # API, enrichment, scanning
+    Models/                         # SwiftData models
+    Views/                          # SwiftUI views
+    Services/                       # Business logic actors
+    ...
   Tests/                            # Swift Testing tests
 Config/Shared.xcconfig              # Version, bundle ID (UPDATE HERE!)
 docs/                               # Documentation hub (see docs/README.md)
+  ├── api/                          # API specs (OpenAPI, WebSocket)
+  ├── product/                      # PRDs (problem statements, user stories)
+  ├── architecture/                 # System design & decisions
+  ├── features/                     # Feature implementation details
+  ├── workflows/                    # Mermaid diagrams (visual flows)
+  ├── guides/                       # How-to guides & best practices
+  └── archive/                      # Deprecated documentation
 ```
 
 ### Build & Run
@@ -685,11 +693,13 @@ xcodebuild clean -workspace BooksTracker.xcworkspace -scheme BooksTracker
 
 📁 docs/
   ├── README.md            ← **START HERE** - Documentation navigation
+  ├── api/                 ← API specs
   ├── product/             ← PRDs (problem statements, user stories)
-  ├── workflows/           ← Mermaid diagrams (visual flows)
-  ├── features/            ← Technical deep-dives
   ├── architecture/        ← System design & decisions
-  └── guides/              ← How-to guides & best practices
+  ├── features/            ← Feature implementation details
+  ├── workflows/           ← Mermaid diagrams (visual flows)
+  ├── guides/              ← How-to guides & best practices
+  └── archive/             ← Deprecated documentation
 
 📁 .ai/
   ├── README.md            ← AI context organization guide
