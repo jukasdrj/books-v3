@@ -45,7 +45,7 @@ BooksTracker/
 ├── Config/                      # Build configuration
 └── docs/                        # Documentation
     ├── api/                     # API specs (OpenAPI, WebSocket)
-    ├── prd/                     # Product requirements (18 PRDs)
+    ├── product/                 # Product requirements (18 PRDs)
     ├── architecture/            # System design & decisions
     ├── features/                # Feature implementation details
     └── guides/                  # How-to guides & best practices
@@ -122,7 +122,7 @@ See `CLAUDE.md` for complete Claude Code workflow documentation.
 
 **For Developers:**
 - `docs/README.md` - Documentation hub (start here)
-- `docs/prd/` - Product Requirement Documents
+- `docs/product/` - Product Requirement Documents
 - `docs/api/` - API specifications (OpenAPI, WebSocket)
 - `docs/guides/FRONTEND_INTEGRATION.md` - API integration guide
 - `CHANGELOG.md` - Complete change history
@@ -189,7 +189,7 @@ Proprietary - © 2025 jukasdrj
 
 - **Documentation Hub:** `docs/README.md`
 - **API Specs:** `docs/api/` (OpenAPI, WebSocket)
-- **PRDs:** `docs/prd/`
+- **PRDs:** `docs/product/`
 - **Architecture:** `docs/architecture/`
 - **Frontend Integration:** `docs/guides/FRONTEND_INTEGRATION.md`
 

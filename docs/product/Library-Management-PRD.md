@@ -309,8 +309,8 @@ dependencies:
 
 ## Related Documentation
 
-- **Reading Statistics:** `docs/prd/Reading-Statistics-PRD.md`
-- **Cloud Sync:** `docs/prd/Cloud-Sync-PRD.md`
+- **Reading Statistics:** `docs/product/Reading-Statistics-PRD.md`
+- **Cloud Sync:** `docs/product/Cloud-Sync-PRD.md`
 
 ---
 

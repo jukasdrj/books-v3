@@ -270,7 +270,7 @@ dependencies:
 
 ## Related Documentation
 
-- **Library Management:** `docs/prd/Library-Management-PRD.md`
+- **Library Management:** `docs/product/Library-Management-PRD.md`
 
 ---
 

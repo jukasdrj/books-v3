@@ -316,7 +316,7 @@ dependencies:
 
 ## Related Documentation
 
-- **Bookshelf Scanner:** `docs/prd/Bookshelf-AI-Scanner-PRD.md`
+- **Bookshelf Scanner:** `docs/product/Bookshelf-AI-Scanner-PRD.md`
 - **Technical Spec:** `docs/features/REVIEW_QUEUE.md`
 
 ---

@@ -426,7 +426,7 @@ dependencies:
 - **Workflow Diagram:** `docs/workflows/bookshelf-scanner-workflow.md`
 - **Technical Spec:** `docs/features/BOOKSHELF_SCANNER.md`
 - **Batch Processing:** `docs/features/BATCH_BOOKSHELF_SCANNING.md`
-- **Review Queue:** `docs/prd/Review-Queue-PRD.md`
+- **Review Queue:** `docs/product/Review-Queue-PRD.md`
 
 ---
 
