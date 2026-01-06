@@ -535,14 +535,18 @@
               "pattern": "^\\d{10}(\\d{3})?$"
             },
             "minItems": 1,
-            "maxItems": 50,
-            "description": "Array of ISBNs to enrich (1-50, supports ISBN-10 and ISBN-13)",
+            "maxItems": 500,
+            "description": "Array of ISBNs to enrich (1-50 for sync, up to 500 for async)",
             "example": ["9780439708180", "9780439064873"]
           },
           "includeEmbedding": {
             "type": "boolean",
             "default": false,
             "description": "Generate semantic embeddings for vector search"
+          },
+          "async": {
+            "type": "boolean",
+            "description": "Use async mode for batches >50 ISBNs (up to 500). Returns a jobId for SSE progress tracking."
           }
         }
       },

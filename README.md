@@ -44,9 +44,11 @@ BooksTracker/
 ├── BooksTrackerWidgets/         # Widget extension
 ├── Config/                      # Build configuration
 └── docs/                        # Documentation
-    ├── prd/                     # Product requirements (17 PRDs)
-    ├── v2-plans/                # Sprint planning
-    └── architecture/            # Technical docs
+    ├── api/                     # API specs (OpenAPI, WebSocket)
+    ├── prd/                     # Product requirements (18 PRDs)
+    ├── architecture/            # System design & decisions
+    ├── features/                # Feature implementation details
+    └── guides/                  # How-to guides & best practices
 ```
 
 ---
@@ -119,9 +121,10 @@ See `CLAUDE.md` for complete Claude Code workflow documentation.
 - `.github/copilot-instructions.md` - GitHub Copilot configuration
 
 **For Developers:**
+- `docs/README.md` - Documentation hub (start here)
 - `docs/prd/` - Product Requirement Documents
-- `docs/v2-plans/` - Design planning and technical specs
-- `docs/FRONTEND_INTEGRATION.md` - API integration guide
+- `docs/api/` - API specifications (OpenAPI, WebSocket)
+- `docs/guides/FRONTEND_INTEGRATION.md` - API integration guide
 - `CHANGELOG.md` - Complete change history
 
 ---
@@ -184,10 +187,11 @@ Proprietary - © 2025 jukasdrj
 
 ## 🔗 Links
 
-- **Documentation:** `docs/`
+- **Documentation Hub:** `docs/README.md`
+- **API Specs:** `docs/api/` (OpenAPI, WebSocket)
 - **PRDs:** `docs/prd/`
-- **V2 Design:** `docs/v2-plans/`
-- **Frontend Integration:** `docs/FRONTEND_INTEGRATION.md`
+- **Architecture:** `docs/architecture/`
+- **Frontend Integration:** `docs/guides/FRONTEND_INTEGRATION.md`
 
 ---
 
