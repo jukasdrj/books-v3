@@ -15,7 +15,6 @@ enum EnrichmentConfig {
     ///   - V1/V2 legacy: GET /ws/progress?jobId=xxx (WebSocket)
     ///   - Used only as automatic fallback when V3 SSE fails
     /// - Note: **Removal: 90 days after V3 GA** (V1/V2 sunset)
-    @available(*, deprecated, message: "WebSocket is V1/V2 legacy only. V3 uses SSE exclusively. Removal: 90 days post-V3 GA")
     static let webSocketBaseURL = "wss://api.oooefam.net"
 
     // MARK: - Search Endpoints (V3 API)
@@ -71,7 +70,6 @@ enum EnrichmentConfig {
 
     /// Cancel enrichment job (Legacy endpoint - DEPRECATED)
     /// ⚠️ DEPRECATED: V1 endpoints sunset March 1, 2026
-    @available(*, deprecated, message: "Use V3 enrichment endpoint - V1 sunsets March 1, 2026")
     static var enrichmentCancelURL: URL {
         URL(string: "\(baseURL)/api/enrichment/cancel")!
     }
@@ -113,7 +111,6 @@ enum EnrichmentConfig {
     ///   - No V3 equivalent planned; evaluate adoption before sunset decision
     ///   - Tech Debt: Define migration path or removal timeline by Q2 2026
     /// - Returns: URL for the workflow creation endpoint
-    @available(*, deprecated, message: "V2 workflow import is experimental. Evaluate adoption before Q2 2026 sunset decision.")
     static var workflowCreateURL: URL {
         URL(string: "\(baseURL)/v2/import/workflow")!
     }
@@ -122,7 +119,6 @@ enum EnrichmentConfig {
     /// ⚠️ EXPERIMENTAL: Part of V2 workflow import feature
     /// - Parameter workflowId: The workflow ID to check
     /// - Returns: URL for the workflow status endpoint
-    @available(*, deprecated, message: "V2 workflow import is experimental. Evaluate adoption before Q2 2026 sunset decision.")
     static func workflowStatusURL(workflowId: String) -> URL {
         URL(string: "\(baseURL)/v2/import/workflow/\(workflowId)")!
     }
@@ -138,7 +134,6 @@ enum EnrichmentConfig {
     /// - Parameter jobId: The unique job identifier
     /// - Returns: WebSocket URL for the specified job
     /// - Note: **Removal: 90 days after V3 GA** (V1/V2 sunset)
-    @available(*, deprecated, message: "WebSocket is V1/V2 legacy only. V3 uses SSE exclusively. Removal: 90 days post-V3 GA")
     static func webSocketURL(jobId: String) -> URL {
         URL(string: "\(webSocketBaseURL)/ws/progress?jobId=\(jobId)")!
     }

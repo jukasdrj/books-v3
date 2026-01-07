@@ -30,8 +30,9 @@ public struct JobInitiationResponse: Codable, Sendable {
     public let jobId: String
     public let authToken: String // Canonical field (v3.3+)
 
-    @available(*, deprecated, message: "Use authToken instead. Removal: March 1, 2026")
-    public let token: String? // Deprecated field, backward compatibility only
+    /// **DEPRECATED:** Use `authToken` instead. Removal: March 1, 2026
+    /// Kept for API backward compatibility only - always nil in new code
+    public let token: String?
 
     public let sseUrl: String? // SSE stream endpoint (v3.3+)
     public let statusUrl: String? // Polling fallback endpoint (v3.3+)
@@ -58,8 +59,8 @@ public struct JobInitiationResponse: Codable, Sendable {
             )
         }
 
-        // token property is deprecated - decode from JSON if present, otherwise nil
-        token = try? container.decode(String.self, forKey: .token)
+        // token property is deprecated - no longer populated (use authToken instead)
+        token = nil
 
         sseUrl = try? container.decode(String.self, forKey: .sseUrl)
         statusUrl = try? container.decode(String.self, forKey: .statusUrl)

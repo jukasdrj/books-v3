@@ -57,16 +57,17 @@ public struct ScanJobResponse: Codable, Sendable {
     public let jobId: String
     public let authToken: String  // Auth token for SSE/WebSocket (canonical)
 
-    @available(*, deprecated, message: "Use authToken instead. Removal: March 1, 2026")
-    public let token: String?  // Deprecated field, backward compatibility only
+    /// **DEPRECATED:** Use `authToken` instead. Removal: March 1, 2026
+    /// Kept for API backward compatibility only - always nil in new code
+    public let token: String?
 
     // API Contract v3.2: SSE endpoints
     public let sseUrl: String?      // SSE stream endpoint (preferred) - V3 returns as "streamUrl"
     public let statusUrl: String?   // Polling fallback endpoint
     public let status: String?      // V3 job status field (e.g., "initialized")
 
-    // Deprecated WebSocket endpoint (V1/V2 legacy only)
-    @available(*, deprecated, message: "WebSocket is V1/V2 legacy only. V3 uses SSE exclusively. Removal: 90 days post-V3 GA")
+    /// **DEPRECATED:** WebSocket is V1/V2 legacy only. V3 uses SSE exclusively. Removal: 90 days post-V3 GA
+    /// Kept for API backward compatibility only - always nil in new code
     public let websocketUrl: String?
 
     public let stages: [ScanJobData.StageMetadata]?  // Optional for V3 (may not be present initially)
@@ -90,11 +91,9 @@ public struct ScanJobResponse: Codable, Sendable {
                 return ScanJobResponse(
                     jobId: scanData.jobId,
                     authToken: scanData.token ?? "",  // Map token → authToken
-                    token: scanData.token,
                     sseUrl: scanData.streamUrl,       // Map streamUrl → sseUrl
                     statusUrl: scanData.statusUrl,
                     status: scanData.status,
-                    websocketUrl: nil,                // V3 doesn't use WebSocket
                     stages: scanData.stages,
                     estimatedRange: scanData.estimatedRange
                 )
@@ -117,21 +116,19 @@ public struct ScanJobResponse: Codable, Sendable {
     public init(
         jobId: String,
         authToken: String,
-        token: String?,
         sseUrl: String?,
         statusUrl: String?,
         status: String?,
-        websocketUrl: String?,
         stages: [ScanJobData.StageMetadata]?,
         estimatedRange: [Int]?
     ) {
         self.jobId = jobId
         self.authToken = authToken
-        self.token = token
+        self.token = nil  // Deprecated, always nil
         self.sseUrl = sseUrl
         self.statusUrl = statusUrl
         self.status = status
-        self.websocketUrl = websocketUrl
+        self.websocketUrl = nil  // Deprecated, always nil
         self.stages = stages
         self.estimatedRange = estimatedRange
     }
@@ -173,23 +170,23 @@ public struct ScanJobResponse: Codable, Sendable {
             authToken = ""
         }
 
-        // token property is deprecated - decode from JSON if present, otherwise nil
-        token = try? container.decode(String.self, forKey: .token)
+        // token property is deprecated - no longer populated
+        token = nil
     }
 
-    // Custom encoding (encode as legacy format for backward compatibility)
+    // Custom encoding (encode with authToken only, deprecated fields omitted)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
 
         try container.encode(jobId, forKey: .jobId)
         try container.encode(authToken, forKey: .authToken)
-        try container.encodeIfPresent(token, forKey: .token)
+        // token is deprecated - no longer encoded
         try container.encodeIfPresent(status, forKey: .status)
         try container.encodeIfPresent(stages, forKey: .stages)
         try container.encodeIfPresent(estimatedRange, forKey: .estimatedRange)
         try container.encodeIfPresent(sseUrl, forKey: .sseUrl)
         try container.encodeIfPresent(statusUrl, forKey: .statusUrl)
-        try container.encodeIfPresent(websocketUrl, forKey: .websocketUrl)
+        // websocketUrl is deprecated - no longer encoded
     }
 
     private enum CodingKeys: String, CodingKey {
