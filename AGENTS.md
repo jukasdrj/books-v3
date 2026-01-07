@@ -274,6 +274,13 @@ let reading = all.filter { $0.readingStatus == .reading }
 
 ## Backend API Contract (v2.4)
 
+**📍 AUTHORITATIVE SOURCE:** `~/dev_repos/bendv3/docs/` - All API documentation lives in the bendv3 repository.
+
+**⚠️ NOTE:** This section is a **convenience reference only** for frontend developers. For authoritative, up-to-date API documentation, always consult:
+- `~/dev_repos/bendv3/docs/API.md` - REST API reference
+- `~/dev_repos/bendv3/docs/WEBSOCKET.md` - WebSocket protocol
+- `~/dev_repos/bendv3/docs/SYSTEM_ARCHITECTURE.md` - Multi-repo architecture
+
 **🚨 CRITICAL:** All backend communication MUST adhere to v2.4 canonical contract.
 
 **Last Updated:** November 20, 2025

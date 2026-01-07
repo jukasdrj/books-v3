@@ -123,8 +123,8 @@ See `CLAUDE.md` for complete Claude Code workflow documentation.
 **For Developers:**
 - `docs/README.md` - Documentation hub (start here)
 - `docs/product/` - Product Requirement Documents
-- `docs/api/` - API specifications (OpenAPI, WebSocket)
-- `docs/guides/FRONTEND_INTEGRATION.md` - API integration guide
+- `docs/CROSS_REPO.md` - Multi-repo architecture guide
+- `~/dev_repos/bendv3/docs/` - API documentation (authoritative source)
 - `CHANGELOG.md` - Complete change history
 
 ---
@@ -187,11 +187,12 @@ Proprietary - © 2025 jukasdrj
 
 ## 🔗 Links
 
-- **Documentation Hub:** `docs/README.md`
-- **API Specs:** `docs/api/` (OpenAPI, WebSocket)
+- **Documentation Hub:** `docs/README.md` and `docs/INDEX.md`
+- **API Documentation:** `~/dev_repos/bendv3/docs/` (authoritative source)
 - **PRDs:** `docs/product/`
 - **Architecture:** `docs/architecture/`
-- **Frontend Integration:** `docs/guides/FRONTEND_INTEGRATION.md`
+- **Workflows:** `docs/workflows/`
+- **Cross-Repo Guide:** `docs/CROSS_REPO.md`
 
 ---
 

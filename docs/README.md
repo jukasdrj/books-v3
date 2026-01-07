@@ -4,10 +4,8 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 
 ## 📂 Directory Structure
 
-### `docs/api/`
-**Contracts & Specs.** The source of truth for API interactions.
-- `openapi-v3.json` - OpenAPI 3.1 Specification for REST API.
-- `websocket-v2.md` - WebSocket protocol for real-time features (scanning, import).
+### `docs/INDEX.md`
+**Documentation Hub.** Quick navigation to all documentation resources.
 
 ### `docs/product/`
 **Product Requirements (PRDs).** The "Why" and "What" of features.
@@ -29,27 +27,32 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 - `reading-sessions.md` - Timer & session state management.
 - `VISUAL_DESIGN_SUMMARY.md` - iOS 26 Liquid Glass design system.
 
-### `docs/guides/`
-**How-to Guides.** Instructions for developers and integrators.
-- `FRONTEND_INTEGRATION.md` - Guide for web frontend integration.
+### `docs/CROSS_REPO.md`
+**Multi-Repo Architecture.** Guide to BooksTrack's multi-repository system (books-v3, bendv3, alex).
+
+### `docs/CURRENT-STATUS.md`
+**Project Status.** Current sprint progress, active development, and blockers.
 
 ### `docs/workflows/`
 **Visual Flows.** Mermaid diagrams describing complex user or data flows.
-*(Currently being populated)*
+- See `docs/workflows/README.md` for available workflows and templates.
 
-### `docs/archive/`
-**Graveyard.** Obsolete PRDs, deprecated plans, and legacy V1/V2 docs.
-- `v2-plans/` - Old sprint plans.
-- Legacy PRDs (`Gemini-CSV-Import-PRD.md`, etc.).
+### `docs/architecture/`
+**System Design.** High-level technical decisions and patterns.
+- `cascade-metadata.md` - How we merge data from multiple providers.
+- `ratings-system.md` - Logic behind user ratings.
+- `reading-sessions.md` - Timer & session state management.
+- `VISUAL_DESIGN_SUMMARY.md` - iOS 26 Liquid Glass design system.
 
 ---
 
 ## 🔍 How to find what you need
 
-- **"I need to know how the API works."** -> `docs/api/`
+- **"I need to know how the API works."** -> `~/dev_repos/bendv3/docs/` (authoritative source)
 - **"I'm building a new feature."** -> Check `docs/product/` for requirements, then `docs/architecture/` for constraints.
-- **"I'm fixing a bug in the scanner."** -> Read `docs/product/Bookshelf-AI-Scanner-PRD.md` and check `docs/api/websocket-v2.md`.
-- **"I'm confused about the project structure."** -> Read `AGENTS.md` in the root.
+- **"I'm fixing a bug in the scanner."** -> Read `docs/product/Bookshelf-AI-Scanner-PRD.md` and check `~/dev_repos/bendv3/docs/WEBSOCKET.md`.
+- **"I'm confused about the project structure."** -> Read `AGENTS.md` in the root or `docs/CROSS_REPO.md`.
+- **"Where's the documentation hub?"** -> Start with `docs/INDEX.md`.
 
 ## 📝 Editing Documentation
 

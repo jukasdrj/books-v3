@@ -134,6 +134,7 @@ test_output.log
 **/build-quick.log
 build-output.log
 build-quick.log
+*.log
 
 # Test output logs (match both naming variants)
 **/test_output.log
