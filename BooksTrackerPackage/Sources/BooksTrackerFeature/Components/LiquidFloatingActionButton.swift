@@ -5,13 +5,15 @@ import SwiftUI
 @available(iOS 26.0, *)
 public struct LiquidFloatingActionButton: View {
     let icon: String
+    let accessibilityLabel: String
     let items: [FABItem]
 
     @State private var isExpanded = false
     @Environment(\.iOS26ThemeStore) private var themeStore
 
-    public init(icon: String = "plus", items: [FABItem]) {
+    public init(icon: String = "plus", accessibilityLabel: String = "Add options", items: [FABItem]) {
         self.icon = icon
+        self.accessibilityLabel = accessibilityLabel
         self.items = items
     }
 
@@ -50,8 +52,10 @@ public struct LiquidFloatingActionButton: View {
                                         .foregroundStyle(item.color ?? themeStore.primaryColor)
                                 }
                                 .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+                                .accessibilityHidden(true)
                         }
                     }
+                    .accessibilityLabel(item.label)
                     .transition(.move(edge: .bottom).combined(with: .opacity).combined(with: .scale(scale: 0.8)))
                 }
             }
@@ -72,7 +76,7 @@ public struct LiquidFloatingActionButton: View {
                     }
                     .shadow(color: themeStore.primaryColor.opacity(0.4), radius: 10, x: 0, y: 5)
             }
-            .accessibilityLabel("Add options")
+            .accessibilityLabel(accessibilityLabel)
             .accessibilityHint(isExpanded ? "Collapse menu" : "Expand menu to see add options")
         }
         .padding(.trailing, 20)
