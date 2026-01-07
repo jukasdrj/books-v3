@@ -11,7 +11,7 @@ public struct LiquidFloatingActionButton: View {
     @State private var isExpanded = false
     @Environment(\.iOS26ThemeStore) private var themeStore
 
-    public init(icon: String = "plus", accessibilityLabel: String = "Add options", items: [FABItem]) {
+    public init(items: [FABItem], icon: String = "plus", accessibilityLabel: String = "Add options") {
         self.icon = icon
         self.accessibilityLabel = accessibilityLabel
         self.items = items
