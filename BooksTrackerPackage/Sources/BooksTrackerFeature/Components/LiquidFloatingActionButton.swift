@@ -4,55 +4,24 @@ import SwiftUI
 /// Supports a primary action or an expandable menu of actions.
 @available(iOS 26.0, *)
 public struct LiquidFloatingActionButton: View {
-    let icon: String
     let items: [FABItem]
+    let icon: String
+    let accessibilityLabel: String
 
     @State private var isExpanded = false
     @Environment(\.iOS26ThemeStore) private var themeStore
 
-    public init(icon: String = "plus", items: [FABItem]) {
-        self.icon = icon
+    public init(items: [FABItem], icon: String = "plus", accessibilityLabel: String = "Add options") {
         self.items = items
+        self.icon = icon
+        self.accessibilityLabel = accessibilityLabel
     }
 
     public var body: some View {
         VStack(alignment: .trailing, spacing: 16) {
             if isExpanded {
                 ForEach(items) { item in
-                    Button(action: {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            isExpanded = false
-                        }
-                        // Delay slightly to allow animation to start
-                        Task {
-                            try? await Task.sleep(for: .milliseconds(100))
-                            item.action()
-                        }
-                    }) {
-                        HStack(spacing: 12) {
-                            Text(item.label)
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(.primary)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background {
-                                    Capsule()
-                                        .fill(.ultraThinMaterial)
-                                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-                                }
-
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .frame(width: 48, height: 48)
-                                .overlay {
-                                    Image(systemName: item.icon)
-                                        .font(.title3)
-                                        .foregroundStyle(item.color ?? themeStore.primaryColor)
-                                }
-                                .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-                        }
-                    }
-                    .transition(.move(edge: .bottom).combined(with: .opacity).combined(with: .scale(scale: 0.8)))
+                    fabItemButton(for: item)
                 }
             }
 
@@ -72,11 +41,50 @@ public struct LiquidFloatingActionButton: View {
                     }
                     .shadow(color: themeStore.primaryColor.opacity(0.4), radius: 10, x: 0, y: 5)
             }
-            .accessibilityLabel("Add options")
+            .accessibilityLabel(accessibilityLabel)
             .accessibilityHint(isExpanded ? "Collapse menu" : "Expand menu to see add options")
         }
         .padding(.trailing, 20)
         .padding(.bottom, 20)
+    }
+
+    private func fabItemButton(for item: FABItem) -> some View {
+        Button(action: {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                isExpanded = false
+            }
+            // Delay slightly to allow animation to start
+            Task {
+                try? await Task.sleep(for: .milliseconds(100))
+                item.action()
+            }
+        }) {
+            HStack(spacing: 12) {
+                Text(item.label)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background {
+                        Capsule()
+                            .fill(.ultraThinMaterial)
+                            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+                    }
+
+                Circle()
+                    .fill(.ultraThinMaterial)
+                    .frame(width: 48, height: 48)
+                    .overlay {
+                        Image(systemName: item.icon)
+                            .font(.title3)
+                            .foregroundStyle(item.color ?? themeStore.primaryColor)
+                    }
+                    .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+                    .accessibilityHidden(true)
+            }
+        }
+        .accessibilityLabel(item.label)
+        .transition(.move(edge: .bottom).combined(with: .opacity).combined(with: .scale(scale: 0.8)))
     }
 }
 
