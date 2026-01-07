@@ -398,6 +398,10 @@ public struct GeminiCSVImportView: View {
                     #if DEBUG
                     print("[CSV SSE] ⚠️ Connection failed: \(failure.error)")
                     #endif
+                    // CRITICAL FIX: Disconnect immediately to stop automatic reconnection
+                    // Otherwise the stream never ends and fallback never triggers
+                    await client.disconnect()
+                    break // Exit the for-await loop
                 }
             default:
                 break
