@@ -49,8 +49,9 @@ actor EnrichmentAPIClient {
         let totalCount: Int
         let authToken: String  // Auth token for WebSocket connection (canonical)
 
-        @available(*, deprecated, message: "Use authToken instead. Removal: March 1, 2026")
-        let token: String?  // Deprecated field, backward compatibility only
+        /// **DEPRECATED:** Use `authToken` instead. Removal: March 1, 2026
+        /// Kept for API backward compatibility only - always nil in new code
+        let token: String?
 
         /// Server-assigned job ID for async enrichment (V3 API)
         /// CRITICAL: Use this for WebSocket/SSE connections, NOT the client-generated UUID
@@ -83,7 +84,7 @@ actor EnrichmentAPIClient {
             self.processedCount = processedCount
             self.totalCount = totalCount
             self.authToken = authToken
-            self.token = nil  // Deprecated, not used for new instances
+            self.token = nil  // Deprecated property
             self.serverJobId = serverJobId
             self.streamUrl = streamUrl
             self.embeddedBooks = embeddedBooks
@@ -113,13 +114,8 @@ actor EnrichmentAPIClient {
                 )
             }
 
-            // token property is deprecated - decode from JSON if present, otherwise nil
-            // Intentionally accessing deprecated field for backward compatibility until March 1, 2026
-            if let tokenValue = try? container.decode(String.self, forKey: .token) {
-                token = tokenValue
-            } else {
-                token = nil
-            }
+            // token property is deprecated - no longer populated
+            token = nil
 
             // These fields are only present in programmatic construction (async mode), not from JSON
             serverJobId = nil
