@@ -506,6 +506,238 @@ let recentlyCompleted = try modelContext.fetch(descriptor)
 
 ---
 
+## Platform Implementation Notes
+
+### iOS Implementation
+
+**Status:** Completed (v3.0.0+)
+
+**Key Files:**
+- `ReadingStatsView.swift` - Main statistics dashboard
+- `ReadingStats.swift` - Statistics calculation logic
+- `UserLibraryEntry.swift` - SwiftData model with reading status
+
+**Platform-Specific Details:**
+- SwiftData predicates for filtering by completion date (this year, all time)
+- Swift Charts for pie charts (status distribution)
+- Real-time updates via `@Query` and `@Model` observation
+- Calendar API for date range filtering (year boundaries)
+
+**Performance:**
+- Stats calculation: <100ms for 1000+ books
+- Auto-updates when status/progress changes
+- No caching needed (SwiftData queries are fast)
+
+---
+
+### Flutter Implementation
+
+**Status:** Not Started
+
+**Recommended Approach:**
+Use Drift SQL aggregations for statistics with `fl_chart` for visualizations.
+
+**Key Dependencies:**
+```yaml
+dependencies:
+  fl_chart: ^0.66.0               # Chart library (pie, bar, line charts)
+  drift: ^2.14.0                  # SQL aggregations for stats
+  riverpod: ^2.4.0                # State management
+  intl: ^0.18.0                   # Date formatting and year boundaries
+```
+
+**Implementation Notes:**
+
+#### Statistics Calculation
+```dart
+// Drift SQL aggregation examples
+class ReadingStatsDao extends DatabaseAccessor<AppDatabase> {
+  ReadingStatsDao(AppDatabase db) : super(db);
+
+  // Books read this year
+  Future<int> getBooksReadThisYear() async {
+    final now = DateTime.now();
+    final yearStart = DateTime(now.year, 1, 1);
+
+    final query = select(libraryEntries)
+      ..where((e) =>
+          e.status.equals('read') &
+          e.completionDate.isBiggerOrEqualValue(yearStart));
+
+    return query.get().then((rows) => rows.length);
+  }
+
+  // Pages read calculation
+  Future<int> getTotalPagesRead() async {
+    final query = select(libraryEntries)
+      ..join([
+        leftOuterJoin(works, works.id.equalsExp(libraryEntries.workId)),
+        leftOuterJoin(editions, editions.workId.equalsExp(works.id))
+      ])
+      ..where(libraryEntries.status.equals('read'));
+
+    final results = await query.get();
+    return results.fold(0, (sum, row) {
+      final pageCount = row.read(editions.pageCount) ?? 0;
+      return sum + pageCount;
+    });
+  }
+
+  // Status distribution
+  Future<Map<String, int>> getStatusDistribution() async {
+    final results = await select(libraryEntries).get();
+    final distribution = <String, int>{};
+
+    for (final entry in results) {
+      distribution[entry.status] = (distribution[entry.status] ?? 0) + 1;
+    }
+
+    return distribution;
+  }
+
+  // Reading pace (pages per day)
+  Future<double> getReadingPace() async {
+    final now = DateTime.now();
+    final last30Days = now.subtract(Duration(days: 30));
+
+    final query = select(libraryEntries)
+      ..where((e) =>
+          e.status.equals('read') &
+          e.completionDate.isBiggerOrEqualValue(last30Days));
+
+    final results = await query
+      ..join([
+        leftOuterJoin(editions, editions.workId.equalsExp(libraryEntries.workId))
+      ]);
+
+    final totalPages = results.fold(0, (sum, row) {
+      return sum + (row.read(editions.pageCount) ?? 0);
+    });
+
+    return totalPages / 30.0;
+  }
+}
+```
+
+#### Pie Chart Visualization
+```dart
+// fl_chart PieChart for status distribution
+PieChart(
+  PieChartData(
+    sections: [
+      PieChartSectionData(
+        value: readCount.toDouble(),
+        title: 'Read\n$readCount',
+        color: Colors.green,
+        radius: 60,
+      ),
+      PieChartSectionData(
+        value: readingCount.toDouble(),
+        title: 'Reading\n$readingCount',
+        color: Colors.blue,
+        radius: 60,
+      ),
+      PieChartSectionData(
+        value: wishlistCount.toDouble(),
+        title: 'Wishlist\n$wishlistCount',
+        color: Colors.orange,
+        radius: 60,
+      ),
+      PieChartSectionData(
+        value: ownedCount.toDouble(),
+        title: 'Owned\n$ownedCount',
+        color: Colors.purple,
+        radius: 60,
+      ),
+    ],
+    sectionsSpace: 2,
+    centerSpaceRadius: 40,
+  ),
+)
+```
+
+#### Date Range Filtering
+```dart
+// Year boundary calculation (same as iOS Calendar API)
+DateTime getYearStart() {
+  final now = DateTime.now();
+  return DateTime(now.year, 1, 1);
+}
+
+DateTime getYearEnd() {
+  final now = DateTime.now();
+  return DateTime(now.year, 12, 31, 23, 59, 59);
+}
+
+// Filter by time period
+enum TimePeriod { allTime, thisYear, last30Days }
+
+DateTime? getFilterStartDate(TimePeriod period) {
+  switch (period) {
+    case TimePeriod.allTime:
+      return null; // No filter
+    case TimePeriod.thisYear:
+      return getYearStart();
+    case TimePeriod.last30Days:
+      return DateTime.now().subtract(Duration(days: 30));
+  }
+}
+```
+
+#### Auto-Update on Status Change
+```dart
+// Riverpod provider that rebuilds when data changes
+@riverpod
+Future<ReadingStats> readingStats(ReadingStatsRef ref) async {
+  final dao = ref.watch(readingStatsDaoProvider);
+
+  // Fetch all stats
+  final booksReadThisYear = await dao.getBooksReadThisYear();
+  final totalPagesRead = await dao.getTotalPagesRead();
+  final statusDistribution = await dao.getStatusDistribution();
+  final readingPace = await dao.getReadingPace();
+
+  return ReadingStats(
+    booksReadThisYear: booksReadThisYear,
+    totalPagesRead: totalPagesRead,
+    statusDistribution: statusDistribution,
+    readingPace: readingPace,
+  );
+}
+
+// Invalidate stats when library changes
+void onBookStatusChanged() {
+  ref.invalidate(readingStatsProvider);
+}
+```
+
+**Cross-Platform Considerations:**
+- **Charts:** `fl_chart` pie charts vs Swift Charts (similar API)
+- **Date Filtering:** Use `intl` package for year boundaries (matches iOS Calendar API)
+- **Performance:** Drift SQL aggregations are comparable to SwiftData predicates
+- **Real-time Updates:** Riverpod `ref.invalidate()` vs SwiftUI `@Query` observation
+
+**Estimated Effort:** 2 weeks (Medium complexity)
+
+**Testing Priorities:**
+- [ ] Verify "Books Read This Year" matches iOS calculation
+- [ ] Test status distribution pie chart percentages (must sum to 100%)
+- [ ] Validate reading pace calculation (pages/day)
+- [ ] Test with 0 books (empty state)
+- [ ] Test with 1000+ books (performance benchmark <1s)
+- [ ] Verify auto-updates when status changes
+
+**Flutter-Specific Challenges:**
+1. **Date Boundaries:** Ensure year start/end calculation matches iOS exactly (time zone handling)
+2. **Real-time Updates:** Drift doesn't auto-observe changes - must manually invalidate Riverpod providers
+3. **Pie Chart Labels:** `fl_chart` pie chart labels may need custom formatting to match iOS style
+
+**See Also:**
+- Feature parity details: `docs/FLUTTER_FEATURE_PARITY.md` (Feature 7)
+- iOS reference implementation: `BooksTrack/Features/Statistics/`
+
+---
+
 ## Success Criteria (Shipped)
 
 - ✅ Books Read This Year counter accurate (real-time updates)

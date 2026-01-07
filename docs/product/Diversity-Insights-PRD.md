@@ -555,12 +555,169 @@ Objective: Move from static dashboards to actionable, interactive insights that 
 
 ---
 
+## Platform Implementation Notes
+
+### iOS Implementation
+
+**Status:** Completed (v3.1.0)
+
+**Key Files:**
+- `InsightsView.swift` - Main insights tab with hero stats and charts
+- `DiversityStats.swift` - Cultural/gender/language/marginalized voice calculations
+- `ReadingStats.swift` - Time-based statistics (all time, this year, last 30 days)
+- `DiversityChartView.swift` - Custom radar chart for 5-dimension diversity
+
+**Platform-Specific Details:**
+- Uses Swift Charts framework for native visualizations
+- Custom radar chart built with SwiftUI shapes and geometry
+- SwiftData aggregations with predicates for filtering by time period
+- Shannon entropy calculation for gender diversity score
+- VoiceOver accessibility for all chart data points
+
+**Performance:**
+- Initial stats calculation: 50-100ms for 100-1500 books
+- Cached results: <5ms (1 minute cache TTL)
+- Cache invalidated on library changes
+
+---
+
+### Flutter Implementation
+
+**Status:** Not Started
+
+**Recommended Approach:**
+Use `fl_chart` package for radar chart visualization with Drift SQL aggregations for statistics calculations.
+
+**Key Dependencies:**
+```yaml
+dependencies:
+  fl_chart: ^0.66.0               # Chart library with radar chart support
+  drift: ^2.14.0                  # SQL aggregations for stats
+  riverpod: ^2.4.0                # State management for cached stats
+```
+
+**Implementation Notes:**
+
+#### Radar Chart Visualization
+```dart
+// fl_chart RadarChart widget
+RadarChart(
+  RadarChartData(
+    dataSets: [
+      RadarDataSet(
+        dataEntries: [
+          RadarEntry(value: africaPercent),
+          RadarEntry(value: asiaPercent),
+          RadarEntry(value: europePercent),
+          RadarEntry(value: americasPercent),
+          RadarEntry(value: oceaniaPercent),
+        ],
+      ),
+    ],
+    radarShape: RadarShape.polygon,
+    titleTextStyle: TextStyle(fontSize: 12),
+  ),
+)
+```
+
+#### Diversity Statistics Calculation
+```dart
+// Drift SQL aggregation example
+Future<Map<String, int>> getRegionCounts() async {
+  final query = select(authors)
+    ..join([
+      leftOuterJoin(works, works.id.equalsExp(authors.workId))
+    ]);
+
+  final results = await query.get();
+  final regionCounts = <String, int>{};
+
+  for (final row in results) {
+    final region = row.read(authors.culturalRegion) ?? 'Unknown';
+    regionCounts[region] = (regionCounts[region] ?? 0) + 1;
+  }
+
+  return regionCounts;
+}
+```
+
+#### Shannon Entropy Calculation
+```dart
+// Platform-agnostic (same logic as iOS)
+double calculateGenderEntropy(Map<String, int> genderCounts) {
+  final total = genderCounts.values.fold(0, (sum, count) => sum + count);
+  if (total == 0) return 0.0;
+
+  double entropy = 0.0;
+  for (final count in genderCounts.values) {
+    if (count > 0) {
+      final p = count / total;
+      entropy -= p * (log(p) / log(2));
+    }
+  }
+
+  // Normalize to 0-1 scale (max entropy for 4 genders = log2(4) = 2)
+  return entropy / 2.0;
+}
+```
+
+#### Caching Strategy
+```dart
+// Riverpod provider with 1-minute cache
+@riverpod
+class DiversityStatsNotifier extends _$DiversityStatsNotifier {
+  Timer? _cacheTimer;
+
+  @override
+  Future<DiversityStats> build() async {
+    _invalidateCacheAfter(Duration(minutes: 1));
+    return _calculateStats();
+  }
+
+  void _invalidateCacheAfter(Duration duration) {
+    _cacheTimer?.cancel();
+    _cacheTimer = Timer(duration, () => ref.invalidateSelf());
+  }
+
+  Future<DiversityStats> _calculateStats() async {
+    // Drift aggregations here
+  }
+}
+```
+
+**Cross-Platform Considerations:**
+- **Charts:** `fl_chart` radar chart vs Swift Charts (slightly different styling)
+- **Performance:** Drift SQL queries may be faster than SwiftData predicates for large datasets
+- **Accessibility:** Implement Semantics widgets for screen reader support (similar to VoiceOver)
+- **Time Period Filtering:** Use same date range logic (all time, this year, last 30 days)
+
+**Estimated Effort:** 2 weeks (Medium complexity)
+
+**Testing Priorities:**
+- [ ] Verify diversity score formula matches iOS exactly
+- [ ] Test with 0 books (empty state)
+- [ ] Test with 1000+ books (performance benchmark)
+- [ ] Validate radar chart rendering on different screen sizes
+- [ ] Screen reader testing (TalkBack on Android, VoiceOver on iOS)
+
+**Flutter-Specific Challenges:**
+1. **Radar Chart Styling:** `fl_chart` radar charts use different styling than Swift Charts - may need custom theming
+2. **Cache Invalidation:** Drift doesn't have automatic change tracking like SwiftData - must manually invalidate cache on mutations
+3. **Gender Entropy Edge Cases:** Ensure same rounding/precision as iOS (0.0-1.0 scale)
+
+**See Also:**
+- Feature parity details: `docs/FLUTTER_FEATURE_PARITY.md` (Feature 8)
+- iOS reference implementation: `BooksTrack/Features/Insights/`
+
+---
+
 ## Related Documentation
 
 - **Technical Implementation:** `docs/features/DIVERSITY_INSIGHTS.md` - Complete technical deep-dive
 - **Workflow Diagram:** `docs/workflows/diversity-insights-flow.md` (to be created)
 - **Implementation Plan:** `docs/plans/2025-10-26-diversity-insights-landing-page.md`
 - **Data Models:** `docs/architecture/2025-10-26-data-model-breakdown.md`
+- **Flutter Parity:** `docs/FLUTTER_FEATURE_PARITY.md` (Feature 8)
 
 ---
 

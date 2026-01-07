@@ -571,9 +571,165 @@ class WebSocketService {
 
 ## Related Documentation
 
-- **PRD Index:** `docs/product/README.md` (platform-agnostic feature specs)
-- **API Contracts:** `docs/product/Canonical-Data-Contracts-PRD.md`
-- **Backend Repo:** https://github.com/jukasdrj/bookstrack-backend
+### Individual Feature PRDs
+
+All 9 shipped iOS features now have dedicated PRD documents with Flutter implementation sections:
+
+| Feature | PRD Document | Flutter Status |
+|---------|--------------|----------------|
+| Library Management | [`docs/product/Library-Management-PRD.md`](product/Library-Management-PRD.md) | Not Started (see PRD for Flutter section) |
+| Book Search & Enrichment | [`docs/product/Book-Enrichment-PRD.md`](product/Book-Enrichment-PRD.md) | Not Started (see PRD for Flutter section) |
+| Barcode Scanner | [`docs/product/Barcode-Scanner-PRD.md`](product/Barcode-Scanner-PRD.md) | Not Started (see PRD for Flutter section) |
+| Bookshelf AI Scanner | [`docs/product/Bookshelf-AI-Scanner-PRD.md`](product/Bookshelf-AI-Scanner-PRD.md) | Not Started (see PRD for Flutter section) |
+| CSV Import | [`docs/product/CSV-Import-PRD.md`](product/CSV-Import-PRD.md) | Not Started (see PRD for Flutter section) |
+| Review Queue | [`docs/product/Review-Queue-PRD.md`](product/Review-Queue-PRD.md) | Not Started (see PRD for Flutter section) |
+| Reading Statistics | [`docs/product/Reading-Statistics-PRD.md`](product/Reading-Statistics-PRD.md) | Not Started (Flutter section added) |
+| Diversity Insights | [`docs/product/Diversity-Insights-PRD.md`](product/Diversity-Insights-PRD.md) | Not Started (Flutter section added) |
+| Cloud Sync | [`docs/product/Cloud-Sync-PRD.md`](product/Cloud-Sync-PRD.md) | Not Started (see PRD for Flutter section) |
+
+**How to Use PRDs for Flutter Development:**
+1. Read the **Executive Summary** and **Problem Statement** to understand feature goals
+2. Review **User Stories & Acceptance Criteria** for behavior expectations
+3. Check **Data Models** (TypeScript) for platform-agnostic schemas
+4. See **API Contracts** for backend endpoints (shared across platforms)
+5. Review **iOS Implementation** section for reference behavior
+6. Follow **Flutter Implementation** section for package recommendations and code examples
+
+### Technical Contracts & Architecture
+
+- **PRD Index:** [`docs/product/README.md`](product/README.md) - Platform-agnostic feature specs
+- **API Contracts:** [`docs/product/Canonical-Data-Contracts-PRD.md`](product/Canonical-Data-Contracts-PRD.md) - OpenAPI spec
+- **Data Mapping:** [`docs/product/DTOMapper-PRD.md`](product/DTOMapper-PRD.md) - Client-side mapping patterns
+- **Genre Taxonomy:** [`docs/product/Genre-Normalization-PRD.md`](product/Genre-Normalization-PRD.md) - Genre normalization rules
+
+### Cross-Repository Documentation
+
+- **System Architecture:** `~/dev_repos/bendv3/docs/SYSTEM_ARCHITECTURE.md` - Multi-service overview
+- **Backend Repo:** https://github.com/jukasdrj/bookstrack-backend - API implementation
+- **iOS Repo:** `docs/INDEX.md` - iOS-specific documentation index
+
+---
+
+## Flutter v1.0 Launch Criteria
+
+**Version:** 1.0.0 (Feature parity with iOS v3.7.5)
+**Target Launch:** Q3 2026 (subject to backend sync API completion)
+**Gating Requirement:** 100% feature parity - no partial releases
+
+### Must-Have Criteria (P0 - Launch Blockers)
+
+#### Functional Completeness
+- [ ] All 9 iOS features implemented and tested
+- [ ] 100% API contract compatibility with iOS
+- [ ] Offline-first architecture (same as iOS)
+- [ ] Cloud sync working bidirectionally (iOS ↔ Flutter)
+
+#### Quality & Performance
+- [ ] Zero critical bugs (P0 severity)
+- [ ] < 3 high-priority bugs (P1 severity)
+- [ ] App launch time < 2 seconds (cold start)
+- [ ] Database operations < 100ms (p95)
+- [ ] UI frame rate ≥ 60fps (no jank)
+
+#### Platform Coverage
+- [ ] iOS 16+ support (matches iOS app minimum)
+- [ ] Android 12+ support (API level 31+)
+- [ ] Portrait + landscape orientations
+- [ ] Phone + tablet layouts
+
+#### Testing & Validation
+- [ ] ≥ 80% code coverage (unit + integration tests)
+- [ ] All user flows tested on real devices (iOS + Android)
+- [ ] Accessibility audit passed (screen readers, dynamic type)
+- [ ] Security audit completed (OWASP Mobile Top 10)
+
+#### Documentation & Support
+- [ ] User onboarding flow implemented
+- [ ] Help documentation complete
+- [ ] Privacy policy updated (GDPR/CCPA compliance)
+- [ ] App Store + Play Store listings ready
+
+### Nice-to-Have Criteria (P1 - Post-Launch)
+
+- [ ] Dark mode support
+- [ ] Localization (Spanish, French, German)
+- [ ] Advanced search filters (beyond iOS parity)
+- [ ] Export library to PDF/Excel
+- [ ] Widget support (home screen quick actions)
+
+### Technical Debt Tolerance
+
+**Accepted at Launch:**
+- Minor UI polish differences from iOS (as long as usable)
+- Performance slightly slower than native iOS (within 20% tolerance)
+- Android-specific UI patterns (Material Design vs iOS Cupertino)
+
+**Not Accepted at Launch:**
+- Missing core functionality (must match iOS 100%)
+- Data loss or sync conflicts
+- Crashes or ANRs (Application Not Responding)
+- Privacy/security vulnerabilities
+
+### Backend Dependencies (Gating Launch)
+
+**Critical Path:** Custom Sync API (4-6 weeks backend work)
+
+**Endpoints Required:**
+```
+POST   /v3/sync/push         # Upload local changes
+GET    /v3/sync/pull         # Fetch remote changes since timestamp
+POST   /v3/sync/resolve      # Resolve conflicts (last-write-wins)
+GET    /v3/sync/status       # Sync health check
+```
+
+**Backend Launch Criteria:**
+- [ ] Sync API endpoints deployed to production
+- [ ] CloudKit (iOS) ↔ Sync API bridge tested
+- [ ] Firestore (Flutter) ↔ Sync API tested
+- [ ] Conflict resolution tested (concurrent edits)
+- [ ] Load tested (1000+ concurrent sync requests)
+
+### Pre-Launch Checklist
+
+**8 Weeks Before Launch:**
+- [ ] Feature freeze (no new features, bug fixes only)
+- [ ] Beta testing program launched (TestFlight + Play Store Beta)
+- [ ] Performance benchmarks documented (baseline metrics)
+
+**4 Weeks Before Launch:**
+- [ ] Release candidate builds created (v1.0.0-rc.1)
+- [ ] Beta tester feedback addressed
+- [ ] App Store review submission (iOS) - allow 1-2 weeks
+- [ ] Play Store review submission (Android) - typically same day
+
+**2 Weeks Before Launch:**
+- [ ] Final QA pass on production builds
+- [ ] Marketing materials ready (screenshots, video, press kit)
+- [ ] Support documentation live (help center, FAQs)
+- [ ] Rollout plan finalized (phased vs full release)
+
+**Launch Day:**
+- [ ] Monitoring dashboard active (error tracking, performance)
+- [ ] On-call rotation scheduled (24-hour coverage for first week)
+- [ ] Rollback plan ready (ability to unpublish if critical issues)
+
+### Success Metrics (Post-Launch)
+
+**Week 1:**
+- Crash-free rate ≥ 99.5%
+- User retention Day 1: ≥ 40%
+- Average session duration: ≥ 3 minutes
+
+**Month 1:**
+- User retention Day 30: ≥ 20%
+- App Store rating: ≥ 4.0 stars
+- Play Store rating: ≥ 4.0 stars
+- < 5% of users reporting sync issues
+
+**Quarter 1:**
+- 10,000+ active users (combined iOS + Android)
+- Feature parity maintained (iOS updates ported to Flutter)
+- P0/P1 bug backlog < 10 issues
 
 ---
 
@@ -587,8 +743,16 @@ class WebSocketService {
 - [ ] Design Lead provides Flutter UI mockups (match iOS design system)
 - [ ] Budget approved for 5-7 months development + 2 months testing
 
+**Before Flutter v1.0 Launch:**
+
+- [ ] All items in "Must-Have Criteria" section completed
+- [ ] Backend Sync API deployed and tested
+- [ ] Beta testing phase completed (≥ 100 testers, 4+ weeks)
+- [ ] Legal review completed (privacy policy, terms of service)
+- [ ] Executive sign-off on launch timing
+
 ---
 
-**Last Updated:** January 5, 2026
+**Last Updated:** January 7, 2026
 **Next Review:** February 1, 2026 (after package POCs)
 **Maintained by:** Product + Engineering Teams
