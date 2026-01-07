@@ -285,6 +285,50 @@ struct SSEClientTests {
         #expect(event.totalCount == 100)
     }
 
+    @Test("CSVImportFailed parses correctly with full ErrorDetail")
+    func csvImportFailed_parsesCorrectly_withFullErrorDetail() throws {
+        let json = """
+        {
+            "jobId": "csv_job_abc",
+            "status": "failed",
+            "error": {
+                "message": "CSV row 3 has an invalid ISBN '1234'.",
+                "code": "INVALID_FORMAT",
+                "retryable": false
+            }
+        }
+        """
+        let data = json.data(using: .utf8)!
+        let event = try JSONDecoder().decode(CSVImportFailed.self, from: data)
+
+        #expect(event.jobId == "csv_job_abc")
+        #expect(event.status == "failed")
+        #expect(event.error.message == "CSV row 3 has an invalid ISBN '1234'.")
+        #expect(event.error.code == "INVALID_FORMAT")
+        #expect(event.error.retryable == false)
+    }
+
+    @Test("CSVImportFailed parses correctly with minimal ErrorDetail")
+    func csvImportFailed_parsesCorrectly_withMinimalErrorDetail() throws {
+        let json = """
+        {
+            "jobId": "csv_job_def",
+            "status": "failed",
+            "error": {
+                "message": "Internal server error during CSV processing."
+            }
+        }
+        """
+        let data = json.data(using: .utf8)!
+        let event = try JSONDecoder().decode(CSVImportFailed.self, from: data)
+
+        #expect(event.jobId == "csv_job_def")
+        #expect(event.status == "failed")
+        #expect(event.error.message == "Internal server error during CSV processing.")
+        #expect(event.error.code == nil)
+        #expect(event.error.retryable == nil)
+    }
+
     // MARK: - EnrichmentEvent Enum Tests
 
     @Test("EnrichmentEvent equality works for V3 events")

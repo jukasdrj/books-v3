@@ -403,8 +403,13 @@ public actor SSEClient: NSObject { // NSObject required for URLSessionDelegate
                     let scanFailed = try decoder.decode(V3ScanFailed.self, from: jsonData)
                     currentContinuation?.yield(.v3ScanFailed(scanFailed))
                     Task { [weak self] in await self?.disconnect() }
-                default:
-                    // Generic failed event
+                case .csvImport:
+                    // CSV import failed - decode with CSVImportFailed model
+                    let csvFailed = try decoder.decode(CSVImportFailed.self, from: jsonData)
+                    currentContinuation?.yield(.csvImportFailed(csvFailed))
+                    Task { [weak self] in await self?.disconnect() }
+                case .enrichment:
+                    // Legacy enrichment failed event
                     let failed = try decoder.decode(EnrichmentFailed.self, from: jsonData)
                     currentContinuation?.yield(.failed(failed))
                     Task { [weak self] in await self?.disconnect() }
