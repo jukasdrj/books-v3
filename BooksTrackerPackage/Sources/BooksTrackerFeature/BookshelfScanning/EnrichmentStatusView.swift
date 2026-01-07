@@ -1,5 +1,7 @@
 import SwiftUI
 
+#if canImport(UIKit)
+
 /// View component for displaying enrichment status with appropriate UI for each state
 ///
 /// Supports all enrichment statuses defined in API Contract v3.1:
@@ -254,3 +256,5 @@ struct EnrichmentStatusView: View {
     .padding()
     .preferredColorScheme(.dark)
 }
+
+#endif  // canImport(UIKit)

@@ -1,6 +1,10 @@
 import SwiftUI
 import SwiftData
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
 /// Diversity Insights Tab - Representation Radar Chart
 /// Displays diversity metrics for a book including cultural background,
 /// gender identity, translation status, own voices, and accessibility features.
@@ -257,7 +261,11 @@ private func getPreviewWork(from container: ModelContainer) -> Work {
 
     DiversityInsightsTab(work: work)
         .padding()
-        .background(Color(.systemGroupedBackground))
+        #if canImport(UIKit)
+        .background(Color(UIColor.systemGroupedBackground))
+        #else
+        .background(Color.gray.opacity(0.1))
+        #endif
         .environment(\.iOS26ThemeStore, themeStore)
 }
 
@@ -277,7 +285,11 @@ private func getPreviewWork(from container: ModelContainer) -> Work {
 
     DiversityInsightsTab(work: work)
         .padding()
-        .background(Color(.systemGroupedBackground))
+        #if canImport(UIKit)
+        .background(Color(UIColor.systemGroupedBackground))
+        #else
+        .background(Color.gray.opacity(0.1))
+        #endif
         .environment(\.iOS26ThemeStore, themeStore)
 }
 
@@ -293,6 +305,10 @@ private func getPreviewWork(from container: ModelContainer) -> Work {
 
     DiversityInsightsTab(work: work)
         .padding()
-        .background(Color(.systemGroupedBackground))
+        #if canImport(UIKit)
+        .background(Color(UIColor.systemGroupedBackground))
+        #else
+        .background(Color.gray.opacity(0.1))
+        #endif
         .environment(\.iOS26ThemeStore, themeStore)
 }

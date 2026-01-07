@@ -5,6 +5,8 @@ import UIKit
 #endif
 import OSLog
 
+#if canImport(VisionKit) && canImport(UIKit)
+
 @available(iOS 16.0, *)
 private struct UnsupportedDeviceView: View {
     @Environment(\.iOS26ThemeStore) private var themeStore
@@ -360,3 +362,5 @@ private struct InvalidBarcodeFeedbackView: View {
             .accessibilityLabel("Invalid barcode detected")
     }
 }
+
+#endif  // canImport(VisionKit) && canImport(UIKit)

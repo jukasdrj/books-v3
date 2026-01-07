@@ -12,11 +12,11 @@
 - [ ] None currently
 
 ### P1 - High Priority (Ship This Month)
-- [ ] **Test Suite Cleanup** - Remove placeholder tests and migrate XCTest → Testing framework
-  - [ ] Delete `BooksTrackerFeatureTests.swift` (empty placeholder)
-  - [ ] Delete `TabBarAccessibilityTests.swift` (stub tests)
-  - [ ] Migrate `CombinedImportTests.swift` to Testing framework
-  - [ ] Migrate `WeeklyRecommendationsServiceTests.swift` to Testing framework
+- [x] **Test Suite Cleanup** - Remove placeholder tests and migrate XCTest → Testing framework ✅ (Jan 6, 2026)
+  - [x] Delete `BooksTrackerFeatureTests.swift` (empty placeholder) ✅
+  - [x] Delete `TabBarAccessibilityTests.swift` (stub tests) ✅
+  - [x] Migrate `CombinedImportTests.swift` to Testing framework ✅
+  - [x] Migrate `WeeklyRecommendationsServiceTests.swift` to Testing framework ✅
   - Reference: `archive/test-reports/TEST_CLEANUP_REPORT.md`
 
 - [ ] **Reading Insights "Code Red" - Basic Working System**

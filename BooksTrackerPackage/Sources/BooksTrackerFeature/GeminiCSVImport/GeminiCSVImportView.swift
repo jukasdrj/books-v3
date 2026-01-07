@@ -728,8 +728,10 @@ public struct GeminiCSVImportView: View {
             }
 
             // Haptic feedback
+            #if canImport(UIKit)
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.success)
+            #endif
 
             return true
 
@@ -739,8 +741,10 @@ public struct GeminiCSVImportView: View {
             #endif
 
             // Error haptic
+            #if canImport(UIKit)
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.error)
+            #endif
 
             // Update UI with error
             importStatus = .failed(makeErrorDetail(code: "SAVE_FAILED", message: "Failed to save: \(error.localizedDescription)"))

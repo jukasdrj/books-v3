@@ -1,6 +1,9 @@
 import SwiftUI
 import SwiftData
 
+#if canImport(UIKit)
+import UIKit
+
 // MARK: - Book Card Actions
 
 /// Shared actions for book cards, providing consistent behavior across card types
@@ -50,3 +53,5 @@ public enum BookCardActions {
         impactFeedback.impactOccurred()
     }
 }
+
+#endif  // canImport(UIKit)

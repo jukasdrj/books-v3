@@ -1,6 +1,8 @@
 import SwiftUI
 import SwiftData
 
+#if canImport(UIKit)
+
 /// Liquid list row with iOS 26 design patterns
 /// Optimized for dense information display with smooth interactions
 @available(iOS 26.0, *)
@@ -587,3 +589,5 @@ enum ListRowStyle: String, CaseIterable {
     .modelContainer(for: [Work.self, Edition.self, UserLibraryEntry.self, Author.self])
     .iOS26ThemeStore(BooksTrackerFeature.iOS26ThemeStore())
 }
+
+#endif  // canImport(UIKit)

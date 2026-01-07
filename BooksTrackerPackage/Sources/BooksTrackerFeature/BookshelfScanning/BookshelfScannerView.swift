@@ -2,11 +2,9 @@ import SwiftUI
 import SwiftData
 import OSLog
 
-#if canImport(PhotosUI)
+#if canImport(PhotosUI) && canImport(UIKit)
 import PhotosUI
-#if canImport(UIKit)
 import UIKit
-#endif
 
 // MARK: - Bookshelf Scanner View
 

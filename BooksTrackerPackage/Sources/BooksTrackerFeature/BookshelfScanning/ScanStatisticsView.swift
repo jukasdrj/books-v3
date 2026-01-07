@@ -1,5 +1,7 @@
 import SwiftUI
 
+#if canImport(PhotosUI) && canImport(UIKit)
+
 /// Statistics display for bookshelf scanning progress and results
 /// Shows real-time progress during scanning and final statistics when complete
 @available(iOS 26.0, *)
@@ -84,3 +86,5 @@ struct ScanStatisticsView: View {
         }
     }
 }
+
+#endif  // canImport(PhotosUI) && canImport(UIKit)
