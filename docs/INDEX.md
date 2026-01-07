@@ -18,14 +18,16 @@ Quick navigation hub for all BooksTrack documentation.
 ## 📋 Product Documentation
 
 - **[Product Docs](./product/)** - Product requirements, roadmaps, feature specs
+- **[Flutter Parity Matrix](./product/FLUTTER_PARITY.md)** - iOS vs Flutter feature map
 - **[Feature Flags](./features/FEATURE_FLAGS.md)** - Feature flag documentation
-- **[Current Status](./CURRENT-STATUS.md)** - Active sprint progress and blockers
+- **[Project Status](./project/STATUS.md)** - Active sprint progress and blockers
 
 ---
 
 ## 🏗️ Architecture & Design
 
 - **[Architecture Docs](./architecture/)** - System design, technical decisions
+- **[API Specs](./api/)** - Local OpenAPI specifications
 - **[Workflows](./workflows/)** - Mermaid diagrams for complex flows
 - **[Visual Design](./architecture/VISUAL_DESIGN_SUMMARY.md)** - iOS 26 Liquid Glass design system
 
@@ -41,9 +43,9 @@ Quick navigation hub for all BooksTrack documentation.
 
 ## 🧪 Testing & Development
 
-- **[Safe Testing Guide](./.claude/rules/safe-testing.md)** - Resource management, testing commands
-- **[Git Workflows](./.claude/rules/git-workflows.md)** - Commit and PR guidelines
-- **[Swift Concurrency Rules](./.claude/rules/swift-concurrency.md)** - Swift 6 patterns
+- **[Safe Testing Guide](../.claude/rules/safe-testing.md)** - Resource management, testing commands
+- **[Git Workflows](../.claude/rules/git-workflows.md)** - Commit and PR guidelines
+- **[Swift Concurrency Rules](../.claude/rules/swift-concurrency.md)** - Swift 6 patterns
 
 ---
 
@@ -58,7 +60,7 @@ Quick navigation hub for all BooksTrack documentation.
 
 **Find by topic:**
 - **Testing:** `grep -r "test" docs/ .claude/rules/`
-- **API contracts:** Check `~/dev_repos/bendv3/docs/` (authoritative source)
+- **API contracts:** Check `docs/api/` (local) or `~/dev_repos/bendv3/docs/` (backend)
 - **Feature specs:** `docs/product/*.md`
 - **Architecture decisions:** `docs/architecture/*.md`
 

@@ -275,6 +275,7 @@ let reading = all.filter { $0.readingStatus == .reading }
 ## Backend API Contract (v2.4)
 
 **📍 AUTHORITATIVE SOURCE:** `~/dev_repos/bendv3/docs/` - All API documentation lives in the bendv3 repository.
+**📍 LOCAL SNAPSHOT:** `docs/api/openapi-v3.json` - The spec used for local code generation.
 
 **⚠️ NOTE:** This section is a **convenience reference only** for frontend developers. For authoritative, up-to-date API documentation, always consult:
 - `~/dev_repos/bendv3/docs/API.md` - REST API reference
