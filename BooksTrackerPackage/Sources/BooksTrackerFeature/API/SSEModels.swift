@@ -151,22 +151,46 @@ public struct CSVImportProgress: Codable, Equatable, Sendable {
 public struct CSVImportCompleted: Codable, Equatable, Sendable {
     public let jobId: String
     public let status: String
-    public let progress: Double         // Should be 1.0 on completion
+    public let progress: Double         // Should be 1.0 on completion (backend sends 100, needs /100)
     public let processedCount: Int
     public let totalCount: Int
+    public let completedAt: String?     // ISO timestamp when job completed
+    public let books: [CSVParsedBook]?  // Optional: Books array for iOS persistence
+
+    // Custom decoder to handle backend sending progress as 100 instead of 1.0
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        jobId = try container.decode(String.self, forKey: .jobId)
+        status = try container.decode(String.self, forKey: .status)
+        let rawProgress = try container.decode(Double.self, forKey: .progress)
+        // Backend sends 100, normalize to 0.0-1.0 range
+        progress = rawProgress > 1.0 ? rawProgress / 100.0 : rawProgress
+        processedCount = try container.decode(Int.self, forKey: .processedCount)
+        totalCount = try container.decode(Int.self, forKey: .totalCount)
+        completedAt = try container.decodeIfPresent(String.self, forKey: .completedAt)
+        books = try container.decodeIfPresent([CSVParsedBook].self, forKey: .books)
+    }
 
     public init(
         jobId: String,
         status: String,
         progress: Double,
         processedCount: Int,
-        totalCount: Int
+        totalCount: Int,
+        completedAt: String? = nil,
+        books: [CSVParsedBook]? = nil
     ) {
         self.jobId = jobId
         self.status = status
         self.progress = progress
         self.processedCount = processedCount
         self.totalCount = totalCount
+        self.completedAt = completedAt
+        self.books = books
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case jobId, status, progress, processedCount, totalCount, completedAt, books
     }
 }
 
