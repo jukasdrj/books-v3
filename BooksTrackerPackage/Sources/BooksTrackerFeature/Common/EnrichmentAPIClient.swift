@@ -84,7 +84,7 @@ actor EnrichmentAPIClient {
             self.processedCount = processedCount
             self.totalCount = totalCount
             self.authToken = authToken
-            self.token = nil  // Deprecated property
+            self.token = nil  // Deprecated, always nil
             self.serverJobId = serverJobId
             self.streamUrl = streamUrl
             self.embeddedBooks = embeddedBooks
