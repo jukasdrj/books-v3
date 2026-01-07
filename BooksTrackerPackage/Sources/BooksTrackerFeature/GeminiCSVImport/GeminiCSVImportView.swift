@@ -369,9 +369,25 @@ public struct GeminiCSVImportView: View {
         // Track if SSE connection was successful (received at least one progress event)
         var sseSucceeded = false
         var connectionFailed = false
+        var receivedAnyEvent = false
+
+        // Timeout detection: If no events received within 60 seconds, fall back to polling
+        // This handles the case where SSE connects but backend processing times out
+        let timeoutTask = Task {
+            try? await Task.sleep(for: .seconds(60))
+            if !receivedAnyEvent && !Task.isCancelled {
+                #if DEBUG
+                print("[CSV SSE] ⏱️ Timeout: No events received in 60s, falling back to polling")
+                #endif
+                await client.disconnect()
+            }
+        }
 
         // Process events (AsyncStream doesn't throw - errors come via .failed events)
         for await event in stream {
+            receivedAnyEvent = true
+            timeoutTask.cancel() // Cancel timeout since we're receiving events
+
             switch event {
             case .csvImportProgress, .csvImportCompleted:
                 sseSucceeded = true
@@ -389,14 +405,16 @@ public struct GeminiCSVImportView: View {
             await handleSSEEvent(event)
         }
 
+        timeoutTask.cancel() // Clean up timeout task
+
         #if DEBUG
-        print("[CSV SSE] Stream ended for job: \(jobId), sseSucceeded: \(sseSucceeded), connectionFailed: \(connectionFailed)")
+        print("[CSV SSE] Stream ended for job: \(jobId), sseSucceeded: \(sseSucceeded), connectionFailed: \(connectionFailed), receivedAnyEvent: \(receivedAnyEvent)")
         #endif
 
-        // If SSE failed to connect and we haven't completed, fall back to polling
-        if connectionFailed && !sseSucceeded {
+        // If SSE failed to connect or timed out without events, fall back to polling
+        if (connectionFailed || !receivedAnyEvent) && !sseSucceeded {
             #if DEBUG
-            print("[CSV SSE] 🔄 SSE failed, falling back to polling for job: \(jobId)")
+            print("[CSV SSE] 🔄 SSE failed or timed out, falling back to polling for job: \(jobId)")
             #endif
             await startPollingFallback(jobId: jobId)
         }
