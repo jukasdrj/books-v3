@@ -29,7 +29,7 @@ Feature flags are persisted in `UserDefaults` and can be modified via the Settin
 
 - **`enableV3Search`** (`Bool`)
   - **Default:** `true`
-  - **Description:** Enables the V3 API client for book search operations.
+  - **Description:** Enables the V3 API client for book search operations. When enabled, all book search requests will use the V3 API client instead of the legacy V2 API. Falls back to V2 if V3 is disabled.
 
 - **`disableCanonicalEnrichment`** (`Bool`)
   - **Default:** `false`

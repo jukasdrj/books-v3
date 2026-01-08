@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "BooksTrack V3 API",
-    "version": "3.3.0",
+    "version": "3.4.0",
     "description": "Contract-first API with shared Zod schemas",
     "contact": {
       "name": "BooksTrack API Support",
