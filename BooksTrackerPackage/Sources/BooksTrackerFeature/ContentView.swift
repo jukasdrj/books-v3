@@ -109,6 +109,16 @@ public struct ContentView: View {
                             Label("Insights", systemImage: selectedTab == .insights ? "chart.bar.fill" : "chart.bar")
                         }
                         .tag(MainTab.insights)
+
+                        // Goals Tab
+                        NavigationStack {
+                            GoalsView()
+                        }
+                        .themedNavigationGlass()
+                        .tabItem {
+                            Label("Goals", systemImage: selectedTab == .goals ? "target" : "target")
+                        }
+                        .tag(MainTab.goals)
                 }
                 .environment(\.tabCoordinator, tabCoordinator)  // Inject here for all tabs + overlays
                 .environment(\.insightsFilterCoordinator, insightsFilterCoordinator)  // Inject filter coordinator
@@ -326,12 +336,14 @@ public enum MainTab: String, CaseIterable {
     case search = "search"
     case shelf = "shelf"
     case insights = "insights"
+    case goals = "goals"
 
     var displayName: String {
         switch self {
         case .library: return "Library"
         case .search: return "Search"
         case .shelf: return "Shelf"
+        case .goals: return "Goals"
         case .insights: return "Insights"
         }
     }

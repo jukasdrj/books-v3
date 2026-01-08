@@ -53,7 +53,10 @@ final class ModelContainerFactory: ModelContainerFactoryProtocol {
             AuthorMetadata.self,
             WorkOverride.self,
             StreakData.self,
-            UserSettings.self
+            UserSettings.self,
+            // v3 Phase 2: Goals Engine
+            Goal.self,
+            GoalProgress.self
         ])
 
         #if targetEnvironment(simulator)

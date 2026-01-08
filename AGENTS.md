@@ -49,8 +49,9 @@ Native iOS book tracking app with cultural diversity insights. SwiftUI, SwiftDat
 BooksTracker/                       # iOS app shell (thin entry point)
 BooksTrackerPackage/
   Sources/BooksTrackerFeature/      # All business logic, UI, models
-    Models/                         # Work, Edition, Author, UserLibraryEntry
+    Models/                         # Work, Edition, Author, UserLibraryEntry, Goal, GoalProgress
     Views/                          # Library, Search, Shelf, Insights tabs
+    Goals/                          # Phase 2: Goals Engine (tracking, progress, UI)
     Services/                       # API, enrichment, scanning
   Tests/                            # Swift Testing tests
 Config/Shared.xcconfig              # Version, bundle ID (UPDATE HERE!)

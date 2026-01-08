@@ -6,6 +6,96 @@ All notable changes, achievements, and debugging victories for this project.
 
 ## [Unreleased]
 
+### iOS 🎯 - Phase 2: Goals Engine (January 8, 2026)
+
+**Implemented complete reading goal tracking system with SwiftData models, progress calculation, and 5-tab navigation integration.**
+
+#### What Was Built
+
+**Models:**
+- ✅ `Goal.swift` - Core model with 6 goal types (booksRead, pagesRead, authorsExplored, genresExplored, readingStreak, readingTime)
+- ✅ `GoalProgress.swift` - Progress snapshot model for milestone tracking
+- ✅ Enum storage using raw values for CloudKit compatibility
+- ✅ Schema registration in BooksTrackerApp.swift
+
+**UI Components:**
+- ✅ `GoalProgressRing.swift` - Animated circular progress indicator with color-coded percentages
+- ✅ `GoalCard.swift` - Rich card displaying goal details, progress bars, status badges
+- ✅ `GoalsView.swift` - Main view with summary stats (total progress, avg completion, overdue count)
+- ✅ `CreateGoalSheet.swift` - Form-based goal creation with validation and live preview
+- ✅ `GoalDetailSheet.swift` - Full goal details with pause/resume/delete actions
+
+**Services:**
+- ✅ `GoalProgressService.swift` - Calculates progress for all 6 goal types via SwiftData queries
+- ✅ `GoalTrackingCoordinator.swift` - Auto-updates goals on library changes (NotificationCenter integration)
+
+**Navigation:**
+- ✅ Added Goals as 5th tab in ContentView.swift (Library, Search, Shelf, Insights, **Goals**)
+- ✅ MainTab enum updated with `.goals` case
+
+#### Technical Decisions
+
+1. **Predicate Simplification:** Used fetch-then-filter pattern to avoid `#Predicate` macro limitations
+   ```swift
+   // Split complex predicates into simple fetch + post-filter
+   let descriptor = FetchDescriptor<UserLibraryEntry>(
+       predicate: #Predicate { entry in
+           entry.readingStatus.rawValue == "Read"  // Simple comparison
+       }
+   )
+   let allEntries = try modelContext.fetch(descriptor)
+   let entries = allEntries.filter { /* complex logic */ }  // Post-fetch filtering
+   ```
+
+2. **ReadingStatus Enum Matching:** Used `.rawValue == "Read"` instead of direct enum comparison in predicates (macro requirement)
+
+3. **Genres Substitution:** Used `Work.subjectTags` for genre exploration (no dedicated `genres` property exists)
+
+4. **CloudKit Compatibility:** Stored enums as raw String values with computed properties for type-safe access
+
+#### Build Status
+
+- **Zero warnings** ✅ (enforced with `-Werror`)
+- **Swift 6 concurrency compliant** ✅
+- **SwiftData patterns validated** ✅ (insert-before-relate, @Bindable usage)
+
+#### Goal Types Supported
+
+1. **Books Read** - Track completed books since goal start
+2. **Pages Read** - Sum total pages from completed books
+3. **Authors Explored** - Count unique authors discovered
+4. **Genres Explored** - Count unique subject tags/genres
+5. **Reading Streak** - Maintain consecutive reading days
+6. **Reading Time** - Track total hours spent reading
+
+#### Files Created (9 files)
+
+**Models:**
+- `BooksTrackerPackage/Sources/BooksTrackerFeature/Models/Goal.swift`
+- `BooksTrackerPackage/Sources/BooksTrackerFeature/Models/GoalProgress.swift`
+
+**Services:**
+- `BooksTrackerPackage/Sources/BooksTrackerFeature/Goals/GoalProgressService.swift`
+- `BooksTrackerPackage/Sources/BooksTrackerFeature/Goals/GoalTrackingCoordinator.swift`
+
+**UI:**
+- `BooksTrackerPackage/Sources/BooksTrackerFeature/Goals/GoalsView.swift`
+- `BooksTrackerPackage/Sources/BooksTrackerFeature/Goals/CreateGoalSheet.swift`
+- `BooksTrackerPackage/Sources/BooksTrackerFeature/Goals/Components/GoalCard.swift`
+- `BooksTrackerPackage/Sources/BooksTrackerFeature/Goals/Components/GoalProgressRing.swift`
+
+**Modified:**
+- `BooksTracker/BooksTrackerApp.swift` (added Goal/GoalProgress to schema)
+- `BooksTrackerPackage/Sources/BooksTrackerFeature/ContentView.swift` (added Goals tab)
+
+#### Next Steps
+
+- Phase 3: Goal notifications and reminders
+- Phase 4: Goal templates and suggestions
+- Phase 5: Social goal sharing
+
+---
+
 ### Backend 🌾 - ISBNdb Cover Harvest Automation (January 10, 2025)
 
 **Deployed automated ISBNdb cover harvesting system to pre-populate R2 cache before paid membership expires.**
