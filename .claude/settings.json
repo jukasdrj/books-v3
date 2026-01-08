@@ -86,7 +86,7 @@
       {
         "type": "allow",
         "tools": ["Bash"],
-        "patterns": ["git status", "git diff", "git log"],
+        "patterns": ["git status", "git diff *", "git log *"],
         "comment": "Allow safe git read operations"
       },
       {
@@ -96,32 +96,13 @@
       },
       {
         "type": "allow",
-        "tools": [
-          "mcp__pal__chat",
-          "mcp__pal__thinkdeep",
-          "mcp__pal__planner",
-          "mcp__pal__consensus",
-          "mcp__pal__codereview",
-          "mcp__pal__debug",
-          "mcp__pal__secaudit",
-          "mcp__pal__challenge",
-          "mcp__pal__apilookup",
-          "mcp__pal__listmodels",
-          "mcp__pal__version",
-          "mcp__pal__clink",
-          "mcp__pal__precommit",
-          "mcp__pal__docgen",
-          "mcp__pal__analyze",
-          "mcp__pal__refactor",
-          "mcp__pal__tracer",
-          "mcp__pal__testgen"
-        ],
+        "tools": ["mcp__pal__*"],
         "comment": "Allow all PAL MCP tools"
       },
       {
         "type": "ask",
         "tools": ["Bash"],
-        "patterns": ["git add", "git commit", "git push"],
+        "patterns": ["git add *", "git commit *", "git push *"],
         "comment": "Require approval for git write operations"
       },
       {
