@@ -7,6 +7,8 @@ import SwiftData
 public struct InsightsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.iOS26ThemeStore) private var themeStore
+    @Environment(\.tabCoordinator) private var tabCoordinator
+    @Environment(\.insightsFilterCoordinator) private var insightsFilterCoordinator
 
     @State private var diversityStats: DiversityStats?
     @State private var enhancedDiversityStats: EnhancedDiversityStats?
@@ -92,10 +94,10 @@ public struct InsightsView: View {
                         // Hero stats card
                         if let diversity = diversityStats {
                             HeroStatsCard(stats: diversity.heroStats) { stat in
-                                // TODO: Jump to section (Phase 4)
-                                #if DEBUG
-                                print("Tapped: \(stat.title)")
-                                #endif
+                                // Jump to Insights section when tapped
+                                withAnimation {
+                                    scrollPosition.scrollTo(edge: .bottom)
+                                }
                             }
                         }
 
@@ -103,10 +105,10 @@ public struct InsightsView: View {
                         if #available(iOS 26.0, *) {
                             DiversityCompletionWidget(
                                 onDimensionTapped: { dimension in
-                                    #if DEBUG
-                                    print("📊 Tapped dimension: \(dimension)")
-                                    #endif
-                                    // TODO: Navigate to dimension detail (Phase 4)
+                                    // Navigate to dimension detail by scrolling to relevant chart
+                                    withAnimation {
+                                        scrollPosition.scrollTo(edge: .bottom)
+                                    }
                                 },
                                 onFillMissingData: {
                                     // Navigate to progressive profiling flow (Phase 4)
@@ -206,10 +208,9 @@ public struct InsightsView: View {
             if let diversity = diversityStats {
                 // Cultural regions chart
                 CulturalRegionsChart(stats: diversity.culturalRegionStats) { region in
-                    // TODO: Filter library (Phase 4)
-                    #if DEBUG
-                    print("Tapped region: \(region.displayName)")
-                    #endif
+                    // Apply diversity filter and navigate to Library
+                    insightsFilterCoordinator.applyFilter(.region(region))
+                    tabCoordinator.selectedTab = .library
                 }
 
                 // Gender chart
@@ -217,18 +218,16 @@ public struct InsightsView: View {
                     stats: diversity.genderStats,
                     totalAuthors: diversity.totalAuthors
                 ) { gender in
-                    // TODO: Filter library (Phase 4)
-                    #if DEBUG
-                    print("Tapped gender: \(gender.displayName)")
-                    #endif
+                    // Apply diversity filter and navigate to Library
+                    insightsFilterCoordinator.applyFilter(.gender(gender))
+                    tabCoordinator.selectedTab = .library
                 }
 
                 // Language tags
                 LanguageTagCloud(stats: diversity.languageStats) { language in
-                    // TODO: Filter library (Phase 4)
-                    #if DEBUG
-                    print("Tapped language: \(language)")
-                    #endif
+                    // Apply diversity filter and navigate to Library
+                    insightsFilterCoordinator.applyFilter(.language(language))
+                    tabCoordinator.selectedTab = .library
                 }
             }
         }

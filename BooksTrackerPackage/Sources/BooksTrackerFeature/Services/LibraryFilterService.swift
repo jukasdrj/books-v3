@@ -61,6 +61,72 @@ public final class LibraryFilterService {
         return filtered
     }
 
+    // MARK: - Diversity Filtering
+
+    /// Filter works by diversity criteria from Insights charts.
+    /// - Parameters:
+    ///   - works: Works to filter
+    ///   - filter: Diversity filter to apply
+    ///   - modelContext: SwiftData model context for validating object lifecycle
+    /// - Returns: Filtered works matching the diversity criteria
+    public func filterByDiversity(
+        _ works: [Work],
+        filter: DiversityFilter,
+        modelContext: ModelContext
+    ) -> [Work] {
+        guard filter != .none else { return works }
+
+        return works.filter { work in
+            // CRITICAL: Validate work is still in context before accessing relationships
+            guard modelContext.model(for: work.persistentModelID) as? Work != nil else {
+                return false
+            }
+
+            guard let authors = work.authors, !authors.isEmpty else {
+                return false
+            }
+
+            switch filter {
+            case .region(let targetRegion):
+                // Check if any author is from the target region
+                return authors.contains { author in
+                    guard modelContext.model(for: author.persistentModelID) as? Author != nil else {
+                        return false
+                    }
+                    return author.culturalRegion == targetRegion
+                }
+
+            case .gender(let targetGender):
+                // Check if any author matches the target gender
+                return authors.contains { author in
+                    guard modelContext.model(for: author.persistentModelID) as? Author != nil else {
+                        return false
+                    }
+                    return author.gender == targetGender
+                }
+
+            case .language(let targetLanguage):
+                // Check if original language matches (case-insensitive)
+                guard let originalLanguage = work.originalLanguage else {
+                    return false
+                }
+                return originalLanguage.lowercased() == targetLanguage.lowercased()
+
+            case .marginalizedVoices:
+                // Check if any author represents marginalized voices
+                return authors.contains { author in
+                    guard modelContext.model(for: author.persistentModelID) as? Author != nil else {
+                        return false
+                    }
+                    return author.representsMarginalizedVoices()
+                }
+
+            case .none:
+                return true
+            }
+        }
+    }
+
     // MARK: - Search
 
     /// Search works by title or author name.

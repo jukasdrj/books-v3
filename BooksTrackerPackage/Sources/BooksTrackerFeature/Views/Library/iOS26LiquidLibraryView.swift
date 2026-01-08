@@ -67,6 +67,7 @@ public struct iOS26LiquidLibraryView: View {
     @State private var cachedStatusCounts: [ReadingStatus: Int] = [:]
     @State private var filterService = LibraryFilterService()
     @State private var isLoading = true
+    @State private var activeDiversityFilter: DiversityFilter = .none
 
     // MARK: - Environment
 
@@ -77,6 +78,7 @@ public struct iOS26LiquidLibraryView: View {
     @Environment(\.iOS26ThemeStore) private var themeStore
     @Environment(\.modelContext) private var modelContext
     @Environment(\.tabCoordinator) private var tabCoordinator
+    @Environment(\.insightsFilterCoordinator) private var insightsFilterCoordinator
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.enrichmentQueue) private var enrichmentQueue
 
@@ -115,8 +117,13 @@ public struct iOS26LiquidLibraryView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .navigationBarLeading) {
-            if reviewQueueCount > 0 {
-                reviewQueueButton
+            HStack(spacing: 8) {
+                if reviewQueueCount > 0 {
+                    reviewQueueButton
+                }
+                if activeDiversityFilter != .none {
+                    diversityFilterBadge
+                }
             }
         }
         ToolbarItemGroup(placement: .navigationBarTrailing) {
@@ -136,6 +143,31 @@ public struct iOS26LiquidLibraryView: View {
         .tint(.orange)
         .foregroundStyle(.white)
         .symbolEffect(.bounce, value: reviewQueueCount)
+    }
+
+    private var diversityFilterBadge: some View {
+        Button {
+            activeDiversityFilter = .none
+            insightsFilterCoordinator.clearFilter()
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: activeDiversityFilter.badgeIcon)
+                    .font(.caption)
+                Text(activeDiversityFilter.displayName)
+                    .font(.caption)
+                    .lineLimit(1)
+                Image(systemName: "xmark.circle.fill")
+                    .font(.caption2)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(.ultraThinMaterial, in: Capsule())
+        }
+        #if os(iOS)
+        .buttonStyle(.plain)
+        #endif
+        .foregroundStyle(themeStore.primaryColor)
+        .accessibilityLabel("Clear diversity filter: \(activeDiversityFilter.displayName)")
     }
 
     private var filterMenu: some View {
@@ -219,6 +251,12 @@ public struct iOS26LiquidLibraryView: View {
             }
             .onChange(of: allWorks) { _, _ in updateFilteredWorks() }
             .onChange(of: quickFilter) { _, _ in updateFilteredWorks() }
+            .onChange(of: activeDiversityFilter) { _, _ in updateFilteredWorks() }
+            .onChange(of: insightsFilterCoordinator.activeFilter) { _, newFilter in
+                activeDiversityFilter = newFilter
+                searchText = ""
+                quickFilter = nil
+            }
             .onChange(of: tabCoordinator.highlightedBookIDs) { _, newIDs in
                 if !newIDs.isEmpty {
                     searchText = ""
@@ -663,6 +701,11 @@ public struct iOS26LiquidLibraryView: View {
 
     private func updateFilteredWorks() {
         var filtered = Array(libraryWorks)
+
+        // Apply diversity filter first (from Insights)
+        if activeDiversityFilter != .none {
+            filtered = filterService.filterByDiversity(filtered, filter: activeDiversityFilter, modelContext: modelContext)
+        }
 
         if !searchText.isEmpty {
             filtered = filtered.filter { work in

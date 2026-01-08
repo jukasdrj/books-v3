@@ -34,6 +34,7 @@ public struct ContentView: View {
     @State private var selectedTab: MainTab = .library
     @State private var searchCoordinator = SearchCoordinator()
     @State private var tabCoordinator = TabCoordinator()
+    @State private var insightsFilterCoordinator = InsightsFilterCoordinator()
     @State private var notificationCoordinator = NotificationCoordinator()
     @Environment(LibraryRepository.self) private var libraryRepository
 
@@ -110,6 +111,7 @@ public struct ContentView: View {
                         .tag(MainTab.insights)
                 }
                 .environment(\.tabCoordinator, tabCoordinator)  // Inject here for all tabs + overlays
+                .environment(\.insightsFilterCoordinator, insightsFilterCoordinator)  // Inject filter coordinator
                 .environment(\.dtoMapper, dtoMapper)  // Safely unwrapped above
                 .environment(\.bookSearchAPIService, bookSearchAPIService)
                 .tint(themeStore.primaryColor)
