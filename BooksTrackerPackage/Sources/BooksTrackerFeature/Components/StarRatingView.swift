@@ -90,6 +90,7 @@ struct StarRatingView: View {
             }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityLabel("Star Rating")
         .accessibilityValue("\(formattedRating) out of 5 stars")
         .accessibilityAdjustableAction { direction in
             let step = allowsHalfStars ? 0.5 : 1.0
