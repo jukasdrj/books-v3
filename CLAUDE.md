@@ -18,12 +18,15 @@
 - **`.claude/rules/`** - Memory rules (auto-loaded)
 - **`~/.claude/knowledge-base/`** - Shared patterns across projects
 - **`docs/CROSS_REPO.md`** - Cross-repository architecture
+- **`.claude/MANUS_SETUP.md`** - Planning-with-files plugin guide
+- **`.claude/MANUS_QUICKREF.md`** - Manus quick reference
 
 **Memory Rules Auto-Load:** When you mention specific keywords, relevant context automatically loads:
 - **Testing** → `.claude/rules/safe-testing.md`
 - **Swift 6** → `.claude/rules/swift-concurrency.md`
 - **Multi-agent** → `.claude/rules/multi-agent-workflows.md`
 - **Git/Commit** → `.claude/rules/git-workflows.md`
+- **Planning** → Manus pattern (complex tasks >5 tool calls)
 
 ---
 
@@ -98,6 +101,20 @@ When user requests testing:
 - **Named sessions:** `/rename <name>`, `/resume <name>`
 - **Usage stats:** `/stats` command
 - **Attribution:** Configured via `attribution` setting
+
+### Planning-with-Files Plugin (v2.0.1)
+**Use for complex tasks (>5 tool calls):**
+```bash
+# Initialize planning files
+.claude/skills/planning-with-files/scripts/init-session.sh "task-name"
+
+# Or use slash command
+/planning-with-files
+```
+
+**Creates:** `task_plan.md`, `findings.md`, `progress.md` in project root
+
+**See:** `.claude/MANUS_SETUP.md` (full guide) | `.claude/MANUS_QUICKREF.md` (quick ref)
 
 ---
 
