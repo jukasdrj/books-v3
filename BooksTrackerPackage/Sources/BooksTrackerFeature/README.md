@@ -1,4 +1,4 @@
-# BooksTracker V1.0 Data Models 📊
+# BooksTracker V3 Data Models 📊
 
 Clean Work/Edition architecture with proper normalization and user intent modeling.
 

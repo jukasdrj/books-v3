@@ -18,7 +18,7 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 ### `docs/features/`
 **Implementation Details.** The "How" of specific features, bridging PRDs and code.
 - `book-details-redesign.md` - V3 detail view architecture.
-- *(Coming Soon: Feature breakdowns for Scanner, Import, etc.)*
+- `FEATURE_FLAGS.md` - Feature toggle documentation.
 
 ### `docs/architecture/`
 **System Design.** High-level technical decisions and patterns.
@@ -37,18 +37,11 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 **Visual Flows.** Mermaid diagrams describing complex user or data flows.
 - See `docs/workflows/README.md` for available workflows and templates.
 
-### `docs/architecture/`
-**System Design.** High-level technical decisions and patterns.
-- `cascade-metadata.md` - How we merge data from multiple providers.
-- `ratings-system.md` - Logic behind user ratings.
-- `reading-sessions.md` - Timer & session state management.
-- `VISUAL_DESIGN_SUMMARY.md` - iOS 26 Liquid Glass design system.
-
 ---
 
 ## 🔍 How to find what you need
 
-- **"I need to know how the API works."** -> `~/dev_repos/bendv3/docs/` (authoritative source)
+- **"I need to know how the API works."** -> `~/dev_repos/bendv3/docs/` (authoritative source) or `docs/api/` (contracts).
 - **"I'm building a new feature."** -> Check `docs/product/` for requirements, then `docs/architecture/` for constraints.
 - **"I'm fixing a bug in the scanner."** -> Read `docs/product/Bookshelf-AI-Scanner-PRD.md` and check `~/dev_repos/bendv3/docs/WEBSOCKET.md`.
 - **"I'm confused about the project structure."** -> Read `AGENTS.md` in the root or `docs/CROSS_REPO.md`.
