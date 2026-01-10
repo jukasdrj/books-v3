@@ -799,7 +799,7 @@ CachedAsyncImage(url: work.primaryEdition?.coverURL)  // Misses Work-level cover
 - Auto-highlighting and tap-to-scan gestures
 - Built-in guidance ("Move Closer", "Slow Down")
 - **Symbologies:** EAN-13, EAN-8, UPC-E (ISBN-specific)
-- **Docs:** `docs/plans/2025-10-30-visionkit-barcode-scanner-design.md`
+- **Docs:** `docs/product/Barcode-Scanner-PRD.md`
 
 ---
 
@@ -835,7 +835,7 @@ Text("Publisher").foregroundColor(.tertiary)
 - Task deferral: Background work delayed by 2s (~400ms off critical path)
 - Micro-optimizations: Early exits, caching, predicate filtering (~180ms saved)
 
-**Results:** `docs/performance/2025-11-04-app-launch-optimization-results.md`
+**Results:** Cold launch 600ms (optimized Nov 2025).
 
 ---
 

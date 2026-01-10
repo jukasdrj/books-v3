@@ -1,61 +1,64 @@
 # BooksTrack Documentation Hub
 
+**Version:** 3.7.5 | **Last Updated:** January 6, 2026
+
 Welcome to the central documentation for BooksTrack V3. This directory contains all product, technical, and process documentation for the project.
 
-## 📂 Directory Structure
+## 🚀 Getting Started
 
-### `docs/INDEX.md`
-**Documentation Hub.** Quick navigation to all documentation resources.
-
-### `docs/product/`
-**Product Requirements (PRDs).** The "Why" and "What" of features.
-- `Library-Management-PRD.md` - Core library functionality.
-- `Diversity-Insights-PRD.md` - Analytics & representation logic.
-- `Bookshelf-AI-Scanner-PRD.md` - Vision-based bulk import.
-- `CSV-Import-PRD.md` - Data migration capabilities.
-- ...and more.
-
-### `docs/features/`
-**Implementation Details.** The "How" of specific features, bridging PRDs and code.
-- `book-details-redesign.md` - V3 detail view architecture.
-- *(Coming Soon: Feature breakdowns for Scanner, Import, etc.)*
-
-### `docs/architecture/`
-**System Design.** High-level technical decisions and patterns.
-- `cascade-metadata.md` - How we merge data from multiple providers.
-- `ratings-system.md` - Logic behind user ratings.
-- `reading-sessions.md` - Timer & session state management.
-- `VISUAL_DESIGN_SUMMARY.md` - iOS 26 Liquid Glass design system.
-
-### `docs/CROSS_REPO.md`
-**Multi-Repo Architecture.** Guide to BooksTrack's multi-repository system (books-v3, bendv3, alex).
-
-### `docs/CURRENT-STATUS.md`
-**Project Status.** Current sprint progress, active development, and blockers.
-
-### `docs/workflows/`
-**Visual Flows.** Mermaid diagrams describing complex user or data flows.
-- See `docs/workflows/README.md` for available workflows and templates.
-
-### `docs/architecture/`
-**System Design.** High-level technical decisions and patterns.
-- `cascade-metadata.md` - How we merge data from multiple providers.
-- `ratings-system.md` - Logic behind user ratings.
-- `reading-sessions.md` - Timer & session state management.
-- `VISUAL_DESIGN_SUMMARY.md` - iOS 26 Liquid Glass design system.
+- **[AGENTS.md](../AGENTS.md)** - **Crucial.** Universal AI agent guide (code style, architecture, contracts).
+- **[CLAUDE.md](../CLAUDE.md)** - Claude Code workflows, MCP setup, testing commands.
+- **[TODO.md](../TODO.md)** - Current sprint tasks and priorities.
+- **[CURRENT-STATUS.md](./CURRENT-STATUS.md)** - Active sprint progress and blockers.
 
 ---
 
-## 🔍 How to find what you need
+## 📋 Product Documentation (`docs/product/`)
+**The "Why" and "What" of features.**
 
-- **"I need to know how the API works."** -> `~/dev_repos/bendv3/docs/` (authoritative source)
-- **"I'm building a new feature."** -> Check `docs/product/` for requirements, then `docs/architecture/` for constraints.
-- **"I'm fixing a bug in the scanner."** -> Read `docs/product/Bookshelf-AI-Scanner-PRD.md` and check `~/dev_repos/bendv3/docs/WEBSOCKET.md`.
-- **"I'm confused about the project structure."** -> Read `AGENTS.md` in the root or `docs/CROSS_REPO.md`.
-- **"Where's the documentation hub?"** -> Start with `docs/INDEX.md`.
+- **[Library Management](./product/Library-Management-PRD.md)** - Core library functionality.
+- **[Diversity Insights](./product/Diversity-Insights-PRD.md)** - Analytics & representation logic.
+- **[Bookshelf AI Scanner](./product/Bookshelf-AI-Scanner-PRD.md)** - Vision-based bulk import requirements.
+- **[CSV Import](./product/CSV-Import-PRD.md)** - Data migration capabilities.
 
-## 📝 Editing Documentation
+---
 
-1. **Keep it fresh.** If you change code, update the docs.
-2. **Standardize.** Use the templates in `docs/product/PRD-Template.md`.
-3. **Move, don't delete.** Move outdated docs to `docs/archive/` rather than deleting them, unless they are dangerously misleading.
+## 🛠️ Feature Implementation (`docs/features/`)
+**The "How" of specific features.**
+
+- **[Bookshelf Scanner](./features/BOOKSHELF_SCANNER.md)** - Implementation details for the Vision+Gemini scanner.
+- **[Batch Scanning](./features/BATCH_BOOKSHELF_SCANNING.md)** - Multi-image scanning architecture.
+- **[Gemini CSV Import](./features/GEMINI_CSV_IMPORT.md)** - AI-driven CSV parsing logic.
+- **[Feature Flags](./features/FEATURE_FLAGS.md)** - Flag management and rollout status.
+
+---
+
+## 🏗️ Architecture (`docs/architecture/`)
+**System Design & Decisions.**
+
+- **[Visual Design](./architecture/VISUAL_DESIGN_SUMMARY.md)** - iOS 26 Liquid Glass design system.
+- **[Cascade Metadata](./architecture/cascade-metadata.md)** - Data merging strategy (Google Books -> OpenLibrary -> ISBNdb).
+- **[Ratings System](./architecture/ratings-system.md)** - User rating logic.
+- **[Reading Sessions](./architecture/reading-sessions.md)** - Session state machine.
+
+---
+
+## 🔌 Integration & APIs
+
+- **[Cross-Repo Guide](./CROSS_REPO.md)** - Managing the `books-v3`, `bendv3`, and `alex` ecosystem.
+- **[Backend API](~/dev_repos/bendv3/docs/)** - **Authoritative** source for REST & WebSocket contracts.
+
+---
+
+## 📚 Archive & Reference
+
+- **[CHANGELOG.md](../CHANGELOG.md)** - Version history.
+- **[Archive](./archive/)** - Deprecated documentation and completed PRDs.
+
+---
+
+## 📝 Editing Guidelines
+
+1.  **Sync Reality:** If code changes, update the docs immediately.
+2.  **Move, Don't Delete:** Archive outdated docs to `docs/archive/` instead of deleting.
+3.  **Standardize:** Ensure new docs follow the project's header conventions.
