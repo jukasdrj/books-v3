@@ -6,6 +6,7 @@ struct StarRatingView: View {
     @Binding var rating: Double
     let allowsHalfStars: Bool
     let size: StarSize
+    let accessibilityLabel: String
 
     @Environment(\.iOS26ThemeStore) private var themeStore
     @State private var dragLocation: CGFloat = 0
@@ -33,10 +34,16 @@ struct StarRatingView: View {
         }
     }
 
-    init(rating: Binding<Double>, allowsHalfStars: Bool = true, size: StarSize = .standard) {
+    init(
+        rating: Binding<Double>,
+        allowsHalfStars: Bool = true,
+        size: StarSize = .standard,
+        accessibilityLabel: String = "Rating"
+    ) {
         self._rating = rating
         self.allowsHalfStars = allowsHalfStars
         self.size = size
+        self.accessibilityLabel = accessibilityLabel
     }
 
     // Premium gradient for filled stars
@@ -90,7 +97,10 @@ struct StarRatingView: View {
             }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityLabel)
         .accessibilityValue("\(formattedRating) out of 5 stars")
+        .accessibilityAddTraits(.isAdjustable)
+        .accessibilityHint("Double tap to activate, then swipe up or down to adjust rating")
         .accessibilityAdjustableAction { direction in
             let step = allowsHalfStars ? 0.5 : 1.0
             switch direction {
@@ -209,7 +219,7 @@ struct StarRatingView: View {
                     Text("Large (Detail View)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    StarRatingView(rating: $rating1, size: .large)
+                    StarRatingView(rating: $rating1, size: .large, accessibilityLabel: "User Rating")
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
