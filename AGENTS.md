@@ -13,9 +13,9 @@ Native iOS book tracking app with cultural diversity insights. SwiftUI, SwiftDat
 ---
 
 ## Legacy Constraints & Migration
-- **Status**: Migration to V3 Architecture (SwiftData + CloudKit) is active.
-- **Reference**: See `V3_MIGRATION_PLAN.md` for specific module deprecations.
-- **Cleanup**: Code relating to `CoreData` (legacy V2 persistence) should be treated as deprecated/read-only unless migrating.
+- **Status:** Migration to V3 Architecture (SwiftData + CloudKit) is active.
+- **Reference:** See `V3_MIGRATION_PLAN.md` for specific module deprecations.
+- **Cleanup:** Code relating to `CoreData` (legacy V2 persistence) should be treated as deprecated/read-only unless migrating.
 
 ## 🎯 Multi-Agent Workflow (Claude Code)
 
@@ -697,7 +697,7 @@ xcodebuild clean -workspace BooksTracker.xcworkspace -scheme BooksTracker
   ├── workflows/           ← Mermaid diagrams (visual flows)
   ├── features/            ← Technical deep-dives
   ├── architecture/        ← System design & decisions
-  └── guides/              ← How-to guides & best practices
+  └── archive/             ← Deprecated/completed docs
 
 📁 .ai/
   ├── README.md            ← AI context organization guide

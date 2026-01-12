@@ -4,9 +4,6 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 
 ## 📂 Directory Structure
 
-### `docs/INDEX.md`
-**Documentation Hub.** Quick navigation to all documentation resources.
-
 ### `docs/product/`
 **Product Requirements (PRDs).** The "Why" and "What" of features.
 - `Library-Management-PRD.md` - Core library functionality.
@@ -17,8 +14,11 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 
 ### `docs/features/`
 **Implementation Details.** The "How" of specific features, bridging PRDs and code.
+- `GEMINI_CSV_IMPORT.md` - AI-powered CSV import details.
+- `BOOKSHELF_SCANNER.md` - Single-shot bookshelf scanning.
+- `BATCH_BOOKSHELF_SCANNING.md` - Multi-shot parallel scanning.
+- `FEATURE_FLAGS.md` - Feature flag documentation.
 - `book-details-redesign.md` - V3 detail view architecture.
-- *(Coming Soon: Feature breakdowns for Scanner, Import, etc.)*
 
 ### `docs/architecture/`
 **System Design.** High-level technical decisions and patterns.
@@ -37,12 +37,9 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 **Visual Flows.** Mermaid diagrams describing complex user or data flows.
 - See `docs/workflows/README.md` for available workflows and templates.
 
-### `docs/architecture/`
-**System Design.** High-level technical decisions and patterns.
-- `cascade-metadata.md` - How we merge data from multiple providers.
-- `ratings-system.md` - Logic behind user ratings.
-- `reading-sessions.md` - Timer & session state management.
-- `VISUAL_DESIGN_SUMMARY.md` - iOS 26 Liquid Glass design system.
+### `docs/archive/`
+**Legacy & Deprecated.** Old PRDs, completed specs, and obsolete files.
+- `openapi-v3.json` - Obsolete API spec (use bendv3 repo).
 
 ---
 
@@ -50,9 +47,8 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 
 - **"I need to know how the API works."** -> `~/dev_repos/bendv3/docs/` (authoritative source)
 - **"I'm building a new feature."** -> Check `docs/product/` for requirements, then `docs/architecture/` for constraints.
-- **"I'm fixing a bug in the scanner."** -> Read `docs/product/Bookshelf-AI-Scanner-PRD.md` and check `~/dev_repos/bendv3/docs/WEBSOCKET.md`.
+- **"I'm fixing a bug in the scanner."** -> Read `docs/features/BOOKSHELF_SCANNER.md` and check `~/dev_repos/bendv3/docs/WEBSOCKET.md`.
 - **"I'm confused about the project structure."** -> Read `AGENTS.md` in the root or `docs/CROSS_REPO.md`.
-- **"Where's the documentation hub?"** -> Start with `docs/INDEX.md`.
 
 ## 📝 Editing Documentation
 
