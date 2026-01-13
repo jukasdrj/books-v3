@@ -1,6 +1,13 @@
-# BooksTracker V1.0 Data Models 📊
+# BooksTracker V3 Data Models 📊
 
 Clean Work/Edition architecture with proper normalization and user intent modeling.
+
+**Note on File Location:**
+Core model files are located in `BooksTrackerPackage/Sources/BooksTrackerFeature/` for historical reasons, while newer models reside in `Models/`.
+- `Work.swift`
+- `Edition.swift`
+- `Author.swift`
+- `UserLibraryEntry.swift`
 
 ## Core Entities
 
@@ -8,7 +15,8 @@ Clean Work/Edition architecture with proper normalization and user intent modeli
 **Represents the conceptual book** - the intellectual creation independent of specific publications.
 
 ```swift
-class Work {
+@Model
+final class Work {
     var title: String
     var authors: [Author]          // ✅ Normalized relationship (not string)
     var originalLanguage: String?
@@ -16,7 +24,10 @@ class Work {
     var subjectTags: [String]
 
     // Relationships
+    @Relationship(deleteRule: .cascade)
     var editions: [Edition]        // One-to-many
+
+    @Relationship(deleteRule: .cascade)
     var userLibraryEntries: [UserLibraryEntry] // One-to-many
 }
 ```
@@ -30,7 +41,8 @@ class Work {
 **Represents a specific published version** of a work with physical/digital characteristics.
 
 ```swift
-class Edition {
+@Model
+final class Edition {
     var isbn: String?
     var publisher: String?
     var publicationDate: String?
@@ -53,7 +65,8 @@ class Edition {
 **Represents user's relationship** to a Work/Edition with proper ownership semantics.
 
 ```swift
-class UserLibraryEntry {
+@Model
+final class UserLibraryEntry {
     var work: Work?               // Always present
     var edition: Edition?         // Nil for wishlist items
     var readingStatus: ReadingStatus
@@ -67,7 +80,7 @@ class UserLibraryEntry {
 }
 ```
 
-**Status Logic (V1.0 Specification):**
+**Status Logic:**
 - **Wishlist**: "Want to have/read but don't own" → `edition = nil`
 - **To Read**: "Have it and want to read" → `edition != nil`
 - **Reading**: Currently reading owned edition
@@ -79,7 +92,8 @@ class UserLibraryEntry {
 **Normalized author entity** with cultural diversity tracking.
 
 ```swift
-class Author {
+@Model
+final class Author {
     var name: String
     var nationality: String?
     var gender: AuthorGender
@@ -112,56 +126,16 @@ Author ←→ Work → Edition
 3. **Work → UserLibraryEntry**: One-to-many (multiple users, status changes)
 4. **Edition → UserLibraryEntry**: Many-to-one (user owns specific edition)
 
-### Wishlist vs Ownership Logic
-
-```swift
-// Wishlist: Want the work but don't own any edition
-UserLibraryEntry(work: work, edition: nil, status: .wishlist)
-
-// Owned: Have specific edition of the work
-UserLibraryEntry(work: work, edition: edition, status: .toRead)
-
-// Conversion: Acquire edition
-wishlistEntry.acquireEdition(edition, status: .toRead)
-```
-
-## Query Examples
-
-### Find all books by an author
-```swift
-let authorBooks = author.works // Direct relationship
-```
-
-### Check if user owns a work
-```swift
-let isOwned = work.isOwned // work.userEntry?.edition != nil
-```
-
-### Get user's wishlist
-```swift
-let wishlist = userEntries.filter { $0.readingStatus == .wishlist }
-```
-
-### Search results (no duplicates)
-```swift
-// Search returns Works, not individual editions
-let results: [Work] = searchService.findWorks(title: "Huckleberry Finn")
-// Returns single Work with multiple editions available
-```
+### "Insert-Before-Relate" Pattern
+**Crucial:** Parent objects (Work, Edition) must be inserted into the ModelContext *before* being assigned to relationships on a new child object.
 
 ## Migration from Legacy
 
-### Legacy Issues Fixed
-- ❌ 720-line UserBook with embedded strings
-- ❌ Duplicate search results for same work
-- ❌ Complex JSON caching for SwiftData compatibility
-- ❌ Mixed cultural data approaches
-
-### V1.0 Benefits
+### V3 Benefits
 - ✅ Clean 4-model architecture
 - ✅ Proper database normalization
-- ✅ CloudKit-optimized relationships
+- ✅ SwiftData-optimized relationships
 - ✅ Clear user intent modeling (wishlist vs owned)
-- ✅ Scalable foundation for V2+ features
+- ✅ Scalable foundation for V3+ features
 
-This architecture directly implements the V1.0 specification requirements for Work/Edition separation and proper user-book relationship tracking.
+This architecture directly implements the V3 specification requirements for Work/Edition separation and proper user-book relationship tracking.
