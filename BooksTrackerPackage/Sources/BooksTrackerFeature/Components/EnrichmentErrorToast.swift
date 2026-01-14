@@ -79,8 +79,22 @@ public struct EnrichmentErrorToast: View {
                 isPresented = false
             }
         }
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel("Enrichment error: \(errorMessage)")
-        .accessibilityHint("Tap to retry error processing or dismiss this message")
+        .accessibilityHint(onRetry != nil ? "Double tap to retry. Swipe up or down for more actions." : "Double tap to dismiss")
+        .accessibilityAction {
+            if let retry = onRetry {
+                retry()
+            }
+            withAnimation {
+                isPresented = false
+            }
+        }
+        .accessibilityAction(named: "Dismiss") {
+            withAnimation {
+                isPresented = false
+            }
+        }
         .transition(.move(edge: .top).combined(with: .opacity))
         .task(id: isPresented) {
             // Auto-dismiss after 8 seconds. This task is automatically cancelled
