@@ -63,6 +63,7 @@ struct UserInteractionBlock: View {
                     } label: {
                         HStack {
                             Image(systemName: "plus.circle.fill")
+                                .accessibilityHidden(true)
                             Text("Add to Library to Rate")
                         }
                         .font(.subheadline.bold())
@@ -107,17 +108,22 @@ struct StatusCapsule: View {
     var body: some View {
         HStack {
             Image(systemName: status.systemImage)
+                .accessibilityHidden(true)
             Text(status.displayName)
             Spacer()
             Image(systemName: "chevron.up.chevron.down")
                 .font(.caption)
                 .foregroundColor(.secondary)
+                .accessibilityHidden(true)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(status.color.opacity(0.15))
         .foregroundColor(status.color)
         .cornerRadius(8)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(status.displayName)
+        .accessibilityHint("Double tap to change reading status")
     }
 }
 
