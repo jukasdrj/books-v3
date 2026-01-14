@@ -1,7 +1,7 @@
 import Foundation
 
 /// V3 API Error Response (RFC 9457 Problem Details)
-/// Spec: docs/openapi-v3.json#/components/schemas/ErrorResponse
+/// Spec: docs/archive/openapi-v3.json#/components/schemas/ErrorResponse
 public struct V3ErrorResponse: Codable, Sendable {
     /// Success discriminator (always false for error responses)
     public let success: Bool
@@ -40,7 +40,7 @@ public struct V3ErrorResponse: Codable, Sendable {
 }
 
 /// Machine-readable error codes
-/// Spec: docs/openapi-v3.json#/components/schemas/ErrorResponse/properties/code
+/// Spec: docs/archive/openapi-v3.json#/components/schemas/ErrorResponse/properties/code
 public enum V3ErrorCode: String, Codable, Sendable {
     case missingParameter = "MISSING_PARAMETER"
     case invalidRequest = "INVALID_REQUEST"
@@ -67,7 +67,7 @@ public enum V3ErrorCode: String, Codable, Sendable {
 }
 
 /// Field-level validation error
-/// Spec: docs/openapi-v3.json#/components/schemas/FieldError
+/// Spec: docs/archive/openapi-v3.json#/components/schemas/FieldError
 public struct V3FieldError: Codable, Sendable {
     /// Field path (e.g., "isbns[0]")
     public let field: String

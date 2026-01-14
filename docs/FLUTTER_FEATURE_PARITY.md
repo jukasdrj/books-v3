@@ -606,7 +606,7 @@ All 9 shipped iOS features now have dedicated PRD documents with Flutter impleme
 
 - **System Architecture:** `~/dev_repos/bendv3/docs/SYSTEM_ARCHITECTURE.md` - Multi-service overview
 - **Backend Repo:** https://github.com/jukasdrj/bookstrack-backend - API implementation
-- **iOS Repo:** `docs/INDEX.md` - iOS-specific documentation index
+- **iOS Repo:** `docs/README.md` - iOS-specific documentation index
 
 ---
 

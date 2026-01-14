@@ -1,7 +1,7 @@
 import Foundation
 
 /// V3 API Enrich Request
-/// Spec: docs/openapi-v3.json#/components/schemas/EnrichRequest
+/// Spec: docs/archive/openapi-v3.json#/components/schemas/EnrichRequest
 public struct V3EnrichRequest: Codable, Sendable {
     /// Array of ISBNs to enrich (supports ISBN-10 and ISBN-13)
     /// - Sync mode (async=false): 1-50 ISBNs

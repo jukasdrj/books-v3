@@ -1,7 +1,7 @@
 import Foundation
 
 /// V3 API Enrich Response
-/// Spec: docs/openapi-v3.json#/components/schemas/EnrichResponse
+/// Spec: docs/archive/openapi-v3.json#/components/schemas/EnrichResponse
 public struct V3EnrichResponse: Codable, Sendable {
     /// Success discriminator (always true for successful responses)
     public let success: Bool

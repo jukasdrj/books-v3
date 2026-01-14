@@ -2,7 +2,7 @@ import Foundation
 
 /// V3 API Book Model
 /// Unified book representation from Alexandria API
-/// Spec: docs/openapi-v3.json#/components/schemas/Book
+/// Spec: docs/archive/openapi-v3.json#/components/schemas/Book
 public struct V3Book: Codable, Sendable {
     public let isbn: String
     public let isbn10: String?
@@ -26,7 +26,7 @@ public struct V3Book: Codable, Sendable {
 }
 
 /// Enriched book with vectorization status
-/// Spec: docs/openapi-v3.json#/components/schemas/EnrichedBook
+/// Spec: docs/archive/openapi-v3.json#/components/schemas/EnrichedBook
 public struct V3EnrichedBook: Codable, Sendable {
     // All Book fields
     public let isbn: String

@@ -1,7 +1,7 @@
 import Foundation
 
 /// V3 API Search Response
-/// Spec: docs/openapi-v3.json#/components/schemas/SearchResponse
+/// Spec: docs/archive/openapi-v3.json#/components/schemas/SearchResponse
 public struct V3SearchResponse: Codable, Sendable {
     /// Success discriminator (always true for successful responses)
     public let success: Bool
