@@ -1,7 +1,7 @@
 import Foundation
 
 /// V3 API Response Metadata
-/// Spec: docs/openapi-v3.json#/components/schemas/ResponseMetadata
+/// Spec: docs/archive/openapi-v3.json#/components/schemas/ResponseMetadata
 public struct V3ResponseMetadata: Codable, Sendable {
     /// ISO 8601 timestamp (required)
     public let timestamp: String

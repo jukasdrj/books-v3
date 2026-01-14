@@ -4,7 +4,7 @@
 set -e
 
 SPEC_URL="https://api.oooefam.net/v3/openapi.json"
-DOCS_SPEC="docs/openapi-v3.json"
+DOCS_SPEC="docs/archive/openapi-v3.json"
 BUILD_SPEC="BooksTrackerPackage/Sources/BooksTrackerFeature/openapi.json"
 
 echo "📥 Fetching OpenAPI spec from $SPEC_URL..."

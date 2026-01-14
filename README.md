@@ -187,7 +187,7 @@ Proprietary - © 2025 jukasdrj
 
 ## 🔗 Links
 
-- **Documentation Hub:** `docs/README.md` and `docs/INDEX.md`
+- **Documentation Hub:** `docs/README.md`
 - **API Documentation:** `~/dev_repos/bendv3/docs/` (authoritative source)
 - **PRDs:** `docs/product/`
 - **Architecture:** `docs/architecture/`
