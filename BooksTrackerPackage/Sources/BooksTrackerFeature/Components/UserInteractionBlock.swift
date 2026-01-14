@@ -53,7 +53,8 @@ struct UserInteractionBlock: View {
                                     try? modelContext.save()
                                 }
                             ),
-                            size: .standard
+                            size: .standard,
+                            accessibilityLabel: "Your Rating"
                         )
                     }
                 } else {

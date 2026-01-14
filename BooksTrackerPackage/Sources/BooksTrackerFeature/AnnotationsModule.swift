@@ -29,7 +29,8 @@ struct AnnotationsModule: View {
                                 try? modelContext.save()
                             }
                         ),
-                        size: .standard
+                        size: .standard,
+                        accessibilityLabel: "Your Rating"
                     )
                 }
 
