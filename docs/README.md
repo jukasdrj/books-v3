@@ -28,6 +28,7 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 - **[GEMINI_CSV_IMPORT.md](./features/GEMINI_CSV_IMPORT.md)** - AI-powered CSV import.
 - **[BOOKSHELF_SCANNER.md](./features/BOOKSHELF_SCANNER.md)** - Vision-based bulk import.
 - **[BATCH_BOOKSHELF_SCANNING.md](./features/BATCH_BOOKSHELF_SCANNING.md)** - Concurrency logic for scanner.
+- **[GOALS_ENGINE.md](./features/GOALS_ENGINE.md)** - Reading goals and progress tracking.
 - **[FEATURE_FLAGS.md](./features/FEATURE_FLAGS.md)** - Feature flag system.
 
 ### `docs/architecture/`
@@ -44,6 +45,7 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 **Archive.** Deprecated docs, shipped PRDs, and historical references.
 - `CSV-Import-PRD.md` (Shipped)
 - `Bookshelf-AI-Scanner-PRD.md` (Shipped)
+- `Reading-Goals-PRD.md` (Shipped)
 - `openapi-v3.json` (Legacy)
 
 ---

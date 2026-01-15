@@ -13,9 +13,9 @@ Native iOS book tracking app with cultural diversity insights. SwiftUI, SwiftDat
 ---
 
 ## Legacy Constraints & Migration
-- **Status**: Migration to V3 Architecture (SwiftData + CloudKit) is active.
-- **Reference**: See `V3_MIGRATION_PLAN.md` for specific module deprecations.
-- **Cleanup**: Code relating to `CoreData` (legacy V2 persistence) should be treated as deprecated/read-only unless migrating.
+- **Status:** Migration to V3 Architecture (SwiftData + CloudKit) is active.
+- **Reference:** See `V3_MIGRATION_PLAN.md` for specific module deprecations.
+- **Cleanup:** Code relating to `CoreData` (legacy V2 persistence) should be treated as deprecated/read-only unless migrating.
 
 ## 🎯 Multi-Agent Workflow (Claude Code)
 
@@ -52,6 +52,7 @@ BooksTrackerPackage/
     Models/                         # Work, Edition, Author, UserLibraryEntry, Goal, GoalProgress
     Views/                          # Library, Search, Shelf, Insights tabs
     Goals/                          # Phase 2: Goals Engine (tracking, progress, UI)
+    Repositories/                   # Data access layers (LibraryRepository, etc.)
     Services/                       # API, enrichment, scanning
   Tests/                            # Swift Testing tests
 Config/Shared.xcconfig              # Version, bundle ID (UPDATE HERE!)
@@ -218,23 +219,24 @@ struct SearchView: View {
 
 ### Navigation Structure
 
-**4-Tab Layout (iOS 26 HIG optimized):**
+**5-Tab Layout (iOS 26 HIG optimized):**
 - **Library** - Main collection view with Settings gear icon in toolbar
 - **Search** - Book search with ISBN scanner
-- **Shelf** - AI-powered bookshelf scanner (Gemini 2.0 Flash)
+- **Scan & Import** - AI-powered bookshelf scanner (Gemini 2.0 Flash)
 - **Insights** - Reading statistics and cultural diversity analytics
+- **Goals** - Reading goals and progress tracking
 
 **Settings Access:**
 - Gear icon in Library tab toolbar (Books.app pattern)
 - Sheet presentation with "Done" button
-- NOT in tab bar (4 tabs optimal per iOS 26 HIG)
+- NOT in tab bar (5 tabs optimal per iOS 26 HIG)
 
 ---
 
 ## SwiftData Architecture
 
 ### Models
-**Entities:** Work, Edition, Author, UserLibraryEntry
+**Entities:** Work, Edition, Author, UserLibraryEntry, Goal, GoalProgress
 
 **Relationships:**
 ```
@@ -242,6 +244,7 @@ Work 1:many Edition
 Work many:many Author
 Work 1:many UserLibraryEntry
 UserLibraryEntry many:1 Edition
+Goal 1:many GoalProgress
 ```
 
 **CloudKit Rules:**
@@ -344,6 +347,32 @@ struct APIError: Codable {
     let details: AnyCodable?        // Optional context
 }
 ```
+
+### V1 Endpoints (Production Ready)
+
+```
+GET /v1/search/title?q={query}              # Title search (fuzzy, up to 20 results)
+GET /v1/search/isbn?isbn={isbn}             # ISBN lookup (ISBN-10 or ISBN-13)
+GET /v1/search/advanced?title=&author=      # Multi-field search
+GET /v1/scan/results/{jobId}                # Fetch AI scan results (24hr TTL)
+GET /v1/csv/results/{jobId}                 # Fetch CSV import results (24hr TTL)
+POST /api/scan-bookshelf/batch              # Upload 1-5 photos for AI processing
+GET /ws/progress?jobId={uuid}               # WebSocket progress (token in header)
+```
+
+**Rate Limits:**
+- Search: 100 req/min per IP
+- Batch enrichment: 10 req/min per IP
+- **AI batch scanning: 5 req/min per IP** (1-5 photos per batch)
+- Global: 1000 req/hour per IP (burst: 50/min)
+
+### Error Codes
+- `INVALID_ISBN` - Invalid ISBN format (HTTP 400)
+- `INVALID_QUERY` - Missing/invalid query parameter (HTTP 400)
+- `NOT_FOUND` - Resource not found (HTTP 404)
+- `RATE_LIMIT_EXCEEDED` - Too many requests (HTTP 429, retryable)
+- `PROVIDER_TIMEOUT` - External API timeout (HTTP 504, retryable)
+- `INTERNAL_ERROR` - Server error (HTTP 500, retryable)
 
 ### V1 Endpoints (Production Ready)
 
