@@ -52,8 +52,6 @@ public struct RepresentationRadarChart: View {
     public var body: some View {
         chartContent
             .frame(width: chartSize, height: chartSize)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(accessibilityDescription)
             .task {
                 chartModel = ChartModel(data: data, radius: chartRadius, angleStep: angleStep)
             }
@@ -74,6 +72,9 @@ public struct RepresentationRadarChart: View {
             drawChart(in: context, size: size, model: model)
         }
         .frame(width: chartSize, height: chartSize)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityDescription)
+        .accessibilityAddTraits(.isImage)
     }
 
     @ViewBuilder
