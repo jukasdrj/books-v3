@@ -338,6 +338,14 @@ public struct GeminiCSVImportView: View {
 
             let csvText = try String(contentsOf: url, encoding: .utf8)
 
+            #if DEBUG
+            print("[CSV Upload] 📄 CSV file read: \(csvText.count) characters, \(csvText.utf8.count) bytes")
+            print("[CSV Upload] 📝 First 200 chars: \(csvText.prefix(200))")
+            print("[CSV Upload] 📝 Last 200 chars: \(csvText.suffix(200))")
+            let lineCount = csvText.components(separatedBy: .newlines).filter { !$0.isEmpty }.count
+            print("[CSV Upload] 📊 Total lines: \(lineCount)")
+            #endif
+
             // Upload to V2 API and get jobId + authToken
             let service = GeminiCSVImportService.shared
             let (uploadedJobId, authToken) = try await service.uploadCSV(csvText: csvText)

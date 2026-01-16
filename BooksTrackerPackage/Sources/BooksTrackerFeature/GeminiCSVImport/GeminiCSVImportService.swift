@@ -52,37 +52,12 @@ public struct GeminiCSVImportResponse: Codable, Sendable {
 }
 
 /// V3 API response for GET /v3/jobs/imports/{jobId}/results
-/// Structure: { success, data: { jobId, status, results: { books, errors, ... } } }
+/// Structure: { success, data: { jobId, status, results: [...] } }
+/// OpenAPI: results is array of objects (structure varies by job type)
 public struct GeminiCSVImportResultsResponse: Codable, Sendable {
     public let jobId: String
     public let status: String
-    public let results: ResultsPayload
-
-    public struct ResultsPayload: Codable, Sendable {
-        public let booksCreated: Int
-        public let booksUpdated: Int
-        public let duplicatesSkipped: Int
-        public let enrichmentSucceeded: Int
-        public let enrichmentFailed: Int
-        public let errors: [CSVImportError]
-        public let books: [CSVParsedBook]
-
-        public init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            booksCreated = try container.decodeIfPresent(Int.self, forKey: .booksCreated) ?? 0
-            booksUpdated = try container.decodeIfPresent(Int.self, forKey: .booksUpdated) ?? 0
-            duplicatesSkipped = try container.decodeIfPresent(Int.self, forKey: .duplicatesSkipped) ?? 0
-            enrichmentSucceeded = try container.decodeIfPresent(Int.self, forKey: .enrichmentSucceeded) ?? 0
-            enrichmentFailed = try container.decodeIfPresent(Int.self, forKey: .enrichmentFailed) ?? 0
-            errors = try container.decodeIfPresent([CSVImportError].self, forKey: .errors) ?? []
-            books = try container.decodeIfPresent([CSVParsedBook].self, forKey: .books) ?? []
-        }
-
-        private enum CodingKeys: String, CodingKey {
-            case booksCreated, booksUpdated, duplicatesSkipped
-            case enrichmentSucceeded, enrichmentFailed, errors, books
-        }
-    }
+    public let results: [CSVParsedBook]  // ✅ Direct array per OpenAPI spec
 }
 
 /// Legacy wrapper for backward compatibility with existing code
@@ -93,10 +68,19 @@ public struct GeminiCSVImportJob: Codable, Sendable {
 
     /// Initialize from V3 results response
     public init(from resultsResponse: GeminiCSVImportResultsResponse) {
-        self.books = resultsResponse.results.books
-        self.errors = resultsResponse.results.errors
-        let total = resultsResponse.results.booksCreated + resultsResponse.results.errors.count
-        let success = total > 0 ? Double(resultsResponse.results.booksCreated) / Double(total) * 100 : 100
+        // With new OpenAPI-compliant structure, results is direct array
+        self.books = resultsResponse.results
+
+        // Extract errors from books that have enrichmentError
+        self.errors = resultsResponse.results.compactMap { book in
+            guard let errorMsg = book.enrichmentError else { return nil }
+            return CSVImportError(title: book.title, error: errorMsg)
+        }
+
+        // Calculate success rate
+        let totalBooks = resultsResponse.results.count
+        let successfulBooks = resultsResponse.results.filter { $0.enrichmentError == nil }.count
+        let success = totalBooks > 0 ? Double(successfulBooks) / Double(totalBooks) * 100 : 100
         self.successRate = "\(Int(success))%"
     }
 
@@ -221,6 +205,11 @@ actor GeminiCSVImportService {
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 
         request.httpBody = body
+
+        #if DEBUG
+        print("[CSV Upload] 📦 Multipart body size: \(body.count) bytes (CSV: \(csvText.utf8.count) bytes + headers)")
+        print("[CSV Upload] 📦 CSV text first 100 bytes: \(String(csvText.prefix(100)))")
+        #endif
 
         logger.debug("CSV multipart/form-data constructed, size: \(body.count) bytes")
         logger.debug("Sending CSV upload request to V3 API...")
