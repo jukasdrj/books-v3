@@ -811,7 +811,7 @@ actor EnrichmentAPIClient {
                 jobId: jobId,
                 status: "already_cancelled",
                 message: "Job was already cancelled or does not exist",
-                cleanup: CleanupDetails(r2ObjectsDeleted: 0, kvCacheCleared: false)
+                cleanup: JobCancellationResponse.CleanupDetails(r2ObjectsDeleted: 0, kvCacheCleared: false)
             )
         }
 

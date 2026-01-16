@@ -36,7 +36,7 @@ public extension Data {
 
                 throw ResponseEnvelopeError.apiError(
                     code: error.code,
-                    message: error.message,
+                    message: error.detail,
                     details: detailsDict
                 )
             }

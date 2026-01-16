@@ -69,10 +69,10 @@ actor BooksTrackAPI {
                 }
 
                 if code == "NOT_FOUND" {
-                    throw APIError.notFound(message: error.message)
+                    throw APIError.notFound(message: error.detail)
                 }
             }
-            throw APIError.serverError(message: error.message)
+            throw APIError.serverError(message: error.detail)
         }
 
         // Success case: envelope.success == true

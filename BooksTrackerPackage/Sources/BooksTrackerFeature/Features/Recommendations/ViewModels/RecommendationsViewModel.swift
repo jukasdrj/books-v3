@@ -140,7 +140,7 @@ public final class RecommendationsViewModel {
     /// - Parameter isbn: ISBN of the book added to library
     public func markAsAddedToLibrary(isbn: String) {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-            recommendations.removeAll { $0.book.isbn == isbn }
+            recommendations.removeAll { $0.isbn == isbn }
             total = max(0, total - 1)
         }
         logger.info("📚 Removed \(isbn) from recommendations (added to library)")

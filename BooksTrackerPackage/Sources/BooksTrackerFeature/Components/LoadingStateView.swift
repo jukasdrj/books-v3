@@ -81,10 +81,8 @@ struct APILoadingStateView<Content: View, T>: View {
                     }
                     Button("Error") {
                         currentState = .error(ApiErrorInfo(
-                            message: "Network failed",
+                            detail: "Network failed",
                             code: "NETWORK_ERROR",
-                            details: nil,
-                            statusCode: nil,
                             retryable: true
                         ))
                     }
