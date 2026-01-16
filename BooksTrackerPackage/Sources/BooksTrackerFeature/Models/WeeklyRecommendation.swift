@@ -19,7 +19,7 @@ struct WeeklyRecommendationDTO: Codable {
     let author: String
     let coverUrl: String
     let reason: String
-    let score: Double
+    let score: Double?  // Optional - API may not always provide score
 }
 
 // MARK: - App Models (used by views)

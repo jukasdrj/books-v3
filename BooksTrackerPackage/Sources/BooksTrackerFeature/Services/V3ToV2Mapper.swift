@@ -98,16 +98,15 @@ public struct V3ToV2Mapper: Sendable {
     /// - Returns: Tuple of (work, edition, authors) with relationships established
     internal static func mapBook(_ v3Book: V3Book) -> (work: WorkDTO, edition: EditionDTO, authors: [AuthorDTO]) {
         // --- Authors first (for relationship tracking) ---
-        let authorNames = v3Book.authors
-        let authors: [AuthorDTO] = authorNames.map { authorName in
+        let authors: [AuthorDTO] = v3Book.authors.map { v3Author in
             AuthorDTO(
-                name: authorName,
-                gender: .unknown, // V3 doesn't provide gender
-                culturalRegion: nil,
-                nationality: nil,
-                birthYear: nil,
-                deathYear: nil,
-                openLibraryID: generateAuthorID(from: authorName),
+                name: v3Author.name,
+                gender: mapGender(from: v3Author.gender),
+                culturalRegion: nil,  // V3 doesn't provide this yet
+                nationality: v3Author.nationality,  // NEW: from V3
+                birthYear: v3Author.birthYear,      // NEW: from V3
+                deathYear: v3Author.deathYear,      // NEW: from V3
+                openLibraryID: v3Author.key ?? generateAuthorID(from: v3Author.name),
                 isbndbID: nil,
                 googleBooksID: nil,
                 goodreadsID: nil,
@@ -234,6 +233,25 @@ public struct V3ToV2Mapper: Sendable {
     internal static func generateAuthorID(from name: String) -> String {
         let hash = stableHash(name)
         return "OL\(hash)A"
+    }
+
+    /// Map V3 API gender string to DTOAuthorGender enum
+    ///
+    /// - Parameter gender: Optional gender string from V3 API ("Male", "Female", "Other", etc.)
+    /// - Returns: Mapped DTOAuthorGender enum value
+    private static func mapGender(from gender: String?) -> DTOAuthorGender {
+        guard let gender = gender else { return .unknown }
+
+        switch gender.lowercased() {
+        case "male":
+            return .male
+        case "female":
+            return .female
+        case "nonbinary", "non-binary", "other":
+            return .nonBinary
+        default:
+            return .unknown
+        }
     }
 
     /// Create stable hash from string using SHA256

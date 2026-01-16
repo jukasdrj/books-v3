@@ -455,8 +455,8 @@ actor EnrichmentAPIClient {
                         isbndbQuality: Int(v3Book.quality)
                     )
 
-                    let authorDTOs = v3Book.authors.map { name in
-                        AuthorDTO(name: name, gender: .unknown)
+                    let authorDTOs = v3Book.authors.map { v3Author in
+                        AuthorDTO(name: v3Author.name, gender: .unknown)
                     }
 
                     let enrichedData = EnrichedDataPayload(

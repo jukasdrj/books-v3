@@ -38,4 +38,36 @@ if [ -n "$AGENT_TRANSCRIPT_PATH" ] && [ -f "$AGENT_TRANSCRIPT_PATH" ]; then
     cp "$AGENT_TRANSCRIPT_PATH" "$ARCHIVE_DIR/${AGENT_ID}_${SAFE_TIMESTAMP}.txt" 2>/dev/null || true
 fi
 
+# PAL MCP Review Gate (PM Orchestration Mode)
+# Require review of subagent outputs before integration
+# Context: BooksTrack = Solo-dev family app (pragmatic quality bar)
+
+IMPLEMENTATION_AGENTS=("Explore" "general-purpose" "feature-dev" "Bash")
+SECURITY_AGENTS=("cloudflare-specialist" "security-auditor")
+
+# Only review non-background agents (background already reviewed in parallel)
+if [ "$WAS_BACKGROUND" = "false" ]; then
+    # Check if implementation work requires code review
+    if [[ " ${IMPLEMENTATION_AGENTS[@]} " =~ " ${AGENT_TYPE} " ]]; then
+        echo ""
+        echo "⚠️  REVIEW GATE: Implementation work detected"
+        echo "   Before integrating subagent output, run PAL MCP review:"
+        echo "   → mcp__pal__codereview (model: grok-code-fast-1)"
+        echo "   → Focus: correctness, architecture, performance, obvious bugs"
+        echo "   → Bar: 'Good enough for family app' (not enterprise-grade)"
+        echo ""
+    fi
+
+    # Check if security work requires audit
+    if [[ " ${SECURITY_AGENTS[@]} " =~ " ${AGENT_TYPE} " ]]; then
+        echo ""
+        echo "⚠️  SECURITY GATE: Security-critical work detected"
+        echo "   Before integrating subagent output, run PAL MCP audit:"
+        echo "   → mcp__pal__secaudit (model: grok-code-fast-1)"
+        echo "   → Focus: API keys exposure, obvious vulns, broken auth"
+        echo "   → Context: Family app (low attack surface, pragmatic security)"
+        echo ""
+    fi
+fi
+
 exit 0

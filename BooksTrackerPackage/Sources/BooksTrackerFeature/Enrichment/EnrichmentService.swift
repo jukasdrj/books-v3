@@ -570,7 +570,7 @@ private struct EnrichmentSearchResult {
     /// Create from V3Book (unified V3 API response)
     init(from v3Book: V3Book) {
         self.title = v3Book.title
-        self.author = v3Book.authors.first ?? "Unknown Author"
+        self.author = v3Book.authors.first?.name ?? "Unknown Author"
         self.isbn = v3Book.isbn
         self.coverImage = v3Book.coverUrl
         self.publicationYear = Self.extractYear(from: v3Book.publishedDate)
