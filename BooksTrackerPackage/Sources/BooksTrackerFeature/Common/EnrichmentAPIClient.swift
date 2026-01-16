@@ -781,17 +781,41 @@ actor EnrichmentAPIClient {
             throw NSError(domain: "com.bookstrack.api", code: 401, userInfo: [NSLocalizedDescriptionKey: "Authentication failed: Invalid or expired token"])
         }
 
-        guard httpResponse.statusCode == 200 else {
+        // Accept idempotent DELETE status codes (Issue #216)
+        // 200 OK: Job cancelled successfully
+        // 202 Accepted: Cancellation processing asynchronously
+        // 404 Not Found: Job doesn't exist (already cancelled/completed)
+        // 409 Conflict: Job already cancelled
+        guard [200, 202, 404, 409].contains(httpResponse.statusCode) else {
             #if DEBUG
             print("🚨 Job cancellation failed: HTTP \(httpResponse.statusCode)")
             if let responseString = String(data: data, encoding: .utf8) {
                 print("🚨 Response body: \(responseString)")
             }
             #endif
+
+            // Try to decode detailed error from ResponseEnvelope
+            if let errorResponse = try? data.decodeEnvelope(JobCancellationResponse.self) {
+                throw NSError(domain: "com.bookstrack.api", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorResponse.message])
+            }
+
             throw NSError(domain: "com.bookstrack.api", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Job cancellation failed"])
         }
 
-        // Decode ResponseEnvelope and unwrap data
+        // HTTP 404/409: Job already cancelled or doesn't exist - return success response
+        if httpResponse.statusCode == 404 || httpResponse.statusCode == 409 {
+            #if DEBUG
+            print("✅ Job \(jobId) already cancelled (HTTP \(httpResponse.statusCode)) - idempotent success")
+            #endif
+            return JobCancellationResponse(
+                jobId: jobId,
+                status: "already_cancelled",
+                message: "Job was already cancelled or does not exist",
+                cleanup: CleanupDetails(r2ObjectsDeleted: 0, kvCacheCleared: false)
+            )
+        }
+
+        // HTTP 200/202: Decode actual cancellation response
         let result = try data.decodeEnvelope(JobCancellationResponse.self)
 
         #if DEBUG
