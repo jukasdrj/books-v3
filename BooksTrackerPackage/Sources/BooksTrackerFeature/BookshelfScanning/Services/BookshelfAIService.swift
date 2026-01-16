@@ -417,7 +417,7 @@ actor BookshelfAIService {
         return (finalBooks, finalSuggestions)
     }
 
-    /// Convert V3 scan result to DetectedBook
+    /// Convert V3 scan result to DetectedBook with enrichment DTOs
     private func convertV3ResultToDetectedBook(_ result: V3ScanBookResult) -> DetectedBook? {
         // Basic validation - need at least a title
         guard !result.title.isEmpty else { return nil }
@@ -438,7 +438,7 @@ actor BookshelfAIService {
             boundingBox = .zero
         }
 
-        return DetectedBook(
+        var detectedBook = DetectedBook(
             isbn: result.isbn,
             title: result.title,
             author: result.author,
@@ -449,6 +449,91 @@ actor BookshelfAIService {
             status: status,
             originalImagePath: nil  // Image path handled separately
         )
+
+        // CRITICAL FIX: Populate enrichment DTOs from V3 scan result
+        // This enables Path A (pre-enriched import) in ScanResultsView.addAllToLibrary
+        // Without this, all books fall back to Path B (queue for enrichment)
+        if result.enrichmentStatus == "success" || result.enrichmentStatus == "partial" {
+            // Create WorkDTO from V3 scan result
+            detectedBook.enrichmentWork = WorkDTO(
+                title: result.title,
+                subjectTags: [],
+                originalLanguage: nil,
+                firstPublicationYear: result.publicationYear,
+                description: nil,
+                coverImageURL: result.coverUrl,
+                searchLinks: nil,
+                synthetic: false,
+                primaryProvider: nil,
+                contributors: nil,
+                openLibraryID: nil,
+                openLibraryWorkID: nil,
+                isbndbID: nil,
+                googleBooksVolumeID: nil,
+                goodreadsID: nil,
+                goodreadsWorkIDs: [],
+                amazonASINs: [],
+                librarythingIDs: [],
+                googleBooksVolumeIDs: [],
+                lastISBNDBSync: nil,
+                isbndbQuality: 0,
+                reviewStatus: .needsReview,
+                originalImagePath: nil,
+                boundingBox: nil
+            )
+
+            // Create AuthorDTO from V3 scan result
+            if let authorName = result.author {
+                detectedBook.enrichmentAuthors = [
+                    AuthorDTO(
+                        name: authorName,
+                        gender: .unknown,
+                        culturalRegion: nil,
+                        nationality: nil,
+                        birthYear: nil,
+                        deathYear: nil,
+                        openLibraryID: nil,
+                        isbndbID: nil
+                    )
+                ]
+            }
+
+            // Create EditionDTO from V3 scan result
+            if let isbn = result.isbn {
+                detectedBook.enrichmentEditions = [
+                    EditionDTO(
+                        isbn: isbn,
+                        isbns: [isbn],
+                        title: result.title,
+                        publisher: result.publisher,
+                        publicationDate: result.publicationYear.map { "\($0)" },
+                        pageCount: nil,
+                        format: .paperback,  // Default format (V3 doesn't provide this)
+                        coverImageURL: result.coverUrl,
+                        editionTitle: nil,
+                        editionDescription: nil,
+                        language: nil,
+                        searchLinks: nil,
+                        primaryProvider: nil,
+                        contributors: nil,
+                        openLibraryID: nil,
+                        openLibraryEditionID: nil,
+                        isbndbID: nil,
+                        googleBooksVolumeID: nil,
+                        goodreadsID: nil,
+                        amazonASINs: [],
+                        googleBooksVolumeIDs: [],
+                        librarythingIDs: [],
+                        lastISBNDBSync: nil,
+                        isbndbQuality: 0
+                    )
+                ]
+            }
+
+            logger.debug("Enrichment DTOs populated for V3 scan result: \(result.title)")
+        }
+
+        return detectedBook
     }
 
     /// Generate suggestions from V3 scan results
