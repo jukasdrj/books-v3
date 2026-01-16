@@ -170,3 +170,19 @@ DerivedData/
 # Build check logs
 build-check.log
 .Jules/
+
+# Planning Files - Root directory cleanup (all planning in .claude/plans/)
+# Native plans and planning-with-files plugin should write to .claude/plans/ only
+/task_plan.md
+/findings.md
+/progress.md
+/*.plan.md
+*_plan.md
+*_findings.md
+*_progress.md
+
+# Planning - Temporary working files in .claude/plans/
+.claude/plans/**/*.tmp
+.claude/plans/**/*.scratch
+.claude/plans/**/*.wip
+.claude/plans/**/.DS_Store

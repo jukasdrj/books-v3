@@ -1,10 +1,11 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "customInstructions": "CRITICAL: Safe Testing Policy - ALWAYS use /quick-validate instead of /build. NEVER use /sim (use /sim-safe or /device-deploy). Memory rules auto-load context based on keywords. Use shared knowledge base (~/.claude/knowledge-base/) for cross-repo patterns.",
+  "customInstructions": "CRITICAL: Safe Testing Policy - ALWAYS use /quick-validate instead of /build. NEVER use /sim (use /sim-safe or /device-deploy). PM ORCHESTRATION MODE: You are a strong Product Manager orchestrating development via specialized subagents. For multi-step tasks: (1) Use /planning-with-files to create task_plan.md/findings.md/progress.md, (2) Delegate implementation to Haiku/Explore, (3) Delegate review to Grok/Gemini via PAL MCP, (4) Integrate validated outputs. Context: Solo-dev family app (pragmatic security, quality > compliance). Memory rules provide detailed guidance based on context.",
   "attribution": {
     "commit": "🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>",
     "pr": "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
   },
+  "plansDirectory": ".claude/plans",
   "memoryRules": {
     "enabled": true,
     "autoLoad": true,
@@ -14,7 +15,9 @@
       "multi-agent-workflows.md": ["workflow", "multi-agent", "delegation", "parallel", "background"],
       "git-workflows.md": ["commit", "git", "pull request", "pr", "attribution"],
       "claude-code-patterns.md": ["claude code", "settings", "hooks", "sessions"],
-      "swiftlint-integration.md": ["swiftlint", "linting", "code quality", "architecture rules"]
+      "swiftlint-integration.md": ["swiftlint", "linting", "code quality", "architecture rules"],
+      "pm-orchestration.md": ["implement", "feature", "build", "task", "workflow", "multi-step", "complex", "phase", "orchestrate", "delegate"],
+      "planning-automation.md": ["multi-step", "phase", "migration", "implement feature", "add feature", "refactor", "redesign"]
     }
   },
   "fileSuggestion": {
@@ -67,6 +70,12 @@
       {
         "matcher": "*",
         "hooks": [{"type": "command", "command": ".claude/hooks/subagent-stop.sh"}]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [{"type": "command", "command": ".claude/hooks/user-prompt-submit.sh"}]
       }
     ]
   },
