@@ -49,6 +49,7 @@ struct ErrorView: View {
                     )
                     .symbolEffect(.pulse, options: .repeating)
             }
+            .accessibilityHidden(true)
 
             // Error message
             VStack(spacing: 8) {
@@ -65,6 +66,7 @@ struct ErrorView: View {
                 }
             }
             .padding(.horizontal, 24)
+            .accessibilityElement(children: .combine)
 
             // Retry action button
             if error.isRetryable, let retryAction = retryAction {
@@ -72,6 +74,7 @@ struct ErrorView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.clockwise")
                             .font(.headline)
+                            .accessibilityHidden(true)
 
                         Text("Try Again")
                             .font(.headline)
@@ -107,8 +110,6 @@ struct ErrorView: View {
                 }
         }
         .shadow(color: Color.red.opacity(0.1), radius: 20, x: 0, y: 10)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Error: \(error.userMessage)")
     }
 
     /// Map error code to SF Symbol icon

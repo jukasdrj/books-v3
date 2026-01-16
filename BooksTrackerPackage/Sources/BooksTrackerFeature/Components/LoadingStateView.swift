@@ -42,6 +42,7 @@ struct APILoadingStateView<Content: View, T>: View {
             ProgressView()
                 .progressViewStyle(.circular)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityLabel("Loading content")
         case .success(let data):
             content(data)
         case .error(let error):
