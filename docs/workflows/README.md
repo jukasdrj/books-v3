@@ -6,19 +6,6 @@ This directory contains Mermaid diagrams describing key workflows in the BooksTr
 
 ---
 
-## Available Workflows
-
-### User Workflows
-- **[Search and Enrichment](./search-enrichment-flow.md)** - Book search, multi-provider fallback, metadata enrichment
-- **[CSV Import](./csv-import-flow.md)** - CSV upload, parsing, validation, book matching
-- **[Bookshelf Scanning](./bookshelf-scan-flow.md)** - Photo upload, AI processing, review queue
-
-### Technical Workflows
-- **[WebSocket Progress](./websocket-progress-flow.md)** - Real-time progress tracking, reconnection handling
-- **[Authentication](./auth-flow.md)** - User login, token refresh, session management
-
----
-
 ## Creating Workflow Diagrams
 
 ### Mermaid Syntax
@@ -94,6 +81,7 @@ When creating a new workflow diagram, use this template:
 - [ ] CSV import workflow
 - [ ] Bookshelf scanning flow
 - [ ] WebSocket progress tracking
+- [ ] Authentication flow
 
 ### Medium Priority
 - [ ] Authentication flow

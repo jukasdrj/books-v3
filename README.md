@@ -44,11 +44,10 @@ BooksTracker/
 ├── BooksTrackerWidgets/         # Widget extension
 ├── Config/                      # Build configuration
 └── docs/                        # Documentation
-    ├── api/                     # API specs (OpenAPI, WebSocket)
-    ├── product/                 # Product requirements (18 PRDs)
+    ├── product/                 # Product requirements (PRDs)
     ├── architecture/            # System design & decisions
     ├── features/                # Feature implementation details
-    └── guides/                  # How-to guides & best practices
+    └── workflows/               # Visual flow diagrams
 ```
 
 ---
