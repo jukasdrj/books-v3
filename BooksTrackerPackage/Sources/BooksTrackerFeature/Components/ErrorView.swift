@@ -143,10 +143,9 @@ struct ErrorView: View {
 #Preview("Not Found") {
     let themeStore = BooksTrackerFeature.iOS26ThemeStore()
 
-    return ErrorView(error: ApiErrorInfo(
-        message: "Book not found",
+    ErrorView(error: ApiErrorInfo(
+        detail: "Book not found",
         code: "NOT_FOUND",
-        details: nil,
         statusCode: 404,
         retryable: false
     ))
@@ -157,12 +156,10 @@ struct ErrorView: View {
 #Preview("Network Error - Retryable") {
     let themeStore = BooksTrackerFeature.iOS26ThemeStore()
 
-    return ErrorView(
+    ErrorView(
         error: ApiErrorInfo(
-            message: "Network connection failed",
+            detail: "Network connection failed",
             code: "NETWORK_ERROR",
-            details: nil,
-            statusCode: nil,
             retryable: true
         ),
         retryAction: {
@@ -176,10 +173,9 @@ struct ErrorView: View {
 #Preview("Validation Error - User Action") {
     let themeStore = BooksTrackerFeature.iOS26ThemeStore()
 
-    return ErrorView(error: ApiErrorInfo(
-        message: "Invalid ISBN format",
+    ErrorView(error: ApiErrorInfo(
+        detail: "Invalid ISBN format",
         code: "INVALID_ISBN",
-        details: nil,
         statusCode: 400,
         retryable: false
     ))
@@ -190,11 +186,10 @@ struct ErrorView: View {
 #Preview("Rate Limited") {
     let themeStore = BooksTrackerFeature.iOS26ThemeStore()
 
-    return ErrorView(
+    ErrorView(
         error: ApiErrorInfo(
-            message: "Too many requests",
+            detail: "Too many requests",
             code: "RATE_LIMITED",
-            details: nil,
             statusCode: 429,
             retryable: true
         ),

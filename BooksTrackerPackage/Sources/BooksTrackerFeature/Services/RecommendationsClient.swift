@@ -2,7 +2,7 @@ import Foundation
 import OSLog
 
 /// Client for fetching personalized book recommendations from the bendv3 API
-/// Architecture: Separate from V3APIClientActual due to different error schema
+/// Endpoint: /v3/recommendations/personalized (v3.4.3+)
 /// Pattern: @MainActor for UI-safety, Sendable for Swift 6 strict concurrency
 @MainActor
 public final class RecommendationsClient: Sendable {
@@ -32,9 +32,10 @@ public final class RecommendationsClient: Sendable {
     /// - Returns: Recommendations with scores and strategy used
     /// - Throws: `RecommendationError` for various failure cases
     ///
-    /// Strategy Selection:
-    /// - `preference_based`: User has 4-5 star ratings in history
+    /// Strategy Selection (v3.4.3):
+    /// - `preference_based`: User has 4-5 star ratings in history (requires Alexandria ratings API)
     /// - `cold_start`: User has preferences but no ratings
+    /// - `weekly_fallback`: Fallback to weekly recommendations (current until Alexandria ready)
     ///
     /// Example:
     /// ```swift
@@ -97,7 +98,7 @@ public final class RecommendationsClient: Sendable {
         let clampedLimit = max(1, min(50, limit))
 
         // 2. Construct URL
-        let endpoint = debug ? "/api/recommendations/debug" : "/api/recommendations"
+        let endpoint = debug ? "/v3/recommendations/personalized/debug" : "/v3/recommendations/personalized"
         guard var components = URLComponents(
             url: baseURL.appendingPathComponent(endpoint),
             resolvingAgainstBaseURL: true
@@ -140,28 +141,33 @@ public final class RecommendationsClient: Sendable {
                 throw RecommendationError.serverError(statusCode: httpResponse.statusCode)
             }
 
-            // 6. Decode Envelope
+            // 6. Decode V3 ResponseEnvelope
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
 
-            let envelope = try decoder.decode(APIEnvelope<RecommendationResult>.self, from: data)
+            let envelope = try decoder.decode(ResponseEnvelope<RecommendationResult>.self, from: data)
 
             // 7. Validate Business Logic Success
-            guard envelope.success, let result = envelope.data else {
-                let errorMessage = envelope.errorMessage ?? "Unknown error"
-                let errorCode = envelope.code
-                logger.warning("📚 API returned failure: \(errorMessage) (code: \(errorCode ?? "none"))")
+            guard let result = envelope.data else {
+                // Handle error from envelope
+                if let error = envelope.error {
+                    logger.warning("📚 API returned failure: \(error.detail) (code: \(error.code ?? "none"))")
 
-                // Map specific error codes or messages to typed enums
-                // Check code first (RFC 9457), then fallback to message matching (legacy)
-                if errorCode == "INSUFFICIENT_HISTORY" ||
-                   errorMessage.localizedCaseInsensitiveContains("no preferences") ||
-                   errorMessage.localizedCaseInsensitiveContains("no ratings") ||
-                   errorMessage.localizedCaseInsensitiveContains("insufficient history") {
-                    throw RecommendationError.insufficientHistory
+                    // Map specific error codes to typed enums
+                    // Check code first (RFC 9457)
+                    if error.code == "INSUFFICIENT_HISTORY" ||
+                       error.detail.localizedCaseInsensitiveContains("no preferences") ||
+                       error.detail.localizedCaseInsensitiveContains("no ratings") ||
+                       error.detail.localizedCaseInsensitiveContains("insufficient history") {
+                        throw RecommendationError.insufficientHistory
+                    }
+
+                    throw RecommendationError.apiError(message: error.detail)
                 }
 
-                throw RecommendationError.apiError(message: errorMessage)
+                // Invalid response (success without data)
+                logger.error("📚 Invalid response: success without data")
+                throw RecommendationError.apiError(message: "Invalid response from server")
             }
 
             logger.info("📚 Success: \(result.recommendations.count) books via \(result.strategy.rawValue)")

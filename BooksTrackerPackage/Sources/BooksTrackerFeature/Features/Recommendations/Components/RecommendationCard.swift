@@ -87,7 +87,7 @@ public struct RecommendationCard: View {
     private var coverSection: some View {
         ZStack(alignment: .topTrailing) {
             // Book Cover
-            if let coverUrl = recommendation.book.coverUrl, let url = URL(string: coverUrl) {
+            if let coverUrl = recommendation.coverUrl, let url = URL(string: coverUrl) {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .empty:
@@ -113,9 +113,11 @@ public struct RecommendationCard: View {
                 coverPlaceholder
             }
 
-            // Score Ring Overlay
-            ScoreRing(score: recommendation.score)
-                .padding(8)
+            // Score Ring Overlay (only show if score available)
+            if let score = recommendation.score {
+                ScoreRing(score: score)
+                    .padding(8)
+            }
         }
         .frame(width: 100, height: 150)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -134,13 +136,13 @@ public struct RecommendationCard: View {
 
     private var bookInfo: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(recommendation.book.title)
+            Text(recommendation.title)
                 .font(.headline.weight(.semibold))
                 .foregroundStyle(.primary)
                 .lineLimit(2)
 
-            if !recommendation.book.authorNames.isEmpty {
-                Text(recommendation.book.authorNames.joined(separator: ", "))
+            if !recommendation.author.isEmpty {
+                Text(recommendation.author)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -151,21 +153,25 @@ public struct RecommendationCard: View {
     // MARK: - Score Badge
 
     private var scoreBadge: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "star.fill")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(scoreColor)
+        Group {
+            if let score = recommendation.score {
+                HStack(spacing: 6) {
+                    Image(systemName: "star.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(scoreColor)
 
-            Text("\(Int(recommendation.score))% match")
-                .font(.caption.weight(.medium))
-                .foregroundStyle(scoreColor)
+                    Text("\(Int(score))% match")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(scoreColor)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill(scoreColor.opacity(0.15))
+                )
+            }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(
-            Capsule()
-                .fill(scoreColor.opacity(0.15))
-        )
     }
 
     // MARK: - Reasons List
@@ -211,7 +217,10 @@ public struct RecommendationCard: View {
     // MARK: - Helpers
 
     private var scoreColor: Color {
-        switch recommendation.score {
+        guard let score = recommendation.score else {
+            return .gray
+        }
+        switch score {
         case 90...100:
             return Color(red: 1.0, green: 0.84, blue: 0.0) // Gold
         case 75..<90:
@@ -229,11 +238,13 @@ public struct RecommendationCard: View {
     }
 
     private var accessibilityLabel: String {
-        var label = "\(recommendation.book.title)"
-        if !recommendation.book.authorNames.isEmpty {
-            label += " by \(recommendation.book.authorNames.joined(separator: ", "))"
+        var label = "\(recommendation.title)"
+        if !recommendation.author.isEmpty {
+            label += " by \(recommendation.author)"
         }
-        label += ". \(Int(recommendation.score)) percent match."
+        if let score = recommendation.score {
+            label += ". \(Int(score)) percent match."
+        }
         if !recommendation.reasons.isEmpty {
             label += " Reasons: \(recommendation.reasons.prefix(2).joined(separator: ", "))"
         }
@@ -298,30 +309,19 @@ private struct ScoreRing: View {
 
 @available(iOS 26.0, *)
 #Preview("Recommendation Card - High Score") {
-    let recommendation = ScoredRecommendation(
-        book: V3Book(
-            isbn: "9780261102385",
-            isbn10: "0261102385",
-            title: "The Lord of the Rings",
-            subtitle: "The Fellowship of the Ring",
-            authors: [V3Author(name: "J.R.R. Tolkien", key: "/authors/OL26320A", openlibrary: "https://openlibrary.org/authors/OL26320A", bio: nil, gender: "Male", nationality: "British", birthYear: 1892, deathYear: 1973, wikidataId: nil, image: nil)],
-            publisher: "Mariner Books",
-            publishedDate: "2012-02-15",
-            description: "Epic fantasy adventure...",
-            pageCount: 423,
-            categories: ["Fiction", "Fantasy"],
-            language: "en",
-            coverUrl: "https://covers.openlibrary.org/b/isbn/9780261102385-L.jpg",
-            thumbnailUrl: nil,
-            workKey: "/works/OL27448W",
-            editionKey: "/books/OL28260590M",
-            provider: "openlibrary",
-            quality: 0.95
-        ),
-        score: 94.5,
-        reasons: ["Matches your fantasy preference", "Epic adventure style", "Similar to your 5-star books"],
-        breakdown: nil
-    )
+    // Note: Using mock data that matches the new simplified format from bendv3 v3.4.3
+    let json = """
+    {
+        "isbn": "9780261102385",
+        "title": "The Lord of the Rings",
+        "author": "J.R.R. Tolkien",
+        "coverUrl": "https://covers.openlibrary.org/b/isbn/9780261102385-L.jpg",
+        "score": 94.5,
+        "reason": "Matches your fantasy preference"
+    }
+    """
+    let data = json.data(using: .utf8)!
+    let recommendation = try! JSONDecoder().decode(ScoredRecommendation.self, from: data)
 
     VStack {
         RecommendationCard(
@@ -336,30 +336,18 @@ private struct ScoreRing: View {
 
 @available(iOS 26.0, *)
 #Preview("Recommendation Card - Medium Score") {
-    let recommendation = ScoredRecommendation(
-        book: V3Book(
-            isbn: "9780316769174",
-            isbn10: "0316769177",
-            title: "The Catcher in the Rye",
-            subtitle: nil,
-            authors: [V3Author(name: "J.D. Salinger", key: "/authors/OL26839A", openlibrary: nil, bio: nil, gender: "Male", nationality: "American", birthYear: 1919, deathYear: 2010, wikidataId: nil, image: nil)],
-            publisher: "Little, Brown and Company",
-            publishedDate: "1991",
-            description: nil,
-            pageCount: 277,
-            categories: ["Fiction"],
-            language: "en",
-            coverUrl: "https://covers.openlibrary.org/b/isbn/9780316769174-L.jpg",
-            thumbnailUrl: nil,
-            workKey: "/works/OL3335872W",
-            editionKey: "/books/OL7355988M",
-            provider: "openlibrary",
-            quality: 0.85
-        ),
-        score: 72.0,
-        reasons: ["Literary fiction", "Coming-of-age story"],
-        breakdown: nil
-    )
+    let json = """
+    {
+        "isbn": "9780316769174",
+        "title": "The Catcher in the Rye",
+        "author": "J.D. Salinger",
+        "coverUrl": "https://covers.openlibrary.org/b/isbn/9780316769174-L.jpg",
+        "score": 72.0,
+        "reason": "Literary fiction"
+    }
+    """
+    let data = json.data(using: .utf8)!
+    let recommendation = try! JSONDecoder().decode(ScoredRecommendation.self, from: data)
 
     VStack {
         RecommendationCard(

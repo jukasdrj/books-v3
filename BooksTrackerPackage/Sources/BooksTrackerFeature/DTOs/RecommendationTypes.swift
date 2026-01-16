@@ -3,39 +3,36 @@ import Foundation
 // MARK: - Public Domain Models
 
 /// A book recommendation with similarity score and reasoning
-public struct ScoredRecommendation: Sendable, Identifiable {
-    /// Unique identifier (uses workKey or ISBN as fallback)
+public struct ScoredRecommendation: Sendable, Identifiable, Codable {
+    /// Unique identifier (uses ISBN)
     public var id: String {
-        book.workKey ?? book.isbn
+        isbn
     }
 
-    /// The recommended book
-    public let book: V3Book
+    /// ISBN of the recommended book
+    public let isbn: String
 
-    /// Recommendation score (0-100)
-    public let score: Double
+    /// Book title
+    public let title: String
 
-    /// Human-readable reasons for the recommendation
-    public let reasons: [String]
+    /// Author name (single string from backend)
+    public let author: String
+
+    /// Cover image URL
+    public let coverUrl: String?
+
+    /// Recommendation score (0-100, optional - not in weekly_fallback)
+    public let score: Double?
+
+    /// Human-readable reason for the recommendation
+    public let reason: String
 
     /// Optional score breakdown (only in debug mode)
     public let breakdown: ScoreBreakdown?
-}
 
-extension ScoredRecommendation: Decodable {
-    enum CodingKeys: String, CodingKey {
-        case book
-        case score
-        case reasons
-        case breakdown
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.book = try container.decode(V3Book.self, forKey: .book)
-        self.score = try container.decode(Double.self, forKey: .score)
-        self.reasons = try container.decode([String].self, forKey: .reasons)
-        self.breakdown = try container.decodeIfPresent(ScoreBreakdown.self, forKey: .breakdown)
+    /// Computed property for backward compatibility with multi-reason format
+    public var reasons: [String] {
+        [reason]
     }
 }
 
@@ -43,7 +40,7 @@ extension ScoredRecommendation: Decodable {
 
 /// Result from the recommendations API containing personalized book suggestions
 /// Stripped of the `{success: bool}` wrapper for clean domain modeling
-public struct RecommendationResult: Sendable, Decodable {
+public struct RecommendationResult: Sendable, Codable {
     /// List of recommended books with scores and reasoning
     public let recommendations: [ScoredRecommendation]
 
@@ -65,7 +62,7 @@ public struct RecommendationResult: Sendable, Decodable {
 }
 
 /// Breakdown of how the recommendation score was calculated
-public struct ScoreBreakdown: Sendable, Decodable {
+public struct ScoreBreakdown: Sendable, Codable {
     /// Points from subject/genre similarity (0-60)
     public let subjectMatch: Double
 
@@ -83,12 +80,15 @@ public struct ScoreBreakdown: Sendable, Decodable {
 }
 
 /// Strategy used to generate recommendations
-public enum RecommendationStrategy: String, Sendable, Decodable {
+public enum RecommendationStrategy: String, Sendable, Codable {
     /// Based on user's 4-5 star ratings (requires rating history)
     case preferenceBased = "preference_based"
 
     /// Based on user preferences only (no ratings needed)
     case coldStart = "cold_start"
+
+    /// Fallback to weekly recommendations (when personalized data unavailable)
+    case weeklyFallback = "weekly_fallback"
 
     public var displayName: String {
         switch self {
@@ -96,6 +96,8 @@ public enum RecommendationStrategy: String, Sendable, Decodable {
             return "Based on your ratings"
         case .coldStart:
             return "Based on your preferences"
+        case .weeklyFallback:
+            return "Weekly picks"
         }
     }
 
@@ -105,12 +107,14 @@ public enum RecommendationStrategy: String, Sendable, Decodable {
             return "Recommendations based on books you've rated highly"
         case .coldStart:
             return "Recommendations based on your reading preferences"
+        case .weeklyFallback:
+            return "Curated weekly recommendations for you"
         }
     }
 }
 
 /// Debug information from the recommendation engine
-public struct RecommendationDebug: Sendable, Decodable {
+public struct RecommendationDebug: Sendable, Codable {
     /// Subjects extracted from user's reading history
     public let userSubjects: [String]
 
@@ -124,39 +128,6 @@ public struct RecommendationDebug: Sendable, Decodable {
         case userSubjects = "user_subjects"
         case preferenceSubjects = "preference_subjects"
         case candidateCount = "candidate_count"
-    }
-}
-
-// MARK: - Internal DTOs
-
-/// Internal wrapper to handle the API's `{success: bool, data: {...}}` envelope
-/// This is stripped away before returning to the caller
-/// Updated to support RFC 9457 Problem Details format (bendv3 Issue #261)
-struct APIEnvelope<T: Decodable>: Decodable {
-    let success: Bool
-    let data: T?
-
-    // RFC 9457 Problem Details fields
-    let type: String?
-    let title: String?
-    let status: Int?
-    let detail: String?
-    let instance: String?
-    let code: String?
-    let retryable: Bool?
-
-    // Legacy field for backward compatibility
-    let error: String?
-
-    /// Get error message (RFC 9457 'detail' or legacy 'error')
-    var errorMessage: String? {
-        return detail ?? error
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case success, data
-        case type, title, status, detail, instance, code, retryable
-        case error
     }
 }
 
