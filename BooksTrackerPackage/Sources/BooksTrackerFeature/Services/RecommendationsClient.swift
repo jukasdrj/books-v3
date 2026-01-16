@@ -148,11 +148,14 @@ public final class RecommendationsClient: Sendable {
 
             // 7. Validate Business Logic Success
             guard envelope.success, let result = envelope.data else {
-                let errorMessage = envelope.error ?? "Unknown error"
-                logger.warning("📚 API returned failure: \(errorMessage)")
+                let errorMessage = envelope.errorMessage ?? "Unknown error"
+                let errorCode = envelope.code
+                logger.warning("📚 API returned failure: \(errorMessage) (code: \(errorCode ?? "none"))")
 
-                // Map specific string errors to typed enums
-                if errorMessage.localizedCaseInsensitiveContains("no preferences") ||
+                // Map specific error codes or messages to typed enums
+                // Check code first (RFC 9457), then fallback to message matching (legacy)
+                if errorCode == "INSUFFICIENT_HISTORY" ||
+                   errorMessage.localizedCaseInsensitiveContains("no preferences") ||
                    errorMessage.localizedCaseInsensitiveContains("no ratings") ||
                    errorMessage.localizedCaseInsensitiveContains("insufficient history") {
                     throw RecommendationError.insufficientHistory

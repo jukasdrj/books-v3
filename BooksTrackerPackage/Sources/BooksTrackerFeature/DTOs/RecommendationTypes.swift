@@ -131,10 +131,33 @@ public struct RecommendationDebug: Sendable, Decodable {
 
 /// Internal wrapper to handle the API's `{success: bool, data: {...}}` envelope
 /// This is stripped away before returning to the caller
+/// Updated to support RFC 9457 Problem Details format (bendv3 Issue #261)
 struct APIEnvelope<T: Decodable>: Decodable {
     let success: Bool
     let data: T?
+
+    // RFC 9457 Problem Details fields
+    let type: String?
+    let title: String?
+    let status: Int?
+    let detail: String?
+    let instance: String?
+    let code: String?
+    let retryable: Bool?
+
+    // Legacy field for backward compatibility
     let error: String?
+
+    /// Get error message (RFC 9457 'detail' or legacy 'error')
+    var errorMessage: String? {
+        return detail ?? error
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case success, data
+        case type, title, status, detail, instance, code, retryable
+        case error
+    }
 }
 
 // MARK: - Errors

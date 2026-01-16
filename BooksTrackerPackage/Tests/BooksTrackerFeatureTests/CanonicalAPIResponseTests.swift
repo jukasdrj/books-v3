@@ -101,8 +101,53 @@ struct CanonicalAPIResponseTests {
         #expect(metadata.processingTime == 123)
     }
 
-    @Test("Decode failure ResponseEnvelope")
+    @Test("Decode failure ResponseEnvelope with RFC 9457 format")
     func testDecodeFailureResponse() throws {
+        let json = """
+        {
+          "success": false,
+          "data": null,
+          "error": {
+            "type": "/errors/not-found",
+            "title": "Resource Not Found",
+            "status": 404,
+            "detail": "Book not found",
+            "code": "NOT_FOUND"
+          },
+          "metadata": {
+            "timestamp": "2025-10-30T12:00:00Z",
+            "processingTime": 45,
+            "provider": "google-books",
+            "cached": false
+          }
+        }
+        """
+
+        let data = json.data(using: .utf8)!
+        let decoder = JSONDecoder()
+
+        let envelope = try decoder.decode(ResponseEnvelope<BookSearchResponse>.self, from: data)
+
+        // Verify failure case
+        guard let error = envelope.error else {
+            Issue.record("Expected error in envelope, got nil")
+            return
+        }
+
+        let metadata = envelope.metadata
+
+        // Verify RFC 9457 fields
+        #expect(error.detail == "Book not found")
+        #expect(error.type == "/errors/not-found")
+        #expect(error.title == "Resource Not Found")
+        #expect(error.status == 404)
+        #expect(error.code == "NOT_FOUND")
+        #expect(metadata.processingTime == 45)
+    }
+
+    @Test("Decode failure ResponseEnvelope with legacy message format (backward compatibility)")
+    func testDecodeFailureResponseLegacy() throws {
+        // Test that old backend responses with 'message' field still work
         let json = """
         {
           "success": false,
@@ -133,6 +178,8 @@ struct CanonicalAPIResponseTests {
 
         let metadata = envelope.metadata
 
+        // Custom decoder should copy 'message' to 'detail' for legacy format
+        #expect(error.detail == "Book not found")
         #expect(error.message == "Book not found")
         #expect(error.code == "NOT_FOUND")
         #expect(metadata.processingTime == 45)

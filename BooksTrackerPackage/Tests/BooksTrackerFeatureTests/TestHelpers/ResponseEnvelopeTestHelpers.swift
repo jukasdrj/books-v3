@@ -41,8 +41,41 @@ extension ResponseEnvelope {
         )
     }
 
-    /// Creates a failed ResponseEnvelope for testing
+    /// Creates a failed ResponseEnvelope for testing (RFC 9457 format)
     static func mockFailure(
+        detail: String,
+        type: String? = nil,
+        title: String? = nil,
+        status: Int? = nil,
+        instance: String? = nil,
+        code: String? = nil,
+        statusCode: Int? = nil,
+        retryable: Bool? = nil,
+        metadata: ResponseMetadata = .mock()
+    ) -> ResponseEnvelope<T> {
+        ResponseEnvelope(
+            success: false,
+            data: nil,
+            metadata: metadata,
+            error: ApiErrorInfo(
+                type: type,
+                title: title,
+                status: status,
+                detail: detail,
+                instance: instance,
+                message: nil,  // RFC 9457 format doesn't use message
+                code: code,
+                details: nil,
+                statusCode: statusCode,
+                retryable: retryable,
+                retryAfterMs: nil
+            )
+        )
+    }
+
+    /// Creates a failed ResponseEnvelope for testing (Legacy format - backward compatibility)
+    /// This version uses the old `message` field for testing legacy backend responses
+    static func mockFailureLegacy(
         message: String,
         code: String? = nil,
         statusCode: Int? = nil,
@@ -54,11 +87,17 @@ extension ResponseEnvelope {
             data: nil,
             metadata: metadata,
             error: ApiErrorInfo(
-                message: message,
+                type: nil,
+                title: nil,
+                status: nil,
+                detail: message,  // Custom decoder will use this
+                instance: nil,
+                message: message,  // Legacy field
                 code: code,
                 details: nil,
                 statusCode: statusCode,
-                retryable: retryable
+                retryable: retryable,
+                retryAfterMs: nil
             )
         )
     }
@@ -75,8 +114,38 @@ extension ApiResponse {
         .success(data, metadata)
     }
 
-    /// Creates a failed ApiResponse for testing
+    /// Creates a failed ApiResponse for testing (RFC 9457 format)
     static func mockFailure(
+        detail: String,
+        type: String? = nil,
+        title: String? = nil,
+        status: Int? = nil,
+        instance: String? = nil,
+        code: String? = nil,
+        statusCode: Int? = nil,
+        retryable: Bool? = nil,
+        metadata: ResponseMetadata = .mock()
+    ) -> ApiResponse<T> {
+        .failure(
+            ApiErrorInfo(
+                type: type,
+                title: title,
+                status: status,
+                detail: detail,
+                instance: instance,
+                message: nil,
+                code: code,
+                details: nil,
+                statusCode: statusCode,
+                retryable: retryable,
+                retryAfterMs: nil
+            ),
+            metadata
+        )
+    }
+
+    /// Creates a failed ApiResponse for testing (Legacy format - backward compatibility)
+    static func mockFailureLegacy(
         message: String,
         code: String? = nil,
         statusCode: Int? = nil,
@@ -85,11 +154,17 @@ extension ApiResponse {
     ) -> ApiResponse<T> {
         .failure(
             ApiErrorInfo(
+                type: nil,
+                title: nil,
+                status: nil,
+                detail: message,
+                instance: nil,
                 message: message,
                 code: code,
                 details: nil,
                 statusCode: statusCode,
-                retryable: retryable
+                retryable: retryable,
+                retryAfterMs: nil
             ),
             metadata
         )

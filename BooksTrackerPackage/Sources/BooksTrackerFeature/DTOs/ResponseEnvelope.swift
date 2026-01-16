@@ -47,24 +47,80 @@ public struct ResponseEnvelope<T: Codable>: Codable {
     public let error: ApiErrorInfo?
 
     public struct ApiErrorInfo: Codable, Sendable {
-        public let message: String
-        public let code: String?
-        public let details: AnyCodable?
-        public let statusCode: Int?
-        public let retryable: Bool?
+        // RFC 9457 Problem Details fields
+        public let type: String?           // URI identifying error type
+        public let title: String?          // Short human-readable summary
+        public let status: Int?            // HTTP status code
+        public let detail: String          // Detailed error explanation
+        public let instance: String?       // URI of the failing request
+
+        // Legacy/backward compatibility fields
+        public let message: String?        // Legacy field (deprecated)
+        public let code: String?           // Machine-readable error code
+        public let details: AnyCodable?    // Additional context
+        public let statusCode: Int?        // Legacy field (deprecated, use status)
+        public let retryable: Bool?        // Whether error is retryable
+        public let retryAfterMs: Int?      // Milliseconds to wait before retry
 
         public init(
-            message: String,
+            type: String? = nil,
+            title: String? = nil,
+            status: Int? = nil,
+            detail: String,
+            instance: String? = nil,
+            message: String? = nil,
             code: String? = nil,
             details: AnyCodable? = nil,
             statusCode: Int? = nil,
-            retryable: Bool? = nil
+            retryable: Bool? = nil,
+            retryAfterMs: Int? = nil
         ) {
+            self.type = type
+            self.title = title
+            self.status = status
+            self.detail = detail
+            self.instance = instance
             self.message = message
             self.code = code
             self.details = details
             self.statusCode = statusCode
             self.retryable = retryable
+            self.retryAfterMs = retryAfterMs
+        }
+
+        // Custom decoding to handle both RFC 9457 and legacy formats
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+
+            // RFC 9457 fields
+            self.type = try container.decodeIfPresent(String.self, forKey: .type)
+            self.title = try container.decodeIfPresent(String.self, forKey: .title)
+            self.status = try container.decodeIfPresent(Int.self, forKey: .status)
+            self.instance = try container.decodeIfPresent(String.self, forKey: .instance)
+
+            // detail field (RFC 9457) or fallback to message (legacy)
+            if let detailValue = try container.decodeIfPresent(String.self, forKey: .detail) {
+                self.detail = detailValue
+                self.message = nil  // RFC 9457 format
+            } else if let messageValue = try container.decodeIfPresent(String.self, forKey: .message) {
+                self.detail = messageValue  // Legacy format - copy message to detail
+                self.message = messageValue
+            } else {
+                self.detail = "Unknown error"
+                self.message = nil
+            }
+
+            // Common fields
+            self.code = try container.decodeIfPresent(String.self, forKey: .code)
+            self.details = try container.decodeIfPresent(AnyCodable.self, forKey: .details)
+            self.statusCode = try container.decodeIfPresent(Int.self, forKey: .statusCode)
+            self.retryable = try container.decodeIfPresent(Bool.self, forKey: .retryable)
+            self.retryAfterMs = try container.decodeIfPresent(Int.self, forKey: .retryAfterMs)
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case type, title, status, detail, instance
+            case message, code, details, statusCode, retryable, retryAfterMs
         }
     }
 
@@ -88,7 +144,7 @@ extension ResponseEnvelope.ApiErrorInfo {
     /// Maps technical error codes from backend to actionable user guidance
     public var userMessage: String {
         guard let code = code else {
-            return message // Fallback to backend message if no code
+            return detail // Fallback to backend detail if no code
         }
 
         switch code {
@@ -140,8 +196,8 @@ extension ResponseEnvelope.ApiErrorInfo {
 
         // Default fallback
         default:
-            // For unknown codes, use backend message
-            return message
+            // For unknown codes, use backend detail
+            return detail
         }
     }
 
@@ -313,7 +369,7 @@ extension ApiResponse: Codable {
             } else {
                 // success: true, but data is nil - invalid response
                 let genericError = ApiErrorInfo(
-                    message: "Invalid success response: data is missing.",
+                    detail: "Invalid success response: data is missing.",
                     code: "INVALID_RESPONSE",
                     details: nil,
                     statusCode: nil,
@@ -325,17 +381,23 @@ extension ApiResponse: Codable {
             if let error = envelope.error {
                 // Convert ResponseEnvelope<T>.ApiErrorInfo to ApiErrorInfo (typealias)
                 let errorInfo = ApiErrorInfo(
+                    type: error.type,
+                    title: error.title,
+                    status: error.status,
+                    detail: error.detail,
+                    instance: error.instance,
                     message: error.message,
                     code: error.code,
                     details: error.details,
                     statusCode: error.statusCode,
-                    retryable: error.retryable
+                    retryable: error.retryable,
+                    retryAfterMs: error.retryAfterMs
                 )
                 self = .failure(errorInfo, envelope.metadata)
             } else {
                 // success: false, but error is nil - invalid response
                 let genericError = ApiErrorInfo(
-                    message: "Invalid failure response: error details are missing.",
+                    detail: "Invalid failure response: error details are missing.",
                     code: "INVALID_RESPONSE",
                     details: nil,
                     statusCode: nil,
@@ -359,11 +421,17 @@ extension ApiResponse: Codable {
         case .failure(let error, let metadata):
             // Convert ApiErrorInfo (typealias) to ResponseEnvelope<T>.ApiErrorInfo
             let errorInfo = ResponseEnvelope<T>.ApiErrorInfo(
+                type: error.type,
+                title: error.title,
+                status: error.status,
+                detail: error.detail,
+                instance: error.instance,
                 message: error.message,
                 code: error.code,
                 details: error.details,
                 statusCode: error.statusCode,
-                retryable: error.retryable
+                retryable: error.retryable,
+                retryAfterMs: error.retryAfterMs
             )
             let envelope = ResponseEnvelope<T>(
                 success: false,
