@@ -16,12 +16,12 @@ AGENT_TRANSCRIPT_PATH="${AGENT_TRANSCRIPT_PATH:-}"
 WAS_BACKGROUND="${WAS_BACKGROUND:-false}"
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
-# Log subagent completion
+# Log subagent completion (silently to avoid hook warnings)
+# Output goes to stderr to prevent "non-blocking status code" warnings
 if [ "$WAS_BACKGROUND" = "true" ]; then
-    echo "✅ Background agent completed: $AGENT_ID ($AGENT_TYPE) at $TIMESTAMP"
-    echo "   Results available via TaskOutput tool"
+    : # Silent - background agents don't need completion message
 else
-    echo "✅ Subagent completed: $AGENT_ID ($AGENT_TYPE) at $TIMESTAMP"
+    : # Silent - completion is implicit
 fi
 
 # Track completion (optional - for analytics)
