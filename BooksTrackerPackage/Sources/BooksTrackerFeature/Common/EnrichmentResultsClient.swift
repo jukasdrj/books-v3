@@ -56,9 +56,12 @@ public enum EnrichmentResultsClient {
     private static func decodeEnrichmentResults(from data: Data) throws -> [EnrichedBookPayload] {
         let decoder = JSONDecoder()
 
-        // Format 1: Standard ResponseEnvelope<{enrichedBooks: [...]}>
+        // Format 1: Standard ResponseEnvelope<{results: [...]}>
+        // API returns "results" field, not "enrichedBooks"
         struct EnrichmentJobResults: Codable {
-            let enrichedBooks: [EnrichedBookPayload]?
+            let jobId: String
+            let status: String
+            let results: [EnrichedBookPayload]  // Field name matches API response
         }
 
         // Format 2: V3 Direct response without metadata {success: true, data: {enrichedBooks: [...]}}
@@ -87,7 +90,9 @@ public enum EnrichmentResultsClient {
             print("✅ [HTTP] Successfully decoded ResponseEnvelope (Format 1)")
             #endif
 
-            guard let books = results.enrichedBooks else {
+            // results is now non-optional [EnrichedBookPayload], always has value
+            let books = results.results
+            guard !books.isEmpty else {
                 throw EnrichmentError.apiError("No enriched books in response")
             }
 
