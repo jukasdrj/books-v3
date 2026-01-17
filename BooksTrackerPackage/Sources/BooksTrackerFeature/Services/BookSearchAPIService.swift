@@ -417,8 +417,8 @@ public class BookSearchAPIService {
     private struct V2SearchResultItem: Codable {
         let isbn: String?
         let title: String
-        let author: String?  // V2 uses singular "author" field
-        let authors: [String]?  // Fallback for array format
+        let author: String?  // Legacy: singular author string (rarely used)
+        let authors: [V3Author]?  // V3 API returns enriched author objects, not strings
         let coverUrl: String?
         let publisher: String?
         let publishedDate: String?
@@ -428,11 +428,13 @@ public class BookSearchAPIService {
         let workKey: String?
         let relevanceScore: Double?
 
-        /// Get authors as array (handles both singular and array formats)
+        /// Get authors as array (handles both enriched objects and legacy string format)
         var authorList: [String] {
+            // Try enriched author objects first (current V3 API format)
             if let authors = authors, !authors.isEmpty {
-                return authors
+                return authors.map { $0.name }
             }
+            // Fallback to legacy singular author string
             if let author = author, !author.isEmpty {
                 return [author]
             }
