@@ -33,22 +33,31 @@
 
 ## Essential Commands
 
-**🚀 iOS Development (xcodebuild CLI):**
+**🚀 iOS Development (xcodebuild + xcsift CLI):**
 
 ```bash
 # Safe Testing (Recommended - Prevents System Crashes)
-/quick-validate  # Build validation without Simulator
-/sim-safe        # Monitored Simulator with resource limits
+/quick-validate  # Build validation without Simulator (uses xcsift)
+/sim-safe        # Monitored Simulator with resource limits (uses xcsift)
 /kill-xcode      # Emergency cleanup
-/device-deploy   # Deploy to real device (most efficient)
+/device-deploy   # Deploy to real device (most efficient, uses xcsift)
 
 # Standard Testing (Higher Resource Usage)
-/build           # Build validation (resource-intensive)
-/test            # Run Swift Testing suite
+/build           # Build validation (resource-intensive, uses xcsift)
+/test            # Run Swift Testing suite (uses xcsift for coverage)
 /sim             # Launch Simulator (⚠️ can crash if <16GB RAM)
 ```
 
 **⚠️ CRITICAL: Always prefer `/quick-validate` over `/build` during development**
+
+**xcsift Integration:**
+All xcodebuild commands automatically pipe through `xcsift` for:
+- Structured error/warning parsing (JSON output)
+- File:line navigation format for direct jumps
+- Automatic deduplication of identical issues
+- Build timing metrics and slowest target identification
+- Code coverage automation (converts .xcresult → JSON)
+- Slow test detection (configurable threshold)
 
 ---
 

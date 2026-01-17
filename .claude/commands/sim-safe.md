@@ -20,7 +20,8 @@ Launch iOS Simulator with resource limits to prevent system crashes.
    - Kill any orphaned simulators or build processes
 
 2. **Resource-Limited Build**
-   - Build with limited parallel tasks (max 4)
+   - Build with limited parallel tasks (max 4) piped through xcsift
+   - Parse errors/warnings with structured output
    - Stream build output to file (prevent console overflow)
    - Timeout after 5 minutes
 

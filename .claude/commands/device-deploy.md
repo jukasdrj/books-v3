@@ -15,8 +15,9 @@ Build, install, and validate BooksTrack on connected iOS device using xcodebuild
 
 2. **Build for Device**
    - Clean build folder
-   - Build Release configuration for selected device
-   - Report build time and any errors
+   - Build Release configuration for selected device using xcodebuild piped through xcsift
+   - Parse build errors/warnings with structured output
+   - Report build time, slowest targets, and any errors
 
 3. **Install on Device**
    - Install .app bundle on device

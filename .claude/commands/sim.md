@@ -14,7 +14,8 @@ Boot iOS Simulator, install BooksTrack, and stream runtime logs using xcodebuild
    - Wait for simulator ready state
 
 2. **Build & Install**
-   - Build Debug configuration for simulator
+   - Build Debug configuration for simulator using xcodebuild piped through xcsift
+   - Parse build errors/warnings with structured output
    - Install app on booted simulator
    - Launch BooksTrack automatically
 

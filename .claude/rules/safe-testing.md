@@ -35,6 +35,38 @@ AskUserQuestion(
 )
 ```
 
+## xcsift Integration
+
+All xcodebuild commands should pipe through `xcsift` for enhanced output:
+
+**Standard Pattern:**
+```bash
+xcodebuild [options] 2>&1 | xcsift --warnings
+```
+
+**Key xcsift Flags:**
+- `--warnings` or `-w`: Show detailed warnings list
+- `--Werror` or `-W`: Treat warnings as errors (enforces zero warnings)
+- `--quiet` or `-q`: Suppress output when build succeeds with no issues
+- `--coverage` or `-c`: Include code coverage data (auto-converts .xcresult)
+- `--build-info`: Show per-target build phases and timing
+- `--slow-threshold N`: Flag tests exceeding N seconds (e.g., 1.0)
+- `-f toon`: Use TOON format for 30-60% fewer tokens (LLM-friendly)
+
+**Benefits:**
+- Structured JSON output for easy parsing
+- File:line navigation format (clickable in editors)
+- Automatic deduplication of identical errors/warnings
+- Build timing metrics and slowest target identification
+- Code coverage automation without manual xcrun commands
+
+**Example with Full Options:**
+```bash
+xcodebuild test \
+  -enableCodeCoverage YES \
+  2>&1 | xcsift --warnings --coverage --slow-threshold 1.0
+```
+
 ## Emergency Recovery
 
 If system becomes unresponsive:

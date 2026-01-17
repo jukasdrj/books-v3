@@ -101,7 +101,7 @@ public struct ScanJobResponse: Codable, Sendable {
                 throw DecodingError.dataCorrupted(
                     DecodingError.Context(
                         codingPath: [],
-                        debugDescription: "API error: \(error.message) (code: \(error.code ?? "unknown"))"
+                        debugDescription: "API error: \(error.message ?? "Unknown error") (code: \(error.code ?? "unknown"))"
                     )
                 )
             }

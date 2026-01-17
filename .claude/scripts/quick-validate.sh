@@ -17,6 +17,8 @@ pkill -9 "xcodebuild" 2>/dev/null || true
 echo "Building for iOS Simulator..."
 
 # Use Perl as timeout (macOS compatible)
+# Pipe through xcsift for structured error/warning parsing
+# Note: xcsift --Werror will exit with error code if warnings exist
 perl -e 'alarm shift @ARGV; exec @ARGV' "$TIMEOUT" xcodebuild \
     -workspace BooksTracker.xcworkspace \
     -scheme BooksTracker \
@@ -25,13 +27,23 @@ perl -e 'alarm shift @ARGV; exec @ARGV' "$TIMEOUT" xcodebuild \
     -jobs "$PARALLEL_JOBS" \
     clean build \
     COMPILER_INDEX_STORE_ENABLE=NO \
-    2>&1 | tee build-quick.log
+    2>&1 | tee build-quick.log | xcsift --warnings --Werror
 
-if [ "${PIPESTATUS[0]}" -eq 0 ]; then
-    echo "✅ Build succeeded"
-    exit 0
-else
-    echo "❌ Build failed"
-    echo "Check build-quick.log for details"
+# Capture all exit codes immediately before PIPESTATUS is cleared
+PIPE_STATUS=("${PIPESTATUS[@]}")
+BUILD_EXIT_CODE="${PIPE_STATUS[0]}"
+XCSIFT_EXIT_CODE="${PIPE_STATUS[2]:-0}"  # Default to 0 if not set
+
+echo ""
+if [ "$BUILD_EXIT_CODE" -ne 0 ]; then
+    echo "❌ Build failed - compilation errors detected"
+    echo "Check build-quick.log for details or review xcsift output above"
     exit 1
+elif [ "$XCSIFT_EXIT_CODE" -ne 0 ]; then
+    echo "⚠️  Build succeeded but warnings detected (zero warnings policy violated)"
+    echo "Review xcsift output above for warning details"
+    exit 1
+else
+    echo "✅ Build succeeded with zero warnings"
+    exit 0
 fi
