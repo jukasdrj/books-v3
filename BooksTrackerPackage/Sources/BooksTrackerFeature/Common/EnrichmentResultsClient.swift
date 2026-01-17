@@ -64,6 +64,14 @@ public enum EnrichmentResultsClient {
             let results: [EnrichedBookPayload]  // Field name matches API response
         }
 
+        // Format 1b: V3 Response with [V3EnrichedBook]
+        // API returns [V3EnrichedBook] directly in "results" field
+        struct EnrichmentJobResultsV3: Codable {
+            let jobId: String
+            let status: String
+            let results: [V3EnrichedBook]
+        }
+
         // Format 2: V3 Direct response without metadata {success: true, data: {enrichedBooks: [...]}}
         struct V3EnrichmentResponse: Codable {
             let success: Bool
@@ -83,11 +91,11 @@ public enum EnrichmentResultsClient {
             }
         }
 
-        // Try Format 1: Full ResponseEnvelope
+        // Try Format 1: Full ResponseEnvelope (EnrichedBookPayload)
         do {
             let results = try data.decodeEnvelope(EnrichmentJobResults.self)
             #if DEBUG
-            print("✅ [HTTP] Successfully decoded ResponseEnvelope (Format 1)")
+            print("✅ [HTTP] Successfully decoded ResponseEnvelope (Format 1 - EnrichedBookPayload)")
             #endif
 
             // results is now non-optional [EnrichedBookPayload], always has value
@@ -101,9 +109,67 @@ public enum EnrichmentResultsClient {
 
         } catch let envelopeError as ResponseEnvelopeError {
             #if DEBUG
-            print("⚠️ [HTTP] Format 1 (ResponseEnvelope) failed, trying Format 2...")
+            print("⚠️ [HTTP] Format 1 (ResponseEnvelope - EnrichedBookPayload) failed, trying Format 1b (V3EnrichedBook)...")
             logResponseEnvelopeError(envelopeError)
             #endif
+
+            // Try Format 1b: Full ResponseEnvelope (V3EnrichedBook)
+            do {
+                let v3Results = try data.decodeEnvelope(EnrichmentJobResultsV3.self)
+                #if DEBUG
+                print("✅ [HTTP] Successfully decoded ResponseEnvelope (Format 1b - V3EnrichedBook)")
+                #endif
+
+                let v3Books = v3Results.results
+                guard !v3Books.isEmpty else {
+                    throw EnrichmentError.apiError("No enriched books in response")
+                }
+
+                // Map V3EnrichedBook -> EnrichedBookPayload
+                let books = v3Books.map { v3Book -> EnrichedBookPayload in
+                    // Convert V3EnrichedBook to V3Book for mapping
+                    let baseBook = V3Book(
+                        isbn: v3Book.isbn,
+                        isbn10: v3Book.isbn10,
+                        title: v3Book.title,
+                        subtitle: v3Book.subtitle,
+                        authors: v3Book.authors,
+                        publisher: v3Book.publisher,
+                        publishedDate: v3Book.publishedDate,
+                        description: v3Book.description,
+                        pageCount: v3Book.pageCount,
+                        categories: v3Book.categories,
+                        language: v3Book.language,
+                        coverUrl: v3Book.coverUrl,
+                        thumbnailUrl: v3Book.thumbnailUrl,
+                        workKey: v3Book.workKey,
+                        editionKey: v3Book.editionKey,
+                        provider: v3Book.provider,
+                        quality: v3Book.quality
+                    )
+                    
+                    let (work, edition, authors) = V3ToV2Mapper.mapBook(baseBook)
+                    let enrichedData = EnrichedDataPayload(work: work, edition: edition, authors: authors)
+                    
+                    return EnrichedBookPayload(
+                        title: v3Book.title,
+                        author: v3Book.authorNames.first,
+                        isbn: v3Book.isbn,
+                        success: true,
+                        error: nil,
+                        enriched: enrichedData
+                    )
+                }
+
+                logDecodedBooks(books)
+                return books
+                
+            } catch {
+                #if DEBUG
+                print("⚠️ [HTTP] Format 1b (V3EnrichedBook) failed: \(error)")
+                print("⚠️ [HTTP] Trying Format 2...")
+                #endif
+            }
 
             // Try Format 2: V3 Direct response (no metadata)
             do {
