@@ -255,6 +255,8 @@ struct WorkDetailView: View {
                             .fill(Color.gray.opacity(0.1))
                     }
                 }
+                .accessibilityLabel("Layout options")
+                .accessibilityHint("Double tap to choose between Immersive and Classic layouts")
         }
     }
 
@@ -678,6 +680,7 @@ struct EditionPickerView: View {
                     edition.id == selectedEdition.id ?
                     Color.blue.opacity(0.1) : Color.clear
                 )
+                .accessibilityAddTraits(edition.id == selectedEdition.id ? .isSelected : [])
             }
             .navigationTitle("Choose Edition")
             .navigationBarTitleDisplayMode(.inline)
