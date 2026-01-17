@@ -143,7 +143,9 @@ public final class RecommendationsClient: Sendable {
 
             // 6. Decode V3 ResponseEnvelope
             let decoder = JSONDecoder()
-            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            // NOTE: API returns camelCase (coverUrl), not snake_case (cover_url)
+            // Using .convertFromSnakeCase causes coverUrl to decode as nil
+            // decoder.keyDecodingStrategy = .convertFromSnakeCase
 
             let envelope = try decoder.decode(ResponseEnvelope<RecommendationResult>.self, from: data)
 

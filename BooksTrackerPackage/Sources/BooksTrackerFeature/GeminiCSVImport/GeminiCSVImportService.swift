@@ -111,7 +111,17 @@ public struct CSVParsedBook: Codable, Sendable, Equatable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         title = try container.decode(String.self, forKey: .title)
-        authors = try container.decodeIfPresent([String].self, forKey: .authors) ?? []
+
+        // Handle both "author" (singular string) and "authors" (array) from backend
+        // Backend CSV processor sometimes sends "author: string" but iOS expects "authors: [String]"
+        if let authorsArray = try? container.decode([String].self, forKey: .authors) {
+            authors = authorsArray
+        } else if let authorString = try? container.decode(String.self, forKey: .author) {
+            authors = [authorString]
+        } else {
+            authors = []  // Default to empty if neither present
+        }
+
         isbn = try container.decodeIfPresent(String.self, forKey: .isbn)
         coverUrl = try container.decodeIfPresent(String.self, forKey: .coverUrl)
         publisher = try container.decodeIfPresent(String.self, forKey: .publisher)
@@ -121,8 +131,21 @@ public struct CSVParsedBook: Codable, Sendable, Equatable {
         enrichmentError = try container.decodeIfPresent(String.self, forKey: .enrichmentError)
     }
 
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(title, forKey: .title)
+        try container.encode(authors, forKey: .authors)  // Always encode as "authors" array
+        try container.encodeIfPresent(isbn, forKey: .isbn)
+        try container.encodeIfPresent(coverUrl, forKey: .coverUrl)
+        try container.encodeIfPresent(publisher, forKey: .publisher)
+        try container.encodeIfPresent(year, forKey: .year)
+        try container.encodeIfPresent(pageCount, forKey: .pageCount)
+        try container.encodeIfPresent(language, forKey: .language)
+        try container.encodeIfPresent(enrichmentError, forKey: .enrichmentError)
+    }
+
     private enum CodingKeys: String, CodingKey {
-        case title, authors, isbn, coverUrl, publisher, year, pageCount, language, enrichmentError
+        case title, authors, author, isbn, coverUrl, publisher, year, pageCount, language, enrichmentError
     }
 }
 

@@ -87,7 +87,8 @@ public struct RecommendationCard: View {
     private var coverSection: some View {
         ZStack(alignment: .topTrailing) {
             // Book Cover
-            if let coverUrl = recommendation.coverUrl, let url = URL(string: coverUrl) {
+            if let coverUrl = recommendation.coverUrl,
+               let url = URL(string: coverUrl.trimmingCharacters(in: .whitespacesAndNewlines)) {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .empty:

@@ -64,7 +64,9 @@ struct WeeklyRecommendation: Codable, Identifiable, Hashable {
     var id: String { isbn }
 
     var coverURL: URL? {
-        URL(string: coverURLString)
+        // Trim whitespace/newlines to ensure valid URL creation
+        // API responses may include leading/trailing spaces
+        URL(string: coverURLString.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     /// Create from V3 API DTO
