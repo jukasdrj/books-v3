@@ -276,6 +276,7 @@ let reading = all.filter { $0.readingStatus == .reading }
 ## Backend API Contract (v2.4)
 
 **📍 AUTHORITATIVE SOURCE:** `~/dev_repos/bendv3/docs/` - All API documentation lives in the bendv3 repository.
+**📄 LOCAL SPEC:** `docs/api/openapi-v3.json` - Synced copy of the OpenAPI v3 specification.
 
 **⚠️ NOTE:** This section is a **convenience reference only** for frontend developers. For authoritative, up-to-date API documentation, always consult:
 - `~/dev_repos/bendv3/docs/API.md` - REST API reference
@@ -693,6 +694,7 @@ xcodebuild clean -workspace BooksTracker.xcworkspace -scheme BooksTracker
 
 📁 docs/
   ├── README.md            ← **START HERE** - Documentation navigation
+  ├── api/                 ← API Specification (OpenAPI v3)
   ├── product/             ← PRDs (problem statements, user stories)
   ├── workflows/           ← Mermaid diagrams (visual flows)
   ├── features/            ← Technical deep-dives
@@ -799,7 +801,6 @@ CachedAsyncImage(url: work.primaryEdition?.coverURL)  // Misses Work-level cover
 - Auto-highlighting and tap-to-scan gestures
 - Built-in guidance ("Move Closer", "Slow Down")
 - **Symbologies:** EAN-13, EAN-8, UPC-E (ISBN-specific)
-- **Docs:** `docs/plans/2025-10-30-visionkit-barcode-scanner-design.md`
 
 ---
 
@@ -835,8 +836,6 @@ Text("Publisher").foregroundColor(.tertiary)
 - Task deferral: Background work delayed by 2s (~400ms off critical path)
 - Micro-optimizations: Early exits, caching, predicate filtering (~180ms saved)
 
-**Results:** `docs/performance/2025-11-04-app-launch-optimization-results.md`
-
 ---
 
 ## Build Status
@@ -848,7 +847,7 @@ Text("Publisher").foregroundColor(.tertiary)
 
 ---
 
-**Last Updated:** November 26, 2025 (v3.7.5, Build 189)
+**Last Updated:** January 6, 2026 (v3.7.5, Build 189)
 **Maintained by:** oooe (jukasdrj)
 **License:** Proprietary
 **App Store:** Z67H8Y8DW.com.oooefam.booksV3

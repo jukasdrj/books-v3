@@ -17,6 +17,10 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 
 ## 📂 Directory Structure
 
+### `docs/api/`
+**API Specifications.** OpenAPI/Swagger specs.
+- **[openapi-v3.json](./api/openapi-v3.json)** - Current API specification.
+
 ### `docs/product/`
 **Product Requirements (PRDs).** The "Why" and "What" of features.
 - `Library-Management-PRD.md` - Core library functionality.
@@ -51,6 +55,7 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 ## 🔌 Integration & APIs
 
 - **[Cross-Repository Architecture](./CROSS_REPO.md)** - Multi-repo system overview
+- **[API Documentation](./api/)** - Local OpenAPI specification.
 - **[bendv3 API Documentation](~/dev_repos/bendv3/docs/)** - REST API, WebSocket, contracts (Authoritative Source)
 - **[alex Metadata Service](~/dev_repos/alex/)** - Book metadata and cover images
 
@@ -58,7 +63,7 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 
 ## 🔍 How to find what you need
 
-- **"I need to know how the API works."** -> `~/dev_repos/bendv3/docs/`
+- **"I need to know how the API works."** -> Check `docs/api/` for the spec or `~/dev_repos/bendv3/docs/` for full details.
 - **"I'm building a new feature."** -> Check `docs/product/` for requirements, then `docs/architecture/` for constraints.
 - **"I'm fixing a bug in the scanner."** -> Read `docs/features/BOOKSHELF_SCANNER.md`.
 - **"I'm confused about the project structure."** -> Read `AGENTS.md` in the root.
