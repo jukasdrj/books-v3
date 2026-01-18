@@ -273,14 +273,14 @@ let reading = all.filter { $0.readingStatus == .reading }
 
 ---
 
-## Backend API Contract (v2.4)
+## Backend API Contract (v3.2)
 
 **📍 AUTHORITATIVE SOURCE:** `~/dev_repos/bendv3/docs/` - All API documentation lives in the bendv3 repository.
 
 **⚠️ NOTE:** This section is a **convenience reference only** for frontend developers. For authoritative, up-to-date API documentation, always consult:
 - `~/dev_repos/bendv3/docs/API.md` - REST API reference
-- `~/dev_repos/bendv3/docs/WEBSOCKET.md` - WebSocket protocol
-- `~/dev_repos/bendv3/docs/SYSTEM_ARCHITECTURE.md` - Multi-repo architecture
+- `~/dev_repos/bendv3/docs/SSE.md` - Server-Sent Events (V3)
+- `~/dev_repos/bendv3/docs/WEBSOCKET.md` - WebSocket protocol (Legacy)
 
 **🚨 CRITICAL:** All backend communication MUST adhere to v2.4 canonical contract.
 
@@ -351,10 +351,11 @@ struct APIError: Codable {
 GET /v1/search/title?q={query}              # Title search (fuzzy, up to 20 results)
 GET /v1/search/isbn?isbn={isbn}             # ISBN lookup (ISBN-10 or ISBN-13)
 GET /v1/search/advanced?title=&author=      # Multi-field search
-GET /v1/scan/results/{jobId}                # Fetch AI scan results (24hr TTL)
-GET /v1/csv/results/{jobId}                 # Fetch CSV import results (24hr TTL)
-POST /api/scan-bookshelf/batch              # Upload 1-5 photos for AI processing
-GET /ws/progress?jobId={uuid}               # WebSocket progress (token in header)
+GET /v3/jobs/scans/{jobId}/results          # Fetch AI scan results (24hr TTL)
+GET /v3/jobs/imports/{jobId}/results        # Fetch CSV import results (24hr TTL)
+POST /v3/jobs/scans                         # Upload photos for AI processing
+GET /v3/jobs/scans/{jobId}/stream           # SSE progress stream
+GET /ws/progress?jobId={uuid}               # WebSocket progress (Legacy)
 ```
 
 **Rate Limits:**
@@ -405,7 +406,23 @@ let url = work.searchLinks!.googleBooks  // CRASH if nil!
 
 **SwiftData Mapping:** When mapping DTOs to SwiftData models, use `@Attribute(.preserveValueOnDeletion)` for optional fields that should persist as `nil` rather than reverting to defaults on deletion.
 
-### WebSocket v2.4 Contract
+### Server-Sent Events (SSE) (v3.2) - PRIMARY
+
+**Endpoint:** `GET /v3/jobs/{type}/{jobId}/stream`
+
+**Headers:**
+- `Accept: text/event-stream`
+- `Authorization: Bearer {token}` (optional, often handled via URL param or cookie)
+
+**Events:**
+- `v3ScanInitialized` - Scan started
+- `v3ScanProgress` - Progress update (0.0 - 1.0)
+- `v3ScanCompleted` - Job finished (contains inline results)
+- `v3ScanFailed` - Error details
+
+---
+
+### WebSocket Contract (v2.4) - LEGACY / FALLBACK
 
 **🚨 CRITICAL: HTTP/1.1 ONLY (Issue #227)**
 
@@ -771,7 +788,8 @@ CachedAsyncImage(url: work.primaryEdition?.coverURL)  // Misses Work-level cover
 
 ### Bookshelf AI Scanner
 - **AI Model:** Gemini 2.0 Flash (2M token context window)
-- **Progress:** WebSocket real-time (8ms latency)
+- **Progress:** Server-Sent Events (SSE) (API v3.2)
+- **Fallback:** WebSocket (Legacy v2.4)
 - **Confidence Threshold:** 60% for review queue
 - **Image Preprocessing:** iOS resizes to 3072px @ 90% quality (400-600KB)
 - **Docs:** `docs/features/BOOKSHELF_SCANNER.md`
@@ -779,7 +797,7 @@ CachedAsyncImage(url: work.primaryEdition?.coverURL)  // Misses Work-level cover
 ### Batch Bookshelf Scanning
 - Capture up to 5 photos in one session
 - Parallel upload → sequential Gemini processing
-- Real-time per-photo progress via WebSocket
+- Real-time per-photo progress via SSE
 - Automatic deduplication by ISBN
 - Cancel mid-batch with partial results
 - **Docs:** `docs/features/BATCH_BOOKSHELF_SCANNING.md`
@@ -788,7 +806,7 @@ CachedAsyncImage(url: work.primaryEdition?.coverURL)  // Misses Work-level cover
 - AI-powered parsing (zero configuration)
 - No column mapping needed (auto-detects title, author, ISBN)
 - Unified Enrichment Pipeline (save → background enrichment)
-- Real-time WebSocket progress
+- Real-time SSE progress
 - 10MB file size limit, RFC 4180 compliant
 - **Status:** ✅ Production ready (v3.1.0+)
 - **Docs:** `docs/features/GEMINI_CSV_IMPORT.md`

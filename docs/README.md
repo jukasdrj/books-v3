@@ -37,6 +37,11 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 - `ratings-system.md` - Logic behind user ratings.
 - `reading-sessions.md` - Timer & session state management.
 
+### `docs/api/`
+**API Specifications.** Synced copies of API contracts.
+- `openapi-v3.json` - Synced V3 OpenAPI specification.
+- `ENRICHMENT_API_CONTRACT.md` - Enrichment service details.
+
 ### `docs/workflows/`
 **Visual Flows.** Mermaid diagrams describing complex user or data flows.
 
