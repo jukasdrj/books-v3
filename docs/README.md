@@ -1,6 +1,6 @@
 # BooksTrack Documentation Hub
 
-**Version 3.7.5 (Build 189+)** | **Last Updated: January 6, 2026**
+**Version 3.7.5 (Build 189+)** | **Last Updated: January 7, 2026**
 
 Welcome to the central documentation for BooksTrack V3. This directory contains all product, technical, and process documentation for the project.
 
@@ -32,19 +32,26 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 
 ### `docs/architecture/`
 **System Design.** High-level technical decisions and patterns.
+- `DTO-Mapper-Integration.md` - DTO to SwiftData conversion logic.
 - `VISUAL_DESIGN_SUMMARY.md` - iOS 26 Liquid Glass design system.
 - `cascade-metadata.md` - How we merge data from multiple providers.
 - `ratings-system.md` - Logic behind user ratings.
 - `reading-sessions.md` - Timer & session state management.
 
+### `docs/api/`
+**API Specifications.** Local copies of contracts and architecture links.
+- `openapi-v3.json` - Local copy of the backend spec for client generation.
+- `README.md` - Links to authoritative backend docs.
+
 ### `docs/workflows/`
 **Visual Flows.** Mermaid diagrams describing complex user or data flows.
+*Note: Workflow diagrams are currently being reconstructed.*
 
 ### `docs/archive/`
 **Archive.** Deprecated docs, shipped PRDs, and historical references.
 - `CSV-Import-PRD.md` (Shipped)
 - `Bookshelf-AI-Scanner-PRD.md` (Shipped)
-- `openapi-v3.json` (Legacy)
+- `openapi-v3.json` (Legacy V2 spec)
 
 ---
 

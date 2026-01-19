@@ -6,16 +6,22 @@ This directory contains Mermaid diagrams describing key workflows in the BooksTr
 
 ---
 
-## Available Workflows
+## Workflows Status
+
+> **Note:** Workflow diagrams are currently being reconstructed. The links below indicate planned documentation.
+
+---
+
+## Planned Workflows
 
 ### User Workflows
-- **[Search and Enrichment](./search-enrichment-flow.md)** - Book search, multi-provider fallback, metadata enrichment
-- **[CSV Import](./csv-import-flow.md)** - CSV upload, parsing, validation, book matching
-- **[Bookshelf Scanning](./bookshelf-scan-flow.md)** - Photo upload, AI processing, review queue
+- **Search and Enrichment** - Book search, multi-provider fallback, metadata enrichment
+- **CSV Import** - CSV upload, parsing, validation, book matching
+- **Bookshelf Scanning** - Photo upload, AI processing, review queue
 
 ### Technical Workflows
-- **[WebSocket Progress](./websocket-progress-flow.md)** - Real-time progress tracking, reconnection handling
-- **[Authentication](./auth-flow.md)** - User login, token refresh, session management
+- **WebSocket Progress** - Real-time progress tracking, reconnection handling
+- **Authentication** - User login, token refresh, session management
 
 ---
 
@@ -87,27 +93,6 @@ When creating a new workflow diagram, use this template:
 
 ---
 
-## Planned Workflows
-
-### High Priority
-- [ ] Search and enrichment flow
-- [ ] CSV import workflow
-- [ ] Bookshelf scanning flow
-- [ ] WebSocket progress tracking
-
-### Medium Priority
-- [ ] Authentication flow
-- [ ] Reading session lifecycle
-- [ ] CloudKit sync strategy
-- [ ] Offline data handling
-
-### Low Priority
-- [ ] Statistics calculation
-- [ ] Collection management
-- [ ] Export functionality
-
----
-
 ## Tools
 
 **Mermaid Live Editor:** https://mermaid.live/
@@ -132,5 +117,5 @@ GitHub automatically renders Mermaid diagrams in markdown files.
 
 ---
 
-**Last Updated:** January 6, 2026
+**Last Updated:** January 7, 2026
 **Maintained by:** BooksTrack development team

@@ -12,6 +12,10 @@
 - Zero warnings enforcement with SwiftLint architectural rules
 
 ### Recently Completed
+- ✅ **Documentation Architecture Refactor** - Standardized docs structure.
+  - Created `docs/api/` for local spec management.
+  - Refactored `DTOMapper-PRD` into architectural documentation.
+  - Cleaned up `docs/workflows/` references.
 - ✅ **Flutter Feature Parity Roadmap** - Comprehensive documentation complete
   - Added Flutter v1.0 Launch Criteria (Q3 2026 target)
   - Updated 2 PRDs with Flutter implementation sections (Diversity Insights, Reading Statistics)
@@ -108,6 +112,7 @@
 
 ## 📝 Update History
 
+- **2026-01-07:** Documentation Architecture Refactor (API docs setup, Workflow cleanup).
 - **2026-01-07:** Flutter Feature Parity Roadmap completed (v1.0 launch criteria, PRD updates)
 - **2026-01-06:** Initial creation, documentation reorganization in progress
 - **2026-01-05:** Major documentation cleanup and archival
