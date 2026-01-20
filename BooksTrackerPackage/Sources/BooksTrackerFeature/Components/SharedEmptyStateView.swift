@@ -47,6 +47,8 @@ public struct SharedEmptyStateView: View {
                     }
                 }
                 .padding(.top, 60)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(title), \(description)")
 
                 // Actions section
                 if !actions.isEmpty {
@@ -91,8 +93,11 @@ public struct SharedEmptyStateView: View {
                                                 .strokeBorder((action.color ?? themeStore.primaryColor).opacity(0.2), lineWidth: 1)
                                         }
                                 }
+                                .contentShape(Rectangle()) // Ensure tap target covers the whole area
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(ScaleButtonStyle(enableHaptics: true))
+                            .accessibilityLabel(action.title)
+                            .accessibilityHint(action.subtitle ?? "")
                         }
                     }
                     .padding(.horizontal, 20)
@@ -102,9 +107,6 @@ public struct SharedEmptyStateView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(title)
-        .accessibilityHint(description)
     }
 }
 
