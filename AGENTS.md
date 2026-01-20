@@ -1,8 +1,7 @@
 # BooksTrack - AI Agent Guide
 
-**Version:** 3.7.5 (Build 189+) | **iOS:** 26.0+ | **Swift:** 6.2+ | **Bundle ID:** `Z67H8Y8DW.com.oooefam.booksV3`
+**Version:** 3.7.6 | **iOS:** 26.0+ | **Swift:** 6.2+ | **Bundle ID:** `Z67H8Y8DW.com.oooefam.booksV3`
 **Heuristic:** Documentation is secondary. Always check `Package.swift` and actual View code for current implementation details.
-
 
 Native iOS book tracking app with cultural diversity insights. SwiftUI, SwiftData, CloudKit sync, Cloudflare Workers backend.
 
@@ -14,7 +13,7 @@ Native iOS book tracking app with cultural diversity insights. SwiftUI, SwiftDat
 
 ## Legacy Constraints & Migration
 - **Status**: Migration to V3 Architecture (SwiftData + CloudKit) is active.
-- **Reference**: See `V3_MIGRATION_PLAN.md` for specific module deprecations.
+- **Reference**: See `docs/architecture/V3_MIGRATION_PLAN.md` (if available) or assume V3 is the target.
 - **Cleanup**: Code relating to `CoreData` (legacy V2 persistence) should be treated as deprecated/read-only unless migrating.
 
 ## 🎯 Multi-Agent Workflow (Claude Code)
@@ -40,7 +39,7 @@ Native iOS book tracking app with cultural diversity insights. SwiftUI, SwiftDat
 
 ### Tech Stack
 - **iOS App:** SwiftUI, SwiftData, CloudKit, Swift 6.2 concurrency
-- **Testing:** Swift Testing (@Test, #expect, 161+ tests)
+- **Testing:** Swift Testing (@Test, #expect)
 - **Design:** iOS 26 Liquid Glass design system
 - **Backend:** Cloudflare Workers (separate repo), Gemini 2.0 Flash AI
 
@@ -275,43 +274,11 @@ let reading = all.filter { $0.readingStatus == .reading }
 
 ## Backend API Contract (v2.4)
 
-**📍 AUTHORITATIVE SOURCE:** `~/dev_repos/bendv3/docs/` - All API documentation lives in the bendv3 repository.
+**📍 AUTHORITATIVE SOURCE:** `docs/api/openapi-v3.json` (Synced from backend repo)
 
-**⚠️ NOTE:** This section is a **convenience reference only** for frontend developers. For authoritative, up-to-date API documentation, always consult:
-- `~/dev_repos/bendv3/docs/API.md` - REST API reference
-- `~/dev_repos/bendv3/docs/WEBSOCKET.md` - WebSocket protocol
-- `~/dev_repos/bendv3/docs/SYSTEM_ARCHITECTURE.md` - Multi-repo architecture
+**⚠️ NOTE:** This section is a **convenience reference only** for frontend developers.
 
-**🚨 CRITICAL:** All backend communication MUST adhere to v2.4 canonical contract.
-
-**Last Updated:** November 20, 2025
 **Backend Repo:** https://github.com/jukasdrj/bookstrack-backend
-**Full Contract:** `docs/API_CONTRACT.md` in backend repo
-
-**v2.4.1 Changes (Nov 20, 2025):**
-- ⚡ WebSocket Hibernation API (70-80% cost reduction, zero client changes)
-
-**v2.4 Changes (Nov 18, 2025):**
-- ✅ Secure WebSocket auth via `Sec-WebSocket-Protocol` header (implemented)
-- ✅ HTTP/1.1 enforcement for WebSocket (Issue #227 - implemented)
-- ✅ HATEOAS `SearchLinksDTO` on Work/Edition (backend provides provider URLs - Issue #196)
-- ✅ Image quality detection improvements (`isbndbQuality` field)
-- ✅ 24-hour result expiry (`expiresAt` field in completion payloads)
-
-#### SearchLinksDTO (HATEOAS) - Issue #196
-
-**Purpose:** Backend centralizes URL construction for external book searches. Clients follow links directly without building URLs.
-
-**Swift Usage Example:**
-```swift
-// ✅ CORRECT: Use searchLinks from backend
-if let googleBooksURL = work.searchLinks?.googleBooks {
-    openURL(URL(string: googleBooksURL)!)
-}
-
-// ❌ WRONG: Don't construct URLs manually
-// let url = "https://www.googleapis.com/books/v1/volumes?q=isbn:\(isbn)"
-```
 
 ### Base URLs
 
@@ -320,90 +287,6 @@ if let googleBooksURL = work.searchLinks?.googleBooks {
 | **Production** | `https://api.oooefam.net` | `wss://api.oooefam.net/ws/progress` |
 | **Staging** | `https://staging-api.oooefam.net` | `wss://staging-api.oooefam.net/ws/progress` |
 | **Local Dev** | `http://localhost:8787` | `ws://localhost:8787/ws/progress` |
-
-### Response Envelope (v2.0)
-
-All `/v1/*` endpoints return:
-```swift
-struct ResponseEnvelope<T: Codable>: Codable {
-    let data: T?                    // Payload (null on error)
-    let metadata: ResponseMetadata  // Always present
-    let error: APIError?            // Present only on error
-}
-
-struct ResponseMetadata: Codable {
-    let timestamp: String           // ISO 8601 UTC
-    let processingTime: Int?        // Milliseconds
-    let provider: String?           // "google-books" | "openlibrary" | "isbndb" | "gemini"
-    let cached: Bool?               // true if served from cache
-}
-
-struct APIError: Codable {
-    let message: String             // Human-readable
-    let code: String?               // Machine-readable (e.g., "NOT_FOUND")
-    let details: AnyCodable?        // Optional context
-}
-```
-
-### V1 Endpoints (Production Ready)
-
-```
-GET /v1/search/title?q={query}              # Title search (fuzzy, up to 20 results)
-GET /v1/search/isbn?isbn={isbn}             # ISBN lookup (ISBN-10 or ISBN-13)
-GET /v1/search/advanced?title=&author=      # Multi-field search
-GET /v1/scan/results/{jobId}                # Fetch AI scan results (24hr TTL)
-GET /v1/csv/results/{jobId}                 # Fetch CSV import results (24hr TTL)
-POST /api/scan-bookshelf/batch              # Upload 1-5 photos for AI processing
-GET /ws/progress?jobId={uuid}               # WebSocket progress (token in header)
-```
-
-**Rate Limits:**
-- Search: 100 req/min per IP
-- Batch enrichment: 10 req/min per IP
-- **AI batch scanning: 5 req/min per IP** (1-5 photos per batch)
-- Global: 1000 req/hour per IP (burst: 50/min)
-
-### Error Codes
-- `INVALID_ISBN` - Invalid ISBN format (HTTP 400)
-- `INVALID_QUERY` - Missing/invalid query parameter (HTTP 400)
-- `NOT_FOUND` - Resource not found (HTTP 404)
-- `RATE_LIMIT_EXCEEDED` - Too many requests (HTTP 429, retryable)
-- `PROVIDER_TIMEOUT` - External API timeout (HTTP 504, retryable)
-- `INTERNAL_ERROR` - Server error (HTTP 500, retryable)
-
-### DTO Field Defaults (v2.4.1)
-
-**Default Value Pattern:** Optional fields default to `nil` in Swift (NOT zero or empty arrays)
-
-**Common Defaults:**
-| Field Type | Swift Type | Default Value | Example Fields |
-|------------|------------|---------------|----------------|
-| Optional string | `String?` | `nil` | `originalLanguage`, `description`, `coverImageURL` |
-| Optional number | `Int?`, `Double?` | `nil` | `pageCount`, `firstPublicationYear`, `publicationYear` |
-| Optional object | `SearchLinksDTO?` | `nil` | `searchLinks`, `enrichment` |
-| Required array | `[String]` | `[]` (empty array) | `subjectTags`, `goodreadsWorkIDs`, `amazonASINs` |
-| Optional boolean | `Bool?` | `nil` | `synthetic` |
-
-**Critical Swift Patterns:**
-```swift
-// ✅ CORRECT: Nil-coalescing for optional fields
-let title = work.title ?? "Unknown Title"
-let pageCount = edition.pageCount ?? 0
-
-// ✅ CORRECT: Optional binding for nested objects
-if let searchLinks = work.searchLinks {
-    // Use searchLinks.googleBooks, etc.
-}
-
-// ❌ INCORRECT: Assuming default zero for optional numbers
-let pages = edition.pageCount  // Type is Int?, NOT Int!
-// Must use: let pages = edition.pageCount ?? 0
-
-// ❌ INCORRECT: Force-unwrapping optional fields
-let url = work.searchLinks!.googleBooks  // CRASH if nil!
-```
-
-**SwiftData Mapping:** When mapping DTOs to SwiftData models, use `@Attribute(.preserveValueOnDeletion)` for optional fields that should persist as `nil` rather than reverting to defaults on deletion.
 
 ### WebSocket v2.4 Contract
 
@@ -423,94 +306,6 @@ request.setValue("Upgrade", forHTTPHeaderField: "Connection")
 let webSocket = URLSession.shared.webSocketTask(with: request)
 webSocket.resume()
 ```
-
-**Why This Works:**
-- `assumesHTTP3Capable = false` prevents HTTP/3 (QUIC) and HTTP/2 negotiation
-- Explicit `Upgrade: websocket` header signals WebSocket upgrade intent (RFC 6455)
-- `Connection: Upgrade` header required for protocol upgrade
-- Result: iOS negotiates HTTP/1.1 → Server responds with `101 Switching Protocols`
-
-**Violation Response:** `HTTP 426 Upgrade Required` (detected as URLError code `-1011`)
-
----
-
-**🚨 CRITICAL: Secure Authentication (v2.4)**
-
-**NEW METHOD (Recommended):**
-```swift
-let url = URL(string: "wss://api.oooefam.net/ws/progress?jobId=\(jobId)")!
-var request = URLRequest(url: url)
-request.setValue("bookstrack-auth.\(token)", forHTTPHeaderField: "Sec-WebSocket-Protocol")
-```
-
-**OLD METHOD (Deprecated):**
-```
-wss://api.oooefam.net/ws/progress?jobId={jobId}&token={token}
-```
-
-**Why Header Method:**
-- Prevents token leakage in server logs
-- Not visible in browser history
-- Follows HATEOAS security principles
-
----
-
-**🚨 CRITICAL: Send "ready" Signal**
-
-Backend waits for client ready signal before processing (2-5 second timeout):
-
-```swift
-func webSocketDidConnect(_ webSocket: URLSessionWebSocketTask) {
-    let readyMessage = ["type": "ready"]
-    let jsonData = try! JSONEncoder().encode(readyMessage)
-    webSocket.send(.data(jsonData))
-}
-```
-
----
-
-**Message Types:**
-1. **ready** (Client→Server) - Signal readiness after connection
-2. **ready_ack** (Server→Client) - Backend acknowledges ready signal
-3. **job_started** - Job begins processing
-4. **job_progress** - Periodic updates (every 5-10% progress)
-5. **job_complete** - Summary only (⚠️ NO large arrays!)
-6. **error** - Job failure (v2.0 canonical format: `payload.error.message`, `payload.error.code`, `payload.retryable`)
-7. **reconnected** - State sync after reconnect (progress, status, processedCount, totalCount)
-8. **batch-init**, **batch-progress**, **batch-complete** - Photo batch scanning (1-5 photos)
-
----
-
-**Summary-Only Completions:**
-
-Completion messages are **summary-only** (< 1 KB). Full results fetched via HTTP GET.
-
-**Client Action (MANDATORY):** Fetch full results via HTTP GET after `job_complete`:
-```swift
-let fullResults = try await fetchResults(url: payload.resultsUrl)
-// GET https://api.oooefam.net/v1/scan/results/uuid-12345
-```
-
-**Results TTL:** 24 hours (v2.4) - `expiresAt` field (ISO 8601) indicates when results expire (24h from completion). Clients should check expiry before fetching results and either cache data locally OR handle 404 responses gracefully if fetching expired results. Example: `if Date() < expiresAt { fetchResults() }`
-
----
-
-**Reconnection Support (Production Ready):**
-
-Grace period: 60 seconds after unexpected disconnect
-
-**Flow:**
-1. Detect disconnect (close code ≠ 1000)
-2. Reconnect with: `?jobId={jobId}&reconnect=true&token={token}`
-3. Receive `reconnected` message with synced state
-4. Continue listening for updates
-
-**Best Practices:**
-- Exponential backoff (1s, 2s, 4s, 8s, max 30s)
-- Max 3 retry attempts
-- Preserve jobId/token in memory (use Keychain for security)
-
-**✅ Implementation:** Our WebSocketProgressManager automatically adds `reconnect=true` parameter during reconnection attempts for optimal state sync.
 
 ---
 
@@ -571,113 +366,6 @@ ast-grep --lang swift --pattern 'public func $METHOD($$$) { $$$ }' .
 
 # Find all @MainActor classes
 ast-grep --lang swift --pattern '@MainActor class $NAME { $$$ }' .
-
-# Find all SwiftData @Model classes
-ast-grep --lang swift --pattern '@Model public class $NAME { $$$ }' .
-
-# Find all Task.sleep calls
-ast-grep --lang swift --pattern 'Task.sleep(for: $DURATION)' .
-
-# Find all force unwraps
-ast-grep --lang swift --pattern '$VAR!' .
-
-# Find all @Observable classes
-ast-grep --lang swift --pattern '@Observable class $NAME { $$$ }' .
-```
-
-**Pattern Syntax:**
-- `$VAR` - Matches single identifier (variable/function name)
-- `$$$` - Matches multiple parameters/arguments
-- `{ $$$ }` - Matches any block contents
-
-**When to use ripgrep instead:**
-- Searching across multiple languages (Markdown, TypeScript, etc.)
-- Simple text search in non-code files
-- Debugging logs/error messages
-
----
-
-## Common Development Tasks
-
-### Adding Features
-1. Develop in `BooksTrackerPackage/Sources/BooksTrackerFeature/`
-2. Use `public` for types exposed to app shell
-3. Add dependencies in `BooksTrackerPackage/Package.swift`
-4. Add tests in `BooksTrackerPackage/Tests/`
-
-### Versioning
-```bash
-# Update version (auto-updates Info.plist, git tag)
-./Scripts/update_version.sh patch  # 1.0.0 -> 1.0.1
-./Scripts/update_version.sh minor  # 1.0.0 -> 1.1.0
-./Scripts/update_version.sh major  # 1.0.0 -> 2.0.0
-
-# Create release (runs tests, commits, tags)
-./Scripts/release.sh minor "Added new reading statistics"
-```
-
-### Library Reset (Settings → Reset Library)
-Comprehensive reset includes:
-- Cancels in-flight backend enrichment jobs (prevents resource waste)
-- Stops local enrichment processing
-- Deletes all SwiftData models (Works, Editions, Authors, UserLibraryEntries)
-- Clears enrichment queue
-- Resets AI provider to Gemini
-- Resets feature flags to defaults
-- Clears search history
-
----
-
-## Security & Privacy
-
-### Checklist
-- ✅ Zero warnings enforced (`GCC_TREAT_WARNINGS_AS_ERRORS = YES`)
-- ✅ No secrets in code (backend manages API keys separately)
-- ✅ Real device testing required (keyboard, camera, CloudKit)
-- ✅ WCAG AA contrast (4.5:1+ with `.secondary`/`.tertiary`)
-- ✅ Validate all user input (especially file uploads - 10MB max for CSV)
-- ✅ Rate limit backend endpoints
-
-### Common Security Issues
-- **NEVER** commit API keys to source code
-- **ALWAYS** validate ISBN format before backend calls
-- **ALWAYS** sanitize user input for SQL/XSS vulnerabilities
-- **ALWAYS** check file size before upload (10MB max)
-
----
-
-## Common Issues & Debugging
-
-### iOS Issues
-1. **Keyboard broken on real device:**
-   - Remove `.navigationBarDrawer(displayMode:)` (iOS 26 bug!)
-   - Always test on physical devices
-
-2. **"temporary identifier" crash:**
-   - Call `save()` before using `persistentModelID`
-   - Follow insert-before-relate pattern
-
-3. **View not updating on SwiftData changes:**
-   - Use `@Bindable` for SwiftData models in child views
-   - Ensure relationships are properly set
-
-4. **CloudKit sync fails:**
-   - Test on multiple devices
-   - Check CloudKit Dashboard
-   - Reset via Settings → Reset Library
-
-### Backend Issues
-- See separate backend repository for troubleshooting
-- Check Cloudflare Workers logs
-- Verify Durable Object state
-
-### Clean Build
-```bash
-# Clean derived data (fixes SwiftData macro issues)
-rm -rf ~/Library/Developer/Xcode/DerivedData/BooksTracker-*
-
-# Clean build folder
-xcodebuild clean -workspace BooksTracker.xcworkspace -scheme BooksTracker
 ```
 
 ---
@@ -693,18 +381,11 @@ xcodebuild clean -workspace BooksTracker.xcworkspace -scheme BooksTracker
 
 📁 docs/
   ├── README.md            ← **START HERE** - Documentation navigation
-  ├── product/             ← PRDs (problem statements, user stories)
-  ├── workflows/           ← Mermaid diagrams (visual flows)
-  ├── features/            ← Technical deep-dives
+  ├── api/                 ← API Specs (OpenAPI)
   ├── architecture/        ← System design & decisions
-  └── guides/              ← How-to guides & best practices
-
-📁 .ai/
-  ├── README.md            ← AI context organization guide
-  ├── SHARED_CONTEXT.md    ← Project-wide AI context
-  └── gemini-config.md     ← Gemini API setup
-
-📁 .claude/commands/       ← Slash commands (4 total: iOS dev only)
+  ├── features/            ← Technical deep-dives
+  ├── product/             ← PRDs (problem statements, user stories)
+  └── workflows/           ← Mermaid diagrams (visual flows)
 ```
 
 **Documentation Types:**
@@ -772,34 +453,19 @@ CachedAsyncImage(url: work.primaryEdition?.coverURL)  // Misses Work-level cover
 ### Bookshelf AI Scanner
 - **AI Model:** Gemini 2.0 Flash (2M token context window)
 - **Progress:** WebSocket real-time (8ms latency)
-- **Confidence Threshold:** 60% for review queue
-- **Image Preprocessing:** iOS resizes to 3072px @ 90% quality (400-600KB)
 - **Docs:** `docs/features/BOOKSHELF_SCANNER.md`
 
 ### Batch Bookshelf Scanning
 - Capture up to 5 photos in one session
-- Parallel upload → sequential Gemini processing
-- Real-time per-photo progress via WebSocket
-- Automatic deduplication by ISBN
-- Cancel mid-batch with partial results
 - **Docs:** `docs/features/BATCH_BOOKSHELF_SCANNING.md`
 
 ### Gemini CSV Import
 - AI-powered parsing (zero configuration)
-- No column mapping needed (auto-detects title, author, ISBN)
-- Unified Enrichment Pipeline (save → background enrichment)
-- Real-time WebSocket progress
-- 10MB file size limit, RFC 4180 compliant
-- **Status:** ✅ Production ready (v3.1.0+)
 - **Docs:** `docs/features/GEMINI_CSV_IMPORT.md`
 
 ### ISBN Barcode Scanner
 - **Implementation:** Apple VisionKit `DataScannerViewController` (iOS 16+)
-- Native barcode scanning (zero custom camera code)
-- Auto-highlighting and tap-to-scan gestures
-- Built-in guidance ("Move Closer", "Slow Down")
-- **Symbologies:** EAN-13, EAN-8, UPC-E (ISBN-specific)
-- **Docs:** `docs/plans/2025-10-30-visionkit-barcode-scanner-design.md`
+- **Docs:** `docs/archive/product/Barcode-Scanner-PRD.md` (Feature shipped)
 
 ---
 
@@ -822,33 +488,7 @@ Text("Publisher").foregroundColor(.tertiary)
 
 ---
 
-## Performance
-
-### App Launch Architecture (Nov 2025 Optimization)
-- **Performance:** 600ms cold launch (down from 1500ms - 60% faster!)
-- **Lazy ModelContainer Init:** Container created on first access (not at app init)
-- **Deferred Background Tasks:** Non-critical tasks delayed by 2 seconds
-- **Task Prioritization:** UI rendering immediate, enrichment/cleanup deferred
-
-### Key Optimizations
-- Lazy properties: Container, DTOMapper, LibraryRepository (~200ms off critical path)
-- Task deferral: Background work delayed by 2s (~400ms off critical path)
-- Micro-optimizations: Early exits, caching, predicate filtering (~180ms saved)
-
-**Results:** `docs/performance/2025-11-04-app-launch-optimization-results.md`
-
----
-
-## Build Status
-
-**✅ Zero warnings, zero errors**  
-**✅ HIG Compliance:** 100% iOS 26 standards  
-**✅ Swift 6.2:** Full concurrency compliance  
-**✅ Accessibility:** WCAG AA compliant contrast  
-
----
-
-**Last Updated:** November 26, 2025 (v3.7.5, Build 189)
+**Last Updated:** January 05, 2026 (v3.7.6)
 **Maintained by:** oooe (jukasdrj)
 **License:** Proprietary
 **App Store:** Z67H8Y8DW.com.oooefam.booksV3
