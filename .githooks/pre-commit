@@ -7,20 +7,33 @@ set -e
 # Colors
 BLUE='\033[0;34m'
 GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
 NC='\033[0m'
 
 echo -e "${BLUE}🔄${NC} Pre-commit: Updating build number..."
 
 # Get project root (from .git/hooks to project root)
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$(dirname "$HOOK_DIR")")"
+# If running from .githooks (not .git/hooks), adjust root calculation
+if [[ "$HOOK_DIR" == *".githooks" ]]; then
+    PROJECT_ROOT="$(dirname "$HOOK_DIR")"
+else
+    PROJECT_ROOT="$(dirname "$(dirname "$HOOK_DIR")")"
+fi
 
-# Update build number only (not marketing version)
-"$PROJECT_ROOT/Scripts/update_version.sh" build
+SCRIPT_PATH="$PROJECT_ROOT/Scripts/update_version.sh"
 
-# Stage the updated config file
-git add "$PROJECT_ROOT/Config/Shared.xcconfig"
+if [ -f "$SCRIPT_PATH" ]; then
+    # Update build number only (not marketing version)
+    "$SCRIPT_PATH" build
 
-echo -e "${GREEN}✅${NC} Build number updated and staged"
+    # Stage the updated config file
+    git add "$PROJECT_ROOT/Config/Shared.xcconfig"
+
+    echo -e "${GREEN}✅${NC} Build number updated and staged"
+else
+    echo -e "${YELLOW}⚠️ Scripts/update_version.sh not found at $SCRIPT_PATH${NC}"
+    echo -e "${YELLOW}⚠️ Skipping build number update (Scripts directory missing?)${NC}"
+fi
 
 exit 0

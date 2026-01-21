@@ -12,7 +12,8 @@ This directory contains the client-side representation of the BooksTrack API.
 
 ## Usage
 
-This spec is used by the `Scripts/generate-api-client.sh` script (if applicable) or as a reference for the `DTOs` in `BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/`.
+This spec is used by the `DTOs` in `BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/`.
+(Note: Helper scripts are currently unavailable in this environment).
 
 ## Key Endpoints (Summary)
 

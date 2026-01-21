@@ -88,6 +88,8 @@ xcodebuild test -workspace BooksTracker.xcworkspace \
                 -destination 'platform=iOS Simulator,name=iPhone 15 Pro'
 ```
 
+**Note:** The `Scripts/` directory (update_version.sh, release.sh) is currently unavailable in this environment. Manual version management in `Config/Shared.xcconfig` is required.
+
 ---
 
 ## 🚨 CRITICAL RULES (Common Crashes!)
@@ -608,13 +610,8 @@ ast-grep --lang swift --pattern '@Observable class $NAME { $$$ }' .
 
 ### Versioning
 ```bash
-# Update version (auto-updates Info.plist, git tag)
-./Scripts/update_version.sh patch  # 1.0.0 -> 1.0.1
-./Scripts/update_version.sh minor  # 1.0.0 -> 1.1.0
-./Scripts/update_version.sh major  # 1.0.0 -> 2.0.0
-
-# Create release (runs tests, commits, tags)
-./Scripts/release.sh minor "Added new reading statistics"
+# Scripts are currently under maintenance/missing in this environment
+# Manually update Config/Shared.xcconfig
 ```
 
 ### Library Reset (Settings → Reset Library)
