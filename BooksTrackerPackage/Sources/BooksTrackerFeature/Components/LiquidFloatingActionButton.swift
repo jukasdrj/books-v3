@@ -78,6 +78,7 @@ public struct LiquidFloatingActionButton: View {
             }
             .accessibilityLabel(accessibilityLabel)
             .accessibilityHint(isExpanded ? "Collapse menu" : "Expand menu to see add options")
+            .accessibilityAddTraits(.isButton)
         }
         .padding(.trailing, 20)
         .padding(.bottom, 20)
