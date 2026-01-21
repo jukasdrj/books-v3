@@ -2,12 +2,14 @@
 # Pre-commit hook for BooksTracker
 # Auto-updates build numbers on commits
 
-set -e
+# Disable exit on error to prevent blocking commits in CI/limited environments
+set +e
 
 # Colors
 BLUE='\033[0;34m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
+RED='\033[0;31m'
 NC='\033[0m'
 
 echo -e "${BLUE}🔄${NC} Pre-commit: Updating build number..."
@@ -24,16 +26,21 @@ fi
 SCRIPT_PATH="$PROJECT_ROOT/Scripts/update_version.sh"
 
 if [ -f "$SCRIPT_PATH" ]; then
-    # Update build number only (not marketing version)
-    "$SCRIPT_PATH" build
-
-    # Stage the updated config file
-    git add "$PROJECT_ROOT/Config/Shared.xcconfig"
-
-    echo -e "${GREEN}✅${NC} Build number updated and staged"
+    # Try to run the script
+    if "$SCRIPT_PATH" build; then
+        # Stage the updated config file
+        if git add "$PROJECT_ROOT/Config/Shared.xcconfig"; then
+            echo -e "${GREEN}✅${NC} Build number updated and staged"
+        else
+            echo -e "${RED}⚠️ Failed to stage build number update${NC}"
+        fi
+    else
+        echo -e "${YELLOW}⚠️ Update version script failed to run (skipping)${NC}"
+    fi
 else
     echo -e "${YELLOW}⚠️ Scripts/update_version.sh not found at $SCRIPT_PATH${NC}"
     echo -e "${YELLOW}⚠️ Skipping build number update (Scripts directory missing?)${NC}"
 fi
 
+# Always exit successfully
 exit 0
