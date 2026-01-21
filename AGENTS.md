@@ -56,7 +56,6 @@ BooksTrackerPackage/
   Tests/                            # Swift Testing tests
 Config/Shared.xcconfig              # Version, bundle ID (UPDATE HERE!)
 docs/                               # Documentation hub (see docs/README.md)
-  api/                              # Local copy of API contracts (openapi-v3.json)
 ```
 
 ### Build & Run
