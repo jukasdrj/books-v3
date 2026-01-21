@@ -56,6 +56,7 @@ BooksTrackerPackage/
   Tests/                            # Swift Testing tests
 Config/Shared.xcconfig              # Version, bundle ID (UPDATE HERE!)
 docs/                               # Documentation hub (see docs/README.md)
+  api/                              # Local copy of API contracts (openapi-v3.json)
 ```
 
 ### Build & Run
@@ -275,18 +276,18 @@ let reading = all.filter { $0.readingStatus == .reading }
 
 ## Backend API Contract (v2.4)
 
-**📍 AUTHORITATIVE SOURCE:** `~/dev_repos/bendv3/docs/` - All API documentation lives in the bendv3 repository.
+**📍 AUTHORITATIVE SOURCE:** `~/dev_repos/bendv3/docs/` (Backend Repo)
+**📍 LOCAL MIRROR:** `docs/api/` (Synced Copy)
 
 **⚠️ NOTE:** This section is a **convenience reference only** for frontend developers. For authoritative, up-to-date API documentation, always consult:
 - `~/dev_repos/bendv3/docs/API.md` - REST API reference
 - `~/dev_repos/bendv3/docs/WEBSOCKET.md` - WebSocket protocol
-- `~/dev_repos/bendv3/docs/SYSTEM_ARCHITECTURE.md` - Multi-repo architecture
+- `docs/api/openapi-v3.json` - Local OpenAPI spec synced from source
 
 **🚨 CRITICAL:** All backend communication MUST adhere to v2.4 canonical contract.
 
 **Last Updated:** November 20, 2025
 **Backend Repo:** https://github.com/jukasdrj/bookstrack-backend
-**Full Contract:** `docs/API_CONTRACT.md` in backend repo
 
 **v2.4.1 Changes (Nov 20, 2025):**
 - ⚡ WebSocket Hibernation API (70-80% cost reduction, zero client changes)
@@ -693,18 +694,12 @@ xcodebuild clean -workspace BooksTracker.xcworkspace -scheme BooksTracker
 
 📁 docs/
   ├── README.md            ← **START HERE** - Documentation navigation
+  ├── api/                 ← Local copy of API contracts (openapi-v3.json)
   ├── product/             ← PRDs (problem statements, user stories)
   ├── workflows/           ← Mermaid diagrams (visual flows)
   ├── features/            ← Technical deep-dives
   ├── architecture/        ← System design & decisions
   └── guides/              ← How-to guides & best practices
-
-📁 .ai/
-  ├── README.md            ← AI context organization guide
-  ├── SHARED_CONTEXT.md    ← Project-wide AI context
-  └── gemini-config.md     ← Gemini API setup
-
-📁 .claude/commands/       ← Slash commands (4 total: iOS dev only)
 ```
 
 **Documentation Types:**
@@ -848,7 +843,7 @@ Text("Publisher").foregroundColor(.tertiary)
 
 ---
 
-**Last Updated:** November 26, 2025 (v3.7.5, Build 189)
+**Last Updated:** January 7, 2026 (v3.7.5, Build 189)
 **Maintained by:** oooe (jukasdrj)
 **License:** Proprietary
 **App Store:** Z67H8Y8DW.com.oooefam.booksV3
