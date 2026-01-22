@@ -34,6 +34,7 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 **System Design.** High-level technical decisions and patterns.
 - `VISUAL_DESIGN_SUMMARY.md` - iOS 26 Liquid Glass design system.
 - `cascade-metadata.md` - How we merge data from multiple providers.
+- `dto-mapper.md` - DTO-to-SwiftData conversion service.
 - `ratings-system.md` - Logic behind user ratings.
 - `reading-sessions.md` - Timer & session state management.
 
@@ -53,6 +54,7 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 - **[Cross-Repository Architecture](./CROSS_REPO.md)** - Multi-repo system overview
 - **[bendv3 API Documentation](~/dev_repos/bendv3/docs/)** - REST API, WebSocket, contracts (Authoritative Source)
 - **[alex Metadata Service](~/dev_repos/alex/)** - Book metadata and cover images
+- **Local API Spec:** `BooksTrackerPackage/Sources/BooksTrackerFeature/openapi.json`
 
 ---
 
