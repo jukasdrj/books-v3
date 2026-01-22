@@ -579,7 +579,7 @@ All 9 shipped iOS features now have dedicated PRD documents with Flutter impleme
 |---------|--------------|----------------|
 | Library Management | [`docs/product/Library-Management-PRD.md`](product/Library-Management-PRD.md) | Not Started (see PRD for Flutter section) |
 | Book Search & Enrichment | [`docs/product/Book-Enrichment-PRD.md`](product/Book-Enrichment-PRD.md) | Not Started (see PRD for Flutter section) |
-| Barcode Scanner | [`docs/product/Barcode-Scanner-PRD.md`](product/Barcode-Scanner-PRD.md) | Not Started (see PRD for Flutter section) |
+| Barcode Scanner | [`docs/archive/product/Barcode-Scanner-PRD.md`](archive/product/Barcode-Scanner-PRD.md) | Not Started (see PRD for Flutter section) |
 | Bookshelf AI Scanner | [`docs/product/Bookshelf-AI-Scanner-PRD.md`](product/Bookshelf-AI-Scanner-PRD.md) | Not Started (see PRD for Flutter section) |
 | CSV Import | [`docs/product/CSV-Import-PRD.md`](product/CSV-Import-PRD.md) | Not Started (see PRD for Flutter section) |
 | Review Queue | [`docs/product/Review-Queue-PRD.md`](product/Review-Queue-PRD.md) | Not Started (see PRD for Flutter section) |

@@ -12,7 +12,7 @@ This directory contains platform-agnostic PRDs for BooksTrack features. Each PRD
 
 | Document | Status | Description |
 |----------|--------|-------------|
-| [Barcode-Scanner-PRD.md](Barcode-Scanner-PRD.md) | Shipped | ISBN barcode scanning for quick book entry |
+| [Barcode-Scanner-PRD.md](../archive/product/Barcode-Scanner-PRD.md) | Shipped | ISBN barcode scanning for quick book entry |
 | [Bookshelf-AI-Scanner-PRD.md](Bookshelf-AI-Scanner-PRD.md) | Shipped | AI-powered bookshelf photo scanning |
 | [CSV-Import-PRD.md](CSV-Import-PRD.md) | Shipped | AI-powered CSV import from Goodreads/LibraryThing |
 | [Book-Enrichment-PRD.md](Book-Enrichment-PRD.md) | Shipped | Metadata enrichment and book search |
@@ -31,9 +31,9 @@ This directory contains platform-agnostic PRDs for BooksTrack features. Each PRD
 
 | Document | Status | Description |
 |----------|--------|-------------|
-| [Canonical-Data-Contracts-PRD.md](Canonical-Data-Contracts-PRD.md) | Active | API data models and contracts |
-| [Genre-Normalization-PRD.md](Genre-Normalization-PRD.md) | Active | Genre taxonomy and mapping rules |
-| [DTOMapper-PRD.md](DTOMapper-PRD.md) | Active | Client-side data mapping patterns |
+| [Canonical-Data-Contracts-PRD.md](../archive/product/Canonical-Data-Contracts-PRD.md) | Active | API data models and contracts |
+| [Genre-Normalization-PRD.md](../archive/product/Genre-Normalization-PRD.md) | Active | Genre taxonomy and mapping rules |
+| [dto-mapper.md](../architecture/dto-mapper.md) | Active | Client-side data mapping patterns |
 
 ### Templates
 

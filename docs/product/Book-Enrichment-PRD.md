@@ -467,8 +467,8 @@ dependencies:
 
 ## Related Documentation
 
-- **Canonical Contracts:** `docs/product/Canonical-Data-Contracts-PRD.md`
-- **Genre Normalization:** `docs/product/Genre-Normalization-PRD.md`
+- **Canonical Contracts:** `docs/archive/product/Canonical-Data-Contracts-PRD.md`
+- **Genre Normalization:** `docs/archive/product/Genre-Normalization-PRD.md`
 - **API Contract:** See AGENTS.md Backend API section
 - **Technical Spec:** `docs/features/ENRICHMENT_PIPELINE.md`
 

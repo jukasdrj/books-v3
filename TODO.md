@@ -223,7 +223,7 @@
 ## 🔗 Quick Links
 
 - **PRD Index:** `docs/product/README.md`
-- **API Contracts:** `docs/product/Canonical-Data-Contracts-PRD.md`
+- **API Contracts:** `docs/archive/product/Canonical-Data-Contracts-PRD.md`
 - **Testing Guide:** `AGENTS.md` (Testing section)
 - **Claude Code Guide:** `CLAUDE.md`
 - **Change History:** `CHANGELOG.md`
