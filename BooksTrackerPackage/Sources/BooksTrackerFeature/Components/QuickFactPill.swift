@@ -22,7 +22,17 @@ struct QuickFactPill: View {
         .background(color.opacity(0.15))
         .clipShape(Capsule())
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(icon) \(text)")
+        .accessibilityLabel(accessibilityDescription)
+    }
+
+    private var accessibilityDescription: String {
+        if icon.contains("star") {
+            return "Rating: \(text)"
+        } else if icon == "calendar" {
+            return "Published in \(text)"
+        } else {
+            return text
+        }
     }
 }
 
