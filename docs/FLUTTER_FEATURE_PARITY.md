@@ -121,7 +121,7 @@ dependencies:
 ```
 
 **Implementation Notes:**
-- **OpenAPI Codegen:** Use `openapi-generator-cli` to generate Dart client from `docs/prd/Canonical-Data-Contracts-PRD.md` spec
+- **OpenAPI Codegen:** Use `openapi-generator-cli` to generate Dart client from `docs/archive/product/Canonical-Data-Contracts-PRD.md` spec
 - **API Base URL:** Same as iOS (`https://api.oooefam.net`)
 - **Challenge:** Retrofit doesn't auto-generate WebSocket client (needed for CSV import progress)
   - **Solution:** Use `web_socket_channel` package separately
@@ -598,9 +598,9 @@ All 9 shipped iOS features now have dedicated PRD documents with Flutter impleme
 ### Technical Contracts & Architecture
 
 - **PRD Index:** [`docs/product/README.md`](product/README.md) - Platform-agnostic feature specs
-- **API Contracts:** [`docs/product/Canonical-Data-Contracts-PRD.md`](product/Canonical-Data-Contracts-PRD.md) - OpenAPI spec
-- **Data Mapping:** [`docs/product/DTOMapper-PRD.md`](product/DTOMapper-PRD.md) - Client-side mapping patterns
-- **Genre Taxonomy:** [`docs/product/Genre-Normalization-PRD.md`](product/Genre-Normalization-PRD.md) - Genre normalization rules
+- **API Contracts:** [`docs/archive/product/Canonical-Data-Contracts-PRD.md`](archive/product/Canonical-Data-Contracts-PRD.md) - OpenAPI spec
+- **Data Mapping:** [`docs/architecture/dto-mapper.md`](architecture/dto-mapper.md) - Client-side mapping patterns
+- **Genre Taxonomy:** [`docs/archive/product/Genre-Normalization-PRD.md`](archive/product/Genre-Normalization-PRD.md) - Genre normalization rules
 
 ### Cross-Repository Documentation
 

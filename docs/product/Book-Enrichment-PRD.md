@@ -216,7 +216,7 @@ flowchart TD
 **Requirements:**
 - **Order:** Google Books → OpenLibrary → ISBNDB
 - **Cover Selection:** Prefer highest resolution
-- **Genre Normalization:** Unified genre taxonomy (see Genre-Normalization-PRD.md)
+- **Genre Normalization:** Unified genre taxonomy (see `../archive/product/Genre-Normalization-PRD.md`)
 - **Provenance Tracking:** Store which provider contributed each field
 
 ---
