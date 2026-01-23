@@ -47,6 +47,8 @@ public struct SharedEmptyStateView: View {
                     }
                 }
                 .padding(.top, 60)
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.header)
 
                 // Actions section
                 if !actions.isEmpty {
@@ -62,6 +64,7 @@ public struct SharedEmptyStateView: View {
                                             Circle()
                                                 .fill((action.color ?? themeStore.primaryColor).opacity(0.15))
                                         )
+                                        .accessibilityHidden(true)
 
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(action.title)
@@ -81,6 +84,7 @@ public struct SharedEmptyStateView: View {
                                     Image(systemName: "chevron.right")
                                         .font(.caption.bold())
                                         .foregroundStyle(.secondary)
+                                        .accessibilityHidden(true)
                                 }
                                 .padding(16)
                                 .background {
@@ -102,9 +106,6 @@ public struct SharedEmptyStateView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(title)
-        .accessibilityHint(description)
     }
 }
 
