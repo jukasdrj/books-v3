@@ -56,4 +56,4 @@ Ensures image manipulation happens off the main thread to prevent UI stutter dur
 ## Related Documentation
 
 *   [Batch Scanning Logic](./BATCH_BOOKSHELF_SCANNING.md)
-*   [Product Requirements](../archive/Bookshelf-AI-Scanner-PRD.md)
+*   [Product Requirements](../archive/product/Bookshelf-Scanner-PRD.md)

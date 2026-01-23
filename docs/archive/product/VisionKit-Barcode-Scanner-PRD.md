@@ -4,10 +4,6 @@
 **Status:** ✅ Production (v3.0.0+)
 **Last Updated:** October 31, 2025
 **Owner:** BooksTrack Engineering
-**Related Docs:**
-- Design: [VisionKit Barcode Scanner Design](../plans/2025-10-30-visionkit-barcode-scanner-design.md)
-- Implementation: [VisionKit Barcode Scanner Implementation](../plans/2025-10-30-visionkit-barcode-scanner-implementation.md)
-- Workflow: [Barcode Scanner Workflow](../workflows/barcode-scanner-workflow.md)
 
 ---
 
@@ -24,7 +20,6 @@ Manually typing 13-digit ISBNs is slow, error-prone, and frustrating. Users want
 
 **Linked Issues:**
 - [GitHub PR #153](https://github.com/jukasdrj/books-tracker-v1/pull/153) - VisionKit implementation
-- Design discussion: `docs/plans/2025-10-30-visionkit-barcode-scanner-design.md`
 
 ---
 
@@ -487,7 +482,7 @@ AnalyticsEngine.track("barcode_scan_failure", properties: ["reason": "permission
 - Settings button: `accessibilityHint: "Opens system settings to enable camera access"`
 
 **Visual Accessibility:**
-- High contrast text (white on gradient background)
+- High contrast text (white on gradient background, WCAG AA compliant)
 - Large touch targets (entire barcode region tappable)
 - Clear messaging (no jargon like "A12 Bionic chip" alone; includes device examples)
 
@@ -559,9 +554,6 @@ AnalyticsEngine.track("barcode_scan_failure", properties: ["reason": "permission
 
 **Architecture Docs:**
 - This PRD (what/why)
-- Design doc: `docs/plans/2025-10-30-visionkit-barcode-scanner-design.md` (technical decisions)
-- Implementation plan: `docs/plans/2025-10-30-visionkit-barcode-scanner-implementation.md` (step-by-step)
-- Workflow diagram: `docs/workflows/barcode-scanner-workflow.md` (visual flow)
 
 ---
 

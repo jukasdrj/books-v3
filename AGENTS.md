@@ -799,7 +799,7 @@ CachedAsyncImage(url: work.primaryEdition?.coverURL)  // Misses Work-level cover
 - Auto-highlighting and tap-to-scan gestures
 - Built-in guidance ("Move Closer", "Slow Down")
 - **Symbologies:** EAN-13, EAN-8, UPC-E (ISBN-specific)
-- **Docs:** `docs/plans/2025-10-30-visionkit-barcode-scanner-design.md`
+- **Docs:** `docs/archive/product/VisionKit-Barcode-Scanner-PRD.md`
 
 ---
 

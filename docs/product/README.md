@@ -12,28 +12,28 @@ This directory contains platform-agnostic PRDs for BooksTrack features. Each PRD
 
 | Document | Status | Description |
 |----------|--------|-------------|
-| [Barcode-Scanner-PRD.md](Barcode-Scanner-PRD.md) | Shipped | ISBN barcode scanning for quick book entry |
-| [Bookshelf-AI-Scanner-PRD.md](Bookshelf-AI-Scanner-PRD.md) | Shipped | AI-powered bookshelf photo scanning |
-| [CSV-Import-PRD.md](CSV-Import-PRD.md) | Shipped | AI-powered CSV import from Goodreads/LibraryThing |
-| [Book-Enrichment-PRD.md](Book-Enrichment-PRD.md) | Shipped | Metadata enrichment and book search |
-| [Review-Queue-PRD.md](Review-Queue-PRD.md) | Shipped | Human verification for low-confidence AI detections |
+| [Barcode-Scanner-PRD.md](../archive/product/Barcode-Scanner-PRD.md) | Shipped | ISBN barcode scanning for quick book entry |
+| [Bookshelf-Scanner-PRD.md](../archive/product/Bookshelf-Scanner-PRD.md) | Shipped | AI-powered bookshelf photo scanning |
+| [Gemini-CSV-Import-PRD.md](../archive/product/Gemini-CSV-Import-PRD.md) | Shipped | AI-powered CSV import from Goodreads/LibraryThing |
+| [Book-Enrichment-PRD.md](../archive/product/Book-Enrichment-PRD.md) | Shipped | Metadata enrichment and book search |
+| [Review-Queue-PRD.md](../archive/product/Review-Queue-PRD.md) | Shipped | Human verification for low-confidence AI detections |
 
 ### Library Management
 
 | Document | Status | Description |
 |----------|--------|-------------|
-| [Library-Management-PRD.md](Library-Management-PRD.md) | Shipped | Reading status, filtering, reset, settings |
-| [Reading-Statistics-PRD.md](Reading-Statistics-PRD.md) | Shipped | Reading progress and habit tracking |
-| [Diversity-Insights-PRD.md](Diversity-Insights-PRD.md) | Shipped | Cultural diversity analytics |
-| [Cloud-Sync-PRD.md](Cloud-Sync-PRD.md) | Shipped | Cross-device synchronization |
+| [Library-Management-PRD.md](../archive/product/Library-Management-PRD.md) | Shipped | Reading status, filtering, reset, settings |
+| [Reading-Statistics-PRD.md](../archive/product/Reading-Statistics-PRD.md) | Shipped | Reading progress and habit tracking |
+| [Diversity-Insights-PRD.md](../archive/product/Diversity-Insights-PRD.md) | Shipped | Cultural diversity analytics |
+| [Cloud-Sync-PRD.md](../archive/product/Cloud-Sync-PRD.md) | Shipped | Cross-device synchronization |
 
 ### Technical Contracts
 
 | Document | Status | Description |
 |----------|--------|-------------|
-| [Canonical-Data-Contracts-PRD.md](Canonical-Data-Contracts-PRD.md) | Active | API data models and contracts |
-| [Genre-Normalization-PRD.md](Genre-Normalization-PRD.md) | Active | Genre taxonomy and mapping rules |
-| [DTOMapper-PRD.md](DTOMapper-PRD.md) | Active | Client-side data mapping patterns |
+| [Canonical-Data-Contracts-PRD.md](../archive/product/Canonical-Data-Contracts-PRD.md) | Active | API data models and contracts |
+| [Genre-Normalization-PRD.md](../archive/product/Genre-Normalization-PRD.md) | Active | Genre taxonomy and mapping rules |
+| [DTOMapper-PRD.md](../archive/product/DTOMapper-PRD.md) | Active | Client-side data mapping patterns |
 
 ### Templates
 
@@ -109,20 +109,7 @@ When implementing a feature in Flutter:
 
 ## Archived PRDs
 
-Archived PRDs are in the `archive/` subdirectory. They have been consolidated into newer platform-agnostic documents:
-
-| Old Document | Consolidated Into |
-|--------------|-------------------|
-| `archive/ISBN-Scan-Workflow-PRD.md` | Barcode-Scanner-PRD.md |
-| `archive/VisionKit-Barcode-Scanner-PRD.md` | Barcode-Scanner-PRD.md |
-| `archive/AI-Shelf-Scan-Workflow-PRD.md` | Bookshelf-AI-Scanner-PRD.md |
-| `archive/Bookshelf-Scanner-PRD.md` | Bookshelf-AI-Scanner-PRD.md |
-| `archive/CSV-Import-Workflow-PRD.md` | CSV-Import-PRD.md |
-| `archive/Gemini-CSV-Import-PRD.md` | CSV-Import-PRD.md |
-| `archive/Search-and-Enrichment-PRD.md` | Book-Enrichment-PRD.md |
-| `archive/Enrichment-Pipeline-PRD.md` | Book-Enrichment-PRD.md |
-| `archive/Settings-and-Reset-PRD.md` | Library-Management-PRD.md |
-| `archive/Library-Reset-PRD.md` | Library-Management-PRD.md |
+Archived PRDs are in the `../archive/product/` subdirectory.
 
 ---
 

@@ -5,7 +5,6 @@
 **Last Updated:** October 31, 2025
 **Owner:** Backend & iOS Engineering
 **Related Docs:**
-- Workflow: [Canonical Contracts Workflow](../workflows/canonical-contracts-workflow.md)
 - TypeScript Types: `cloudflare-workers/api-worker/src/types/canonical.ts`
 - Swift DTOs: `BooksTrackerPackage/Sources/BooksTrackerFeature/DTOs/`
 

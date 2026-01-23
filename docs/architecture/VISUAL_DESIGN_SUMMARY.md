@@ -409,4 +409,4 @@ enum UIColor {
 | Edit forms | Progressive prompts |
 | Static reference | Interactive dashboard |
 
-**See [`features/book-details-redesign.md`](features/book-details-redesign.md) for complete specifications.**
+**See design documents for complete specifications.**

@@ -577,15 +577,15 @@ All 9 shipped iOS features now have dedicated PRD documents with Flutter impleme
 
 | Feature | PRD Document | Flutter Status |
 |---------|--------------|----------------|
-| Library Management | [`docs/product/Library-Management-PRD.md`](product/Library-Management-PRD.md) | Not Started (see PRD for Flutter section) |
-| Book Search & Enrichment | [`docs/product/Book-Enrichment-PRD.md`](product/Book-Enrichment-PRD.md) | Not Started (see PRD for Flutter section) |
-| Barcode Scanner | [`docs/product/Barcode-Scanner-PRD.md`](product/Barcode-Scanner-PRD.md) | Not Started (see PRD for Flutter section) |
-| Bookshelf AI Scanner | [`docs/product/Bookshelf-AI-Scanner-PRD.md`](product/Bookshelf-AI-Scanner-PRD.md) | Not Started (see PRD for Flutter section) |
-| CSV Import | [`docs/product/CSV-Import-PRD.md`](product/CSV-Import-PRD.md) | Not Started (see PRD for Flutter section) |
-| Review Queue | [`docs/product/Review-Queue-PRD.md`](product/Review-Queue-PRD.md) | Not Started (see PRD for Flutter section) |
-| Reading Statistics | [`docs/product/Reading-Statistics-PRD.md`](product/Reading-Statistics-PRD.md) | Not Started (Flutter section added) |
-| Diversity Insights | [`docs/product/Diversity-Insights-PRD.md`](product/Diversity-Insights-PRD.md) | Not Started (Flutter section added) |
-| Cloud Sync | [`docs/product/Cloud-Sync-PRD.md`](product/Cloud-Sync-PRD.md) | Not Started (see PRD for Flutter section) |
+| Library Management | [`docs/archive/product/Library-Management-PRD.md`](archive/product/Library-Management-PRD.md) | Not Started (see PRD for Flutter section) |
+| Book Search & Enrichment | [`docs/archive/product/Book-Enrichment-PRD.md`](archive/product/Book-Enrichment-PRD.md) | Not Started (see PRD for Flutter section) |
+| Barcode Scanner | [`docs/archive/product/Barcode-Scanner-PRD.md`](archive/product/Barcode-Scanner-PRD.md) | Not Started (see PRD for Flutter section) |
+| Bookshelf AI Scanner | [`docs/archive/product/Bookshelf-Scanner-PRD.md`](archive/product/Bookshelf-Scanner-PRD.md) | Not Started (see PRD for Flutter section) |
+| CSV Import | [`docs/archive/product/Gemini-CSV-Import-PRD.md`](archive/product/Gemini-CSV-Import-PRD.md) | Not Started (see PRD for Flutter section) |
+| Review Queue | [`docs/archive/product/Review-Queue-PRD.md`](archive/product/Review-Queue-PRD.md) | Not Started (see PRD for Flutter section) |
+| Reading Statistics | [`docs/archive/product/Reading-Statistics-PRD.md`](archive/product/Reading-Statistics-PRD.md) | Not Started (Flutter section added) |
+| Diversity Insights | [`docs/archive/product/Diversity-Insights-PRD.md`](archive/product/Diversity-Insights-PRD.md) | Not Started (Flutter section added) |
+| Cloud Sync | [`docs/archive/product/Cloud-Sync-PRD.md`](archive/product/Cloud-Sync-PRD.md) | Not Started (see PRD for Flutter section) |
 
 **How to Use PRDs for Flutter Development:**
 1. Read the **Executive Summary** and **Problem Statement** to understand feature goals
@@ -598,9 +598,9 @@ All 9 shipped iOS features now have dedicated PRD documents with Flutter impleme
 ### Technical Contracts & Architecture
 
 - **PRD Index:** [`docs/product/README.md`](product/README.md) - Platform-agnostic feature specs
-- **API Contracts:** [`docs/product/Canonical-Data-Contracts-PRD.md`](product/Canonical-Data-Contracts-PRD.md) - OpenAPI spec
-- **Data Mapping:** [`docs/product/DTOMapper-PRD.md`](product/DTOMapper-PRD.md) - Client-side mapping patterns
-- **Genre Taxonomy:** [`docs/product/Genre-Normalization-PRD.md`](product/Genre-Normalization-PRD.md) - Genre normalization rules
+- **API Contracts:** [`docs/archive/product/Canonical-Data-Contracts-PRD.md`](archive/product/Canonical-Data-Contracts-PRD.md) - OpenAPI spec
+- **Data Mapping:** [`docs/archive/product/DTOMapper-PRD.md`](archive/product/DTOMapper-PRD.md) - Client-side mapping patterns
+- **Genre Taxonomy:** [`docs/archive/product/Genre-Normalization-PRD.md`](archive/product/Genre-Normalization-PRD.md) - Genre normalization rules
 
 ### Cross-Repository Documentation
 

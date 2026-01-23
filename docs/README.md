@@ -19,15 +19,15 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 
 ### `docs/product/`
 **Product Requirements (PRDs).** The "Why" and "What" of features.
-- `Library-Management-PRD.md` - Core library functionality.
-- `Diversity-Insights-PRD.md` - Analytics & representation logic.
-- `Review-Queue-PRD.md` - Manual review process for AI features.
+- **[PRD-Template.md](product/PRD-Template.md)** - Template for new features.
+- *Shipped features are archived in `docs/archive/product/`.*
 
 ### `docs/features/`
 **Implementation Details.** The "How" of specific features, bridging PRDs and code.
 - **[GEMINI_CSV_IMPORT.md](./features/GEMINI_CSV_IMPORT.md)** - AI-powered CSV import.
 - **[BOOKSHELF_SCANNER.md](./features/BOOKSHELF_SCANNER.md)** - Vision-based bulk import.
 - **[BATCH_BOOKSHELF_SCANNING.md](./features/BATCH_BOOKSHELF_SCANNING.md)** - Concurrency logic for scanner.
+- **[GOALS_ENGINE.md](./features/GOALS_ENGINE.md)** - Reading goals and statistics engine.
 - **[FEATURE_FLAGS.md](./features/FEATURE_FLAGS.md)** - Feature flag system.
 
 ### `docs/architecture/`
@@ -42,9 +42,14 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 
 ### `docs/archive/`
 **Archive.** Deprecated docs, shipped PRDs, and historical references.
-- `CSV-Import-PRD.md` (Shipped)
-- `Bookshelf-AI-Scanner-PRD.md` (Shipped)
+- `product/` - Archived PRDs for shipped features (Library Management, Scanner, etc.).
 - `openapi-v3.json` (Legacy)
+
+---
+
+## 🔮 Future Plans
+
+- **[FLUTTER_FEATURE_PARITY.md](./FLUTTER_FEATURE_PARITY.md)** - Roadmap for future Flutter port.
 
 ---
 
