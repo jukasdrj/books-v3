@@ -1,4 +1,4 @@
-# Book Enrichment & Search - Product Requirements Document
+# Book Enrichment & Search - Feature Documentation
 
 **Status:** Shipped
 **Owner:** Product Team
@@ -467,10 +467,9 @@ dependencies:
 
 ## Related Documentation
 
-- **Canonical Contracts:** `docs/product/Canonical-Data-Contracts-PRD.md`
-- **Genre Normalization:** `docs/product/Genre-Normalization-PRD.md`
+- **Canonical Contracts:** `../product/Canonical-Data-Contracts-PRD.md`
+- **Genre Normalization:** `../architecture/genre-normalization.md`
 - **API Contract:** See AGENTS.md Backend API section
-- **Technical Spec:** `docs/features/ENRICHMENT_PIPELINE.md`
 
 ---
 

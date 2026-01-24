@@ -18,24 +18,22 @@ Welcome to the central documentation for BooksTrack V3. This directory contains 
 ## 📂 Directory Structure
 
 ### `docs/product/`
-**Product Requirements (PRDs).** The "Why" and "What" of features.
-- `Library-Management-PRD.md` - Core library functionality.
-- `Diversity-Insights-PRD.md` - Analytics & representation logic.
-- `Review-Queue-PRD.md` - Manual review process for AI features.
+**Product Requirements (PRDs).** Planned features and backlog items.
+- `Reading-Goals-PRD.md` - Set and track reading goals.
+- `Series-Tracking-PRD.md` - Manage book series.
 
 ### `docs/features/`
-**Implementation Details.** The "How" of specific features, bridging PRDs and code.
-- **[GEMINI_CSV_IMPORT.md](./features/GEMINI_CSV_IMPORT.md)** - AI-powered CSV import.
+**Feature Documentation.** Comprehensive specs for shipped features (What + How).
+- **[ISBN_SCANNER.md](./features/ISBN_SCANNER.md)** - Barcode scanning.
 - **[BOOKSHELF_SCANNER.md](./features/BOOKSHELF_SCANNER.md)** - Vision-based bulk import.
-- **[BATCH_BOOKSHELF_SCANNING.md](./features/BATCH_BOOKSHELF_SCANNING.md)** - Concurrency logic for scanner.
-- **[FEATURE_FLAGS.md](./features/FEATURE_FLAGS.md)** - Feature flag system.
+- **[GEMINI_CSV_IMPORT.md](./features/GEMINI_CSV_IMPORT.md)** - AI-powered CSV import.
+- **[LIBRARY_MANAGEMENT.md](./features/LIBRARY_MANAGEMENT.md)** - Core library features.
 
 ### `docs/architecture/`
 **System Design.** High-level technical decisions and patterns.
+- **[dto-mapper.md](./architecture/dto-mapper.md)** - Client-side data mapping.
+- **[genre-normalization.md](./architecture/genre-normalization.md)** - Taxonomy rules.
 - `VISUAL_DESIGN_SUMMARY.md` - iOS 26 Liquid Glass design system.
-- `cascade-metadata.md` - How we merge data from multiple providers.
-- `ratings-system.md` - Logic behind user ratings.
-- `reading-sessions.md` - Timer & session state management.
 
 ### `docs/workflows/`
 **Visual Flows.** Mermaid diagrams describing complex user or data flows.

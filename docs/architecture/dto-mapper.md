@@ -1,4 +1,4 @@
-# DTOMapper Integration - Product Requirements Document
+# DTOMapper Integration - Technical Design
 
 **Feature:** iOS DTO-to-SwiftData Mapper Service
 **Status:** ✅ Production (v3.0.0+)

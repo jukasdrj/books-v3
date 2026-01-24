@@ -1,4 +1,4 @@
-# Diversity Insights - Product Requirements Document
+# Diversity Insights - Feature Documentation
 
 **Status:** ✅ Shipped (v3.1.0)
 **Owner:** Product Team

@@ -1,4 +1,4 @@
-# Review Queue - Product Requirements Document
+# Review Queue - Feature Documentation
 
 **Status:** Shipped
 **Owner:** Product Team
@@ -316,8 +316,8 @@ dependencies:
 
 ## Related Documentation
 
-- **Bookshelf Scanner:** `docs/product/Bookshelf-AI-Scanner-PRD.md`
-- **Technical Spec:** `docs/features/REVIEW_QUEUE.md`
+- **Bookshelf Scanner:** `BOOKSHELF_SCANNER.md`
+- **Technical Spec:** `REVIEW_QUEUE.md`
 
 ---
 

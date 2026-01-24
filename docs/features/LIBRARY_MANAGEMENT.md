@@ -1,4 +1,4 @@
-# Library Management - Product Requirements Document
+# Library Management - Feature Documentation
 
 **Status:** Shipped
 **Owner:** Product Team
@@ -309,8 +309,8 @@ dependencies:
 
 ## Related Documentation
 
-- **Reading Statistics:** `docs/product/Reading-Statistics-PRD.md`
-- **Cloud Sync:** `docs/product/Cloud-Sync-PRD.md`
+- **Reading Statistics:** `READING_STATISTICS.md`
+- **Cloud Sync:** `CLOUD_SYNC.md`
 
 ---
 

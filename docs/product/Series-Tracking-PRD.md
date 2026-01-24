@@ -527,9 +527,9 @@ dependencies:
 
 ## Related Documentation
 
-- **Book Enrichment PRD:** `docs/product/Book-Enrichment-PRD.md` (series metadata source)
-- **Reading Goals PRD:** `docs/product/Reading-Goals-PRD.md` (future: series completion goals)
-- **Library Management PRD:** `docs/product/Library-Management-PRD.md` (series filtering)
+- **Book Enrichment:** `../features/BOOK_ENRICHMENT.md` (series metadata source)
+- **Reading Goals PRD:** `Reading-Goals-PRD.md` (future: series completion goals)
+- **Library Management:** `../features/LIBRARY_MANAGEMENT.md` (series filtering)
 
 ---
 

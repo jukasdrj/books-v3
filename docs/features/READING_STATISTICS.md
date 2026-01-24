@@ -1,4 +1,4 @@
-# Reading Statistics - Product Requirements Document
+# Reading Statistics - Feature Documentation
 
 **Status:** Shipped
 **Owner:** Engineering Team

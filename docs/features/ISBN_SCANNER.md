@@ -1,4 +1,4 @@
-# Barcode Scanner - Product Requirements Document
+# Barcode Scanner - Feature Documentation
 
 **Status:** Shipped
 **Owner:** Product Team

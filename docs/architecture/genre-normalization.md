@@ -1,4 +1,4 @@
-# Genre Normalization Service - Product Requirements Document
+# Genre Normalization Service - Technical Design
 
 **Feature:** Backend Genre Normalization Service
 **Status:** ✅ Production (v3.0.0+)

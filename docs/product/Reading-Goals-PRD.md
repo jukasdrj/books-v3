@@ -475,8 +475,8 @@ dependencies:
 
 ## Related Documentation
 
-- **Diversity Insights PRD:** `docs/product/Diversity-Insights-PRD.md` (goal calculations leverage existing diversity stats)
-- **Reading Statistics PRD:** `docs/product/Reading-Statistics-PRD.md` (goals complement stats)
+- **Diversity Insights:** `../features/DIVERSITY_INSIGHTS.md` (goal calculations leverage existing diversity stats)
+- **Reading Statistics:** `../features/READING_STATISTICS.md` (goals complement stats)
 - **Notification Strategy:** TBD (document local notification patterns)
 
 ---

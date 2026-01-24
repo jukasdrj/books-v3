@@ -1,4 +1,4 @@
-# Cloud Sync - Product Requirements Document
+# Cloud Sync - Feature Documentation
 
 **Status:** Shipped
 **Owner:** Engineering Team
@@ -270,7 +270,7 @@ dependencies:
 
 ## Related Documentation
 
-- **Library Management:** `docs/product/Library-Management-PRD.md`
+- **Library Management:** `LIBRARY_MANAGEMENT.md`
 
 ---
 

@@ -465,9 +465,9 @@ dependencies:
 
 ## Related Documentation
 
-- **Book Enrichment PRD:** `docs/product/Book-Enrichment-PRD.md` (award metadata source)
-- **Reading Goals PRD:** `docs/product/Reading-Goals-PRD.md` (future: award-based goals)
-- **Diversity Insights PRD:** `docs/product/Diversity-Insights-PRD.md` (stats integration)
+- **Book Enrichment:** `../features/BOOK_ENRICHMENT.md` (award metadata source)
+- **Reading Goals PRD:** `Reading-Goals-PRD.md` (future: award-based goals)
+- **Diversity Insights:** `../features/DIVERSITY_INSIGHTS.md` (stats integration)
 
 ---
 
