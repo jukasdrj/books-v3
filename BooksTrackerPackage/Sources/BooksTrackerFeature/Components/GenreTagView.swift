@@ -45,6 +45,7 @@ public struct GenreTagView: View {
                 Text("+\(genres.count - maxVisible)")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+                    .accessibilityLabel("\(genres.count - maxVisible) more genres")
             }
         }
     }
@@ -120,6 +121,7 @@ public struct GenreTagView: View {
                 Capsule()
                     .fill(Color.secondary.opacity(0.1))
             )
+            .accessibilityLabel("\(genres.count - maxVisible) more genres")
     }
 }
 
