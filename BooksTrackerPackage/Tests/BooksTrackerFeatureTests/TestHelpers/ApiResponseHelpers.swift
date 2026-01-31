@@ -52,6 +52,7 @@ extension ResponseEnvelope {
         processingTime: Int? = nil
     ) -> ResponseEnvelope<T> {
         let apiError = ResponseEnvelope<T>.ApiErrorInfo(
+            detail: message ?? "An error occurred",
             message: message,
             code: code,
             details: details != nil ? AnyCodable(details!) : nil,

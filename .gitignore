@@ -186,3 +186,5 @@ build-check.log
 .claude/plans/**/*.scratch
 .claude/plans/**/*.wip
 .claude/plans/**/.DS_Store
+.mcp.json
+.agent/
